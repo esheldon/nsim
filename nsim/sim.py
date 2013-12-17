@@ -53,7 +53,7 @@ from numpy.random import random as randu
 from numpy.random import randn
 
 import ngmix
-from .gexceptions import GMixRangeError, GMixMaxIterEM
+from ngmix.gexceptions import GMixRangeError, GMixMaxIterEM
 
 # region over which to render images and calculate likelihoods
 NSIGMA_RENDER=5.0

@@ -38,7 +38,8 @@ Executable      = {master_script}
 # condor always raises it to 60-90 Meg
 Image_Size      = 90000
 
-GetEnv = True
+# we don't want all the crazy path stuff in there
+#GetEnv = True
 
 kill_sig        = SIGINT
 
@@ -62,7 +63,7 @@ function runsim {
     echo "host: $(hostname)"
     echo "will write to file: $output"
 
-    python $ESPY_DIR/shapesim/bin/run-ngmix-sim.py ${run} ${s2n} ${npair} ${output}
+    nsim-run ${run} ${s2n} ${npair} ${output}
     status=$?
 
     echo "time: $SECONDS"
@@ -74,10 +75,17 @@ function runsim {
     return $status
 }
 
-source ~/.bashrc
-module unload gsim_ring && module load gsim_ring/%(version)s
-module unload espy && module load espy/%(version)s
+source /opt/astro/SL64/bin/setup.astro.sh
+module unload wq
 
+# clear some possible inherited packages
+module unload espy
+module unload espy_packages
+
+# the python path (we still may have oracle in there)
+unset PYTHONPATH
+
+module load ngmix_sim_env
 
 s2n=$1
 npair=$2

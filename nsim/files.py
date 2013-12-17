@@ -20,7 +20,7 @@ def get_s2n_nrepeat(s2n, fac=0.4):
 
 
 def get_config_dir():
-    d=os.environ['ESPY_DIR']
+    d=os.environ['NSIM_DIR']
     return path_join(d,'shapesim','config')
 
 def get_config_file(run):

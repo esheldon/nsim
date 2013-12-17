@@ -10,6 +10,8 @@ from optparse import OptionParser
 
 import esutil as eu
 
+import nsim
+
 parser=OptionParser(__doc__)
 
 parser.add_option('--allow-missing',action='store_true',

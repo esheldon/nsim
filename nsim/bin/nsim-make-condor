@@ -8,9 +8,8 @@ import os
 import numpy
 import esutil as eu
 from esutil.misc import wlog
-from shapesim import shapesim
 
-from shapesim.shapesim import get_npair_nsplit
+import nsim
 
 from optparse import OptionParser
 parser=OptionParser(__doc__)
@@ -136,7 +135,7 @@ def get_seconds_per_pair(c):
     return secper
 
 def write_master(c):
-    master_url=shapesim.get_condor_master_url(c['run'])
+    master_url=nsim.files.get_condor_master_url(c['run'])
     eu.ostools.makedirs_fromfile(master_url)
 
     print master_url
@@ -148,8 +147,8 @@ def write_master(c):
     return master_url
 
 def make_some_dirs(run):
-    d = shapesim.get_condor_dir(run)
-    outd = shapesim.get_output_dir(run, sub='bytrial')
+    d = nsim.files.get_condor_dir(run)
+    outd = nsim.files.get_output_dir(run, sub='bytrial')
 
     if not os.path.exists(d):
         os.makedirs(d)
@@ -163,8 +162,8 @@ def make_some_dirs(run):
 
 def get_flist(run):
     import glob
-    fs=shapesim.get_default_fs()
-    f=shapesim.get_output_url(run, 0, 0, itrial=0, fs=fs)
+    fs=nsim.files.get_default_fs()
+    f=nsim.files.get_output_url(run, 0, 0, itrial=0, fs=fs)
     d=os.path.dirname(f)
 
     if 'ngmix' in run:
@@ -209,7 +208,7 @@ def write_condor_file(c, master_script, equal_time=False, missing=False, max_job
 
         s2n=c['s2n_vals'][is2n]
 
-        npair, nsplit = get_npair_nsplit(c, is2n)
+        npair, nsplit = nsim.files.get_npair_nsplit(c, is2n)
 
         time_hours = npair*seconds_per/3600.0
         if time_hours > MAXTIME_HOURS:
@@ -219,7 +218,7 @@ def write_condor_file(c, master_script, equal_time=False, missing=False, max_job
         print '    nsplit:',nsplit,'npair:',npair,'time (hours):',time_hours
 
         for isplit in xrange(nsplit):
-            output = shapesim.get_output_url(run, 0, is2n, itrial=isplit)
+            output = nsim.files.get_output_url(run, 0, is2n, itrial=isplit)
             logfile = output.replace('.fits','.log')
 
             this_job_name='%s-%03d-%05d' % (overall_name,is2n,isplit)
@@ -247,9 +246,9 @@ def write_condor_file(c, master_script, equal_time=False, missing=False, max_job
     print 'total jobs:',njobs
 
 def start_new_file(run, filenum, master_script, overall_name, missing=False):
-    condor_job_url=shapesim.get_condor_job_url(run,
-                                               filenum=filenum,
-                                               missing=missing)
+    condor_job_url=nsim.files.get_condor_job_url(run,
+                                                 filenum=filenum,
+                                                 missing=missing)
     oname='%s-%03d' % (overall_name,filenum)
     print 'staring new job file:'
     print condor_job_url
@@ -272,7 +271,7 @@ def main():
     max_jobs=int(options.max_jobs)
 
 
-    c = shapesim.read_config(run)
+    c = nsim.files.read_config(run)
     c['version'] = options.version
 
     make_some_dirs(run)

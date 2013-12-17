@@ -10,17 +10,13 @@ scripts=['nsim-average-outputs',
          'nsim-run']
 
 
-scripts=[os.path.join('bin',s) for s in scripts]
+scripts=[os.path.join('nsim/bin',s) for s in scripts]
 
 conf_files=glob.glob('config/*.yaml')
 
 data_files=[]
 for f in conf_files:
-    d=os.path.dirname(f)
-    n=os.path.basename(f)
-    d=os.path.join('share',d)
-
-    data_files.append( (d,[f]) )
+    data_files.append( ('share/nsim_config',[f]) )
 
 
 setup(name="nsim", 

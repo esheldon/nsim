@@ -6,7 +6,7 @@
 import sys
 import os
 from sys import stderr
-import shapesim
+import nsim
 import fitsio
 
 from optparse import OptionParser
@@ -68,8 +68,8 @@ def main():
     output_file=args[3]
 
     print 'reading config files'
-    run_conf = shapesim.read_config(run)
-    sim_conf = shapesim.read_config(run_conf['sim'])
+    run_conf = nsim.files.read_config(run)
+    sim_conf = nsim.files.read_config(run_conf['sim'])
 
     print 'running sim'
     run_sim(sim_conf,run_conf,s2n,npairs,output_file)

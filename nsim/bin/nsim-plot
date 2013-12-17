@@ -8,7 +8,7 @@ run can be a csv
 import sys
 import biggles
 import esutil as eu
-import shapesim
+import nsim
 
 import numpy
 from numpy import sqrt
@@ -60,11 +60,11 @@ def get_names(method):
 def plot_run(plt, run, shear_true, symbol, color, linestyle, options,
              with_points=True, with_curve=True, method='BA13', with_lensfit=False):
 
-    c = shapesim.read_config(run)
+    c = nsim.files.read_config(run)
     label = c.get('label',c['run'])
 
 
-    url=shapesim.get_averaged_url(run, 0)
+    url=nsim.files.get_averaged_url(run, 0)
     print url
     data=eu.io.read(url)
 

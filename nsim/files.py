@@ -21,7 +21,7 @@ def get_s2n_nrepeat(s2n, fac=0.4):
 
 def get_config_dir():
     d=os.environ['NSIM_DIR']
-    return path_join(d,'shapesim','config')
+    return path_join(d,'share','nsim_config')
 
 def get_config_file(run):
     d=get_config_dir()
@@ -44,18 +44,18 @@ def read_config(run):
     return c
 
 def get_default_fs():
-    if os.environ.get('SHAPESIM_FS')=='hdfs':
+    if os.environ.get('NSIM_FS')=='hdfs':
         fs='hdfs'
     else:
         fs='nfs'
     return fs
 
 def get_simdir(fs=None):
+    """
+    note old style name for compatibility
+    """
     if fs=='hdfs':
-        dir=os.environ.get('LENSDIR_HDFS')
-        dir=path_join(dir, 'shapesim')
-    elif fs=='local':
-        dir='/data/esheldon/lensing/shapesim'
+        dir=os.environ['SHAPESIM_HDFS_DIR']
     else:
         dir=os.environ['SHAPESIM_DIR']
 

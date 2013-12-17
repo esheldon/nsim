@@ -2,7 +2,7 @@
 #     gaussian psf
 #     dev galaxy
 
-name: "nsim-dg01"
+name: "sim-dg01"
 
 psf_model: "gauss"
 psf_T: 4.0

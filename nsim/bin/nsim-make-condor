@@ -36,8 +36,9 @@ Executable      = {master_script}
 # condor always raises it to 60-90 Meg
 Image_Size      = 90000
 
-# we don't want all the crazy path stuff in there
-#GetEnv = True
+# sadly we need this or nothing works
+#GetEnv = False
+GetEnv = True
 
 kill_sig        = SIGINT
 
@@ -67,16 +68,14 @@ function runsim {
     echo "time: $SECONDS"
 
     if [[ $status != "0" ]]; then
-        echo "error running sim: $status see log ${logfile}"
+        echo "error running sim: $status"
     fi
 
     return $status
 }
 
-source /opt/astro/SL64/bin/setup.astro.sh
-module unload wq # from the above setup file
-
-# clear some possible inherited packages
+# clear some modules that we may have inherited
+module unload wq            # from the the afs module
 module unload espy_packages # from my startup files
 
 # This should be unnecessary

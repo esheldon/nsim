@@ -99,7 +99,7 @@ def get_output_dir(run, sub=None, fs=None):
         dir = path_join(dir, sub)
     return dir
 
-def get_output_url(run, is2, ie, itrial=None, fs=None, ext=None):
+def get_output_url(run, is2, ie, itrial=None, fs=None, ext='fits'):
     """
 
     is2 and ie are the index in the list of s2 and ellip vals for a given run.
@@ -108,11 +108,6 @@ def get_output_url(run, is2, ie, itrial=None, fs=None, ext=None):
     Note ie might actually be is2n
 
     """
-    if ext is None:
-        if 'ngmix' in run:
-            ext='fits'
-        else:
-            ext='rec'
     sub=None
     if itrial is not None:
         sub='bytrial'
@@ -127,21 +122,17 @@ def get_output_url(run, is2, ie, itrial=None, fs=None, ext=None):
     return path_join(dir, f)
 
 
-def get_averaged_url(run, is2, fs=None):
+def get_averaged_url(run, is2, fs=None, ext='fits'):
     """
     All the trials are averaged in a given s2 bin, and all
     ellip/s2n bins are in a single struct.
     """
-    if 'ngmix' in run:
-        ext='fits'
-    else:
-        ext='rec'
 
     dir=get_output_dir(run, fs=fs)
     f='%s-%03i-avg' % (run,is2)
     if docum:
         f += '-cum'
-    f = '%s.%s' % (f,ext)
+    f = '%s.s' % (f,ext)
     return path_join(dir, f)
 
 

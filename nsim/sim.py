@@ -1,6 +1,9 @@
 """
 Simulate images and fit them, currently MCMC only
 
+Currently importing ngmix locally because it is so slow; numba does not yet
+cache object files. Will make global import when caching is part of numba
+
 additional dependence on
     emcee for MCMC fitting and
     fitsio if checkpointing
@@ -52,8 +55,6 @@ import numpy
 from numpy.random import random as randu
 from numpy.random import randn
 
-import ngmix
-from ngmix.gexceptions import GMixRangeError, GMixMaxIterEM
 
 # region over which to render images and calculate likelihoods
 NSIGMA_RENDER=5.0
@@ -183,6 +184,7 @@ class NGMixSim(dict):
         """
         Fit the model to the galaxy
         """
+        import ngmix
 
         full_guess=self.get_guess(imdict)
         fitter=ngmix.fitting.MCMCSimple(imdict['image'],
@@ -230,6 +232,9 @@ class NGMixSim(dict):
         """
         Get guess, making sure in range
         """
+        import ngmix
+        from ngmix.gexceptions import GMixRangeError
+
         guess=numpy.zeros( (n, 2) )
         shape=ngmix.Shape(g1, g2)
 
@@ -253,6 +258,8 @@ class NGMixSim(dict):
         """
         Get guess, making sure positive
         """
+        from ngmix.gexceptions import GMixRangeError
+
         if val <= 0.0:
             raise GMixRangeError("val <= 0: %s" % val)
 
@@ -270,6 +277,8 @@ class NGMixSim(dict):
         """
         print some stats
         """
+        import ngmix
+
         print >>stderr,'    arate:',res['arate']
         ngmix.fitting.print_pars(res['pars'],front='    pars: ',stream=stderr)
         ngmix.fitting.print_pars(res['perr'],front='    perr: ',stream=stderr)
@@ -278,6 +287,7 @@ class NGMixSim(dict):
         """
         Fit the pixelized psf to a model
         """
+        import ngmix
 
         print >>stderr,'fitting psf'
         imsky,sky=ngmix.em.prep_image(self.psf_image)
@@ -296,6 +306,7 @@ class NGMixSim(dict):
         """
         Set all the priors
         """
+        import ngmix
 
         print >>stderr,"setting priors"
         T=self.simc['obj_T_mean']
@@ -312,6 +323,7 @@ class NGMixSim(dict):
         """
         make the psf gaussian mixture model
         """
+        import ngmix
 
         print >>stderr,"making psf"
 
@@ -389,6 +401,7 @@ class NGMixSim(dict):
         If random is True, use draw random values from the priors.
         Otherwise use the mean of the priors
         """
+        import ngmix
 
         cen_offset, shape1, shape2, T, counts=self.get_pair_pars(random=random)
 
@@ -433,6 +446,7 @@ class NGMixSim(dict):
         """
         Get pair parameters
         """
+        import ngmix
 
         if random:
             cen_offset=self.cen_prior.sample()

@@ -2,6 +2,8 @@ from sys import stderr
 import os
 from os.path import join as path_join
 
+import yaml
+import numpy
 
 
 def get_s2n_nrepeat(s2n, fac=0.4):
@@ -32,8 +34,10 @@ def read_config(run):
     """
     run could be 'name' in sim
     """
+    import yaml
     f=get_config_file(run)
-    c = eu.io.read(f)
+    with open(f) as fobj:
+        c=yaml.load(fobj)
     if 'run' in c:
         n='run'
     else:

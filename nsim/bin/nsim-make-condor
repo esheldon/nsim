@@ -7,7 +7,6 @@ import sys
 import os
 import numpy
 import esutil as eu
-from esutil.misc import wlog
 
 import nsim
 
@@ -75,16 +74,16 @@ function runsim {
 }
 
 source /opt/astro/SL64/bin/setup.astro.sh
-module unload wq
+module unload wq # from the above setup file
 
 # clear some possible inherited packages
-module unload espy
-module unload espy_packages
+module unload espy_packages # from my startup files
 
-# the python path (we still may have oracle in there)
+# This should be unnecessary
 unset PYTHONPATH
 
-module load ngmix_sim_env
+# sets the PATH so that the env bin dir comes first
+module load nsim/env
 
 s2n=$1
 npair=$2
@@ -199,8 +198,6 @@ def write_condor_file(c, master_script, equal_time=False, missing=False, max_job
 
     old_filenum=-1
     filenum=0
-
-    smax=numpy.iinfo('i8').max
 
     fobj=start_new_file(run, filenum, master_script, 
                         overall_name, missing=missing)

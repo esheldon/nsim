@@ -38,12 +38,11 @@ def run_sim(sim_conf,run_conf,s2n,npairs,output_file):
     """
     Run the sim and deal with checkpointing
     """
-    import ngmix
 
     checkpoint_file, checkpoint_data=get_checkpoint_data(output_file)
-    sim=ngmix.sim.NGMixSim(sim_conf, run_conf, s2n, npairs,
-                           checkpoint_file=checkpoint_file,
-                           checkpoint_data=checkpoint_data)
+    sim=nsim.sim.NGMixSim(sim_conf, run_conf, s2n, npairs,
+                          checkpoint_file=checkpoint_file,
+                          checkpoint_data=checkpoint_data)
 
     sim.run_sim()
 

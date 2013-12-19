@@ -86,6 +86,11 @@ class NGMixSim(dict):
         self.shear=self.simc['shear']
         self.nsub=self.simc['nsub']
 
+        if self['expand_true']:
+            self.shear_expand=self.shear
+        else:
+            self.shear_expand=None
+
         self.obj_model=self.simc['obj_model']
 
         self.setup_checkpoints(**keys)
@@ -198,6 +203,8 @@ class NGMixSim(dict):
                                         counts_prior=self.counts_prior,
 
                                         full_guess=full_guess,
+
+                                        shear_expand=self.shear_expand,
 
                                         psf=self.psf_gmix_fit,
                                         nwalkers=self['nwalkers'],

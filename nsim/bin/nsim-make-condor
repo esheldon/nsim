@@ -17,7 +17,7 @@ parser.add_option('-v','--version',default='work',
                   help='priority for queue')
 parser.add_option('--missing',action='store_true',
                   help='write a condor file for the missing files')
-parser.add_option('--max-jobs',default=10000,
+parser.add_option('--max-jobs',default=1000,
                   help='max jobs per condor file, as split on run')
 
 
@@ -164,10 +164,7 @@ def get_flist(run):
     f=nsim.files.get_output_url(run, 0, 0, itrial=0, fs=fs)
     d=os.path.dirname(f)
 
-    if 'ngmix' in run:
-        flist=glob.glob(d+'/*.fits')
-    else:
-        flist=glob.glob(d+'/*.rec')
+    flist=glob.glob(d+'/*.fits')
     return flist
 
 

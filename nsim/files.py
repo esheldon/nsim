@@ -130,9 +130,7 @@ def get_averaged_url(run, is2, fs=None, ext='fits'):
 
     dir=get_output_dir(run, fs=fs)
     f='%s-%03i-avg' % (run,is2)
-    if docum:
-        f += '-cum'
-    f = '%s.s' % (f,ext)
+    f = '%s.%s' % (f,ext)
     return path_join(dir, f)
 
 

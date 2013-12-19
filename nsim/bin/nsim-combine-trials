@@ -6,6 +6,7 @@
 
 import sys
 import nsim
+import fitsio
 from optparse import OptionParser
 
 import esutil as eu

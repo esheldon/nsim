@@ -1,3 +1,18 @@
+# vim: set filetype=markdown :
+
+- sim-dg01
+    - run-dg01r33 shear 0.01 with nwalkers=20 to verify we still see high bias
+        - I do see the bias!  So it was not just the better guess
+
+- sim-dg02
+    - run-dg02r01 nwalkers=40 and few s2n vals (should have used 1000 at the
+    high end!)
+    - run-dg02r02 same as r01 for more statistics
+
+    - run-dg02rtest this can be re-used for other purposes
+        - already saw going to 80 walkers does't help that much
+        - try nwalkers=40 and mca_a=2?
+
 # some of these are old names from old shapesim stuff
 - nsim-eg01
     - exp, sigma ratio 2 (T ratio 4)

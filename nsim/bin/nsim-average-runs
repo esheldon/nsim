@@ -50,6 +50,8 @@ def do_avg(data):
         data['T'] = data['T_sum']/data['nsum']
         data['T_err'] = sqrt(1.0/data['T_err2invsum'])
 
+        data['T_s2n'] = data['T_s2n_sum']/data['nsum']
+
     for is2n in xrange(data.size):
         C = numpy.linalg.inv(data['Cinv_sum'][is2n])
         shear = numpy.dot(C,data['Q_sum'][is2n])

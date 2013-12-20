@@ -10,7 +10,7 @@ scripts=['nsim-average-outputs',
          'nsim-run']
 
 
-scripts=[os.path.join('nsim/bin',s) for s in scripts]
+scripts=[os.path.join('bin',s) for s in scripts]
 
 conf_files=glob.glob('config/*.yaml')
 

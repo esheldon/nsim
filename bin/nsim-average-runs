@@ -41,7 +41,7 @@ def do_sums(data, data0):
 
 
 
-def do_avg(data):
+def do_avg(conf, data):
 
     if 'flux_sum' in data.dtype.names:
         data['flux'] = data['flux_sum']/data['nsum']
@@ -55,6 +55,15 @@ def do_avg(data):
     for is2n in xrange(data.size):
         C = numpy.linalg.inv(data['Cinv_sum'][is2n])
         shear = numpy.dot(C,data['Q_sum'][is2n])
+
+        # did we expand around the true shear?
+        expand_shear=conf.get('expand_shear_true',False)
+        if expand_shear:
+            true_shear = numpy.array( conf['simc']['shear'] )
+            print 'adding expand shear:',true_shear
+            shear += true_shear
+
+
 
         shear_cov = numpy.linalg.inv(data['shear_cov_inv_sum'][is2n])
 
@@ -78,6 +87,9 @@ def main():
     new_run_name=args[0]
     runs2average = args[1:]
 
+    conf = nsim.files.read_config(runs2average[0])
+    conf['simc'] = nsim.files.read_config(conf['sim'])
+
     print 'new run name:',new_run_name
     print 'runs2average:',runs2average
 
@@ -91,7 +103,7 @@ def main():
         else:
             do_sums(data, data0)
 
-    do_avg(data)
+    do_avg(conf, data)
 
     fout=nsim.files.get_averaged_url(new_run_name, 0)
     eu.ostools.makedirs_fromfile(fout)

@@ -118,7 +118,9 @@ def get_averaged_gerror(conf, data, s2n_matched, verbose=False):
     d['shear_cov_inv_sum'][0,:,:] = shear_cov_inv
 
     sherr=numpy.sqrt(shear_cov[0,0])
-    print >>stderr,'shear1:      %.16g +/- %.16g' % (shear[0],sherr)
+    fracdiff=shear[0]/conf['simc']['shear'][0]-1.0
+    fracdiff_err=sherr/conf['simc']['shear'][0]
+    print >>stderr,'fracdiff:          % .2e +/- %.2e' % (fracdiff, fracdiff_err)
 
     if do_simple:
         flux=data['pars'][:,5]
@@ -173,7 +175,10 @@ def get_averaged_gerror(conf, data, s2n_matched, verbose=False):
         d['shear_lensfit_cov'][0,:,:] = shear_cov
         d['shear_lensfit_cov_inv_sum'][0,:,:] = shear_cov_inv
 
-        print >>stderr,'shear1 (lensfit): %.16g +/- %.16g' % (shear[0],sherr)
+        fracdiff=shear[0]/conf['simc']['shear'][0]-1.0
+        fracdiff_err=sherr/conf['simc']['shear'][0]
+        print >>stderr,'fracdiff(lensfit): % .2e +/- %.2e' % (fracdiff, fracdiff_err)
+
     return d
 
 

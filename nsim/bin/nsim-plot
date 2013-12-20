@@ -60,7 +60,7 @@ def get_names(method):
 def plot_run(plt, c, symbol, color, linestyle, options,
              with_points=True, with_curve=True, method='BA13', with_lensfit=False):
 
-    label = c.get('label',c['run'])
+    label = c['simc']['label']
     shear_true=c['simc']['shear'][0]
 
     url=nsim.files.get_averaged_url(c['run'], 0)

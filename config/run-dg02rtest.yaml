@@ -16,5 +16,3 @@ desired_err: 8.0e-05
 nsplit0: 500
 
 s2n_vals: [ 500 ] 
-
-label: '$dev \sigma_{gal}/\sigma_{PSF}=2$'

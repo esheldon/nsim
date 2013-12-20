@@ -18,3 +18,5 @@ obj_counts_sigma_frac: 0.3
 shear: [0.01,0.0]
 
 nsub: 16
+
+label: '$exp \sigma_{gal}/\sigma_{PSF}=2$'

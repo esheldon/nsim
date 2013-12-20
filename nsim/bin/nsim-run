@@ -66,11 +66,11 @@ def main():
     npairs=int(args[2])
     output_file=args[3]
 
-    print 'reading config files'
+    print >>stderr,'reading config files'
     run_conf = nsim.files.read_config(run)
     sim_conf = nsim.files.read_config(run_conf['sim'])
 
-    print 'running sim'
+    print >>stderr,'running sim'
     run_sim(sim_conf,run_conf,s2n,npairs,output_file)
 
 main()

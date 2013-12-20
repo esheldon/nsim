@@ -37,7 +37,6 @@ Executable      = {master_script}
 Image_Size      = 90000
 
 # sadly we need this or nothing works
-#GetEnv = False
 GetEnv = True
 
 kill_sig        = SIGINT
@@ -62,6 +61,24 @@ function runsim {
     echo "host: $(hostname)"
     echo "will write to file: $output"
 
+    # aliases are not inherited, and module is an alias
+    source /opt/astro/SL64/Modules/default/etc/profile.modules
+
+    # clear some modules that we may have inherited
+    echo "unloading modules"
+    module unload wq &> /dev/null  # from the the afs module
+    module unload espy_packages    # from my startup files
+
+    # This should be unnecessary
+    unset PYTHONPATH
+
+    # sets the PATH so that the env bin dir comes first
+    echo "loading modules"
+    module load nsim/env
+    which python
+
+    echo
+
     nsim-run ${run} ${s2n} ${npair} ${output}
     status=$?
 
@@ -74,15 +91,6 @@ function runsim {
     return $status
 }
 
-# clear some modules that we may have inherited
-module unload wq            # from the the afs module
-module unload espy_packages # from my startup files
-
-# This should be unnecessary
-unset PYTHONPATH
-
-# sets the PATH so that the env bin dir comes first
-module load nsim/env
 
 s2n=$1
 npair=$2
@@ -96,7 +104,12 @@ rm -f ${logfile}
 
 # temporary log file, to be transferred later
 log_bname=$(basename $logfile)
-tmplog="$_CONDOR_SCRATCH_DIR/$log_bname"
+if [[ -n $_CONDOR_SCRATCH_DIR ]]; then
+    tmpdir=$_CONDOR_SCRATCH_DIR
+else
+    tmpdir=$TMPDIR
+fi
+tmplog="$tmpdir/$log_bname"
 
 runsim &> ${tmplog}
 status=$?

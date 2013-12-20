@@ -86,8 +86,9 @@ class NGMixSim(dict):
         self.shear=self.simc['shear']
         self.nsub=self.simc['nsub']
 
-        if self['expand_true']:
+        if self['expand_shear_true']:
             self.shear_expand=self.shear
+            print >>stderr,'nsim: expanding about shear:',self.shear_expand
         else:
             self.shear_expand=None
 
@@ -301,13 +302,13 @@ class NGMixSim(dict):
 
         em=ngmix.em.GMixEM(imsky)
         guess=self.psf_gmix_true.copy()
-        print 'psf guess:'
-        print guess
+        print >>stderr,'psf guess:'
+        print >>stderr,guess
         em.go(guess, sky, tol=1.e-5)
 
         self.psf_gmix_fit=em.get_gmix()
-        print 'psf fit:'
-        print self.psf_gmix_fit
+        print >>stderr,'psf fit:'
+        print >>stderr,self.psf_gmix_fit
 
     def set_priors(self):
         """

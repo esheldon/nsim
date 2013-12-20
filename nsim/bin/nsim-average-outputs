@@ -27,7 +27,7 @@ parser.add_option('--show',action='store_true',
 
 
 
-def get_averaged_gerror(data, s2n_matched, verbose=False):
+def get_averaged_gerror(conf, data, s2n_matched, verbose=False):
     dt =data.dtype.descr
     dt += [('s2n_matched','f8'),
 
@@ -76,6 +76,13 @@ def get_averaged_gerror(data, s2n_matched, verbose=False):
                                                      data['R'])
     C = numpy.linalg.inv(Cinv_sum)
     shear = numpy.dot(C,Q_sum)
+
+    # did we expand around the true shear?
+    expand_shear=conf.get('expand_shear_true',False)
+    if expand_shear:
+        true_shear = numpy.array( conf['simc']['shear'] )
+        print 'adding expand shear:',true_shear
+        shear += true_shear
 
     cov = data['pcov'][:,2:2+2, 2:2+2]
     cov_inv = cov.copy()
@@ -190,6 +197,8 @@ def main():
         skip = [int(v) for v in options.skip.split(',')]
 
     c = nsim.files.read_config(run)
+    c['simc'] = nsim.files.read_config(c['sim'])
+
     s2n_vals    = c['s2n_vals']
 
     n_s2n = len(s2n_vals)
@@ -206,7 +215,7 @@ def main():
         print >>stderr,fname
         data=eu.io.read(fname)
 
-        d = get_averaged_gerror(data, s2n_matched, verbose=options.verbose)
+        d = get_averaged_gerror(c, data, s2n_matched, verbose=options.verbose)
         dlist.append(d)
 
     output = eu.numpy_util.combine_arrlist(dlist)

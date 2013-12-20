@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-    %prog run shear_true
+    %prog run
 
 run can be a csv
 """
@@ -57,14 +57,13 @@ def get_names(method):
 
     return s_name, scov_name
 
-def plot_run(plt, run, shear_true, symbol, color, linestyle, options,
+def plot_run(plt, c, symbol, color, linestyle, options,
              with_points=True, with_curve=True, method='BA13', with_lensfit=False):
 
-    c = nsim.files.read_config(run)
     label = c.get('label',c['run'])
+    shear_true=c['simc']['shear'][0]
 
-
-    url=nsim.files.get_averaged_url(run, 0)
+    url=nsim.files.get_averaged_url(c['run'], 0)
     print url
     data=eu.io.read(url)
 
@@ -133,12 +132,11 @@ def get_labels(runs, options):
 def main():
     options,args = parser.parse_args(sys.argv[1:])
 
-    if len(args) < 2:
+    if len(args) < 1:
         parser.print_help()
         sys.exit(45)
 
     runs=args[0].split(',')
-    shear_true=float(args[1])
     method=options.method.upper()
 
     biggles.configure('default','fontsize_min',3)
@@ -181,7 +179,11 @@ def main():
     cobj=[]
     for irun,run in enumerate(runs):
         with_curve=False
-        xrng_run, crv_run, pts_run = plot_run(plt, run, shear_true, 
+
+        c = nsim.files.read_config(run)
+        c['simc'] = nsim.files.read_config(c['sim'])
+
+        xrng_run, crv_run, pts_run = plot_run(plt, c, 
                                               symbols[irun],
                                               colors[irun],
                                               linestyles[irun],
@@ -205,7 +207,7 @@ def main():
     plt.add(key)
     plt.xrange=xrng
 
-    tl=biggles.PlotLabel(0.9,0.1,r'$\gamma_{true} = %.02f$' % shear_true,
+    tl=biggles.PlotLabel(0.9,0.1,r'$\gamma_{true} = %.02f$' % c['simc']['shear'][0],
                          halign='right')
     plt.add(tl)
 

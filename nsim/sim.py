@@ -287,7 +287,7 @@ class NGMixSim(dict):
         """
         import ngmix
 
-        print >>stderr,'    arate:',res['arate']
+        print >>stderr,'    arate:',res['arate'],'s2n_w:',res['s2n_w']
         ngmix.fitting.print_pars(res['pars'],front='    pars: ',stream=stderr)
         ngmix.fitting.print_pars(res['perr'],front='    perr: ',stream=stderr)
 
@@ -371,9 +371,6 @@ class NGMixSim(dict):
         im=imdict['im1']['image']
         skysig2 = (im**2).sum()/self.s2n**2
         skysig = numpy.sqrt(skysig2)
-
-        noise_image = skysig*randn(im.size).reshape(im.shape)
-        new_im = im + noise_image
 
         s2n_check = numpy.sqrt( (im**2).sum()/skysig**2 )
         print >>stderr,"S/N goal:",self.s2n,"found:",s2n_check

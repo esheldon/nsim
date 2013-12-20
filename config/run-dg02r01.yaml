@@ -1,4 +1,3 @@
-# this one new style guess but nwalkers=20 to see if we do as well
 run: "run-dg02r01"
 sim: "sim-dg02"
 

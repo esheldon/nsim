@@ -140,6 +140,8 @@ def get_averaged_gerror(conf, data, s2n_matched, verbose=False):
         T_var=data['pcov'][:,4,4]
         T_err=sqrt(T_var)
 
+        # these are for getting the overall mean T not the mean
+        # s2n; that is below
         d['T_sum'] = T.sum()
         d['T_err2invsum'] = (1.0/T_var).sum()
 

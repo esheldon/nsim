@@ -1,4 +1,5 @@
 # trying mca_a=2
+# looks like crap
 run: "run-dg02rtest"
 sim: "sim-dg02"
 

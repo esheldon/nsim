@@ -12,6 +12,7 @@
     - run-dg02rtest this can be re-used for other purposes
         - already saw going to 80 walkers does't help that much
         - try nwalkers=40 and mca_a=2?
+            - looks like crap!  huh...
 
 # some of these are old names from old shapesim stuff
 - nsim-eg01

@@ -34,7 +34,8 @@
             - I think it is more important at this stage to look for better
               accuracy.  Let's do it
 
-    - run-dg03r05 nwalkers=40, burnin=40, nstep=8000
+    - run-dg03r05 nwalkers=40, burnin=40, nstep=800
+        - looks about the same
 
     - so dg02 with 40 looks as good as dg03 with 80.  Is this some problem with
       expanding about 0.08 shear, where the shapes get very close to unity and

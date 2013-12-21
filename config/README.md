@@ -17,6 +17,11 @@
 - sim-dg03  shear 0.08, see if OK at high shear
     - run-dg03r01 nwalkers=40, s/n starting at 10
     - run-dg03r02 nwalkers=80
+        - looks better!  So is it the burnin or the nstep?
+            - run with nwalkers=40 but nstep  doubled to 400
+            - run with nwalkers=40 but burnin doubled to 800
+    - run-dg03r03 nwalkers=40, nstep=400 (doubled nstep, burnin same)
+    - run-dg03r04 nwalkers=40, burnin=800 (doubled burnin, nstep same)
 
 # some of these are old names from old shapesim stuff
 - nsim-eg01

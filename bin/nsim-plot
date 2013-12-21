@@ -36,6 +36,8 @@ parser.add_option('--method',default='ba13',
 
 parser.add_option('--with-lensfit',action='store_true',
                   help="overplot lensfit results")
+parser.add_option('--add-run-label',action='store_true',
+                  help="lable run as well")
 
 parser.add_option('--panel',default=None,
                   help="labels for the panel")
@@ -58,9 +60,13 @@ def get_names(method):
     return s_name, scov_name
 
 def plot_run(plt, c, symbol, color, linestyle, options,
-             with_points=True, with_curve=True, method='BA13', with_lensfit=False):
+             with_points=True, with_curve=True,
+             method='BA13', with_lensfit=False,
+             add_run_label=False):
 
     label = c['simc']['label']
+    if add_run_label:
+        label='%s %s' % (c['run'].replace('run-',''), label )
     shear_true=c['simc']['shear'][0]
 
     url=nsim.files.get_averaged_url(c['run'], 0)
@@ -143,9 +149,12 @@ def main():
     biggles.configure('_HalfAxis','ticks_size',2)
     biggles.configure('_HalfAxis','subticks_size',1)
 
-    colors=['darkblue','red','darkgreen','magenta']
-    linestyles=['solid','dotdashed','shortdashed','dotted']
-    symbols=['filled circle','filled triangle','filled square','filled diamond']
+    colors=['darkblue','red',     'darkgreen','magenta',
+            'blue',    'firebrock','green',   'purple']
+    linestyles=['solid','dotdashed','shortdashed','dotted',
+                'longdashed','dotdotdashed','dotdotdotdashed']
+    symbols=['filled circle','filled triangle','filled square','filled diamond',
+             'circle',       'triangle',       'square',       'diamond']
     #labels=get_labels(runs, options)
 
     ylabel=r'$\Delta \gamma/\gamma$'
@@ -191,7 +200,8 @@ def main():
                                               #labels[irun],
                                               with_curve=with_curve,
                                               method=method,
-                                              with_lensfit=options.with_lensfit)
+                                              with_lensfit=options.with_lensfit,
+                                              add_run_label=options.add_run_label)
         if with_curve:
             cobj.append(crv_run)
         else:

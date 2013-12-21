@@ -14,6 +14,10 @@
         - try nwalkers=40 and mca_a=2?
             - looks like crap!  huh...
 
+- sim-dg03  shear 0.08, see if OK at high shear
+    - run-dg03r01 nwalkers=40, s/n starting at 10
+    - run-dg03r02 nwalkers=80
+
 # some of these are old names from old shapesim stuff
 - nsim-eg01
     - exp, sigma ratio 2 (T ratio 4)

@@ -17,11 +17,29 @@
 - sim-dg03  shear 0.08, see if OK at high shear
     - run-dg03r01 nwalkers=40, s/n starting at 10
     - run-dg03r02 nwalkers=80
-        - looks better!  So is it the burnin or the nstep?
+        - looks better!  So is it the nwalkers, burnin or the nstep?
             - run with nwalkers=40 but nstep  doubled to 400
             - run with nwalkers=40 but burnin doubled to 800
     - run-dg03r03 nwalkers=40, nstep=400 (doubled nstep, burnin same)
+        - looks similar to r02
     - run-dg03r04 nwalkers=40, burnin=800 (doubled burnin, nstep same)
+        - looks in between
+
+    - so these are probably burnt in, but more sampling was needed. Real data
+      may not burn in as quickly. options:
+        - nwalkers=40 burnin=400 nstep=400 known bias
+        - nwalkers=80 burnin=400 nstep=200 known bias
+        - nwalkers=80 burnin=200 nstep=200 even less burnin
+        - nwalkers=40 burnin=400 nstep=800 see if more nstep helps.
+            - I think it is more important at this stage to look for better
+              accuracy.  Let's do it
+
+    - run-dg03r05 nwalkers=40, burnin=40, nstep=8000
+
+    - so dg02 with 40 looks as good as dg03 with 80.  Is this some problem with
+      expanding about 0.08 shear, where the shapes get very close to unity and
+      the prob is zero?  I think these have pj==0. But there should be a tiny
+      number of them.
 
 # some of these are old names from old shapesim stuff
 - nsim-eg01

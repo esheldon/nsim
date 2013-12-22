@@ -192,7 +192,14 @@ class NGMixSim(dict):
         """
         import ngmix
 
-        full_guess=self.get_guess(imdict)
+        guess_type=self['guess_type']
+        if guess_type=='draw_truth':
+            full_guess=self.get_guess_from_true(imdict)
+        elif guess_type=='draw_priors':
+            full_guess=self.get_guess_draw_priors()
+        else:
+            raise ValueError("bad guess type: '%s'" % guess_type)
+
         fitter=ngmix.fitting.MCMCSimple(imdict['image'],
                                         imdict['wt'],
                                         imdict['jacobian'],
@@ -218,10 +225,35 @@ class NGMixSim(dict):
         #fitter.make_plots(show=True)
         return fitter.get_result()
 
-    def get_guess(self, imdict):
+    def get_guess_draw_priors(self):
+        """
+        Get a guess drawn from the priors
+
+        assume simple for now
+        """
+        import ngmix
+
+        print >>stderr,'    guessing from priors'
+        npars=ngmix.gmix.get_model_npars(self['fit_model'])
+        if npars != 6:
+            raise ValueError("support guess from non-simple!")
+
+        nwalkers=self['nwalkers']
+        guess=numpy.zeros( (nwalkers, npars) )
+
+        guess[:,0],guess[:,1]=self.cen_prior.sample(n=nwalkers)
+        guess[:,2],guess[:,3]=self.g_prior.sample2d(nwalkers)
+        guess[:,4]=self.T_prior.sample(nrand=nwalkers)
+        guess[:,5]=self.counts_prior.sample(nrand=nwalkers)
+
+        return guess
+
+    def get_guess_from_true(self, imdict):
         """
         Get a guess centered on the truth
         """
+        print >>stderr,'    guessing from truth'
+
         pars=imdict['pars']
         nwalkers=self['nwalkers']
         guess=numpy.zeros( (nwalkers, pars.size) )
@@ -287,7 +319,7 @@ class NGMixSim(dict):
         """
         import ngmix
 
-        print >>stderr,'    arate:',res['arate'],'s2n_w:',res['s2n_w']
+        print >>stderr,'    arate:',res['arate'],'s2n_w:',res['s2n_w'],'nuse:',res['pqr_nuse']
         ngmix.fitting.print_pars(res['pars'],front='    pars: ',stream=stderr)
         ngmix.fitting.print_pars(res['perr'],front='    perr: ',stream=stderr)
 
@@ -582,6 +614,8 @@ class NGMixSim(dict):
         d['R'][i,:,:] = res['R']
         d['g'][i,:] = res['g']
         d['gsens'][i,:] = res['g_sens']
+        d['lensfit_nuse'][i] = res['lensfit_nuse']
+        d['pqr_nuse'][i] = res['pqr_nuse']
 
     def make_struct(self):
         """
@@ -594,7 +628,9 @@ class NGMixSim(dict):
             ('Q','f8',2),
             ('R','f8',(2,2)),
             ('g','f8',2),
-            ('gsens','f8',2)]
+            ('gsens','f8',2),
+            ('lensfit_nuse','i4'),
+            ('pqr_nuse','i4')]
         self.data=numpy.zeros(self.npairs*2, dtype=dt)
 
 def srandu(num=None):

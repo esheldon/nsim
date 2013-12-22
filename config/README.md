@@ -42,6 +42,15 @@
       the prob is zero?  I think these have pj==0. But there should be a tiny
       number of them.
 
+- sim-eg01 shear 0.08
+    - run-eg01r01 nwalkers=80, burnin=400,nstep=200
+        - looks worse than dev!
+
+- sim-eg01 shear 0.04
+    - trying to see if improves over 0.08, might be a clue
+    - run-eg02r01 nwalkers=80, burnin=400,nstep=200
+
+
 # some of these are old names from old shapesim stuff
 - nsim-eg01
     - exp, sigma ratio 2 (T ratio 4)

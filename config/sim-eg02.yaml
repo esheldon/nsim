@@ -2,7 +2,7 @@
 #     gaussian psf
 #     exponential galaxy
 
-name: "sim-eg01"
+name: "sim-eg02"
 
 psf_model: "gauss"
 psf_T: 4.0
@@ -19,4 +19,4 @@ shear: [0.04,0.0]
 
 nsub: 16
 
-label: '$exp \sigma_{gal}/\sigma_{PSF}=2$'
+label: '$exp \gamma=0.04 \sigma_{gal}/\sigma_{PSF}=2$'

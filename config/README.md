@@ -6,8 +6,10 @@
 
 - sim-dg02
     - run-dg02r01 nwalkers=40 and few s2n vals (should have used 1000 at the
-    high end!)
+      high end!)
     - run-dg02r02 same as r01 for more statistics
+
+    - + run-dg02r03 using log spaced s/n value set
 
     - run-dg02rtest this can be re-used for other purposes
         - already saw going to 80 walkers does't help that much
@@ -16,10 +18,12 @@
 
 - sim-dg03  shear 0.08, see if OK at high shear
     - run-dg03r01 nwalkers=40, s/n starting at 10
-    - run-dg03r02 nwalkers=80
+
+    - + run-dg03r02 nwalkers=80
         - looks better!  So is it the nwalkers, burnin or the nstep?
             - run with nwalkers=40 but nstep  doubled to 400
             - run with nwalkers=40 but burnin doubled to 800
+
     - run-dg03r03 nwalkers=40, nstep=400 (doubled nstep, burnin same)
         - looks similar to r02
     - run-dg03r04 nwalkers=40, burnin=800 (doubled burnin, nstep same)
@@ -37,19 +41,42 @@
     - run-dg03r05 nwalkers=40, burnin=40, nstep=800
         - looks about the same
 
-    - so dg02 with 40 looks as good as dg03 with 80.  Is this some problem with
-      expanding about 0.08 shear, where the shapes get very close to unity and
-      the prob is zero?  I think these have pj==0. But there should be a tiny
-      number of them.
+
+    - + run-dg03r06 nwalkers=80 (same as run-dg03r02)
+        NOT YET RUN (do we need it?)
 
 - sim-eg01 shear 0.08
-    - run-eg01r01 nwalkers=80, burnin=400,nstep=200
-        - looks worse than dev!
+    - + run-eg01r01 nwalkers=80, burnin=400,nstep=200
+    - + run-eg01r02 same for more stats
+        - NOT YET RUN (do we need it?)
 
-- sim-eg01 shear 0.04
+- sim-eg02 shear 0.04
     - trying to see if improves over 0.08, might be a clue
-    - run-eg02r01 nwalkers=80, burnin=400,nstep=200
+    - + run-eg02r01 nwalkers=80, burnin=400,nstep=200
+        - looks quite similar to run-dg01r01
 
+- sim-eg03
+    - shear 0.08, size ratio sqrt(2)
+    - run-eg03r01, nwalkers=80, rest standard
+        - TERRIBLE.  Always low.  Maybe this is from a bad guess?  But that is
+          hard to believe.
+    - run-eg03r02 Draw guess from priors.
+        - TO BE RUN
+
+- sim-dg04
+    - shear 0.08, size ratio sqrt(2)
+    - run-dg04r01, nwalkers=80, rest standard
+        RUNNING
+
+- going to run with shear=0.08 for now, nwalkers=80
+    - we already have these runs
+        - run-eg01r01
+        - run-dg03r02
+    - add these
+        - run-dg03r06 - hold off on this
+        - run-eg01r02 - hold off on this
+        - run-eg03r01
+        - run-dg03r04
 
 # some of these are old names from old shapesim stuff
 - nsim-eg01

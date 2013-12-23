@@ -136,14 +136,25 @@ def get_seconds_per_pair(c):
     """
     Boosting this for the slowest machines
     """
-    nstep=c['nwalkers']*(c['nstep'] + c['burnin'])
-    nstep_cal=float(20*(200+400))
-    if c['fit_model']=='exp':
-        secper=4.0
+    if 'nwalkers' in c:
+        nstep=c['nwalkers']*(c['nstep'] + c['burnin'])
     else:
-        secper=6.0
+        nstep=c['n_samples']
 
-    secper *= nstep/nstep_cal
+    fit_model=c['fit_model']
+    if fit_model=='exp':
+        nstep_ref=20*(200+400)
+        secper=4.0
+    elif fit_model=='dev':
+        nstep_ref=20*(200+400)
+        secper=6.0
+    elif fit_model=='gauss':
+        nstep_ref=80*(200+400)
+        secper=8.0 # per pair!
+    else:
+        raise ValueError("support fit_model: '%s'" % fit_model)
+
+    secper *= float(nstep)/nstep_ref
     return secper
 
 def write_master(c):

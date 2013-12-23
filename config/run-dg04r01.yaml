@@ -2,6 +2,7 @@ run: "run-dg04r01"
 sim: "sim-dg04"
 
 fit_model: "dev"
+guess_type: "draw_truth"
 
 nwalkers: 80
 burnin:   400

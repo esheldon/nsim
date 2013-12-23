@@ -1,5 +1,10 @@
 # vim: set filetype=markdown :
 
+- things to try why exp is weird
+    - gauss to see if anything still odd.
+    - try importance sample instead of MCMC.  Just at low s/n and draw from
+      priors
+
 - sim-dg01
     - run-dg01r33 shear 0.01 with nwalkers=20 to verify we still see high bias
         - I do see the bias!  So it was not just the better guess
@@ -47,8 +52,10 @@
 
 - sim-eg01 shear 0.08
     - + run-eg01r01 nwalkers=80, burnin=400,nstep=200
-    - + run-eg01r02 same for more stats
-        - NOT YET RUN (do we need it?)
+    - + run-eg01r02
+        draw from priors, pretty high error, just a test
+    - + run-eg01r03
+        draw from priors, and more nstep
 
 - sim-eg02 shear 0.04
     - trying to see if improves over 0.08, might be a clue
@@ -61,12 +68,12 @@
         - TERRIBLE.  Always low.  Maybe this is from a bad guess?  But that is
           hard to believe.
     - run-eg03r02 Draw guess from priors.
-        - TO BE RUN
+        - Better, but the exp are looking like shit.  What is going on?
 
 - sim-dg04
     - shear 0.08, size ratio sqrt(2)
     - run-dg04r01, nwalkers=80, rest standard
-        RUNNING
+        Looks OK but should try again with draw guess from priors
 
 - going to run with shear=0.08 for now, nwalkers=80
     - we already have these runs
@@ -77,6 +84,10 @@
         - run-eg01r02 - hold off on this
         - run-eg03r01
         - run-dg03r04
+
+- sim-gg01 shear=0.08
+    - run-gg01r01 all standard 80,400,200
+    - run-gg01r02 importance sampling
 
 # some of these are old names from old shapesim stuff
 - nsim-eg01

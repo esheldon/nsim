@@ -188,6 +188,57 @@ class NGMixSim(dict):
 
     def fit_galaxy(self, imdict):
         """
+        Fit according to the requested method
+        """
+
+        fitter=self['fitter']
+        if fitter == 'mcmc':
+            res = self.fit_galaxy_mcmc(imdict)
+        elif fitter == 'isample':
+            res = self.fit_galaxy_isample(imdict)
+        else:
+            raise ValueError("bad fitter type: '%s'" % fitter)
+
+        return res
+
+    def fit_galaxy_isample(self, imdict):
+        """
+        Fit the model to the galaxy using important sampling
+        """
+        import ngmix
+
+        fitter=ngmix.fitting.ISampleSimple(imdict['image'],
+                                           imdict['wt'],
+                                           imdict['jacobian'],
+                                           self['fit_model'],
+
+                                           cen_prior=self.cen_prior,
+                                           g_prior=self.g_prior,
+                                           T_prior=self.T_prior,
+                                           counts_prior=self.counts_prior,
+
+                                           shear_expand=self.shear_expand,
+
+                                           psf=self.psf_gmix_fit,
+
+                                           n_samples=self['n_samples'],
+                                           do_pqr=True,
+                                           do_lensfit=True)
+        fitter.go()
+        res = fitter.get_result()
+
+        ew=res['eff_iweight']
+        print >>stderr,'    found eff_iweight:',ew,'eff samples:',ew*self['n_samples']
+
+        #fitter.make_plots(show=True)
+
+        #if res['eff_iweight'] < self['min_eff_iweight']:
+        #    res['flags'] = 1
+
+        return res
+
+    def fit_galaxy_mcmc(self, imdict):
+        """
         Fit the model to the galaxy
         """
         import ngmix
@@ -209,6 +260,8 @@ class NGMixSim(dict):
                                         g_prior=self.g_prior,
                                         T_prior=self.T_prior,
                                         counts_prior=self.counts_prior,
+
+                                        g_prior_during=self['g_prior_during'],
 
                                         full_guess=full_guess,
 
@@ -319,7 +372,7 @@ class NGMixSim(dict):
         """
         import ngmix
 
-        print >>stderr,'    arate:',res['arate'],'s2n_w:',res['s2n_w'],'nuse:',res['pqr_nuse']
+        print >>stderr,'    arate:',res['arate'],'s2n_w:',res['s2n_w'],'nuse:',res['nuse']
         ngmix.fitting.print_pars(res['pars'],front='    pars: ',stream=stderr)
         ngmix.fitting.print_pars(res['perr'],front='    perr: ',stream=stderr)
 
@@ -614,8 +667,7 @@ class NGMixSim(dict):
         d['R'][i,:,:] = res['R']
         d['g'][i,:] = res['g']
         d['gsens'][i,:] = res['g_sens']
-        d['lensfit_nuse'][i] = res['lensfit_nuse']
-        d['pqr_nuse'][i] = res['pqr_nuse']
+        d['nuse'][i] = res['nuse']
 
     def make_struct(self):
         """
@@ -629,8 +681,7 @@ class NGMixSim(dict):
             ('R','f8',(2,2)),
             ('g','f8',2),
             ('gsens','f8',2),
-            ('lensfit_nuse','i4'),
-            ('pqr_nuse','i4')]
+            ('nuse','i4')]
         self.data=numpy.zeros(self.npairs*2, dtype=dt)
 
 def srandu(num=None):

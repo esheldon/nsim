@@ -161,6 +161,16 @@ npair_ref_deg=numpy.array([3768000, 2280984, 1514069, 1072740,  615414,  397620,
                            204484,  156980,  124212,  100687,   69975,   51480,   39438,
                            31178,   25272,   16236,   11336,    8397,    6489])
 
+
+s2n_ref_gg=numpy.array([ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ],dtype='f8')
+err_ref_gg=numpy.array([4.76479645748e-05, 3.34475296565e-05, 3.21185913536e-05, 3.15101059311e-05,
+                        3.19010304786e-05, 3.19790601662e-05, 3.18597748978e-05, 3.18364047527e-05,
+                        3.18242541076e-05, 2.91863314321e-05, 1.91562340848e-05, 1.26330439144e-05])
+
+npair_ref_gg = numpy.array([2412000, 2412000, 1169971,  537207,  230174,   98277,   42930,
+                            18600,    8140,    4152,    4152,    4152])
+
+
 def get_npair_by_noise(s2n, desired_err, run):
     """
     given the desired final error, determine the required number of pairs
@@ -172,6 +182,12 @@ def get_npair_by_noise(s2n, desired_err, run):
     elif 'deg' in run or '-dg' in run:
         npairii = numpy.interp([s2n], s2n_ref_deg, npair_ref_deg)
         errii = numpy.interp([s2n], s2n_ref_deg, err_ref_deg)
+    elif '-gg' in run:
+        # for now work of eg, will be wrong
+        npairii = numpy.interp([s2n], s2n_ref_gg, npair_ref_gg)
+        errii = numpy.interp([s2n], s2n_ref_gg, err_ref_gg)
+    else:
+        raise ValueError("support runs of type '%s'" % run)
 
     # desired_err = errii*sqrt(npairii/npair)
     # thus npair = npairii*(errii/desired_err)^2

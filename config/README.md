@@ -88,6 +88,16 @@
 - sim-gg01 shear=0.08
     - run-gg01r01 all standard 80,400,200
     - run-gg01r02 importance sampling
+    - run-gg01r03 
+        - conjecture is that we need more samples not to get the tails but to
+          see the spikiness of the prior.  And the mcmc sampler may not be able
+          to sample it?  Who knows.
+        - so try applying the prior after to see if we can get some of the
+          spikiness
+        - not remarkably better, but noiser and might need to sample more to
+          see spikiness of prior.
+    - run-gg01r04 increase nstep to 800 to see if I can get more spikiness and
+      improve shear recovery.  Expect of order 4 hours to finish, 10pm.
 
 # some of these are old names from old shapesim stuff
 - nsim-eg01

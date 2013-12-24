@@ -47,15 +47,20 @@
         - looks about the same
 
 
-    - + run-dg03r06 nwalkers=80 (same as run-dg03r02)
-        NOT YET RUN (do we need it?)
+    - + run-dg03r06
+        using prior after
+        RUNNING
 
 - sim-eg01 shear 0.08
-    - + run-eg01r01 nwalkers=80, burnin=400,nstep=200
-    - + run-eg01r02
+    -  run-eg01r01 nwalkers=80, burnin=400,nstep=200
+    -  run-eg01r02
         draw from priors, pretty high error, just a test
-    - + run-eg01r03
+    -  run-eg01r03
         draw from priors, and more nstep
+
+    - + run-eg01r04
+        using prior after
+        RUNNING
 
 - sim-eg02 shear 0.04
     - trying to see if improves over 0.08, might be a clue
@@ -98,6 +103,26 @@
           see spikiness of prior.
     - run-gg01r04 increase nstep to 800 to see if I can get more spikiness and
       improve shear recovery.  Expect of order 4 hours to finish, 10pm.
+
+
+
+
+
+
+- do compare
+    - gg01r01
+    - gg01r04 (just more nstep)
+    - eg01r04
+    - dg03r06
+
+
+
+
+
+
+
+
+
 
 # some of these are old names from old shapesim stuff
 - nsim-eg01

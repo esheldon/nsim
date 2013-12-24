@@ -195,11 +195,55 @@ class NGMixSim(dict):
         if fitter == 'mcmc':
             res = self.fit_galaxy_mcmc(imdict)
         elif fitter == 'isample':
-            res = self.fit_galaxy_isample(imdict)
+            #res = self.fit_galaxy_isample(imdict)
+            res = self.fit_galaxy_isample_auto(imdict)
         else:
             raise ValueError("bad fitter type: '%s'" % fitter)
 
         return res
+
+    def fit_galaxy_isample_auto(self, imdict):
+        """
+        Fit the model to the galaxy using important sampling
+        """
+        import ngmix
+
+
+        fitter=ngmix.fitting.ISampleSimpleAuto(imdict['image'],
+                                           imdict['wt'],
+                                           imdict['jacobian'],
+                                           self['fit_model'],
+                                           n_samples=self['n_samples'], # initial starting number
+                                           min_eff_n_samples=self['min_eff_n_samples'],
+
+                                           cen_prior=self.cen_prior,
+                                           g_prior=self.g_prior,
+                                           T_prior=self.T_prior,
+                                           counts_prior=self.counts_prior,
+
+                                           shear_expand=self.shear_expand,
+
+                                           psf=self.psf_gmix_fit,
+
+                                           do_pqr=True,
+                                           do_lensfit=True)
+        fitter.go()
+        res = fitter.get_result()
+        if False:
+            import pprint
+            pprint.pprint(res)
+
+        #ew=res['eff_iweight']
+        #print >>stderr,'    eff iweight:',ew
+
+        #fitter.make_plots(show=True)
+
+        #if res['eff_iweight'] < self['min_eff_iweight']:
+        #    res['flags'] = 1
+
+        return res
+
+
 
     def fit_galaxy_isample(self, imdict):
         """
@@ -207,10 +251,16 @@ class NGMixSim(dict):
         """
         import ngmix
 
+        trials,ln_probs=self.draw_isamples_priors()
+        #trials,ln_probs=self.draw_isamples_from_true(imdict['pars'])
+
         fitter=ngmix.fitting.ISampleSimple(imdict['image'],
                                            imdict['wt'],
                                            imdict['jacobian'],
                                            self['fit_model'],
+
+                                           trials,
+                                           ln_probs,
 
                                            cen_prior=self.cen_prior,
                                            g_prior=self.g_prior,
@@ -226,9 +276,12 @@ class NGMixSim(dict):
                                            do_lensfit=True)
         fitter.go()
         res = fitter.get_result()
+        if False:
+            import pprint
+            pprint.pprint(res)
 
         ew=res['eff_iweight']
-        print >>stderr,'    found eff_iweight:',ew,'eff samples:',ew*self['n_samples']
+        print >>stderr,'    eff iweight:',ew,'eff samples:',res['eff_n_samples']
 
         #fitter.make_plots(show=True)
 
@@ -236,6 +289,94 @@ class NGMixSim(dict):
         #    res['flags'] = 1
 
         return res
+
+    def draw_isamples_from_true(self, pars):
+        """
+        Draw samples for importance sampling
+
+        Forcing certain types of functions here
+        """
+
+        import ngmix
+
+        npars=ngmix.gmix.get_model_npars(self['fit_model'])
+        if npars != 6:
+            raise ValueError("support guess from non-simple!")
+
+        n_samples=self['n_samples']
+        trials = numpy.zeros( (n_samples, npars) )
+        ln_probs = numpy.zeros(n_samples)
+
+        cen_sigma=self.simc['cen_sigma']
+        g_sigma=0.3
+        T_sigma = self.simc['obj_T_sigma_frac']*pars[4]
+        counts_sigma = self.simc['obj_counts_sigma_frac']*pars[5]
+
+        cen_dist=ngmix.priors.CenPrior(pars[0], pars[1], cen_sigma, cen_sigma)
+        g_dist = ngmix.priors.CenPrior(pars[2],pars[3], g_sigma, g_sigma)
+        T_dist=ngmix.priors.LogNormal(pars[4], T_sigma)
+        counts_dist=ngmix.priors.LogNormal(pars[5], counts_sigma)
+
+
+        trials[:,0],trials[:,1] = cen_dist.sample(n=n_samples)
+        trials[:,2],trials[:,3] = g_dist.sample(n=n_samples)
+        trials[:,4]             = T_dist.sample(nrand=n_samples)
+        trials[:,5]             = counts_dist.sample(nrand=n_samples)
+
+        for i in xrange(n_samples):
+            pars=trials[i,:]
+
+            lnp = 0.0
+
+            lnp += cen_dist.get_lnprob(pars[0], pars[1])
+            lnp += g_dist.get_lnprob(pars[2], pars[3])
+            lnp += T_dist.get_lnprob_scalar(pars[4])
+            lnp += counts_dist.get_lnprob_scalar(pars[5])
+
+            ln_probs[i] = lnp
+
+        return trials, ln_probs
+
+
+    def draw_isamples_priors(self):
+        """
+        Draw samples for importance sampling
+
+        For now just draw from priors, but we will need to change this
+        """
+
+        import ngmix
+
+        npars=ngmix.gmix.get_model_npars(self['fit_model'])
+        if npars != 6:
+            raise ValueError("support guess from non-simple!")
+
+        n_samples=self['n_samples']
+        trials = numpy.zeros( (n_samples, npars) )
+        ln_probs = numpy.zeros(n_samples)
+
+        trials[:,0],trials[:,1]=self.cen_prior.sample(n=n_samples)
+        trials[:,2],trials[:,3]=self.g_prior.sample2d(n_samples)
+        trials[:,4]=self.T_prior.sample(nrand=n_samples)
+        trials[:,5]=self.counts_prior.sample(nrand=n_samples)
+
+        cen_prior=self.cen_prior
+        g_prior=self.g_prior
+        T_prior=self.T_prior
+        counts_prior=self.counts_prior
+        for i in xrange(n_samples):
+            pars=trials[i,:]
+
+            lnp = 0.0
+
+            lnp += cen_prior.get_lnprob(pars[0], pars[1])
+            lnp += g_prior.get_lnprob_scalar2d(pars[2], pars[3])
+            lnp += self.T_prior.get_lnprob_scalar(pars[4])
+            lnp += self.counts_prior.get_lnprob_scalar(pars[5])
+
+            ln_probs[i] = lnp
+
+        return trials, ln_probs
 
     def fit_galaxy_mcmc(self, imdict):
         """
@@ -406,9 +547,10 @@ class NGMixSim(dict):
         T_sigma = self.simc['obj_T_sigma_frac']*T
         counts=self.simc['obj_counts_mean']
         counts_sigma = self.simc['obj_counts_sigma_frac']*counts
+        cen_sigma=self.simc['cen_sigma']
 
         self.g_prior=ngmix.priors.GPriorBA(0.3)
-        self.cen_prior=ngmix.priors.CenPrior(0.0, 0.0, 0.1, 0.1)
+        self.cen_prior=ngmix.priors.CenPrior(0.0, 0.0, cen_sigma, cen_sigma)
         self.T_prior=ngmix.priors.LogNormal(T, T_sigma)
         self.counts_prior=ngmix.priors.LogNormal(counts, counts_sigma)
 

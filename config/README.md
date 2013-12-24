@@ -93,6 +93,7 @@
 - sim-gg01 shear=0.08
     - run-gg01r01 all standard 80,400,200
     - run-gg01r02 importance sampling
+        - THIS ONE WAS BUGGY.
     - run-gg01r03 
         - conjecture is that we need more samples not to get the tails but to
           see the spikiness of the prior.  And the mcmc sampler may not be able
@@ -115,6 +116,17 @@
     - eg01r04
     - dg03r06
 
+- try nearly-fixed other paramters besides shape
+    - gg02r01 looks crappy!  Is it because we only used 200 step? Doubt it
+      since gg01r01 was fine. Simply number of trials? 1,700,000 should be enough..
+
+      This is an important clue.  Could it be the sampler itself? Or how priors
+      are calculated?
+
+- Rewrite the importance sampler so I send it the samples and their log
+  probability
+
+  - I can draw from any distributions then.
 
 
 

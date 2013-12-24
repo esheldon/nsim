@@ -1,0 +1,22 @@
+name: "sim-gg02"
+
+psf_model: "gauss"
+psf_T: 4.0
+psf_shape: [0.0, 0.0]
+
+obj_model: "gauss"
+
+cen_sigma: 1.0e-5
+
+obj_T_mean: 16.0
+obj_T_sigma_frac: 1.0e-5
+
+obj_counts_mean: 100.0
+obj_counts_sigma_frac: 1.0e-5
+
+
+shear: [0.08,0.0]
+
+nsub: 16
+
+label: '$gauss \gamma=0.08 \sigma_{gal}/\sigma_{PSF}=2$'

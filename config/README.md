@@ -93,7 +93,7 @@
 - sim-gg01 shear=0.08
     - run-gg01r01 all standard 80,400,200
     - run-gg01r02 importance sampling
-        - THIS ONE WAS BUGGY.
+        - THIS ONE WAS BUGGY. DO NOT USE
     - run-gg01r03 
         - conjecture is that we need more samples not to get the tails but to
           see the spikiness of the prior.  And the mcmc sampler may not be able
@@ -101,6 +101,28 @@
         - so try applying the prior after to see if we can get some of the
           spikiness
         - not remarkably better, but noiser and might need to sample more to
+run: "run-gg01r04"
+sim: "sim-gg01"
+
+fitter: "mcmc"
+fit_model: "gauss"
+guess_type: "draw_priors"
+g_prior_during: false
+
+nwalkers: 80
+burnin:   400
+nstep:    800
+mca_a:    3.0
+
+expand_shear_true: true
+
+# we normalize splits by split for is2n==0
+desired_err: 4.5e-05
+nsplit0: 20000
+
+s2n_vals: [ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
+
+
           see spikiness of prior.
     - run-gg01r04 increase nstep to 800 to see if I can get more spikiness and
       improve shear recovery.  Expect of order 4 hours to finish, 10pm.
@@ -110,11 +132,18 @@
 
 
 
-- do compare
-    - gg01r01
-    - gg01r04 (just more nstep)
-    - eg01r04
-    - dg03r06
+- near final run types
+    - sigma ratio 2
+        - gg01r01, but note *did* draw priors during. also had error estimate wrong so it
+            is actually much lower error.
+        - gg01r04 more nstep and no g prior during
+        - eg01r04
+        - dg03r06
+    - sigma ratio 1.4
+        - gg03r01
+        - eg03r03
+        - dg04r02
+
 
 - try nearly-fixed other paramters besides shape
     - gg02r01 looks crappy!  Is it because we only used 200 step? Doubt it
@@ -123,17 +152,49 @@
       This is an important clue.  Could it be the sampler itself? Or how priors
       are calculated?
 
-- Rewrite the importance sampler so I send it the samples and their log
-  probability
+    - gg02r02 here is where isample should shine, since the priors are actually
+      super important on all parameters besides shape
 
-  - I can draw from any distributions then.
+- pop idea
+    - measurements
+        - N galaxies
+        - we have some set of measured parameters; this includes image noise.
+    - assumptions
+        - assume we know the PSF
+        - assume we know the unlensed, intrinsic distribution of all the
+          parameters for the underlying population.
+        - assume that if a set of galaxies has the same distribution of
+          parameters then it has the same shear.
+    - procedure 
+
+        - simulate a population of Ns galaxies drawn from the priors, and sheared
+          by some specified amount.
+
+        - Test this population of parameters against the one measured from
+          the distribution of measured parameters (properly normalized).
+
+        - Repeat and ask which shear value matches better.  Could use a
+          non-linear fitter for this.  Take a guess from some simple shear
+          estimate.
+
+    - In principle, could use simple parameters like weighted moments.  Could
+      even possibly use the *observed* moments rather than some fit?
+
+    - for now probably test simple gaussian simulations, and do a standard fit
+      and compare those.
+
+    - the number of model evaluations would be Ns times the number of
+      evaluations to get the estimator times the number steps needed to find
+      the maximum likelihood.  For Ns=N, 100 steps in a non-linear for the
+      estimator, and 100 steps to find the best shear, this would be say
+      100*100*N, which is about the same as for the MCMC chain.  Adaptive
+      moments would be fewer by probably a factor of ten.  Straight circular
+      moments by a factor of 100.
 
 
-
-
-
-
-
+    - practical difficulty is how we do the comparison?  Using a histogram in
+      n-dimensions may not be practical.   Can we just look at the mean of some
+      ellipticity parameters?
 
 
 # some of these are old names from old shapesim stuff

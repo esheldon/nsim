@@ -1,0 +1,21 @@
+run: "run-gg02r02"
+sim: "sim-gg02"
+
+fitter: "isample"
+fit_model: "gauss"
+
+# starting number, may increase
+n_samples: 50000
+
+# effective number after weighting should be this many
+min_eff_n_samples: 1000
+
+expand_shear_true: true
+
+# we normalize splits by split for is2n==0
+desired_err: 8.0e-05
+nsplit0: 20000
+
+s2n_vals: [ 10, 15 ]
+
+

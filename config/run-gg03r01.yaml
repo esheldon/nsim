@@ -1,0 +1,22 @@
+run: "run-gg03r01"
+sim: "sim-gg03"
+
+fitter: "mcmc"
+fit_model: "gauss"
+guess_type: "draw_priors"
+g_prior_during: false
+
+nwalkers: 80
+burnin:   400
+nstep:    200
+mca_a:    3.0
+
+expand_shear_true: true
+
+# we normalize splits by split for is2n==0
+desired_err: 4.5e-05
+nsplit0: 20000
+
+s2n_vals: [ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
+
+

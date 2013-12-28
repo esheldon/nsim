@@ -150,7 +150,7 @@ def main():
     biggles.configure('_HalfAxis','subticks_size',1)
 
     colors=['darkblue','red',     'darkgreen','magenta',
-            'blue',    'firebrock','green',   'purple']
+            'blue',    'firebrick','orange',   'purple']
     linestyles=['solid','dotdashed','shortdashed','dotted',
                 'longdashed','dotdotdashed','dotdotdotdashed']
     symbols=['filled circle','filled triangle','filled square','filled diamond',

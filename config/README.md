@@ -196,6 +196,18 @@ s2n_vals: [ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
       n-dimensions may not be practical.   Can we just look at the mean of some
       ellipticity parameters?
 
+- look at universality of s/n bias vs T_s2n in a maximum likelihood fit or
+  expectation value.
+      - checked expectation value with priors and dev is quite far off the
+        pattern.
+
+
+- LM
+    - run-gg01r05 
+    - run-eg01r05
+    - run-dg03r06
+
+
 
 # some of these are old names from old shapesim stuff
 - nsim-eg01

@@ -76,23 +76,20 @@ class NGMixSim(dict):
         """
 
         self.set_config(sim_conf, run_conf)
+        self.update(self.conf)
+        self.update(keys)
+
+        self.check_pqr_shear()
 
         self.s2n=s2n
         self.npairs=npairs
 
-        self.update(self.conf)
-        self.update(keys)
 
         self.shear=self.simc['shear']
         self.nsub=self.simc['nsub']
 
-        if self['expand_shear_true']:
-            self.shear_expand=self.shear
-            print >>stderr,'nsim: expanding about shear:',self.shear_expand
-        else:
-            self.shear_expand=None
-
         self.obj_model=self.simc['obj_model']
+
 
         self.setup_checkpoints(**keys)
 
@@ -113,6 +110,19 @@ class NGMixSim(dict):
 
         self.simc=sim_conf
         self.conf=run_conf
+
+    def check_pqr_shear(self):
+        """
+        If we are doing pqr need to check what shear we expand
+        about
+        """
+
+        if self['fitter'] in ['mcmc','isample']:
+            if self['expand_shear_true']:
+                self.shear_expand=self.shear
+                print >>stderr,'nsim: expanding about shear:',self.shear_expand
+            else:
+                self.shear_expand=None
 
     def get_data(self):
         """
@@ -197,6 +207,8 @@ class NGMixSim(dict):
         elif fitter == 'isample':
             #res = self.fit_galaxy_isample(imdict)
             res = self.fit_galaxy_isample_auto(imdict)
+        elif fitter == 'lm':
+            res = self.fit_galaxy_lm(imdict)
         else:
             raise ValueError("bad fitter type: '%s'" % fitter)
 
@@ -507,13 +519,47 @@ class NGMixSim(dict):
 
         return vals
 
+
+    def fit_galaxy_lm(self, imdict):
+        """
+        Fit the model to the galaxy
+        """
+        import ngmix
+
+        guess_type=self['guess_type']
+        if guess_type=='truth':
+            guess=imdict['pars']
+        else:
+            raise ValueError("bad guess type: '%s'" % guess_type)
+
+        fitter=ngmix.fitting.LMSimple(imdict['image'],
+                                      imdict['wt'],
+                                      imdict['jacobian'],
+                                      self['fit_model'],
+                                      guess,
+
+                                      lm_pars=self['lm_pars'],
+
+                                      cen_prior=self.cen_prior,
+                                      g_prior=self.g_prior,
+                                      T_prior=self.T_prior,
+                                      counts_prior=self.counts_prior,
+
+                                      psf=self.psf_gmix_fit)
+        fitter.go()
+        return fitter.get_result()
+
+
     def print_res(self,res):
         """
         print some stats
         """
         import ngmix
 
-        print >>stderr,'    arate:',res['arate'],'s2n_w:',res['s2n_w'],'nuse:',res['nuse']
+        if 'arate' in res:
+            print >>stderr,'    arate:',res['arate'],'s2n_w:',res['s2n_w'],'nuse:',res['nuse']
+        elif 'nfev' in res:
+            print >>stderr,'    nfev:',res['nfev'],'s2n_w:',res['s2n_w']
         ngmix.fitting.print_pars(res['pars'],front='    pars: ',stream=stderr)
         ngmix.fitting.print_pars(res['perr'],front='    perr: ',stream=stderr)
 
@@ -804,12 +850,16 @@ class NGMixSim(dict):
         d['processed'][i] = 1
         d['pars'][i,:] = res['pars']
         d['pcov'][i,:,:] = res['pars_cov']
-        d['P'][i] = res['P']
-        d['Q'][i,:] = res['Q']
-        d['R'][i,:,:] = res['R']
-        d['g'][i,:] = res['g']
-        d['gsens'][i,:] = res['g_sens']
-        d['nuse'][i] = res['nuse']
+
+        if self['fitter'] == 'lm':
+            d['nfev'][i] = res['nfev']
+        else:
+            d['P'][i] = res['P']
+            d['Q'][i,:] = res['Q']
+            d['R'][i,:,:] = res['R']
+            d['g'][i,:] = res['g']
+            d['gsens'][i,:] = res['g_sens']
+            d['nuse'][i] = res['nuse']
 
     def make_struct(self):
         """
@@ -817,13 +867,17 @@ class NGMixSim(dict):
         """
         dt=[('processed','i2'),
             ('pars','f8',6),
-            ('pcov','f8',(6,6)),
-            ('P','f8'),
-            ('Q','f8',2),
-            ('R','f8',(2,2)),
-            ('g','f8',2),
-            ('gsens','f8',2),
-            ('nuse','i4')]
+            ('pcov','f8',(6,6))]
+
+        if self['fitter'] == 'lm':
+            dt += [('nfev','i4')]
+        else:
+            dt += [('P','f8'),
+                   ('Q','f8',2),
+                   ('R','f8',(2,2)),
+                   ('g','f8',2),
+                   ('gsens','f8',2),
+                   ('nuse','i4')]
         self.data=numpy.zeros(self.npairs*2, dtype=dt)
 
 def srandu(num=None):

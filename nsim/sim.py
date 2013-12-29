@@ -853,6 +853,7 @@ class NGMixSim(dict):
 
         if self['fitter'] == 'lm':
             d['nfev'][i] = res['nfev']
+            d['g'][i,:] = res['g']
         else:
             d['P'][i] = res['P']
             d['Q'][i,:] = res['Q']
@@ -870,7 +871,8 @@ class NGMixSim(dict):
             ('pcov','f8',(6,6))]
 
         if self['fitter'] == 'lm':
-            dt += [('nfev','i4')]
+            dt += [('nfev','i4'),
+                   ('g','f8',2)]
         else:
             dt += [('P','f8'),
                    ('Q','f8',2),

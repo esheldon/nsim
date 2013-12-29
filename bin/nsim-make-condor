@@ -44,9 +44,12 @@ kill_sig        = SIGINT
 
 +Experiment     = "astro"
 
-Output          = ./{overall_name}.$(cluster).out
-Error           = ./{overall_name}.$(cluster).err
-Log             = /data/esheldon/tmp/{overall_name}.$(cluster).log
+# these default to /dev/null
+#Output          = ./{overall_name}.$(cluster).out
+#Error           = ./{overall_name}.$(cluster).err
+
+# if not given, none is written.  This is good I think.
+#Log             = /data/esheldon/tmp/{overall_name}.$(cluster).log
 
 """
 

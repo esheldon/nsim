@@ -533,15 +533,25 @@ class NGMixSim(dict):
         else:
             raise ValueError("bad guess type: '%s'" % guess_type)
 
+        im=imdict['image']
+        wt=imdict['wt']
+        j=imdict['jacobian']
+        psf=self.psf_gmix_fit
+
         randomize=self.get('randomize',False)
         if randomize:
             cls=ngmix.fitting.LMSimpleRandomize
+
+            nrand=self['nrand']
+            im  = [im]*nrand
+            wt  = [wt]*nrand
+            j   = [j]*nrand
+            psf = [psf]*nrand
+
         else:
             cls=ngmix.fitting.LMSimple
 
-        fitter=cls(imdict['image'],
-                   imdict['wt'],
-                   imdict['jacobian'],
+        fitter=cls(im, wt, j,
                    self['fit_model'],
                    guess,
 
@@ -550,9 +560,9 @@ class NGMixSim(dict):
                    cen_prior=self.cen_prior,
                    g_prior=self.g_prior,
                    T_prior=self.T_prior,
-                   counts_prior=self.counts_prior,
+                   counts_prior=[self.counts_prior],
 
-                   psf=self.psf_gmix_fit)
+                   psf=psf)
         fitter.go()
         return fitter.get_result()
 

@@ -142,15 +142,17 @@ def get_seconds_per_pair(c):
 
     fit_model=c['fit_model']
     if c['fitter'] == 'lm':
+        nrand=c.get('nrand',1)
+        print 'nrand:',nrand
         if fit_model=='dev':
             # 0.03 on astro0034
-            secper=0.1
+            secper=0.1*nrand
         elif fit_model=='exp':
             # 0.02 on astro0034
-            secper=0.06
+            secper=0.06*nrand
         elif fit_model=='gauss':
             # 0.01 on astro0034
-            secper=0.027
+            secper=0.027*nrand
         else:
             raise ValueError("support fit_model: '%s'" % fit_model)
     else:

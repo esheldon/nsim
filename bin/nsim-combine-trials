@@ -23,7 +23,8 @@ def combine_trials(run, is2n, allow_missing=True):
     fs=nsim.files.get_default_fs()
     c = nsim.files.read_config(run)
 
-    npair,nsplit = nsim.files.get_npair_nsplit(c, is2n)
+    npair_min=c.get('npair_min',None)
+    npair,nsplit = nsim.files.get_npair_nsplit(c, is2n, npair_min=npair_min)
     ntot=npair*2
 
     outfile=nsim.files.get_output_url(run, 0, is2n, fs=fs, ext='fits')

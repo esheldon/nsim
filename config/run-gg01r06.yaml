@@ -1,3 +1,4 @@
+# only 1 repeat used in fit
 run: "run-gg01r06"
 sim: "sim-gg01"
 

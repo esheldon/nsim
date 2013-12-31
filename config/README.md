@@ -191,7 +191,16 @@
     - run-dg03r07
         - file too big
 
+    - with randomization
+    - gg01r06
+        - only 1 random realization
+    - gg01r07
+        - 10 random realizations
 
+    - need to get noise right; when calculating s2n_w I'm using all duplicate
+      images.  And what about error for the combo over 10 images?  Currenly
+      just multiplying by 0.5 inside code; better expand errors before sending
+      I think, and let internal code be agnostic.
 
 - metafit idea
     - Do a max like fit, or some other measure, to get a set of "observables".

@@ -10,6 +10,7 @@ import numpy
 from numpy import sqrt
 
 import esutil as eu
+import fitsio
 import lensing
 import nsim
 
@@ -20,8 +21,6 @@ parser=OptionParser(__doc__)
 
 parser.add_option('--skip',default=None,
                   help="is2n elements to skip")
-parser.add_option('--verbose',action='store_true',
-                  help="show progress")
 parser.add_option('--show',action='store_true',
                   help="plot histogram of jackknife shears")
 
@@ -29,7 +28,11 @@ parser.add_option('--show',action='store_true',
 COV_SOFTEN=1.0e-6
 ERR_SOFTEN=1.0e-6
 
-def get_averaged_gerror(conf, data, s2n_matched, verbose=False):
+CHUNKSIZE=1000000
+def get_dtype(fobj):
+
+    data = fobj[1][0:10]
+
     names=data.dtype.names
 
     dt =data.dtype.descr
@@ -76,24 +79,24 @@ def get_averaged_gerror(conf, data, s2n_matched, verbose=False):
                ('T_err','f8'),
                ('T_s2n','f8')]
 
-    if do_pqr:
-        Q_sum, Cinv_sum = lensing.pqr.get_shear_pqr_sums(data['P'],
-                                                         data['Q'],
-                                                         data['R'])
-        C = numpy.linalg.inv(Cinv_sum)
-        shear = numpy.dot(C,Q_sum)
+    return dt, do_pqr, do_lensfit, do_simple
 
-        # did we expand around the true shear?
-        expand_shear=conf.get('expand_shear_true',False)
-        if expand_shear:
-            true_shear = numpy.array( conf['simc']['shear'] )
-            print 'adding expand shear:',true_shear
-            shear += true_shear
+def get_chunk_info(nrows):
+    nchunks=nrows//CHUNKSIZE
+
+    remain = nrows % CHUNKSIZE
+    if remain > 0:
+        nchunks += 1
+
+    return nchunks
+
+def do_sums(data, d, do_pqr=False, do_lensfit=False, do_simple=False):
+    names=data.dtype.names
 
     if 'g_cov' in names:
         cov = data['g_cov']
     else:
-        print >>stderr,'ASSUMING g_cov in slot 2,3'
+        #print >>stderr,'ASSUMING g_cov in slot 2,3'
         cov = data['pcov'][:,2:2+2, 2:2+2]
 
     cov += COV_SOFTEN
@@ -115,51 +118,38 @@ def get_averaged_gerror(conf, data, s2n_matched, verbose=False):
     cov_inv[:,1,1] *= idet
 
     shear_cov_inv = cov_inv.sum(axis=0)
-    shear_cov = numpy.linalg.inv(shear_cov_inv)
 
-    d=numpy.zeros(1, dtype=dt)
+    d['shear_cov_inv_sum'][0,:,:] += shear_cov_inv
 
-
-    d['s2n_matched'] = s2n_matched
-    d['nsum'] = data.size
-
+    d['nsum'][0] += data.size
     if 'g' in names:
-        d['g_sum'] = data['g'].sum(axis=0)
+        d['g_sum'][0] += data['g'].sum(axis=0)
     else:
-        print >>stderr,'ASSUMING g in slot 2,3'
-        d['g_sum'] = data['pars'][:,2:2+2].sum(axis=0)
-
-    d['shear_cov'][0,:,:] = shear_cov
-    d['shear_cov_inv_sum'][0,:,:] = shear_cov_inv
+        #print >>stderr,'ASSUMING g in slot 2,3'
+        d['g_sum'][0] += data['pars'][:,2:2+2].sum(axis=0)
 
     if do_pqr:
-        d['Q_sum'][0] = Q_sum
-        d['Cinv_sum'][0] = Cinv_sum
+        Q_sum, Cinv_sum = lensing.pqr.get_shear_pqr_sums(data['P'],
+                                                         data['Q'],
+                                                         data['R'])
+        d['Q_sum'][0] += Q_sum
+        d['Cinv_sum'][0] += Cinv_sum
 
-        d['shear'][0] = shear
-
-        sherr=numpy.sqrt(shear_cov[0,0])
-        fracdiff=shear[0]/conf['simc']['shear'][0]-1.0
-        fracdiff_err=sherr/conf['simc']['shear'][0]
-        print >>stderr,'fracdiff:          % .2e +/- %.2e' % (fracdiff, fracdiff_err)
+    if do_lensfit:
+        d['gsens_sum'] = data['gsens'].sum(axis=0)
 
     if do_simple:
-        flux=data['pars'][:,5]
-        flux_var=data['pcov'][:,5,5]
+        flux     = data['pars'][:,5]
+        flux_var = data['pcov'][:,5,5]
         flux_var += COV_SOFTEN
 
-        flux_err=sqrt(flux_var)
+        flux_err = sqrt(flux_var)
 
-        d['flux_sum'] = flux.sum()
-        d['flux_err2invsum'] = (1.0/flux_var[w]).sum()
-
-        d['flux'] = d['flux_sum']/d['nsum']
-        d['flux_err'] = sqrt(1.0/d['flux_err2invsum'])
+        d['flux_sum'][0]        += flux.sum()
+        d['flux_err2invsum'][0] += (1.0/flux_var[w]).sum()
 
         flux_s2n_vals = flux/flux_err
-        d['flux_s2n_sum'] = flux_s2n_vals.sum()
-        d['flux_s2n'] = d['flux_s2n_sum']/d['nsum']
-
+        d['flux_s2n_sum'][0] += flux_s2n_vals.sum()
 
         T=data['pars'][:,4]
         T_var=data['pcov'][:,4,4]
@@ -168,44 +158,100 @@ def get_averaged_gerror(conf, data, s2n_matched, verbose=False):
 
         # these are for getting the overall mean T not the mean
         # s2n; that is below
-        d['T_sum'] = T.sum()
-        d['T_err2invsum'] = (1.0/T_var[w]).sum()
-
-        d['T'] = d['T_sum']/d['nsum']
-        d['T_err'] = sqrt(1.0/d['T_err2invsum'])
+        d['T_sum'][0] += T.sum()
+        d['T_err2invsum'][0] += (1.0/T_var[w]).sum()
 
         T_s2n_vals = T/T_err
-        d['T_s2n_sum'] = T_s2n_vals.sum()
-        d['T_s2n'] = d['T_s2n_sum']/d['nsum']
+        d['T_s2n_sum'][0] += T_s2n_vals.sum()
 
+def do_avg(conf, d, do_pqr=False, do_lensfit=False, do_simple=False):
+
+    shear_cov = numpy.linalg.inv(d['shear_cov_inv_sum'][0])
+    d['shear_cov'][0,:,:] = shear_cov
+
+    if do_pqr:
+        Cinv_sum = numpy.linalg.inv(d['Cinv_sum'][0])
+        Q_sum = d['Q_sum'][0]
+        shear = numpy.dot(Cinv_sum,Q_sum)
+
+        # did we expand around the true shear?
+        expand_shear=conf.get('expand_shear_true',False)
+        if expand_shear:
+            true_shear = numpy.array( conf['simc']['shear'] )
+            print 'adding expand shear:',true_shear
+            shear += true_shear
+
+        d['shear'][0] = shear
+
+        sherr=numpy.sqrt(shear_cov[0,0])
+        fracdiff=shear[0]/conf['simc']['shear'][0]-1.0
+        fracdiff_err=sherr/conf['simc']['shear'][0]
+        print >>stderr,'fracdiff:          % .2e +/- %.2e' % (fracdiff, fracdiff_err)
 
 
     if do_lensfit:
-        gmean = data['g'].mean(axis=0)
-        gsens = data['gsens'].mean(axis=0)
+        gmean = d['g_sum'][0]/d['nsum']
+        gsens = d['gsens_sum'][0]/d['nsum']
         
-        shear_cov[0,0] /= (gsens[0]*gsens[0])
-        shear_cov[0,1] /= (gsens[0]*gsens[1])
-        shear_cov[1,0] /= (gsens[0]*gsens[1])
-        shear_cov[1,1] /= (gsens[1]*gsens[1])
-        shear_cov_inv = numpy.linalg.inv(shear_cov)
+        shl_cov = shear_cov.copy()
+        shl_cov[0,0] /= (gsens[0]*gsens[0])
+        shl_cov[0,1] /= (gsens[0]*gsens[1])
+        shl_cov[1,0] /= (gsens[0]*gsens[1])
+        shl_cov[1,1] /= (gsens[1]*gsens[1])
+        shl_cov_inv = numpy.linalg.inv(shl_cov)
 
-        shear=gmean/gsens
-        sherr=numpy.sqrt(shear_cov[0,0])
+        shl =gmean/gsens
+        sherr=numpy.sqrt(shl_cov[0,0])
 
-        d['gsens_sum'] = data['gsens'].sum(axis=0)
+        d['gsens'] = gsens
+        d['shear_lensfit'] = shl
+        d['shear_lensfit_cov'][0,:,:] = shl_cov
+        d['shear_lensfit_cov_inv_sum'][0,:,:] = shl_cov_inv
 
-        d['shear_lensfit'] = shear
-        d['shear_lensfit_cov'][0,:,:] = shear_cov
-        d['shear_lensfit_cov_inv_sum'][0,:,:] = shear_cov_inv
-
-        fracdiff=shear[0]/conf['simc']['shear'][0]-1.0
+        fracdiff=shl[0]/conf['simc']['shear'][0]-1.0
         fracdiff_err=sherr/conf['simc']['shear'][0]
         print >>stderr,'fracdiff(lensfit): % .2e +/- %.2e' % (fracdiff, fracdiff_err)
 
+    if do_simple:
+        d['flux'] = d['flux_sum']/d['nsum']
+        d['flux_err'] = sqrt(1.0/d['flux_err2invsum'])
+        d['flux_s2n'] = d['flux_s2n_sum']/d['nsum']
+        d['T'] = d['T_sum']/d['nsum']
+        d['T_err'] = sqrt(1.0/d['T_err2invsum'])
+        d['T_s2n'] = d['T_s2n_sum']/d['nsum']
+
+def get_averaged_gerror(conf, fname, s2n_matched):
+
+    print >>stderr,fname
+    with fitsio.FITS(fname) as fobj:
+        nrows=fobj[1].get_nrows()
+
+        dt, do_pqr, do_lensfit, do_simple = get_dtype(fobj)
+
+        d=numpy.zeros(1, dtype=dt)
+        d['s2n_matched'] = s2n_matched
+
+
+        nchunks = get_chunk_info(nrows)
+
+        for i in xrange(nchunks):
+            beg = i*CHUNKSIZE
+            end = (i+1)*CHUNKSIZE
+            print '    %s:%s of %s' % (beg,end,nrows)
+            data = fobj[1][beg:end]
+
+            do_sums(data, d,
+                    do_pqr=do_pqr,
+                    do_lensfit=do_lensfit,
+                    do_simple=do_simple)
+
+    do_avg(conf,
+           d,
+           do_pqr=do_pqr,
+           do_lensfit=do_lensfit,
+           do_simple=do_simple)
+
     return d
-
-
 
 def get_image_file(plot_dir, fname):
     bname=os.path.basename(fname)
@@ -243,12 +289,9 @@ def main():
 
         s2n_matched = s2n_vals[is2n]
         fname=nsim.files.get_output_url(run, 0, is2n)
-        print >>stderr,fname
-        data=eu.io.read(fname)
 
-        d = get_averaged_gerror(c, data, s2n_matched, verbose=options.verbose)
+        d = get_averaged_gerror(c, fname, s2n_matched)
 
-        del data
         dlist.append(d)
 
     output = eu.numpy_util.combine_arrlist(dlist)

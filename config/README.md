@@ -101,34 +101,13 @@
         - so try applying the prior after to see if we can get some of the
           spikiness
         - not remarkably better, but noiser and might need to sample more to
-run: "run-gg01r04"
-sim: "sim-gg01"
-
-fitter: "mcmc"
-fit_model: "gauss"
-guess_type: "draw_priors"
-g_prior_during: false
-
-nwalkers: 80
-burnin:   400
-nstep:    800
-mca_a:    3.0
-
-expand_shear_true: true
-
-# we normalize splits by split for is2n==0
-desired_err: 4.5e-05
-nsplit0: 20000
-
-s2n_vals: [ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
-
 
           see spikiness of prior.
     - run-gg01r04 increase nstep to 800 to see if I can get more spikiness and
       improve shear recovery.  Expect of order 4 hours to finish, 10pm.
 
 
-
+- sim-gg04 shear=0.08, sigma ratio 1.0
 
 
 
@@ -143,7 +122,11 @@ s2n_vals: [ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
         - gg03r01
         - eg03r03
         - dg04r02
-
+    - sigma ratio 1.0
+        - gg04r01,gg04r02
+            - was lower s/n than expected so ran two
+            - looks biased.  Maybe error in psf fit affects these smaller objects more?
+        - eg04r01
 
 - try nearly-fixed other paramters besides shape
     - gg02r01 looks crappy!  Is it because we only used 200 step? Doubt it
@@ -205,8 +188,28 @@ s2n_vals: [ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
 - LM
     - run-gg01r05 
     - run-eg01r05
-    - run-dg03r06
+    - run-dg03r07
+        - file too big
 
+
+
+- metafit idea
+    - Do a max like fit, or some other measure, to get a set of "observables".
+    - Run a second fit (with guess from max like) to find the intrinsic object
+      that would give those observables.  Each step here involves simulating
+      the object convolved with the psf, rendering the image, and finding
+      the observables.
+    - nice properties
+        - should remove noise bias
+        - fully incorporates all the observational details of the data such as
+          noise, masked pixels, etc. in the simulation.
+    - performance
+        - typical number of steps for max like fit is about 50
+        - thus a typical number of steps will be 50*50=2500
+    - issues
+        - failure of initial fit
+        - poor errors on initial fit.  At very least we need to soften the
+          covariance matrix.
 
 
 # some of these are old names from old shapesim stuff

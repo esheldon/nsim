@@ -79,14 +79,15 @@ class NGMixSim(dict):
         self.update(self.conf)
         self.update(keys)
 
+        self.shear=self.simc['shear']
+        self.nsub=self.simc['nsub']
+
         self.check_pqr_shear()
 
         self.s2n=s2n
         self.npairs=npairs
 
 
-        self.shear=self.simc['shear']
-        self.nsub=self.simc['nsub']
 
         self.obj_model=self.simc['obj_model']
 
@@ -566,21 +567,84 @@ class NGMixSim(dict):
     def fit_psf(self):
         """
         Fit the pixelized psf to a model
+
+        PSF
+
         """
         import ngmix
+        from ngmix.gexceptions import GMixMaxIterEM
 
         print >>stderr,'fitting psf'
         imsky,sky=ngmix.em.prep_image(self.psf_image)
 
         em=ngmix.em.GMixEM(imsky)
-        guess=self.psf_gmix_true.copy()
-        print >>stderr,'psf guess:'
-        print >>stderr,guess
-        em.go(guess, sky, tol=1.e-5)
+
+
+        while True:
+            guess=self.get_psf_guess()
+            print >>stderr,'psf guess:'
+            print >>stderr,guess
+            try:
+                em.go(guess, sky, tol=1.e-5)
+                break
+            except GMixMaxIterEM as e:
+                print >>stderr,str(e)
+                print >>stderr,'re-trying'
 
         self.psf_gmix_fit=em.get_gmix()
         print >>stderr,'psf fit:'
         print >>stderr,self.psf_gmix_fit
+
+    def get_psf_guess(self):
+        """
+        Get the starting guess.
+
+        If psf_ngauss is not sent, use the "truth" as the guess.  This might
+        not be as good a fit if for example an extra gaussian is needed to deal
+        with pixelization.  Probably more important for galaxies ~size of the
+        """
+        import ngmix
+
+        ngauss=self.get('psf_ngauss',None)
+
+        pt=self.psf_gmix_true
+        ngauss_true=len(pt)
+        if ngauss is None or ngauss==ngauss_true:
+            # we can just use the "truth" as a guess
+            guess=self.psf_gmix_true.copy()
+        else:
+            # more generic guess
+            T = pt.get_T()
+            cen = pt.get_cen()
+
+            pars=numpy.zeros(ngauss*6)
+
+            if ngauss==2:
+                p1 = 0.6*(1.0 + 0.05*srandu() )
+                p2 = 0.4*(1.0 + 0.05*srandu() )
+                T1 = T*0.4*(1.0 + 0.1*srandu() )
+                T2 = T*0.6*(1.0 + 0.1*srandu() )
+
+                pars[0] = p1
+                pars[1] = cen[0] + 0.1*srandu()
+                pars[2] = cen[1] + 0.1*srandu()
+                pars[3] = T1/2.
+                pars[4] = 0.0
+                pars[5] = T1/2.
+
+                pars[6] = p2
+                pars[7] = cen[0] + 0.1*srandu()
+                pars[8] = cen[1] + 0.1*srandu()
+                pars[9] = T2/2.
+                pars[10] = 0.0
+                pars[11] = T2/2.
+
+            else: 
+                raise ValueError("support ngauss > 2")
+            
+            guess=ngmix.gmix.GMix(pars=pars)
+
+        return guess
 
     def set_priors(self):
         """
@@ -853,7 +917,6 @@ class NGMixSim(dict):
 
         if self['fitter'] == 'lm':
             d['nfev'][i] = res['nfev']
-            d['g'][i,:] = res['g']
         else:
             d['P'][i] = res['P']
             d['Q'][i,:] = res['Q']
@@ -871,8 +934,7 @@ class NGMixSim(dict):
             ('pcov','f8',(6,6))]
 
         if self['fitter'] == 'lm':
-            dt += [('nfev','i4'),
-                   ('g','f8',2)]
+            dt += [('nfev','i4')]
         else:
             dt += [('P','f8'),
                    ('Q','f8',2),

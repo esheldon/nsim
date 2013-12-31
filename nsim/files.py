@@ -196,13 +196,17 @@ def get_npair_by_noise(s2n, desired_err, run):
     return npair[0]
     
 
-def get_npair_nsplit_by_noise(c, is2n):
+def get_npair_nsplit_by_noise(c, is2n, npair_min=None):
     """
     Get the npair/nsplit given the input config and s2n index
     """
     from math import ceil
     s2n = c['s2n_vals'][is2n]
     npair_tot = get_npair_by_noise(s2n, c['desired_err'],c['run'])
+
+    if npair_min is not None and npair_tot < npair_min:
+        npair_tot = npair_min
+
     #print 'desired_err:',c['desired_err']
     #print 'npair_tot:',npair_tot
 
@@ -215,18 +219,19 @@ def get_npair_nsplit_by_noise(c, is2n):
         npair_tot0 = get_npair_by_noise(c['s2n_vals'][0], c['desired_err'],c['run'])
         nsplit = int( ceil( nsplit0*float(npair_tot)/npair_tot0 ))
     
+
     npair_per = int(ceil(npair_tot/float(nsplit)))
 
     return npair_per, nsplit
 
-def get_npair_nsplit(c, is2n):
+def get_npair_nsplit(c, is2n, npair_min=None):
     """
     Get number of pairs per split and number of splits
 
     For equal_time, we take number per split from is2n==0
     """
     if 'desired_err' in c:
-        return get_npair_nsplit_by_noise(c, is2n)
+        return get_npair_nsplit_by_noise(c, is2n, npair_min=npair_min)
     else:
         s2n = c['s2n_vals'][is2n]
 

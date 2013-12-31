@@ -222,6 +222,7 @@ def write_condor_file(c, master_script, equal_time=False, missing=False, max_job
     else:
         flist=None
 
+    npair_min=c.get('npair_min',None)
 
     ns2n=len(c['s2n_vals'])
     seconds_per=get_seconds_per_pair(c)
@@ -234,6 +235,7 @@ def write_condor_file(c, master_script, equal_time=False, missing=False, max_job
 
     njobs_thisfile=0
     njobs=0
+    npair_tot=0
 
     old_filenum=-1
     filenum=0
@@ -244,7 +246,7 @@ def write_condor_file(c, master_script, equal_time=False, missing=False, max_job
 
         s2n=c['s2n_vals'][is2n]
 
-        npair, nsplit = nsim.files.get_npair_nsplit(c, is2n)
+        npair, nsplit = nsim.files.get_npair_nsplit(c, is2n, npair_min=npair_min)
 
         time_hours = npair*seconds_per/3600.0
         if time_hours > MAXTIME_HOURS:
@@ -254,6 +256,7 @@ def write_condor_file(c, master_script, equal_time=False, missing=False, max_job
         print '    nsplit:',nsplit,'npair:',npair,'time (hours):',time_hours
 
         for isplit in xrange(nsplit):
+            npair_tot += npair
             output = nsim.files.get_output_url(run, 0, is2n, itrial=isplit)
             logfile = output.replace('.fits','.log')
 
@@ -279,7 +282,8 @@ def write_condor_file(c, master_script, equal_time=False, missing=False, max_job
                                     overall_name, missing=missing)
 
 
-    print 'total jobs:',njobs
+    print 'total jobs: ',njobs
+    print 'total pairs:',npair_tot
 
 def start_new_file(run, filenum, master_script, overall_name, missing=False):
     condor_job_url=nsim.files.get_condor_job_url(run,

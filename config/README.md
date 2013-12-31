@@ -126,7 +126,7 @@
         - gg04r01,gg04r02
             - was lower s/n than expected so ran two
             - looks biased.  Maybe error in psf fit affects these smaller objects more?
-        - eg04r01
+        - eg04r01 psf_ngauss=2
 
 - try nearly-fixed other paramters besides shape
     - gg02r01 looks crappy!  Is it because we only used 200 step? Doubt it

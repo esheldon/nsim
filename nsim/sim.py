@@ -533,20 +533,26 @@ class NGMixSim(dict):
         else:
             raise ValueError("bad guess type: '%s'" % guess_type)
 
-        fitter=ngmix.fitting.LMSimple(imdict['image'],
-                                      imdict['wt'],
-                                      imdict['jacobian'],
-                                      self['fit_model'],
-                                      guess,
+        randomize=self.get('randomize',False)
+        if randomize:
+            cls=ngmix.fitting.LMSimpleRandomize
+        else:
+            cls=ngmix.fitting.LMSimple
 
-                                      lm_pars=self['lm_pars'],
+        fitter=cls(imdict['image'],
+                   imdict['wt'],
+                   imdict['jacobian'],
+                   self['fit_model'],
+                   guess,
 
-                                      cen_prior=self.cen_prior,
-                                      g_prior=self.g_prior,
-                                      T_prior=self.T_prior,
-                                      counts_prior=self.counts_prior,
+                   lm_pars=self['lm_pars'],
 
-                                      psf=self.psf_gmix_fit)
+                   cen_prior=self.cen_prior,
+                   g_prior=self.g_prior,
+                   T_prior=self.T_prior,
+                   counts_prior=self.counts_prior,
+
+                   psf=self.psf_gmix_fit)
         fitter.go()
         return fitter.get_result()
 
@@ -611,7 +617,7 @@ class NGMixSim(dict):
         ngauss_true=len(pt)
         if ngauss is None or ngauss==ngauss_true:
             # we can just use the "truth" as a guess
-            guess=self.psf_gmix_true.copy()
+            guess=pt.copy()
         else:
             # more generic guess
             T = pt.get_T()

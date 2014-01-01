@@ -196,6 +196,10 @@
         - only 1 random realization
     - gg01r07
         - 10 random realizations
+        - errors at high s/n. Maybe lm pars?
+    - gg01rtest
+        - 10 random realizations
+        - turning off lm_pars entirely except for maxfev and epsfcn
 
     - need to get noise right; when calculating s2n_w I'm using all duplicate
       images.  And what about error for the combo over 10 images?  Currenly

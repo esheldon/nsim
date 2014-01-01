@@ -1,0 +1,27 @@
+# only 1 repeat used in fit
+run: "run-gg01rtest"
+sim: "sim-gg01"
+
+fitter: "lm"
+fit_model: "gauss"
+guess_type: "truth"
+
+randomize: true
+nrand: 10
+
+npair_min: 1000
+
+lm_pars:
+    maxfev: 300
+    epsfcn: 1.0e-6
+
+
+
+npair_min: 1000
+
+# we normalize splits by split for is2n==0
+desired_err: 4.5e-05
+nsplit0: 3000
+
+s2n_vals: [ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
+

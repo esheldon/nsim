@@ -564,7 +564,17 @@ class NGMixSim(dict):
 
                    psf=psf)
         fitter.go()
-        return fitter.get_result()
+        res=fitter.get_result()
+
+        if randomize and res['flags']==0:
+            # nrand factor because we used nrand realizations
+            # 1/2 because internally we boosted the errors
+            fac=nrand/2.0
+            res['pars_cov'] *= fac
+            res['g_cov'] *= fac
+            res['pars_err'] *= numpy.sqrt(fac)
+
+        return res
 
 
     def print_res(self,res):
@@ -578,7 +588,7 @@ class NGMixSim(dict):
         elif 'nfev' in res:
             print >>stderr,'    nfev:',res['nfev'],'s2n_w:',res['s2n_w']
         ngmix.fitting.print_pars(res['pars'],front='    pars: ',stream=stderr)
-        ngmix.fitting.print_pars(res['perr'],front='    perr: ',stream=stderr)
+        ngmix.fitting.print_pars(res['pars_err'],front='    perr: ',stream=stderr)
 
     def fit_psf(self):
         """

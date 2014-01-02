@@ -2,20 +2,20 @@
 run: "run-gg01rtest"
 sim: "sim-gg01"
 
-fitter: "lm"
+fitter: "lm-meta"
 fit_model: "gauss"
 guess_type: "truth"
 
-randomize: true
 nrand: 10
 
 npair_min: 1000
 
+# ftol,xtol are *relative* errors. epsfcn step size for derivatives
 lm_pars:
     maxfev: 300
     epsfcn: 1.0e-6
-
-
+    ftol:   1.0e-6
+    xtol:   1.0e-6
 
 npair_min: 1000
 

@@ -209,7 +209,9 @@ class NGMixSim(dict):
             #res = self.fit_galaxy_isample(imdict)
             res = self.fit_galaxy_isample_auto(imdict)
         elif fitter == 'lm':
-            res = self.fit_galaxy_lm(imdict)
+            res,ft = self.fit_galaxy_lm(imdict)
+        elif fitter=='lm-meta':
+            res,fit = self.fit_galaxy_lm_meta(imdict)
         else:
             raise ValueError("bad fitter type: '%s'" % fitter)
 
@@ -399,9 +401,9 @@ class NGMixSim(dict):
 
         guess_type=self['guess_type']
         if guess_type=='draw_truth':
-            full_guess=self.get_guess_from_true(imdict)
+            full_guess=self.get_guess_from_true(imdict,n=self['nwalkers'])
         elif guess_type=='draw_priors':
-            full_guess=self.get_guess_draw_priors()
+            full_guess=self.get_guess_draw_priors(n=self['nwalkers'])
         else:
             raise ValueError("bad guess type: '%s'" % guess_type)
 
@@ -432,7 +434,7 @@ class NGMixSim(dict):
         #fitter.make_plots(show=True)
         return fitter.get_result()
 
-    def get_guess_draw_priors(self):
+    def get_guess_draw_priors(self, n=1):
         """
         Get a guess drawn from the priors
 
@@ -445,33 +447,37 @@ class NGMixSim(dict):
         if npars != 6:
             raise ValueError("support guess from non-simple!")
 
-        nwalkers=self['nwalkers']
-        guess=numpy.zeros( (nwalkers, npars) )
+        guess=numpy.zeros( (n, npars) )
 
-        guess[:,0],guess[:,1]=self.cen_prior.sample(n=nwalkers)
-        guess[:,2],guess[:,3]=self.g_prior.sample2d(nwalkers)
-        guess[:,4]=self.T_prior.sample(nrand=nwalkers)
-        guess[:,5]=self.counts_prior.sample(nrand=nwalkers)
+        guess[:,0],guess[:,1]=self.cen_prior.sample(n=n)
+        guess[:,2],guess[:,3]=self.g_prior.sample2d(n)
+        guess[:,4]=self.T_prior.sample(nrand=n)
+        guess[:,5]=self.counts_prior.sample(nrand=n)
+
+        if n==1:
+            guess=guess[0,:]
 
         return guess
 
-    def get_guess_from_true(self, imdict):
+    def get_guess_from_true(self, imdict, n=1):
         """
         Get a guess centered on the truth
         """
         print >>stderr,'    guessing from truth'
 
         pars=imdict['pars']
-        nwalkers=self['nwalkers']
-        guess=numpy.zeros( (nwalkers, pars.size) )
+        guess=numpy.zeros( (n, pars.size) )
 
-        guess[:,0] = 0.01*srandu(nwalkers)
-        guess[:,1] = 0.01*srandu(nwalkers)
-        guess_shape=self.get_shape_guess(pars[2],pars[3],nwalkers)
+        guess[:,0] = 0.01*srandu(n)
+        guess[:,1] = 0.01*srandu(n)
+        guess_shape=self.get_shape_guess(pars[2],pars[3],n)
         guess[:,2]=guess_shape[:,0]
         guess[:,3]=guess_shape[:,1]
-        guess[:,4] = self.get_positive_guess(pars[4],nwalkers)
-        guess[:,5] = self.get_positive_guess(pars[5],nwalkers)
+        guess[:,4] = self.get_positive_guess(pars[4],n)
+        guess[:,5] = self.get_positive_guess(pars[5],n)
+
+        if n==1:
+            guess=guess[0,:]
 
         return guess
 
@@ -530,6 +536,10 @@ class NGMixSim(dict):
         guess_type=self['guess_type']
         if guess_type=='truth':
             guess=imdict['pars']
+        elif guess_type=='truth_random':
+            guess=self.get_guess_from_true(imdict,n=1)
+        elif guess_type=='draw_priors':
+            guess=self.get_guess_draw_priors(n=1)
         else:
             raise ValueError("bad guess type: '%s'" % guess_type)
 
@@ -543,13 +553,18 @@ class NGMixSim(dict):
             cls=ngmix.fitting.LMSimpleRandomize
 
             nrand=self['nrand']
+            fac = 1.0/nrand
+
             im  = [im]*nrand
-            wt  = [wt]*nrand
+            #wt  = [wt]*nrand
+            wt  = [wt*fac]*nrand
             j   = [j]*nrand
             psf = [psf]*nrand
+            counts_prior = [self.counts_prior]
 
         else:
             cls=ngmix.fitting.LMSimple
+            counts_prior = self.counts_prior
 
         fitter=cls(im, wt, j,
                    self['fit_model'],
@@ -560,21 +575,101 @@ class NGMixSim(dict):
                    cen_prior=self.cen_prior,
                    g_prior=self.g_prior,
                    T_prior=self.T_prior,
-                   counts_prior=[self.counts_prior],
+                   counts_prior=counts_prior,
 
                    psf=psf)
         fitter.go()
         res=fitter.get_result()
 
         if randomize and res['flags']==0:
+            print >>stderr,'    fixing up errors'
             # nrand factor because we used nrand realizations
-            # 1/2 because internally we boosted the errors
             fac=nrand/2.0
             res['pars_cov'] *= fac
             res['g_cov'] *= fac
             res['pars_err'] *= numpy.sqrt(fac)
 
-        return res
+            # for s2n_w we have not expanded the errors cause just
+            # using calc_lnprob not fdiff
+            res['s2n_w'] *= numpy.sqrt(1.0/nrand)
+
+        return res, fitter
+
+    def fit_galaxy_lm_meta(self, imdict):
+        """
+        Fit the model to the galaxy
+        """
+        import ngmix
+
+        nrand = self['nrand']
+
+        res, fitter = self.fit_galaxy_lm(imdict)
+        if res['flags'] != 0:
+            return res,None
+
+        ngmix.fitting.print_pars(res['pars'],front='    initial pars: ',stream=stderr)
+
+        im=imdict['image']
+        wt=imdict['wt']
+        j=imdict['jacobian']
+        psf=self.psf_gmix_fit
+
+        gm0=fitter.get_gmix()
+        gm=gm0.convolve(psf)
+
+        sh=imdict['image'].shape
+        npix=sh[0]*sh[1]
+
+        model_im = gm.make_image(sh, jacobian=j)
+        #avg_meta_model = numpy.zeros(sh)
+        tmodel = numpy.zeros(sh)
+
+        avg_meta_pars = 0*res['pars']
+
+        imdict_tmp={}
+        imdict_tmp.update(imdict)
+        for i in xrange(nrand):
+            #print >>stderr,'        meta fit:',i
+            while True:
+                tmodel[:,:] = model_im
+
+                # use sky noise for sim
+                tmodel += self.skysig*randn(npix).reshape(sh)
+
+                imdict_tmp['image'] = tmodel
+                tres, fitter = self.fit_galaxy_lm(imdict_tmp)
+                if tres['flags'] == 0:
+                    break
+            
+            #avg_meta_model[:,:] += tmodel[:,:]
+            avg_meta_pars[:] += tres['pars']
+
+        #avg_meta_model *= (1.0/nrand)
+        avg_meta_pars *= (1.0/nrand)
+
+        #corrected_model_image = 2*model_im - avg_meta_model
+        corrected_pars = 2*res['pars'] - avg_meta_pars
+
+        # add a small amount of noise to help fitter
+        """
+        ts2n = 1.e6
+        skysig2 = (corrected_model_image**2).sum()/ts2n**2
+        skysig = numpy.sqrt(skysig2)
+        corrected_model_image[:,:] += skysig*randn(npix).reshape(sh)
+
+        imdict_tmp['image'] = corrected_model_image
+        imdict_tmp['wt'] = numpy.zeros(sh) + ( 1.0/skysig2 )
+
+        # might fail be we will let it for now; in real data might re-try
+        tres, tfitter = self.fit_galaxy_lm(imdict_tmp)
+
+        # only copy new pars and flags
+        res['pars'] = tres['flags']
+        res['pars'] = tres['pars']
+        """
+
+        res['pars'] = corrected_pars
+        return res, fitter
 
 
     def print_res(self,res):
@@ -941,15 +1036,16 @@ class NGMixSim(dict):
         d['pars'][i,:] = res['pars']
         d['pcov'][i,:,:] = res['pars_cov']
 
-        if self['fitter'] == 'lm':
-            d['nfev'][i] = res['nfev']
-        else:
+
+        if 'P' in res:
             d['P'][i] = res['P']
             d['Q'][i,:] = res['Q']
             d['R'][i,:,:] = res['R']
             d['g'][i,:] = res['g']
             d['gsens'][i,:] = res['g_sens']
             d['nuse'][i] = res['nuse']
+        else:
+            d['nfev'][i] = res['nfev']
 
     def make_struct(self):
         """
@@ -959,7 +1055,7 @@ class NGMixSim(dict):
             ('pars','f8',6),
             ('pcov','f8',(6,6))]
 
-        if self['fitter'] == 'lm':
+        if self['fitter'] in ['lm','lm-meta']:
             dt += [('nfev','i4')]
         else:
             dt += [('P','f8'),

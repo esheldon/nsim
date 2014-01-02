@@ -7,6 +7,7 @@ fit_model: "gauss"
 guess_type: "truth"
 
 randomize: true
+nrand: 1
 
 lm_pars:
     maxfev: 300

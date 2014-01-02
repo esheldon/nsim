@@ -141,7 +141,7 @@ def get_seconds_per_pair(c):
     """
 
     fit_model=c['fit_model']
-    if c['fitter'] == 'lm':
+    if 'lm' in c['fitter']:
         nrand=c.get('nrand',1)
         print 'nrand:',nrand
         if fit_model=='dev':

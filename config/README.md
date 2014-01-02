@@ -198,7 +198,7 @@
         - 10 random realizations
         - errors at high s/n. Maybe lm pars?
     - gg01rtest
-        - 10 random realizations
+        - drawing guesses from priors to make sure nothing goes haywire
         - turning off lm_pars entirely except for maxfev and epsfcn
 
     - need to get noise right; when calculating s2n_w I'm using all duplicate
@@ -212,6 +212,8 @@
       that would give those observables.  Each step here involves simulating
       the object convolved with the psf, rendering the image, and finding
       the observables.
+    - problem  at low s/n the best fit will move all over the place.  This is
+      probably prohibitive.
     - nice properties
         - should remove noise bias
         - fully incorporates all the observational details of the data such as

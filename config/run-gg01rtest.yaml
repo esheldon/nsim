@@ -4,9 +4,9 @@ sim: "sim-gg01"
 
 fitter: "lm-meta"
 fit_model: "gauss"
-guess_type: "truth"
+# important that it is random
+guess_type: "truth_random"
 
-nrand: 10
 
 npair_min: 1000
 

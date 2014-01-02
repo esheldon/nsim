@@ -4,9 +4,12 @@ sim: "sim-gg01"
 
 fitter: "lm-meta"
 fit_model: "gauss"
-# important that it is random
-guess_type: "truth_random"
+psf_ngauss: 1
 
+guess_type: "draw_priors"
+
+# fixed or diff
+noise_type: "diff"
 
 npair_min: 1000
 

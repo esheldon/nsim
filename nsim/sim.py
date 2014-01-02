@@ -50,6 +50,7 @@ s2n_vals: [ 15, 21, 30, 42, 60, 86, 122, 174, 247, 352, 500]
 import os
 from sys import stderr
 import time
+import pprint
 
 import numpy
 from numpy.random import random as randu
@@ -100,6 +101,8 @@ class NGMixSim(dict):
         self.set_priors()
         self.make_psf()
         self.set_noise()
+
+        pprint.pprint(self, stream=stderr)
 
     def set_config(self, sim_conf, run_conf):
         """
@@ -247,7 +250,6 @@ class NGMixSim(dict):
         fitter.go()
         res = fitter.get_result()
         if False:
-            import pprint
             pprint.pprint(res)
 
         #ew=res['eff_iweight']
@@ -537,10 +539,13 @@ class NGMixSim(dict):
 
         guess_type=self['guess_type']
         if guess_type=='truth':
+            #print >>stderr,'guessing truth'
             guess=imdict['pars']
         elif guess_type=='truth_random':
+            #print >>stderr,'drawing truth random'
             guess=self.get_guess_from_true(imdict,n=1)
         elif guess_type=='draw_priors':
+            #print >>stderr,'drawing priors'
             guess=self.get_guess_draw_priors(n=1)
         else:
             raise ValueError("bad guess type: '%s'" % guess_type)
@@ -654,6 +659,10 @@ class NGMixSim(dict):
         return res, fitter
 
     def _meta_runner(self, pars):
+        """
+        Find max likelihood solution for the input parameters
+        with noise added.
+        """
         import ngmix
         from ngmix.gexceptions import GMixRangeError
         from ngmix.priors import LOWVAL
@@ -666,11 +675,11 @@ class NGMixSim(dict):
         except GMixRangeError:
             return pars*0 + LOWVAL
 
-
         nim=self._noise_image
-        sh=nim.shape
+        dims=nim.shape
+        nim = self.skysig*randn(nim.size).reshape(dims)
 
-        im = gm.make_image(sh, jacobian=imd['jacobian'])
+        im = gm.make_image(dims, jacobian=imd['jacobian'])
         im += nim
 
         imd['image']=im
@@ -697,27 +706,61 @@ class NGMixSim(dict):
         pars=res['pars']
         perr=res['pars_err']
 
+        # 'image' will get updated in the meta runner
         self._imdict_tmp = {}
         self._imdict_tmp.update(imdict)
         self._tpars=pars
-        self._tierr=1.0/perr
+        self._tierr=1.0/(perr + 1.e-12) # small enough padding?
 
-        sh=imdict['image'].shape
-        npix=sh[0]*sh[1]
+        dims=imdict['image'].shape
+        npix=dims[0]*dims[1]
 
-        # first try just using a fixed noise model
-        self._noise_image = self.skysig*randn(npix).reshape(sh)
+        self._noise_image = self.get_meta_noise_image(imdict, pars)
 
-        dof = npix - len(pars)
-        tres = ngmix.fitting.run_leastsq(self._meta_runner, pars, dof, **self['lm_pars'])
+
+        # hmm... actually there are zero dof!  maybe we should use likelihood
+        # as figure of merit rather than the parameters?
+        dof=1.0
+
+        guess=self.get_guess_from_true(imdict, n=1)
+        tres = ngmix.fitting.run_leastsq(self._meta_runner, guess, dof, **self['lm_pars'])
 
         print >>stderr,'    meta nfev:',tres['nfev']
-        ngmix.fitting.print_pars(tres['pars_err'], front='    meta perr:')
+        print >>stderr,'    meta perr:',tres['pars_err']
+        #ngmix.fitting.print_pars(tres['pars_err'],
+        #                         front='    meta perr:',
+        #                         stream=stderr)
+        g_cov0 = tres['pars_cov0'][2:2+2,2:2+2] 
+        print >>stderr,'    meta g err0:',numpy.sqrt( numpy.diag(g_cov0) )
 
         res['flags'] = tres['flags']
         res['pars'] = tres['pars']
         return res, fitter
 
+    def get_meta_noise_image(self, imdict, pars):
+        """
+        Noise image for meta fitting
+
+        pars only used if noise type is "diff"
+        """
+        import ngmix
+        noise_type=self['noise_type']
+
+        dims=imdict['image'].shape
+        npix=dims[0]*dims[1]
+
+        if noise_type=='fixed':
+            # A new but fixed noise model
+            nim = self.skysig*randn(npix).reshape(dims)
+        elif noise_type=='diff':
+            # noise from image-model
+            gm0=ngmix.gmix.GMixModel(pars, self['fit_model'])
+            gm=gm0.convolve(self.psf_gmix_fit)
+            model_im = gm.make_image(dims, jacobian=imdict['jacobian'])
+            nim = imdict['image'] - model_im
+        else:
+            raise ValueError("bad noise type: '%s'" % noise_type)
+        return nim
 
     def print_res(self,res):
         """
@@ -747,13 +790,15 @@ class NGMixSim(dict):
 
         em=ngmix.em.GMixEM(imsky)
 
+        tol=self.get('psf_tol',1.0e-5)
+        maxiter=self.get('psf_maxiter',1000)
 
         while True:
             guess=self.get_psf_guess()
             print >>stderr,'psf guess:'
             print >>stderr,guess
             try:
-                em.go(guess, sky, tol=1.e-5)
+                em.go(guess, sky, tol=tol,maxiter=maxiter)
                 break
             except GMixMaxIterEM as e:
                 print >>stderr,str(e)

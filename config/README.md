@@ -113,20 +113,31 @@
 
 - near final run types
     - sigma ratio 2
-        - gg01r01, but note *did* draw priors during. also had error estimate wrong so it
-            is actually much lower error.
+        - gg01r01, but note *did* draw priors during. also had error estimate
+          wrong so it is actually much lower error.
         - gg01r04 more nstep and no g prior during
         - eg01r04
         - dg03r06
     - sigma ratio 1.4
         - gg03r01
         - eg03r03
+            - looks biased low
         - dg04r02
     - sigma ratio 1.0
         - gg04r01,gg04r02
             - was lower s/n than expected so ran two
-            - looks biased.  Maybe error in psf fit affects these smaller objects more?
-        - eg04r03 psf_ngauss=2
+            - looks biased.  Maybe error in psf fit affects these smaller
+              objects more?
+                - tried 2 gauss with gg04r03 and looks awful!
+            - maybe psf not fully converged?  Use tighter tolerance and higher
+              maxiter?  Did a quick try and psf looks quite close.
+            - maybe not burning in?
+        - gg04r03
+            - same parameters as gg04r01 but trying psf_ngauss=2
+            - wow, that looks terrible.
+        - gg04r04
+            - doubling walkers to 160
+
 
 - try nearly-fixed other paramters besides shape
     - gg02r01 looks crappy!  Is it because we only used 200 step? Doubt it
@@ -197,9 +208,6 @@
     - gg01r07
         - 10 random realizations
         - errors at high s/n. Maybe lm pars?
-    - gg01rtest
-        - drawing guesses from priors to make sure nothing goes haywire
-        - turning off lm_pars entirely except for maxfev and epsfcn
 
     - need to get noise right; when calculating s2n_w I'm using all duplicate
       images.  And what about error for the combo over 10 images?  Currenly
@@ -226,8 +234,13 @@
         - poor errors on initial fit.  At very least we need to soften the
           covariance matrix.
 
+    - gg01rtest
+        - tried fixed noise model, didn't look so good
+        - trying image-model_image for noise.
 
-# some of these are old names from old shapesim stuff
+
+
+# old shapesim stuff
 - nsim-eg01
     - exp, sigma ratio 2 (T ratio 4)
     - ngmix-eg01r{01-12} nwalkers 40,burnin 400, nstep 200, 20 s2n bins

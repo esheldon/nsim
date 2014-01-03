@@ -405,7 +405,8 @@ class NGMixSim(dict):
 
         guess_type=self['guess_type']
         if guess_type=='draw_truth':
-            full_guess=self.get_guess_from_true(imdict,n=self['nwalkers'])
+            full_guess=self.get_guess_from_pars(imdict['pars'],
+                                                n=self['nwalkers'])
         elif guess_type=='draw_priors':
             full_guess=self.get_guess_draw_priors(n=self['nwalkers'])
         else:
@@ -463,29 +464,35 @@ class NGMixSim(dict):
 
         return guess
 
-    def get_guess_from_true(self, imdict, n=1):
+    def get_guess_from_pars(self, pars, n=1, width=None):
         """
         Get a guess centered on the truth
-        """
-        #print >>stderr,'    guessing from truth rand'
 
-        pars=imdict['pars']
+        width is relative for T and counts
+        """
+
+        if width is None:
+            width = pars*0 + 0.01
+        else:
+            if len(width) != len(pars):
+                raise ValueError("width not same size as pars")
+
         guess=numpy.zeros( (n, pars.size) )
 
-        guess[:,0] = 0.01*srandu(n)
-        guess[:,1] = 0.01*srandu(n)
-        guess_shape=self.get_shape_guess(pars[2],pars[3],n)
+        guess[:,0] = width[0]*srandu(n)
+        guess[:,1] = width[1]*srandu(n)
+        guess_shape=self.get_shape_guess(pars[2],pars[3],n,width=width[2:2+2])
         guess[:,2]=guess_shape[:,0]
         guess[:,3]=guess_shape[:,1]
-        guess[:,4] = self.get_positive_guess(pars[4],n)
-        guess[:,5] = self.get_positive_guess(pars[5],n)
+        guess[:,4] = self.get_positive_guess(pars[4],n,width=width[4])
+        guess[:,5] = self.get_positive_guess(pars[5],n,width=width[5])
 
         if n==1:
             guess=guess[0,:]
 
         return guess
 
-    def get_shape_guess(self, g1, g2, n):
+    def get_shape_guess(self, g1, g2, n, width=[0.01,0.01]):
         """
         Get guess, making sure in range
         """
@@ -499,7 +506,8 @@ class NGMixSim(dict):
 
             while True:
                 try:
-                    g1_offset,g2_offset=0.01*srandu(2)
+                    g1_offset = width[0]*srandu()
+                    g2_offset = width[1]*srandu()
                     shape_new=shape.copy()
                     shape_new.shear(g1_offset, g2_offset)
                     break
@@ -511,7 +519,7 @@ class NGMixSim(dict):
 
         return guess
 
-    def get_positive_guess(self, val, n):
+    def get_positive_guess(self, val, n, width=0.01):
         """
         Get guess, making sure positive
         """
@@ -526,7 +534,7 @@ class NGMixSim(dict):
             if w.size == 0:
                 break
             else:
-                vals[w] = val*(1.0 + 0.01*srandu(w.size))
+                vals[w] = val*(1.0 + width*srandu(w.size))
 
         return vals
 
@@ -537,68 +545,30 @@ class NGMixSim(dict):
         """
         import ngmix
 
-        guess_type=self['guess_type']
-        if guess_type=='truth':
-            #print >>stderr,'guessing truth'
-            guess=imdict['pars']
-        elif guess_type=='truth_random':
-            #print >>stderr,'drawing truth random'
-            guess=self.get_guess_from_true(imdict,n=1)
-        elif guess_type=='draw_priors':
-            #print >>stderr,'drawing priors'
-            guess=self.get_guess_draw_priors(n=1)
-        else:
-            raise ValueError("bad guess type: '%s'" % guess_type)
+        guess=self.get_lm_guess(imdict)
 
         im=imdict['image']
         wt=imdict['wt']
         j=imdict['jacobian']
         psf=self.psf_gmix_fit
+        
+        counts_prior = self.counts_prior
 
-        randomize=self.get('randomize',False)
-        if randomize:
-            cls=ngmix.fitting.LMSimpleRandomize
+        fitter=ngmix.fitting.LMSimple(im, wt, j,
+                                      self['fit_model'],
+                                      guess,
 
-            nrand=self['nrand']
-            fac = 1.0/nrand
+                                      lm_pars=self['lm_pars'],
 
-            im  = [im]*nrand
-            #wt  = [wt]*nrand
-            wt  = [wt*fac]*nrand
-            j   = [j]*nrand
-            psf = [psf]*nrand
-            counts_prior = [self.counts_prior]
+                                      cen_prior=self.cen_prior,
+                                      g_prior=self.g_prior,
+                                      T_prior=self.T_prior,
+                                      counts_prior=counts_prior,
 
-        else:
-            cls=ngmix.fitting.LMSimple
-            counts_prior = self.counts_prior
+                                      psf=psf)
 
-        fitter=cls(im, wt, j,
-                   self['fit_model'],
-                   guess,
-
-                   lm_pars=self['lm_pars'],
-
-                   cen_prior=self.cen_prior,
-                   g_prior=self.g_prior,
-                   T_prior=self.T_prior,
-                   counts_prior=counts_prior,
-
-                   psf=psf)
         fitter.go()
         res=fitter.get_result()
-
-        if randomize and res['flags']==0:
-            print >>stderr,'    fixing up errors'
-            # nrand factor because we used nrand realizations
-            fac=nrand/2.0
-            res['pars_cov'] *= fac
-            res['g_cov'] *= fac
-            res['pars_err'] *= numpy.sqrt(fac)
-
-            # for s2n_w we have not expanded the errors cause just
-            # using calc_lnprob not fdiff
-            res['s2n_w'] *= numpy.sqrt(1.0/nrand)
 
         return res, fitter
 
@@ -665,7 +635,7 @@ class NGMixSim(dict):
         """
         import ngmix
         from ngmix.gexceptions import GMixRangeError
-        from ngmix.priors import LOWVAL
+        from ngmix.priors import LOWVAL, BIGVAL
 
         imd=self._imdict_tmp
 
@@ -673,23 +643,43 @@ class NGMixSim(dict):
             gm0=ngmix.gmix.GMixModel(pars, self['fit_model'])
             gm=gm0.convolve( self.psf_gmix_fit )
         except GMixRangeError:
-            return pars*0 + LOWVAL
+            #return pars*0 + LOWVAL
+            return BIGVAL
 
-        nim=self._noise_image
-        dims=nim.shape
-        nim = self.skysig*randn(nim.size).reshape(dims)
+        oim = imd['image']
+        dims = oim.shape
+        npix = oim.size
+
+        if self['noise_type']=='random':
+            nim = self.skysig*randn(npix).reshape(dims)
+        else:
+            #print >>stderr,'    USING FIXED OF SOME KIND'
+            nim=self._noise_image
 
         im = gm.make_image(dims, jacobian=imd['jacobian'])
         im += nim
 
         imd['image']=im
 
-        while True:
+        success=False
+        ntry=5
+        for i in xrange(ntry):
+            # a different random guess will be tried each time
             res, fitter = self.fit_galaxy_lm(imd)
             if res['flags'] == 0:
+                success=True
                 break
 
-        return (res['pars']-self._tpars)*self._tierr
+        if not success:
+            #return 0*pars + LOWVAL
+            return BIGVAL
+            # maybe return 0*pars + LOWVAL instead of raising an error
+            #raise TryAgainError("failed after %s tries" % ntry)
+        else:
+            #return (res['pars']-self._tpars)*self._tierr
+            diffsq=(res['lnprob'] - self._t_lnprob)**2
+            #print >>stderr,'        ',diffsq
+            return diffsq
 
     def fit_galaxy_lm_meta(self, imdict):
         """
@@ -712,26 +702,43 @@ class NGMixSim(dict):
         self._tpars=pars
         self._tierr=1.0/(perr + 1.e-12) # small enough padding?
 
+        self._t_lnprob=res['lnprob']
+
         dims=imdict['image'].shape
         npix=dims[0]*dims[1]
 
+        # this is only not None if using a fixed noise image
         self._noise_image = self.get_meta_noise_image(imdict, pars)
-
 
         # hmm... actually there are zero dof!  maybe we should use likelihood
         # as figure of merit rather than the parameters?
-        dof=1.0
+        #dof=1.0
+        dof = len(pars)-1
 
-        guess=self.get_guess_from_true(imdict, n=1)
-        tres = ngmix.fitting.run_leastsq(self._meta_runner, guess, dof, **self['lm_pars'])
+        brute=True
+        if brute:
+            np=200
+            allpars=self.get_guess_from_pars(pars, n=np, width=3*res['pars_err'])
+            lnprobs=numpy.zeros(np)
+            for i in xrange(np):
+                lnprobs[i] = self._meta_runner(allpars[i,:])
+            
+            w=numpy.abs(lnprobs-res['lnprob']).argmin()
+            tres={'flags':0, 'pars':allpars[w,:]}
+        else:
+            guess=self.get_lm_guess(imdict)
+            #guess=pars.copy()
+            ngmix.fitting.print_pars(guess,front='    meta guess:',stream=stderr)
+            #tres = ngmix.fitting.run_leastsq(self._meta_runner, guess, dof, **self['lm_pars'])
 
-        print >>stderr,'    meta nfev:',tres['nfev']
-        print >>stderr,'    meta perr:',tres['pars_err']
-        #ngmix.fitting.print_pars(tres['pars_err'],
-        #                         front='    meta perr:',
-        #                         stream=stderr)
-        g_cov0 = tres['pars_cov0'][2:2+2,2:2+2] 
-        print >>stderr,'    meta g err0:',numpy.sqrt( numpy.diag(g_cov0) )
+            #tres=run_fmin(self._meta_runner, guess)
+            tres=run_fmin_powell(self._meta_runner, guess)
+            print >>stderr,'    meta nfev:',tres['nfev']
+            print >>stderr,'    min fval:',tres['fval']
+            #print >>stderr,'    meta perr:',tres['pars_err']
+            #if tres['flags']==0:
+            #    g_cov0 = tres['pars_cov0'][2:2+2,2:2+2] 
+            #    print >>stderr,'    meta g err0:',numpy.sqrt( numpy.diag(g_cov0) )
 
         res['flags'] = tres['flags']
         res['pars'] = tres['pars']
@@ -754,13 +761,33 @@ class NGMixSim(dict):
             nim = self.skysig*randn(npix).reshape(dims)
         elif noise_type=='diff':
             # noise from image-model
+            #print >>stderr,'    USING DIFF'
             gm0=ngmix.gmix.GMixModel(pars, self['fit_model'])
             gm=gm0.convolve(self.psf_gmix_fit)
             model_im = gm.make_image(dims, jacobian=imdict['jacobian'])
             nim = imdict['image'] - model_im
+        elif noise_type=='random':
+            return None
         else:
             raise ValueError("bad noise type: '%s'" % noise_type)
         return nim
+
+    def get_lm_guess(self, imdict):
+        """
+        Get a guess for the LM fitter
+        """
+        guess_type=self['guess_type']
+        if guess_type=='truth':
+            raise ValueError("don't guess truth")
+            guess=imdict['pars']
+        elif guess_type=='truth_random':
+            raise ValueError("don't guess truth_random")
+            guess=self.get_guess_from_pars(imdict['pars'],n=1)
+        elif guess_type=='draw_priors':
+            guess=self.get_guess_draw_priors(n=1)
+        else:
+            raise ValueError("bad guess type: '%s'" % guess_type)
+        return guess
 
     def print_res(self,res):
         """
@@ -1165,3 +1192,35 @@ def srandu(num=None):
     return 2*(numpy.random.random(num)-0.5)
 
 
+def run_fmin(func, guess):
+    import scipy.optimize
+    (minvalx, fval, iterations, fcalls, warnflag) \
+            = scipy.optimize.fmin(func,
+                                  guess,
+                                  full_output=True, 
+                                  disp=False)
+    if warnflag != 0:
+        raise ValueError("failed to find min: warnflag %d" % warnflag)
+
+    res={'flags':warnflag,
+         'pars':minvalx,
+         'nfev':fcalls}
+    return res
+def run_fmin_powell(func, guess):
+    import scipy.optimize
+
+    (minvalx, fval, direc, iterations, fcalls, warnflag) \
+            = scipy.optimize.fmin_powell(func,
+                                         guess,
+                                         ftol=1.0e-6,
+                                         xtol=1.0e-6,
+                                         full_output=True, 
+                                         disp=False)
+    #if warnflag != 0:
+    #    raise ValueError("failed to find min: warnflag %d" % warnflag)
+
+    res={'flags':warnflag,
+         'pars':minvalx,
+         'fval':fval,
+         'nfev':fcalls}
+    return res

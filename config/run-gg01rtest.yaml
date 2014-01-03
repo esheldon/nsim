@@ -8,7 +8,7 @@ psf_ngauss: 1
 
 guess_type: "draw_priors"
 
-# fixed or diff
+# fixed or diff or random
 noise_type: "diff"
 
 npair_min: 1000

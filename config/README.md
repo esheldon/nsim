@@ -235,8 +235,12 @@
           covariance matrix.
 
     - gg01rtest
-        - tried fixed noise model, didn't look so good
-        - trying image-model_image for noise.
+        - tried noise type "diff", difference of image and model.
+            - total crap
+        - noise type "random"
+    - gg01rtest2
+    - gg01rtest3
+    - gg01rtest4
 
 
 

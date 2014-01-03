@@ -113,7 +113,7 @@
 
 - near final run types
     - sigma ratio 2
-        - gg01r01, but note *did* draw priors during. also had error estimate
+        - gg01r01, but note *did* use priors during. also had error estimate
           wrong so it is actually much lower error.
         - gg01r04 more nstep and no g prior during
         - eg01r04
@@ -137,6 +137,9 @@
             - wow, that looks terrible.
         - gg04r04
             - doubling walkers to 160
+        - gg04rtest
+            - mca_a 2.0 didn't help
+            - draw truth
 
 
 - try nearly-fixed other paramters besides shape

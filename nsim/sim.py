@@ -82,6 +82,7 @@ class NGMixSim(dict):
 
         self.shear=self.simc['shear']
         self.nsub=self.simc['nsub']
+        self.nsigma_render=self.simc.get('nsigma_render',NSIGMA_RENDER)
 
         self.check_pqr_shear()
 
@@ -1069,7 +1070,7 @@ class NGMixSim(dict):
         Based on T, get the required dimensions and a center
         """
         sigma=numpy.sqrt(T/2.)
-        dims = [2.*sigma*NSIGMA_RENDER]*2
+        dims = [2.*sigma*self.nsigma_render]*2
         cen = [(dims[0]-1.)/2.]*2
 
         return dims, cen

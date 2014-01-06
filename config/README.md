@@ -112,7 +112,12 @@
         - not enough precision.  maybe come back to it
     - run-gg04r07 try expanding area over which objects are rendered and like
       calculated, etc.
-        
+         - rcas2259 slow again
+    - also try larger render region.  Maybe "5-sigma" isn't general when the
+      object is comparable to psf size?
+          - run-gg07r01 not enough stats, but doesn't look good
+          - run-gg07r02 more stats
+
 - sim-gg05 sigma ratio 1.0 but larger psf
     - same
 - sim-gg06 sigma ratio 1.0 but even larger psf

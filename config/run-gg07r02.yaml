@@ -1,0 +1,23 @@
+# this with larger rendering radius
+run: "run-gg07r02"
+sim: "sim-gg07"
+
+fitter: "mcmc"
+fit_model: "gauss"
+guess_type: "draw_priors"
+g_prior_during: false
+
+nwalkers: 80
+burnin:   400
+nstep:    200
+mca_a:    3.0
+
+expand_shear_true: true
+
+# off by factor of two currently
+desired_err: 2.0e-05
+nsplit0: 30000
+
+s2n_vals: [ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
+
+sec_per_pair: 8.0

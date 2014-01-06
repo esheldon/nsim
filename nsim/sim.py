@@ -88,7 +88,7 @@ class NGMixSim(dict):
         self.s2n=s2n
         self.npairs=npairs
 
-
+        self.ring=self.get('ring',True)
 
         self.obj_model=self.simc['obj_model']
 
@@ -1035,7 +1035,10 @@ class NGMixSim(dict):
             g = self.g_prior.sample1d(1)
             g=g[0]
             rangle1 = randu()*2*numpy.pi
-            rangle2 = rangle1 + numpy.pi/2.0
+            if self.ring:
+                rangle2 = rangle1 + numpy.pi/2.0
+            else:
+                rangle2 = randu()*2*numpy.pi
             g1_1 = g*numpy.cos(2*rangle1)
             g2_1 = g*numpy.sin(2*rangle1)
             g1_2 = g*numpy.cos(2*rangle2)

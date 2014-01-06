@@ -6,6 +6,8 @@ fit_model: "exp"
 guess_type: "draw_priors"
 g_prior_during: false
 
+psf_ngauss: 1
+
 nwalkers: 80
 burnin:   400
 nstep:    200

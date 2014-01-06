@@ -140,8 +140,8 @@ def get_seconds_per_pair(c):
     Boosting this for the slowest machines
     """
 
-    if 'secper' in c:
-        return c['secper']
+    if 'sec_per_pair' in c:
+        return c['sec_per_pair']
 
     fit_model=c['fit_model']
     psf_ngauss=c['psf_ngauss']

@@ -108,7 +108,15 @@
 
 
 - sim-gg04 shear=0.08, sigma ratio 1.0
-
+    - run-gg04rtest3 not doing ring, just to see
+        - not enough precision.  maybe come back to it
+    - run-gg04r07 try expanding area over which objects are rendered and like
+      calculated, etc.
+        
+- sim-gg05 sigma ratio 1.0 but larger psf
+    - same
+- sim-gg06 sigma ratio 1.0 but even larger psf
+    - same
 
 
 - near final run types
@@ -124,23 +132,33 @@
             - looks biased low
         - dg04r02
     - sigma ratio 1.0
-        - gg04r01,gg04r02
-            - was lower s/n than expected so ran two
-            - looks biased.  Maybe error in psf fit affects these smaller
-              objects more?
-                - tried 2 gauss with gg04r03 and looks awful!
-            - maybe psf not fully converged?  Use tighter tolerance and higher
-              maxiter?  Did a quick try and psf looks quite close.
-            - maybe not burning in?
-        - gg04r03
-            - same parameters as gg04r01 but trying psf_ngauss=2
-            - wow, that looks terrible.
-        - gg04r04
-            - doubling walkers to 160
-        - gg04rtest
-            - mca_a 2.0 didn't help
-            - draw truth
-
+        - sim-gg04 
+            - gg04r01,gg04r02
+                - was lower s/n than expected so ran two
+                - looks biased.  Maybe error in psf fit affects these smaller
+                  objects more?
+                    - tried 2 gauss with gg04r03 and looks awful!
+                - maybe psf not fully converged?  Use tighter tolerance and
+                  higher maxiter?  Did a quick try and psf looks quite close.
+                - maybe not burning in?
+            - gg04r03
+                - same parameters as gg04r01 but trying psf_ngauss=2
+                - wow, that looks terrible.
+            - gg04r04
+                - doubling walkers to 160. Not better. deleted
+                - draw truth.  Looks a bit better *maybe*
+            - gg04r05
+                - mca_a 2.0 didn't help
+                - try mca_a 4.0, gives arate ~0.27.  Similar looking.
+            - gg04r06
+                - try same walkers but double burnin and nstep; doubtful
+            - gg04rtest
+                - nwalkers 400, no change!
+        - sim-eg04
+            - eg04r01.  Wierd oscillation in there.  I see it in the
+              gg04 stuff as well.
+        - sim-dg05
+            - dg05r01. Not yet run
 
 - try nearly-fixed other paramters besides shape
     - gg02r01 looks crappy!  Is it because we only used 200 step? Doubt it

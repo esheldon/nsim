@@ -201,8 +201,23 @@ def get_npair_nsplit_by_noise(c, is2n, npair_min=None):
     Get the npair/nsplit given the input config and s2n index
     """
     from math import ceil
+
+    # this is the requirement from measurement error
     s2n = c['s2n_vals'][is2n]
     npair_tot = get_npair_by_noise(s2n, c['desired_err'],c['run'])
+
+    npair_shapenoise = 0
+    ring=c.get('ring',True)
+    if not ring:
+        # add in shape noise term for non-ring test
+        # err = 0.16/sqrt(ngal)
+        ngal = (0.16/c['desired_err'])**2
+        npair_shapenoise = int(ngal/2.)
+
+
+    #print 'meas noise npair:',npair_tot
+    #print 'shapenoise npair:',npair_shapenoise 
+    npair_tot += npair_shapenoise
 
     if npair_min is not None and npair_tot < npair_min:
         npair_tot = npair_min
@@ -217,8 +232,8 @@ def get_npair_nsplit_by_noise(c, is2n, npair_min=None):
         nsplit=nsplit0
     else:
         npair_tot0 = get_npair_by_noise(c['s2n_vals'][0], c['desired_err'],c['run'])
+        npair_tot0 += npair_shapenoise
         nsplit = int( ceil( nsplit0*float(npair_tot)/npair_tot0 ))
-    
 
     npair_per = int(ceil(npair_tot/float(nsplit)))
 

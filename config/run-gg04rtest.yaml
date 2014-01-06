@@ -1,0 +1,25 @@
+run: "run-gg04rtest"
+sim: "sim-gg04"
+
+fitter: "mcmc"
+fit_model: "gauss"
+guess_type: "draw_priors"
+g_prior_during: false
+
+psf_ngauss: 1
+
+nwalkers: 80
+burnin:   400
+nstep:    200
+mca_a:    3.0
+
+expand_shear_true: true
+
+# this is off by about a factor of two, because it was calibrated
+# for larger galaxies
+desired_err: 1.0e-05
+nsplit0: 10000
+
+s2n_vals: [ 35 ]
+
+sec_per_pair:  6.0

@@ -1,0 +1,22 @@
+run: "run-gg05rcomb"
+sim: "sim-gg05"
+
+fitter: "mcmc"
+fit_model: "gauss"
+guess_type: "draw_priors"
+g_prior_during: false
+
+nwalkers: 80
+burnin:   400
+nstep:    200
+mca_a:    3.0
+
+expand_shear_true: true
+
+# we normalize splits by split for is2n==0
+desired_err: 2.0e-05
+nsplit0: 10000
+
+s2n_vals: [ 35 ]
+
+sec_per_pair: 8.8

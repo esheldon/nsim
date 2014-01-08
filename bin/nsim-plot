@@ -15,7 +15,9 @@ from numpy import sqrt
 
 from optparse import OptionParser
 parser=OptionParser(__doc__)
-parser.add_option('-y','--yrange',default='-0.05,0.05',
+parser.add_option('--index',default=0,
+                  help='which shear component to plot')
+parser.add_option('-y','--yrange',default='-0.02,0.02',
                   help='y range')
 parser.add_option('-x','--xrange',default=None,
                   help='x range')
@@ -59,7 +61,7 @@ def get_names(method):
 
     return s_name, scov_name
 
-def plot_run(plt, c, symbol, color, linestyle, options,
+def plot_run(plt, c, index, symbol, color, linestyle, options,
              with_points=True, with_curve=True,
              method='BA13', with_lensfit=False,
              add_run_label=False):
@@ -67,7 +69,7 @@ def plot_run(plt, c, symbol, color, linestyle, options,
     label = c['simc']['label']
     if add_run_label:
         label='%s %s' % (c['run'].replace('run-',''), label )
-    shear_true=c['simc']['shear'][0]
+    shear_true=c['simc']['shear'][index]
 
     url=nsim.files.get_averaged_url(c['run'], 0)
     print url
@@ -75,11 +77,11 @@ def plot_run(plt, c, symbol, color, linestyle, options,
 
     s_name,scov_name=get_names(method)
     if s_name=='g_sum':
-        shear=data['g_sum'][:,0]/data['nsum']
+        shear=data['g_sum'][:,index]/data['nsum']
     else:
-        shear=data[s_name][:,0]
+        shear=data[s_name][:,index]
 
-    err=sqrt(data[scov_name][:,0,0])
+    err=sqrt(data[scov_name][:,index,index])
     s2n_vals = data[options.s2n_field]
 
     if options.xrange is None:
@@ -89,18 +91,27 @@ def plot_run(plt, c, symbol, color, linestyle, options,
         xrng=[float(xr) for xr in xrng]
 
 
+    if index==0:
+        yvals = shear/shear_true-1
+        yerr = err/shear_true
+        yvals_lensfit = data['shear_lensfit'][:,0]/shear_true-1
+    else:
+        yvals = shear-shear_true
+        yerr = err
+        yvals_lensfit = data['shear_lensfit'][:,0]
+
     pts = biggles.Points(s2n_vals, 
-                         shear/shear_true-1,
+                         yvals,
                          type=symbol,
                          size=2,
                          color=color)
     ep = biggles.SymmetricErrorBarsY(s2n_vals,
-                                     shear/shear_true-1,
-                                     err/shear_true,
+                                     yvals,
+                                     yerr,
                                      width=2,
                                      color=color)
     crv = biggles.Curve(s2n_vals, 
-                        shear/shear_true-1,
+                        yvals,
                         type=linestyle,
                         width=2,
                         color=color)
@@ -115,7 +126,7 @@ def plot_run(plt, c, symbol, color, linestyle, options,
 
     if with_lensfit and method != 'lensfit':
         crv_lensfit = biggles.Curve(s2n_vals, 
-                                    data['shear_lensfit'][:,0]/shear_true-1,
+                                    yvals_lensfit,
                                     type=linestyle,
                                     width=2,
                                     color=color)
@@ -142,8 +153,9 @@ def main():
         parser.print_help()
         sys.exit(45)
 
-    runs=args[0].split(',')
+    runs=args
     method=options.method.upper()
+    index=int( options.index )
 
     biggles.configure('default','fontsize_min',3)
     biggles.configure('_HalfAxis','ticks_size',2)
@@ -157,7 +169,11 @@ def main():
              'circle',       'triangle',       'square',       'diamond']
     #labels=get_labels(runs, options)
 
-    ylabel=r'$\Delta \gamma/\gamma$'
+    if index==0:
+        ylabel=r'$\Delta \gamma/\gamma$'
+    else:
+        ylabel=r'$\Delta \gamma$'
+
     if options.s2n_field=='s2n_matched':
         xlabel=r'$(S/N)_{matched}$'
     elif options.s2n_field=='flux_s2n':
@@ -192,7 +208,7 @@ def main():
         c = nsim.files.read_config(run)
         c['simc'] = nsim.files.read_config(c['sim'])
 
-        xrng_run, crv_run, pts_run = plot_run(plt, c, 
+        xrng_run, crv_run, pts_run = plot_run(plt, c, index,
                                               symbols[irun],
                                               colors[irun],
                                               linestyles[irun],
@@ -217,7 +233,7 @@ def main():
     plt.add(key)
     plt.xrange=xrng
 
-    tl=biggles.PlotLabel(0.9,0.1,r'$\gamma_{true} = %.02f$' % c['simc']['shear'][0],
+    tl=biggles.PlotLabel(0.9,0.1,r'$\gamma_{true} = %.02f$' % c['simc']['shear'][index],
                          halign='right')
     plt.add(tl)
 

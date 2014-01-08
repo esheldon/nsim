@@ -4,7 +4,7 @@ sim: "sim-gg04"
 fitter: "mcmc"
 fit_model: "gauss"
 guess_type: "draw_priors"
-g_prior_during: false
+g_prior_during: true
 
 psf_ngauss: 1
 

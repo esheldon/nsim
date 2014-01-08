@@ -1,0 +1,22 @@
+run: "run-gg08rtest"
+sim: "sim-gg08"
+
+fitter: "mcmc"
+fit_model: "gauss"
+guess_type: "draw_priors"
+g_prior_during: false
+
+nwalkers: 80
+burnin:   400
+nstep:    200
+mca_a:    3.0
+
+expand_shear_true: false
+
+# off by factor of two
+desired_err: 0.5e-05
+nsplit0: 20000
+
+s2n_vals: [ 50.0  ]
+
+sec_per_pair:  6.0

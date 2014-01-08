@@ -1,9 +1,12 @@
 # vim: set filetype=markdown :
 
-- things to try why exp is weird
-    - gauss to see if anything still odd.
-    - try importance sample instead of MCMC.  Just at low s/n and draw from
-      priors
+THE BIAS IS NOT ADDITIVE
+
+- current runs
+    - testing why small objects are biased
+        - run-gg08rtest shear 0.01 and no expand shear true, test if was
+          derivatives.  Might not be that useful until we do many such runs,
+          since fractional error will be 1.e-3
 
 - sim-dg01
     - run-dg01r33 shear 0.01 with nwalkers=20 to verify we still see high bias
@@ -101,8 +104,8 @@
         - so try applying the prior after to see if we can get some of the
           spikiness
         - not remarkably better, but noiser and might need to sample more to
-
           see spikiness of prior.
+
     - run-gg01r04 increase nstep to 800 to see if I can get more spikiness and
       improve shear recovery.  Expect of order 4 hours to finish, 10pm.
 
@@ -116,13 +119,16 @@
     - also try larger render region.  Maybe "5-sigma" isn't general when the
       object is comparable to psf size?
           - run-gg07r01 not enough stats, but doesn't look good
-          - run-gg07r02 more stats
+          - run-gg07r02 more stats.  Same.
 
 - sim-gg05 sigma ratio 1.0 but larger psf
     - same
 - sim-gg06 sigma ratio 1.0 but even larger psf
     - same
-
+- sim-gg07 larger render region (8 instead of 5 "sigma")
+    - same
+- sim-gg08 don't expand true shear; to test if this is because of numerical
+  deriv.  This means low shear, 0.01
 
 - near final run types
     - sigma ratio 2
@@ -159,11 +165,12 @@
                 - try same walkers but double burnin and nstep; doubtful
             - gg04rtest
                 - nwalkers 400, no change!
+                - try g prior during.  Same
         - sim-eg04
-            - eg04r01.  Wierd oscillation in there.  I see it in the
+            - eg04r01,eg04r02.  Wierd oscillation in there.  I see it in the
               gg04 stuff as well.
         - sim-dg05
-            - dg05r01. Not yet run
+            - dg05r01. running
 
 - try nearly-fixed other paramters besides shape
     - gg02r01 looks crappy!  Is it because we only used 200 step? Doubt it

@@ -169,10 +169,12 @@ THE BIAS IS NOT ADDITIVE
         - sim-eg04
             - eg04r01,eg04r02.  Wierd oscillation in there.  I see it in the
               gg04 stuff as well.
-            - eg04r03 TODO
+            - eg04r03
         - sim-dg05
             - dg05r01
             - dg05r02
+            - dg05r03 - running
+            - dg05r04 - TODO
 
 - try nearly-fixed other paramters besides shape
     - gg02r01 looks crappy!  Is it because we only used 200 step? Doubt it

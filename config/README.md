@@ -171,8 +171,8 @@ THE BIAS IS NOT ADDITIVE
               gg04 stuff as well.
             - eg04r03 TODO
         - sim-dg05
-            - dg05r01. running
-            - dg05r02 TODO
+            - dg05r01
+            - dg05r02
 
 - try nearly-fixed other paramters besides shape
     - gg02r01 looks crappy!  Is it because we only used 200 step? Doubt it

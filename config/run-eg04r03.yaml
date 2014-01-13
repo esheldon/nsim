@@ -1,8 +1,8 @@
-run: "run-dg05r02"
-sim: "sim-dg05"
+run: "run-eg04r03"
+sim: "sim-eg04"
 
 fitter: "mcmc"
-fit_model: "dev"
+fit_model: "exp"
 guess_type: "draw_priors"
 g_prior_during: false
 
@@ -15,11 +15,10 @@ mca_a:    3.0
 
 expand_shear_true: true
 
-# we normalize splits by split for is2n==0
-desired_err: 4.5e-05
-nsplit0: 38000
+# this is 4.5/sqrt(2) but note error is off for small sizes
+desired_err: 3.18e-05
+nsplit0: 24000
 
 s2n_vals: [ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
 
-# doubled for slow machines
-sec_per_pair: 20.0
+

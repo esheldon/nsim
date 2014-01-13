@@ -1,4 +1,4 @@
-run: "run-dg05r02"
+run: "run-dg05r04"
 sim: "sim-dg05"
 
 fitter: "mcmc"

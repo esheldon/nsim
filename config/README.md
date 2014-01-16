@@ -134,9 +134,17 @@ THE BIAS IS NOT ADDITIVE
     - sigma ratio 2
         - gg01r01, but note *did* use priors during. also had error estimate
           wrong so it is actually much lower error.
+
         - gg01r04 more nstep and no g prior during
+        - gg01r08*
+            - gg01rcomb
+
         - eg01r04
+        - eg01r06*
+
         - dg03r06
+        - dg03r08*
+
     - sigma ratio 1.4
         - gg03r01
         - eg03r03

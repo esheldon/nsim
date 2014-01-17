@@ -7,6 +7,7 @@ scripts=['nsim-average-outputs',
          'nsim-combine-trials',
          'nsim-make-condor',
          'nsim-plot',
+         'nsim-make-paper-plots',
          'nsim-run']
 
 

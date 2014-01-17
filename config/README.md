@@ -136,11 +136,12 @@ THE BIAS IS NOT ADDITIVE
           wrong so it is actually much lower error.
 
         - gg01r04 more nstep and no g prior during
-        - gg01r08*
+        - gg01r08
             - gg01rcomb
 
         - eg01r04
-        - eg01r06*
+        - eg01r06
+            - eg01rcomb
 
         - dg03r06
         - dg03r08*

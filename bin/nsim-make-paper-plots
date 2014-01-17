@@ -1,0 +1,59 @@
+# sigrat==2
+
+flux_s2n_xrange="7,1000"
+T_s2n_xrange="2,600"
+yrange="-0.01,0.01"
+
+runs="run-gg01rcomb run-eg01rcomb run-dg03rcomb"
+flux_plot="~/tmp/ngmix-flux-s2n-sigrat-2.0.eps"
+T_plot="~/tmp/ngmix-T-s2n-sigrat-2.0.eps"
+
+nsim-plot         \
+    --s2n-field flux_s2n \
+    -x $flux_s2n_xrange  \
+    -y "$yrange"         \
+    --eps $flux_plot \
+    $runs
+nsim-plot         \
+    --s2n-field T_s2n    \
+    -x $T_s2n_xrange     \
+    -y "$yrange"         \
+    --eps $T_plot \
+    $runs
+
+
+runs="run-gg03r01 run-eg03r03 run-dg04r02"
+flux_plot="~/tmp/ngmix-flux-s2n-sigrat-1.4.eps"
+T_plot="~/tmp/ngmix-T-s2n-sigrat-1.4.eps"
+
+nsim-plot         \
+    --s2n-field flux_s2n \
+    -x $flux_s2n_xrange  \
+    -y "$yrange"         \
+    --eps $flux_plot \
+    $runs
+nsim-plot         \
+    --s2n-field T_s2n    \
+    -x $T_s2n_xrange     \
+    -y "$yrange"         \
+    --eps $T_plot \
+    $runs
+
+runs="run-gg04rcomb run-eg04rcomb run-dg05rcomb"
+flux_plot="~/tmp/ngmix-flux-s2n-sigrat-1.0.eps"
+T_plot="~/tmp/ngmix-T-s2n-sigrat-1.0.eps"
+
+nsim-plot         \
+    --s2n-field flux_s2n \
+    -x $flux_s2n_xrange  \
+    -y "$yrange"         \
+    --eps $flux_plot \
+    $runs
+nsim-plot         \
+    --s2n-field T_s2n    \
+    -x $T_s2n_xrange     \
+    -y "$yrange"         \
+    --eps $T_plot \
+    $runs
+
+

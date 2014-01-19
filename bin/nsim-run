@@ -11,6 +11,15 @@ import fitsio
 
 from optparse import OptionParser
 parser=OptionParser(__doc__)
+parser.add_option('--make-plots',action='store_true',
+                  help="make some plots of the trials")
+
+parser.add_option("--profile", action='store_true',
+                  help=("Profile the code using cProfile"))
+
+parser.add_option("--profile-image", default=None,
+                  help=("Profile the code and create the specified "
+                        "image using pycallgraph"))
 
 def get_checkpoint_data(output_file):
     """
@@ -34,7 +43,40 @@ def cleanup_checkpoint(checkpoint_file):
         print >>stderr,'removing checkpoint file',checkpoint_file
         os.remove(checkpoint_file)
 
-def run_sim(sim_conf,run_conf,s2n,npairs,output_file):
+def profile_sim(sim_conf,run_conf,s2n,npairs,output_file,options):
+    # don't want to see the JIT
+    import cProfile
+    import pstats
+
+    import ngmix
+
+    cProfile.runctx('run_sim(sim_conf,run_conf,s2n,npairs,output_file,options)',
+                    globals(),locals(),
+                    'profile_stats')
+    
+    p = pstats.Stats('profile_stats')
+    p.sort_stats('time').print_stats()
+
+
+def profile_sim_pycallgraph(sim_conf,run_conf,s2n,npairs,output_file,options):
+    # pycallgraph doesn't like it when the JIT starts up
+    import ngmix
+
+    import pycallgraph
+    from pycallgraph import PyCallGraph
+    from pycallgraph.output import GraphvizOutput
+
+    img_name=options.profile_image
+    graphviz = GraphvizOutput()
+    print 'profile image:',img_name
+    graphviz.output_file = img_name
+    config=pycallgraph.Config(groups=False)
+
+    with PyCallGraph(config=config, output=graphviz):
+        run_sim(sim_conf,run_conf,s2n,npairs,output_file,options)
+
+
+def run_sim(sim_conf,run_conf,s2n,npairs,output_file,options):
     """
     Run the sim and deal with checkpointing
     """
@@ -42,7 +84,8 @@ def run_sim(sim_conf,run_conf,s2n,npairs,output_file):
     checkpoint_file, checkpoint_data=get_checkpoint_data(output_file)
     sim=nsim.sim.NGMixSim(sim_conf, run_conf, s2n, npairs,
                           checkpoint_file=checkpoint_file,
-                          checkpoint_data=checkpoint_data)
+                          checkpoint_data=checkpoint_data,
+                          make_plots=options.make_plots)
 
     sim.run_sim()
 
@@ -70,7 +113,14 @@ def main():
     run_conf = nsim.files.read_config(run)
     sim_conf = nsim.files.read_config(run_conf['sim'])
 
-    print >>stderr,'running sim'
-    run_sim(sim_conf,run_conf,s2n,npairs,output_file)
+    if options.profile_image is not None:
+        print >>stderr,'profiling sim with pycallgraph'
+        profile_sim_pycallgraph(sim_conf,run_conf,s2n,npairs,output_file,options)
+    elif options.profile:
+        print >>stderr,'profiling sim with cProfile'
+        profile_sim(sim_conf,run_conf,s2n,npairs,output_file,options)
+    else:
+        print >>stderr,'running sim'
+        run_sim(sim_conf,run_conf,s2n,npairs,output_file,options)
 
 main()

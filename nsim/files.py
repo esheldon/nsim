@@ -179,7 +179,8 @@ def get_npair_by_noise(s2n, desired_err, run):
     if 'geg' in run or '-eg' in run:
         npairii = numpy.interp([s2n], s2n_ref_geg, npair_ref_geg)
         errii = numpy.interp([s2n], s2n_ref_geg, err_ref_geg)
-    elif 'deg' in run or '-dg' in run:
+    elif 'deg' in run or '-dg' in run or 'bdf' in run:
+        # for bdf make sure you set sec_per_pair
         npairii = numpy.interp([s2n], s2n_ref_deg, npair_ref_deg)
         errii = numpy.interp([s2n], s2n_ref_deg, err_ref_deg)
     elif '-gg' in run:

@@ -1,0 +1,29 @@
+run: "run-bdfg01rtest"
+sim: "sim-bdfg01"
+
+fitter: "mcmc"
+fit_model: "bdf"
+guess_type: "draw_priors"
+g_prior_during: false
+
+psf_ngauss: 1
+
+nwalkers: 80
+burnin:   400
+nstep:    200
+
+mca_a:    3.0
+min_arate: 0.25
+
+ntry:     5
+
+expand_shear_true: true
+
+# we normalize splits by split for is2n==0
+desired_err: 4.5e-05
+nsplit0: 5000
+
+s2n_vals: [ 100 ]
+
+# doubled for slow machines
+sec_per_pair: 50.0

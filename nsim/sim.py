@@ -97,6 +97,7 @@ class NGMixSim(dict):
         self.npars=ngmix.gmix.get_model_npars(self.fit_model)
 
         self.make_plots=keys.get('make_plots',False)
+        self.plot_base=keys.get('plot_base',None)
 
         self.setup_checkpoints(**keys)
 
@@ -152,6 +153,7 @@ class NGMixSim(dict):
         for ipair in xrange(npairs):
             print >>stderr,'%s/%s' % (ipair+1,npairs)
 
+            self.ipair=ipair
             if self.data['processed'][i]:
                 i += 2 # skip the pair
             else:
@@ -208,9 +210,21 @@ class NGMixSim(dict):
             self.print_res(res,imdicts[key]['pars'])
 
             if self.make_plots:
-                fitter.make_plots(show=True,title=self.fit_model)
+                self.do_make_plots(fitter,key)
 
         return reslist
+
+    def do_make_plots(self, fitter, key):
+        """
+        Write a plot file of the trials
+        """
+        trials_plot=self.plot_base+'-%06d-%s-trials.png' % (self.ipair,key)
+
+        tp=fitter.make_plots(title=self.fit_model)
+
+        print >>stderr,trials_plot
+        tp.write_img(1100,1100,trials_plot)
+
 
     def fit_galaxy(self, imdict):
         """
@@ -400,7 +414,10 @@ class NGMixSim(dict):
         import ngmix
 
         if self.fit_model=='bdf':
-            fitter=self.run_bdf_mcmc_fitter(imdict)
+            if self['guess_type'] != "draw_truth":
+                fitter=self.run_bdf_mcmc_fitter_with_restart(imdict)
+            else:
+                fitter=self.run_bdf_mcmc_fitter(imdict)
         else:
             fitter=self.run_simple_mcmc_fitter(imdict)
 
@@ -428,6 +445,67 @@ class NGMixSim(dict):
 
         return fitter
 
+    def run_bdf_mcmc_fitter_with_restart(self, imdict):
+        """
+        Get a bdf (Bulge-Disk Fixed size ratio) mcmc fitter
+        """
+        import ngmix
+        from ngmix.fitting import LOW_ARATE
+
+        nwalkers = self['nwalkers']
+        mca_a=self['mca_a']
+        ntry=self['ntry']
+
+        for ipass in [0,1]:
+            if ipass==0:
+                print >>stderr,'    pass 1'
+                full_guess=self.get_guess(imdict, n=nwalkers)
+            else:
+                best_pars=fitter.best_pars
+                ngmix.fitting.print_pars(best_pars,
+                                         front='    pass 2 pars: ',
+                                         stream=stderr)
+                full_guess=self.get_guess_from_pars(best_pars, n=nwalkers)
+
+            min_arate=self['min_arate'][ipass]
+            for itry in xrange(ntry):
+                fitter=ngmix.fitting.MCMCBDF(imdict['image'],
+                                             imdict['wt'],
+                                             imdict['jacobian'],
+
+                                             cen_prior=self.cen_prior,
+                                             g_prior=self.g_prior,
+                                             T_prior=self.T_prior,
+                                             counts_prior=self.counts_prior,
+
+                                             bfrac_prior=self.bfrac_prior,
+
+                                             g_prior_during=self['g_prior_during'],
+
+                                             full_guess=full_guess,
+
+                                             shear_expand=self.shear_expand,
+
+                                             psf=self.psf_gmix_fit,
+                                             nwalkers=nwalkers,
+                                             nstep=self['nstep'],
+                                             burnin=self['burnin'],
+                                             mca_a=self['mca_a'][ipass],
+                                             ntry=1,
+                                             min_arate=min_arate,
+                                             do_pqr=True,
+                                             do_lensfit=True)
+                fitter.go()
+                if fitter.arate < min_arate and itry < (ntry-1):
+                    nwalkers = nwalkers*2
+                    print >>stderr,'        trying nwalkers:',nwalkers
+                    full_guess=self.get_guess(imdict, n=nwalkers)
+                else:
+                    break
+
+
+        return fitter
+
     def run_bdf_mcmc_fitter(self, imdict):
         """
         Get a bdf (Bulge-Disk Fixed size ratio) mcmc fitter
@@ -442,8 +520,7 @@ class NGMixSim(dict):
         ntry=self['ntry']
         min_arate=self['min_arate']
 
-        #for i in xrange(ntry):
-        for i in xrange(1):
+        for i in xrange(ntry):
             fitter=ngmix.fitting.MCMCBDF(imdict['image'],
                                          imdict['wt'],
                                          imdict['jacobian'],
@@ -466,7 +543,7 @@ class NGMixSim(dict):
                                          nstep=self['nstep'],
                                          burnin=self['burnin'],
                                          mca_a=self['mca_a'],
-                                         ntry=ntry,
+                                         #ntry=ntry,
                                          min_arate=min_arate,
                                          do_pqr=True,
                                          do_lensfit=True)
@@ -482,25 +559,35 @@ class NGMixSim(dict):
                 nwalkers = nwalkers*2
                 print >>stderr,'        trying nwalkers:',nwalkers
 
+                #full_guess=self.get_guess(imdict, n=nwalkers)
+
                 # start where we left off
-                sampler=fitter.get_sampler()
+                #sampler=fitter.get_sampler()
+                w=fitter.lnprobs.argmax()
+                best_pars=fitter.trials[w, :]
+                full_guess=self.get_guess_from_pars(best_pars, n=nwalkers)
 
                 #full_guess=sampler.chain[:, -2:, :].reshape(nwalkers,self.npars)
 
-                full_guess=numpy.zeros( (nwalkers,self.npars) )
+                #full_guess=numpy.zeros( (nwalkers,self.npars) )
                 #chain=sampler.chain
-                pos=fitter.get_last_pos()
-                full_guess[0:nwalkers_old]=pos
-                full_guess[nwalkers_old:]=pos
+                #pos=fitter.get_last_pos()
+                #full_guess[0:nwalkers_old]=pos
+                #full_guess[nwalkers_old:]=pos
                 #full_guess[0:nwalkers_old]=chain[:, -1:, :]
                 #full_guess[nwalkers_old:]=chain[:, -2:, :]
                 #full_guess[:,:] = trials[-nwalkers:, :]
 
-                print full_guess.shape
+                print '       ',full_guess.shape
 
-        #if arate < min_arate:
-        #    fitter._result['flags'] |= LOW_ARATE
+        if arate < min_arate:
+            if self['keep_low_arate']:
+                fitter._result['flags'] =0
+            else:
+                fitter._result['flags'] |= LOW_ARATE
 
+
+        # trying keeping low arate ones
         return fitter
 
     def run_simple_mcmc_fitter(self, imdict, full_guess):
@@ -589,7 +676,18 @@ class NGMixSim(dict):
         
         # sample from the bfrac distribution
         counts=self.counts_prior.sample(nrand=n)
-        bfracs = self.bfrac_prior.sample(n)
+        #bfracs = self.bfrac_prior.sample(n)
+
+        # uniform
+        # make sure there are some at high and low bfrac
+        bfracs = randu(n)
+        if n > 2:
+            bfracs=numpy.zeros(n)
+            nhalf=n/2
+            bfracs[0:nhalf] = 0.01*randu(nhalf)
+            bfracs[nhalf:] = 0.99+0.01*randu(nhalf)
+        else:
+            bfracs = randu(n)
         dfracs = 1.0-bfracs
 
         # bulge flux
@@ -604,7 +702,7 @@ class NGMixSim(dict):
         Get a guess centered on the truth
         """
         if self.fit_model=='bdf':
-            raise ValueError("implement bdf")
+            guess=self.get_guess_from_pars_bdf(pars,n=n,width=width)
         else:
             guess=self.get_guess_from_pars_simple(pars,n=n,width=width)
 
@@ -612,6 +710,33 @@ class NGMixSim(dict):
             guess=guess[0,:]
 
         return guess
+
+    def get_guess_from_pars_bdf(self, pars, n=1, width=None):
+        """
+        Get a guess centered on the truth
+
+        width is relative for T and counts
+        """
+
+        if width is None:
+            width = pars*0 + 0.01
+        else:
+            if len(width) != len(pars):
+                raise ValueError("width not same size as pars")
+
+        guess=numpy.zeros( (n, pars.size) )
+
+        guess[:,0] = width[0]*srandu(n)
+        guess[:,1] = width[1]*srandu(n)
+        guess_shape=self.get_shape_guess(pars[2],pars[3],n,width=width[2:2+2])
+        guess[:,2]=guess_shape[:,0]
+        guess[:,3]=guess_shape[:,1]
+        guess[:,4] = self.get_positive_guess(pars[4],n,width=width[4])
+        guess[:,5] = self.get_positive_guess(pars[5],n,width=width[5])
+        guess[:,6] = self.get_positive_guess(pars[6],n,width=width[6])
+
+        return guess
+
 
     def get_guess_from_pars_simple(self, pars, n=1, width=None):
         """

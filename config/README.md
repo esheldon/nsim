@@ -2,6 +2,28 @@
 
 THE BIAS IS NOT ADDITIVE
 
+- bdf
+    - bdf01r01 terrible
+        - was not keeping low arate, and many had low arate.
+    - bdf01rtest re-starting at guess from best likelihood helps.
+        - fewer with low arate
+        - Unfortunately I also was using prior during so not absolutely sure
+          which was most helpful.
+    - bdf01rtest3 -
+        - trying true guess with mca_a=2 first 20 pairs look good.
+        - try with the "retry" version and not true guess.
+            - some failures
+            - trying a=3 first pass a=2 second, not enough
+            - tried putting a chunk of bfrac near 0 and near 1 and
+            it didn't fail once in 20 pairs.
+            - trying a full run, but note we should test a few things.
+
+    - not prior during?
+    - guess true with no retry?
+
+    - also not was not keeping ones that failed arate, might want to change
+      that?
+
 - current runs
     - testing why small objects are biased
         - run-gg08rtest shear 0.01 and no expand shear true, test if was

@@ -82,10 +82,12 @@ def run_sim(sim_conf,run_conf,s2n,npairs,output_file,options):
     """
 
     checkpoint_file, checkpoint_data=get_checkpoint_data(output_file)
+    plot_base=output_file.replace('.fits','')
     sim=nsim.sim.NGMixSim(sim_conf, run_conf, s2n, npairs,
                           checkpoint_file=checkpoint_file,
                           checkpoint_data=checkpoint_data,
-                          make_plots=options.make_plots)
+                          make_plots=options.make_plots,
+                          plot_base=plot_base)
 
     sim.run_sim()
 

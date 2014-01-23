@@ -5,6 +5,16 @@ THE BIAS IS NOT ADDITIVE
 - bdf
     - bdf01r01 terrible
         - was not keeping low arate, and many had low arate.
+    - bdf01r02
+        - better guessing and 2 pass.
+        - looks much better but not great
+    - bdf01r03
+        - trying draw_truth to see if improved.  a=2, which might be an issue?
+          Also prior during.
+
+          ? try making prior *very* thin for dev side and then fitting
+          both dev and b+d and taking best?
+
     - bdf01rtest re-starting at guess from best likelihood helps.
         - fewer with low arate
         - Unfortunately I also was using prior during so not absolutely sure
@@ -14,12 +24,15 @@ THE BIAS IS NOT ADDITIVE
         - try with the "retry" version and not true guess.
             - some failures
             - trying a=3 first pass a=2 second, not enough
-            - tried putting a chunk of bfrac near 0 and near 1 and
-            it didn't fail once in 20 pairs.
+            - tried putting a chunk of bfrac near 0 and near 1 and it didn't
+              fail once in 20 pairs.
             - trying a full run, but note we should test a few things.
 
-    - not prior during?
-    - guess true with no retry?
+        - try drawn priors and not forcing restart and a=3 and not removing low
+          arate
+            - looks terrible, 1.4% at s/n=35
+        - trying nwalkers=320, a=2
+            also rtest2 at s/n=23
 
     - also not was not keeping ones that failed arate, might want to change
       that?

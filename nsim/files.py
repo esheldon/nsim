@@ -133,6 +133,11 @@ def get_averaged_url(run, is2, fs=None, ext='fits'):
     f = '%s.%s' % (f,ext)
     return path_join(dir, f)
 
+s2n_ref_bdfg=[ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
+npair_ref_bdfg=[1240000, 1240000,  711574,  363878,  164300,
+               71517,  31589,  13733,   6045,
+               3038,   3038,   3038]
+err_ref_bdfg=[ 8.64686523781e-05,6.36021322793e-05,5.78428340247e-05,5.44774877257e-05,5.41502412604e-05,5.39701794399e-05,5.35799931151e-05,5.38147319202e-05,5.35173339764e-05,4.97357492734e-05,3.24657802612e-05,2.14956557248e-05]
 
 
 # from a BA13 prior run, exp galaxy
@@ -179,7 +184,11 @@ def get_npair_by_noise(s2n, desired_err, run):
     if 'geg' in run or '-eg' in run:
         npairii = numpy.interp([s2n], s2n_ref_geg, npair_ref_geg)
         errii = numpy.interp([s2n], s2n_ref_geg, err_ref_geg)
-    elif 'deg' in run or '-dg' in run or 'bdf' in run:
+    elif 'bdfg' in run:
+        # for bdf make sure you set sec_per_pair
+        npairii = numpy.interp([s2n], s2n_ref_bdfg, npair_ref_bdfg)
+        errii = numpy.interp([s2n], s2n_ref_bdfg, err_ref_bdfg)
+    elif 'deg' in run or '-dg' in run:
         # for bdf make sure you set sec_per_pair
         npairii = numpy.interp([s2n], s2n_ref_deg, npair_ref_deg)
         errii = numpy.interp([s2n], s2n_ref_deg, err_ref_deg)

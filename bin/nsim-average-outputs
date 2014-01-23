@@ -31,7 +31,9 @@ COV_SOFTEN=1.0e-12
 
 CHUNKSIZE=1000000
 
-def get_dtype(fobj):
+simple_models=['exp','dev','gauss']
+
+def get_dtype(fobj, model):
 
     data = fobj[1][0:10]
 
@@ -64,9 +66,7 @@ def get_dtype(fobj):
     else:
         do_lensfit=False
 
-    do_simple=False
-    if data['pars'].shape[1] == 6:
-        do_simple=True
+    if model in simple_models or model =='bdf':
         dt += [('flux_sum','f8'),
                ('flux_err2invsum','f8'),
                ('flux_s2n_sum','f8'),
@@ -81,7 +81,7 @@ def get_dtype(fobj):
                ('T_err','f8'),
                ('T_s2n','f8')]
 
-    return dt, do_pqr, do_lensfit, do_simple
+    return dt, do_pqr, do_lensfit
 
 def get_chunk_info(nrows):
     nchunks=nrows//CHUNKSIZE
@@ -134,7 +134,7 @@ def get_shear_cov_inv(data, use_scatter=False):
 
     return shear_cov_inv, w
 
-def do_sums(data, d, do_pqr=False, do_lensfit=False, do_simple=False, use_scatter=False):
+def do_sums(data, d, model, do_pqr=False, do_lensfit=False, use_scatter=False):
     names=data.dtype.names
 
     shear_cov_inv, w = get_shear_cov_inv(data, use_scatter=use_scatter)
@@ -158,14 +158,15 @@ def do_sums(data, d, do_pqr=False, do_lensfit=False, do_simple=False, use_scatte
     if do_lensfit:
         d['gsens_sum'] = data['gsens'].sum(axis=0)
 
-    if do_simple:
-        flux     = data['pars'][:,5]
-        flux_var = data['pcov'][:,5,5]
+    if model in simple_models or model=='bdf':
+        flux     = data['pars'][:,5:].sum(axis=1)
+        flux_var = data['pcov'][:,5:,5:].sum(axis=1).sum(axis=1)
         flux_var += COV_SOFTEN
 
         flux_err = sqrt(flux_var)
 
         d['flux_sum'][0]        += flux.sum()
+
         d['flux_err2invsum'][0] += (1.0/flux_var[w]).sum()
 
         flux_s2n_vals = flux/flux_err
@@ -184,7 +185,7 @@ def do_sums(data, d, do_pqr=False, do_lensfit=False, do_simple=False, use_scatte
         T_s2n_vals = T/T_err
         d['T_s2n_sum'][0] += T_s2n_vals.sum()
 
-def do_avg(conf, d, do_pqr=False, do_lensfit=False, do_simple=False):
+def do_avg(conf, d, model, do_pqr=False, do_lensfit=False):
 
     shear_cov = numpy.linalg.inv(d['shear_cov_inv_sum'][0])
     d['shear_cov'][0,:,:] = shear_cov
@@ -232,7 +233,7 @@ def do_avg(conf, d, do_pqr=False, do_lensfit=False, do_simple=False):
         fracdiff_err=sherr/conf['simc']['shear'][0]
         print >>stderr,'fracdiff(lensfit): % .2e +/- %.2e' % (fracdiff, fracdiff_err)
 
-    if do_simple:
+    if model in simple_models or model=='bdf':
         d['flux'] = d['flux_sum']/d['nsum']
         d['flux_err'] = sqrt(1.0/d['flux_err2invsum'])
         d['flux_s2n'] = d['flux_s2n_sum']/d['nsum']
@@ -242,11 +243,13 @@ def do_avg(conf, d, do_pqr=False, do_lensfit=False, do_simple=False):
 
 def get_averaged_gerror(conf, fname, s2n_matched, use_scatter=False):
 
+    model=conf['fit_model']
+
     print >>stderr,fname
     with fitsio.FITS(fname) as fobj:
         nrows=fobj[1].get_nrows()
 
-        dt, do_pqr, do_lensfit, do_simple = get_dtype(fobj)
+        dt, do_pqr, do_lensfit = get_dtype(fobj,model)
 
         d=numpy.zeros(1, dtype=dt)
         d['s2n_matched'] = s2n_matched
@@ -260,17 +263,16 @@ def get_averaged_gerror(conf, fname, s2n_matched, use_scatter=False):
             print '    %s:%s of %s' % (beg,end,nrows)
             data = fobj[1][beg:end]
 
-            do_sums(data, d,
+            do_sums(data, d, model,
                     do_pqr=do_pqr,
                     do_lensfit=do_lensfit,
-                    do_simple=do_simple,
                     use_scatter=use_scatter)
 
     do_avg(conf,
            d,
+           model,
            do_pqr=do_pqr,
-           do_lensfit=do_lensfit,
-           do_simple=do_simple)
+           do_lensfit=do_lensfit)
 
     return d
 

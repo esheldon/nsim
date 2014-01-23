@@ -127,7 +127,7 @@ class NGMixSim(dict):
         about
         """
 
-        if self['fitter'] in ['mcmc','isample']:
+        if self['fitter'] in ['mcmc','isample','isample-anze']:
             if self['expand_shear_true']:
                 self.shear_expand=self.shear
                 print >>stderr,'nsim: expanding about shear:',self.shear_expand
@@ -234,8 +234,10 @@ class NGMixSim(dict):
         fitter_type=self['fitter']
         if fitter_type == 'mcmc':
             fitter = self.fit_galaxy_mcmc(imdict)
-        elif fitter_type == 'isample':
+        elif fitter_type == 'isample-auto':
             fitter = self.fit_galaxy_isample_auto(imdict)
+        elif fitter_type=='isample-anze':
+            fitter = self.fit_galaxy_isample_anze(imdict)
         elif fitter_type == 'lm':
             fitter = self.fit_galaxy_lm(imdict)
         elif fitter_type=='lm-meta':
@@ -246,6 +248,68 @@ class NGMixSim(dict):
             raise ValueError("bad fitter type: '%s'" % fitter_type)
 
         return fitter
+
+    def fit_galaxy_isample(self, imdict):
+        """
+        Fit the model to the galaxy using important sampling
+        """
+        import ngmix
+
+        sampler=self.get_simple_proposal_truth(self, imdict)
+        trials,ln_probs=sampler.sample(self['n_samples'])
+
+        fitter=ngmix.fitting.ISampleSimple(imdict['image'],
+                                           imdict['wt'],
+                                           imdict['jacobian'],
+                                           self.fit_model,
+                                           trials,
+                                           ln_probs,
+
+                                           # not optional
+                                           cen_prior=self.cen_prior,
+                                           g_prior=self.g_prior,
+                                           T_prior=self.T_prior,
+                                           counts_prior=self.counts_prior,
+
+                                           shear_expand=self.shear_expand,
+
+                                           psf=self.psf_gmix_fit,
+
+                                           do_pqr=True,
+                                           do_lensfit=True)
+        fitter.go()
+        res = fitter.get_result()
+        if False:
+            pprint.pprint(res)
+
+        return res
+
+    def get_simple_proposal_truth(self, imdict):
+        pars=imdict['pars']
+        cen0=pars[0]
+        cen1=pars[1]
+
+        cen_sigma=self.simc['cen_sigma']*2
+
+        # this is way too large for high s/n objects
+        # should tune based on a max-like fit or something
+        g_sigma=0.3
+
+        T = pars[4]
+        T_sigma = self.simc['obj_T_sigma_frac']*T
+
+        counts = pars[5]
+        counts_sigma = self.simc['obj_counts_sigma_frac']*counts
+
+        cen_dist=ngmix.priors.CenPrior(0.0, 0.0, cen_sigma, cen_sigma)
+
+        g_dist=ngmix.priors.TruncatedGaussianPolar(pars[2], pars[3], g_sigma, g_sigma, 1.0)
+
+        T_dist=ngmix.priors.LogNormal(T, T_sigma)
+        counts_dist=ngmix.priors.LogNormal(counts, counts_sigma)
+ 
+        sampler=SimpleSampler(cen_dist, g_dist, T_dist, counts_dist)
+        return sampler
 
     def fit_galaxy_isample_auto(self, imdict):
         """
@@ -278,6 +342,50 @@ class NGMixSim(dict):
             pprint.pprint(res)
 
         return res
+
+    def fit_galaxy_isample_anze(self, imdict):
+        """
+        Fit the model to the galaxy using anze's game sampler
+        """
+        import ngmix
+
+        
+        # faking this for now
+        nwalkers=1
+
+        full_guess=imdict['pars'].copy()
+
+        fitter=ngmix.fitting.ISampleBDFAnze(imdict['image'],
+                                            imdict['wt'],
+                                            imdict['jacobian'],
+
+                                            cen_prior=self.cen_prior,
+                                            g_prior=self.g_prior,
+                                            T_prior=self.T_prior,
+                                            counts_prior=self.counts_prior,
+
+                                            bfrac_prior=self.bfrac_prior,
+
+                                            g_prior_during=self['g_prior_during'],
+
+                                            full_guess=full_guess,
+
+                                            shear_expand=self.shear_expand,
+
+                                            psf=self.psf_gmix_fit,
+                                            nwalkers=nwalkers,
+                                            nstep=self['nstep'],
+                                            burnin=self['burnin'],
+                                            do_pqr=True,
+                                            do_lensfit=True)
+
+        fitter.go()
+        res = fitter.get_result()
+        if False:
+            pprint.pprint(res)
+
+        return res
+
 
 
 
@@ -414,7 +522,7 @@ class NGMixSim(dict):
         import ngmix
 
         if self.fit_model=='bdf':
-            if self['guess_type'] != "draw_truth":
+            if self['restart']:
                 fitter=self.run_bdf_mcmc_fitter_with_restart(imdict)
             else:
                 fitter=self.run_bdf_mcmc_fitter(imdict)
@@ -429,6 +537,7 @@ class NGMixSim(dict):
         """
         guess_type=self['guess_type']
         if guess_type=='draw_truth':
+            print >>stderr,'guessing truth'
             full_guess=self.get_guess_from_pars(imdict['pars'], n=n)
         elif guess_type=='draw_priors':
             full_guess=self.get_guess_draw_priors(n=n)
@@ -453,7 +562,6 @@ class NGMixSim(dict):
         from ngmix.fitting import LOW_ARATE
 
         nwalkers = self['nwalkers']
-        mca_a=self['mca_a']
         ntry=self['ntry']
 
         for ipass in [0,1]:
@@ -548,6 +656,7 @@ class NGMixSim(dict):
                                          do_pqr=True,
                                          do_lensfit=True)
             fitter.go()
+            #fitter.go_simple()
             res=fitter.get_result()
 
             arate=res['arate']
@@ -718,6 +827,7 @@ class NGMixSim(dict):
         width is relative for T and counts
         """
 
+        print >>stderr,'guessing pars bdf'
         if width is None:
             width = pars*0 + 0.01
         else:
@@ -1519,3 +1629,55 @@ def run_fmin_powell(func, guess):
          'fval':fval,
          'nfev':fcalls}
     return res
+
+def test_simple_sampler():
+    import ngmix
+    import mcmc
+    cen_dist = ngmix.priors.CenPrior(5.0, -3.0, 0.5, 0.5) 
+    g_dist=ngmix.priors.TruncatedGaussianPolar(0.5, -0.8, 0.3, 0.3, 1.0)
+    T_dist=ngmix.priors.LogNormal(16.0, 3.0)
+    counts_dist=ngmix.priors.LogNormal(100.0, 20.0)
+
+    ss=SimpleSampler(cen_dist, g_dist, T_dist, counts_dist)
+    samples, lnprobs = ss.sample(10000)
+
+    mcmc.plot_results(samples)
+
+class SimpleSampler(object):
+    def __init__(self, cen_dist, g_dist, T_dist, counts_dist):
+        """
+        Each dist must have methods
+            sample(n)
+            get_lnprob_array(vals)
+        """
+        self.cen_dist=cen_dist
+        self.g_dist=g_dist
+        self.T_dist=T_dist
+        self.counts_dist=counts_dist
+
+        self.npars=6
+
+    def sample(self, n):
+        samples=numpy.zeros( (n, self.npars) )
+        lnprob=numpy.zeros(n)
+
+        cen1,cen2=self.cen_dist.sample(n)
+        g1,g2 = self.g_dist.sample(n)
+        T=self.T_dist.sample(n)
+        counts=self.counts_dist.sample(n)
+
+        lnprob += self.cen_dist.get_lnprob_array(cen1,cen2)
+        lnprob += self.g_dist.get_lnprob_array(g1,g2)
+
+        lnprob += self.T_dist.get_lnprob_array(T)
+
+        lnprob += self.counts_dist.get_lnprob_array(counts)
+
+        samples[:, 0]=cen1
+        samples[:, 1]=cen2
+        samples[:, 2]=g1
+        samples[:, 3]=g2
+        samples[:, 4]=T
+        samples[:, 5]=counts
+
+        return samples, lnprob

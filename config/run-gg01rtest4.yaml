@@ -5,6 +5,8 @@ sim: "sim-gg01"
 fitter: "isample-iter"
 fit_model: "gauss"
 
+g_prior_during: false
+
 #proposal_type: "truth"
 
 #proposal_type: "mcmc"
@@ -22,8 +24,8 @@ n_samples_max: 2000000
 #n_samples_max: 100000
 
 # effective number after weighting should be this many
-min_eff_n_samples: 5000
-#min_eff_n_samples: 200
+#min_eff_n_samples: 5000
+min_eff_n_samples: 200
 
 expand_shear_true: true
 
@@ -32,16 +34,16 @@ desired_err: 4.5e-05
 
 #nsplit0: 20000
 #s2n_vals: [ 10 ]
-#nsplit0: 4000
-nsplit0: 10000
+nsplit0: 4000
+#nsplit0: 10000
 s2n_vals: [ 100 ]
 
 # doubled for slow machines
 
-sec_per_pair: 120.0
+#sec_per_pair: 120.0
 #sec_per_pair: 26.0
 # slower for lower s/n
-#sec_per_pair: 20.0
+sec_per_pair: 20.0
 
 
 # in case we are using it
@@ -49,7 +51,6 @@ nwalkers: 80
 burnin: 400
 nstep: 200
 mca_a: 3.0
-g_prior_during: true
 
 # for if we start from maxlike
 lm_pars:

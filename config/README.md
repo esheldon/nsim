@@ -6,7 +6,8 @@ THE BIAS IS NOT ADDITIVE
     - gg01rtest4
         - 200 min had bias high. Most were > 1000 actually
         - try 1000 min, same, maybe no surprise
-        - try 5000 min
+        - try 5000 min same
+        - try 200 but no prior during
 - bdf
     - bdf01r01 terrible
         - was not keeping low arate, and many had low arate.

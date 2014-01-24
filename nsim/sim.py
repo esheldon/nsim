@@ -217,6 +217,14 @@ class NGMixSim(dict):
         """
         Write a plot file of the trials
         """
+        import biggles
+        biggles.configure('default','fontsize_min',1.0)
+
+        if 'isample' in self['fitter']:
+            dims=(800,1100)
+            width,height=800,1100
+        else:
+            width,height=1100,1100
 
         tp=fitter.make_plots(title=self.fit_model)
         if isinstance(tp, tuple):
@@ -226,14 +234,14 @@ class NGMixSim(dict):
             trials_wplot=self.plot_base+'-%06d-%s-wtrials.png' % (self.ipair,key)
 
             print >>stderr,trials_plot
-            p.write_img(1100,1100,trials_plot)
+            p.write_img(width,height,trials_plot)
             print >>stderr,trials_wplot
-            wp.write_img(1100,1100,trials_wplot)
+            wp.write_img(width,height,trials_wplot)
 
         else:
             trials_plot=self.plot_base+'-%06d-%s-trials.png' % (self.ipair,key)
             print >>stderr,trials_plot
-            tp.write_img(1100,1100,trials_plot)
+            tp.write_img(width,height,trials_plot)
 
 
     def fit_galaxy(self, imdict):
@@ -323,42 +331,35 @@ class NGMixSim(dict):
         else:
             raise ValueError("support guess type: '%s'" % self['guess_type'])
 
-        while True:
-            fitter=ngmix.fitting.ISampleSimpleIter(imdict['image'],
-                                                   imdict['wt'],
-                                                   imdict['jacobian'],
-                                                   self.fit_model,
-                                                   sampler,
+        fitter=ngmix.fitting.ISampleSimpleIter(imdict['image'],
+                                               imdict['wt'],
+                                               imdict['jacobian'],
+                                               self.fit_model,
+                                               sampler,
 
-                                                   n_samples=self['n_samples'],
-                                                   n_samples_max=self['n_samples_max'],
-                                                   min_eff_n_samples=self['min_eff_n_samples'],
+                                               n_samples=self['n_samples'],
+                                               n_samples_max=self['n_samples_max'],
+                                               min_eff_n_samples=self['min_eff_n_samples'],
 
-                                                   # not optional
-                                                   cen_prior=self.cen_prior,
-                                                   g_prior=self.g_prior,
-                                                   T_prior=self.T_prior,
-                                                   counts_prior=self.counts_prior,
+                                               # not optional
+                                               cen_prior=self.cen_prior,
+                                               g_prior=self.g_prior,
+                                               T_prior=self.T_prior,
+                                               counts_prior=self.counts_prior,
 
-                                                   shear_expand=self.shear_expand,
+                                               g_prior_during=self['g_prior_during'],
 
-                                                   psf=self.psf_gmix_fit,
+                                               shear_expand=self.shear_expand,
 
-                                                   do_pqr=True,
-                                                   do_lensfit=True)
-            fitter.go()
-            res = fitter.get_result()
+                                               psf=self.psf_gmix_fit,
 
-            ew=res['eff_iweight']
-            print >>stderr,'    eff iweight:',ew,'eff samples:',res['eff_n_samples']
+                                               do_pqr=True,
+                                               do_lensfit=True)
+        fitter.go()
+        res = fitter.get_result()
 
-            if res['eff_n_samples'] < self['min_eff_n_samples']:
-                raise TryAgainError("too few")
-                #print >>stderr,'        too few, re-trying'
-                #sampler.multiply_sigmas(1.5)
-            else:
-                break
-
+        if res['eff_n_samples'] < self['min_eff_n_samples']:
+            raise TryAgainError("too few")
 
         return fitter
 

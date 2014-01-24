@@ -309,6 +309,7 @@ class NGMixSim(dict):
         """
         import ngmix
 
+        # this loop only makes sense for random guesses
         # do checking for guess here?
         if self['proposal_type']=='truth':
             # note this suffers from bad "sigma" values
@@ -322,36 +323,43 @@ class NGMixSim(dict):
         else:
             raise ValueError("support guess type: '%s'" % self['guess_type'])
 
-        fitter=ngmix.fitting.ISampleSimpleIter(imdict['image'],
-                                               imdict['wt'],
-                                               imdict['jacobian'],
-                                               self.fit_model,
-                                               sampler,
+        while True:
+            fitter=ngmix.fitting.ISampleSimpleIter(imdict['image'],
+                                                   imdict['wt'],
+                                                   imdict['jacobian'],
+                                                   self.fit_model,
+                                                   sampler,
 
-                                               n_samples=self['n_samples'],
-                                               n_samples_max=self['n_samples_max'],
-                                               min_eff_n_samples=self['min_eff_n_samples'],
+                                                   n_samples=self['n_samples'],
+                                                   n_samples_max=self['n_samples_max'],
+                                                   min_eff_n_samples=self['min_eff_n_samples'],
 
-                                               # not optional
-                                               cen_prior=self.cen_prior,
-                                               g_prior=self.g_prior,
-                                               T_prior=self.T_prior,
-                                               counts_prior=self.counts_prior,
+                                                   # not optional
+                                                   cen_prior=self.cen_prior,
+                                                   g_prior=self.g_prior,
+                                                   T_prior=self.T_prior,
+                                                   counts_prior=self.counts_prior,
 
-                                               shear_expand=self.shear_expand,
+                                                   shear_expand=self.shear_expand,
 
-                                               psf=self.psf_gmix_fit,
+                                                   psf=self.psf_gmix_fit,
 
-                                               do_pqr=True,
-                                               do_lensfit=True)
-        fitter.go()
-        res = fitter.get_result()
+                                                   do_pqr=True,
+                                                   do_lensfit=True)
+            fitter.go()
+            res = fitter.get_result()
 
-        ew=res['eff_iweight']
-        print >>stderr,'    eff iweight:',ew,'eff samples:',res['eff_n_samples']
+            ew=res['eff_iweight']
+            print >>stderr,'    eff iweight:',ew,'eff samples:',res['eff_n_samples']
 
-        if False:
-            pprint.pprint(res)
+            if res['eff_n_samples'] < self['min_eff_n_samples']:
+                raise TryAgainError("too few")
+                #print >>stderr,'        too few, re-trying'
+                #sampler.multiply_sigmas(1.5)
+            else:
+                break
+
+
         return fitter
 
 
@@ -1800,11 +1808,20 @@ class SimpleSampler(object):
 
         return lnprob
 
-    def re_center(self, pars):
-        self.cen_dist.cen1=pars[0]
-        self.cen_dist.cen2=pars[1]
-        self.g_dist.mean1=pars[2]
-        self.g_dist.mean2=pars[3]
-        self.T_dist.mean=pars[4]
-        self.counts_dist.mean=pars[5]
+    def multiply_sigmas(self, fac):
+        d=self.cen_dist
+        d.reset(d.mean1,
+                d.mean2,
+                d.sigma1*fac,
+                d.sigma2*fac)
 
+        d=self.g_dist
+        d.reset(d.mean1,
+                d.mean2,
+                d.sigma1*fac,
+                d.sigma2*fac,
+                d.maxval)
+
+
+        self.T_dist.reset(self.T_dist.mean, self.T_dist.sigma*fac)
+        self.counts_dist.reset(self.counts_dist.mean, self.counts_dist.sigma*fac)

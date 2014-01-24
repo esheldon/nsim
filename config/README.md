@@ -2,6 +2,11 @@
 
 THE BIAS IS NOT ADDITIVE
 
+- isample
+    - gg01rtest4
+        - 200 min had bias high. Most were > 1000 actually
+        - try 1000 min, same, maybe no surprise
+        - try 5000 min
 - bdf
     - bdf01r01 terrible
         - was not keeping low arate, and many had low arate.

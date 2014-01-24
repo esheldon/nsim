@@ -1,7 +1,7 @@
 run: "run-gg02r02"
 sim: "sim-gg02"
 
-fitter: "isample-auto"
+fitter: "crap"
 fit_model: "gauss"
 
 # starting number, may increase

@@ -1,8 +1,11 @@
 run: "run-gg01r02"
 sim: "sim-gg01"
 
-fitter: "isample"
+# this is old, redo it
+fitter: "crap"
 fit_model: "gauss"
+
+guess_type: "truth"
 
 # starting number, may increase
 n_samples: 50000

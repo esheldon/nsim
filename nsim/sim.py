@@ -127,12 +127,11 @@ class NGMixSim(dict):
         about
         """
 
-        if self['fitter'] in ['mcmc','isample','isample-anze']:
-            if self['expand_shear_true']:
-                self.shear_expand=self.shear
-                print >>stderr,'nsim: expanding about shear:',self.shear_expand
-            else:
-                self.shear_expand=None
+        if self['expand_shear_true']:
+            self.shear_expand=self.shear
+            print >>stderr,'nsim: expanding about shear:',self.shear_expand
+        else:
+            self.shear_expand=None
 
     def get_data(self):
         """
@@ -218,12 +217,23 @@ class NGMixSim(dict):
         """
         Write a plot file of the trials
         """
-        trials_plot=self.plot_base+'-%06d-%s-trials.png' % (self.ipair,key)
 
         tp=fitter.make_plots(title=self.fit_model)
+        if isinstance(tp, tuple):
+            p,wp=tp
 
-        print >>stderr,trials_plot
-        tp.write_img(1100,1100,trials_plot)
+            trials_plot=self.plot_base+'-%06d-%s-trials.png' % (self.ipair,key)
+            trials_wplot=self.plot_base+'-%06d-%s-wtrials.png' % (self.ipair,key)
+
+            print >>stderr,trials_plot
+            p.write_img(1100,1100,trials_plot)
+            print >>stderr,trials_wplot
+            wp.write_img(1100,1100,trials_wplot)
+
+        else:
+            trials_plot=self.plot_base+'-%06d-%s-trials.png' % (self.ipair,key)
+            print >>stderr,trials_plot
+            tp.write_img(1100,1100,trials_plot)
 
 
     def fit_galaxy(self, imdict):
@@ -234,8 +244,10 @@ class NGMixSim(dict):
         fitter_type=self['fitter']
         if fitter_type == 'mcmc':
             fitter = self.fit_galaxy_mcmc(imdict)
-        elif fitter_type == 'isample-auto':
-            fitter = self.fit_galaxy_isample_auto(imdict)
+        elif fitter_type == 'isample':
+            fitter = self.fit_galaxy_isample(imdict)
+        elif fitter_type == 'isample-iter':
+            fitter = self.fit_galaxy_isample_iter(imdict)
         elif fitter_type=='isample-anze':
             fitter = self.fit_galaxy_isample_anze(imdict)
         elif fitter_type == 'lm':
@@ -255,8 +267,12 @@ class NGMixSim(dict):
         """
         import ngmix
 
-        sampler=self.get_simple_proposal_truth(self, imdict)
-        trials,ln_probs=sampler.sample(self['n_samples'])
+        # do checking for guess here?
+        if self['guess_type']=='truth':
+            sampler=self.get_simple_proposal_truth(imdict)
+            trials,ln_probs=sampler.sample(self['n_samples'])
+        else:
+            raise ValueError("support guess type: '%s'" % self['guess_type'])
 
         fitter=ngmix.fitting.ISampleSimple(imdict['image'],
                                            imdict['wt'],
@@ -279,69 +295,156 @@ class NGMixSim(dict):
                                            do_lensfit=True)
         fitter.go()
         res = fitter.get_result()
+
+        ew=res['eff_iweight']
+        print >>stderr,'    eff iweight:',ew,'eff samples:',res['eff_n_samples']
+
         if False:
             pprint.pprint(res)
+        return fitter
 
-        return res
+    def fit_galaxy_isample_iter(self, imdict):
+        """
+        Fit the model to the galaxy using important sampling
+        """
+        import ngmix
+
+        # do checking for guess here?
+        if self['proposal_type']=='truth':
+            # note this suffers from bad "sigma" values
+            sampler=self.get_simple_proposal_truth(imdict)
+        elif self['proposal_type']=='maxlike':
+            # suffers from potential bad covariance matrices
+            sampler=self.get_simple_proposal_maxlike(imdict)
+        elif self['proposal_type']=='mcmc':
+            # suffers from potential bad covariance matrices
+            sampler=self.get_simple_proposal_mcmc(imdict)
+        else:
+            raise ValueError("support guess type: '%s'" % self['guess_type'])
+
+        fitter=ngmix.fitting.ISampleSimpleIter(imdict['image'],
+                                               imdict['wt'],
+                                               imdict['jacobian'],
+                                               self.fit_model,
+                                               sampler,
+
+                                               n_samples=self['n_samples'],
+                                               n_samples_max=self['n_samples_max'],
+                                               min_eff_n_samples=self['min_eff_n_samples'],
+
+                                               # not optional
+                                               cen_prior=self.cen_prior,
+                                               g_prior=self.g_prior,
+                                               T_prior=self.T_prior,
+                                               counts_prior=self.counts_prior,
+
+                                               shear_expand=self.shear_expand,
+
+                                               psf=self.psf_gmix_fit,
+
+                                               do_pqr=True,
+                                               do_lensfit=True)
+        fitter.go()
+        res = fitter.get_result()
+
+        ew=res['eff_iweight']
+        print >>stderr,'    eff iweight:',ew,'eff samples:',res['eff_n_samples']
+
+        if False:
+            pprint.pprint(res)
+        return fitter
+
+
+    def get_simple_proposal_maxlike(self, imdict):
+        """
+        These guesses are better for low s/n but still pretty bad
+        """
+        import ngmix
+
+        if self['guess_type'] not in ['draw_priors','truth_random']:
+            raise ValueError("use draw_priors or truth_random for lm start")
+
+        ntry=10
+        for i in xrange(ntry):
+            fitter=self.fit_galaxy_lm(imdict)
+            res=fitter.get_result()
+            if res['flags']==0:
+                break
+
+        if res['flags'] != 0:
+            raise TryAgainError("failed fit LM after %s tries" % ntry)
+
+        pars=res['pars']
+        perr=res['pars_err']
+
+        # soften covariance, need to tune
+        #perr += numpy.array([0.005,0.005,0.005,0.005,0.1,1.0])
+
+        cen_dist    = ngmix.priors.Student2D(pars[0], pars[1], perr[0], perr[1])
+        g_dist      = ngmix.priors.TruncatedStudentPolar(pars[2], pars[3], perr[2], perr[3], 1.0)
+        #T_dist      = ngmix.priors.LogNormal(pars[4], perr[4])
+        #counts_dist = ngmix.priors.LogNormal(pars[5], perr[5])
+        T_dist      = ngmix.priors.StudentPositive(pars[4], perr[4])
+        counts_dist = ngmix.priors.StudentPositive(pars[5], perr[5])
+ 
+        sampler=SimpleSampler(cen_dist, g_dist, T_dist, counts_dist)
+        return sampler
+
+    def get_simple_proposal_mcmc(self, imdict):
+        """
+        These guesses are better for low s/n but still pretty bad
+        """
+        import ngmix
+
+        fitter=self.fit_galaxy_mcmc(imdict)
+
+        res=fitter.get_result()
+        pars=res['pars']
+        perr=res['pars_err']*1.2
+
+        cen_dist    = ngmix.priors.Student2D(pars[0], pars[1], perr[0], perr[1])
+        g_dist      = ngmix.priors.TruncatedStudentPolar(pars[2], pars[3], perr[2], perr[3], 1.0)
+        T_dist      = ngmix.priors.LogNormal(pars[4], perr[4])
+        counts_dist = ngmix.priors.LogNormal(pars[5], perr[5])
+ 
+        sampler=SimpleSampler(cen_dist, g_dist, T_dist, counts_dist)
+        return sampler
+
 
     def get_simple_proposal_truth(self, imdict):
+        """
+        These guesses are better for low s/n but still pretty bad
+        """
+        import ngmix
+
         pars=imdict['pars']
+
         cen0=pars[0]
         cen1=pars[1]
-
-        cen_sigma=self.simc['cen_sigma']*2
-
-        # this is way too large for high s/n objects
         # should tune based on a max-like fit or something
-        g_sigma=0.3
-
+        g1=pars[2]
+        g2=pars[3]
         T = pars[4]
-        T_sigma = self.simc['obj_T_sigma_frac']*T
-
         counts = pars[5]
+
+        cen_sigma=self.simc['cen_sigma']
+        g_sigma=0.2
+        T_sigma = self.simc['obj_T_sigma_frac']*T
         counts_sigma = self.simc['obj_counts_sigma_frac']*counts
 
-        cen_dist=ngmix.priors.CenPrior(0.0, 0.0, cen_sigma, cen_sigma)
+        #cen_dist=ngmix.priors.CenPrior(cen0, cen1, cen_sigma, cen_sigma)
+        #g_dist=ngmix.priors.TruncatedGaussianPolar(g1, g2, g_sigma, g_sigma, 1.0)
+        #T_dist=ngmix.priors.LogNormal(T, T_sigma)
+        #counts_dist=ngmix.priors.LogNormal(counts, counts_sigma)
 
-        g_dist=ngmix.priors.TruncatedGaussianPolar(pars[2], pars[3], g_sigma, g_sigma, 1.0)
-
+        cen_dist    = ngmix.priors.Student2D(cen0, cen1, cen_sigma, cen_sigma)
+        g_dist      = ngmix.priors.TruncatedStudentPolar(g1, g2, g_sigma, g_sigma, 1.0)
         T_dist=ngmix.priors.LogNormal(T, T_sigma)
         counts_dist=ngmix.priors.LogNormal(counts, counts_sigma)
  
         sampler=SimpleSampler(cen_dist, g_dist, T_dist, counts_dist)
         return sampler
 
-    def fit_galaxy_isample_auto(self, imdict):
-        """
-        Fit the model to the galaxy using important sampling
-        """
-        import ngmix
-
-
-        fitter=ngmix.fitting.ISampleSimpleAuto(imdict['image'],
-                                           imdict['wt'],
-                                           imdict['jacobian'],
-                                           self.fit_model,
-                                           n_samples=self['n_samples'], # initial starting number
-                                           min_eff_n_samples=self['min_eff_n_samples'],
-
-                                           cen_prior=self.cen_prior,
-                                           g_prior=self.g_prior,
-                                           T_prior=self.T_prior,
-                                           counts_prior=self.counts_prior,
-
-                                           shear_expand=self.shear_expand,
-
-                                           psf=self.psf_gmix_fit,
-
-                                           do_pqr=True,
-                                           do_lensfit=True)
-        fitter.go()
-        res = fitter.get_result()
-        if False:
-            pprint.pprint(res)
-
-        return res
 
     def fit_galaxy_isample_anze(self, imdict):
         """
@@ -389,7 +492,7 @@ class NGMixSim(dict):
 
 
 
-    def fit_galaxy_isample(self, imdict):
+    def fit_galaxy_isample_old(self, imdict):
         """
         Fit the model to the galaxy using important sampling
         """
@@ -699,11 +802,14 @@ class NGMixSim(dict):
         # trying keeping low arate ones
         return fitter
 
-    def run_simple_mcmc_fitter(self, imdict, full_guess):
+    def run_simple_mcmc_fitter(self, imdict):
         """
         Get a bdf (Bulge-Disk Fixed size ratio) mcmc fitter
         """
         import ngmix
+
+        full_guess=self.get_guess(imdict, n=self['nwalkers'])
+
         fitter=ngmix.fitting.MCMCSimple(imdict['image'],
                                         imdict['wt'],
                                         imdict['jacobian'],
@@ -949,9 +1055,8 @@ class NGMixSim(dict):
                                       psf=psf)
 
         fitter.go()
-        res=fitter.get_result()
 
-        return res, fitter
+        return fitter
 
     def fit_galaxy_lm_meta_bypars(self, imdict):
         """
@@ -1163,10 +1268,8 @@ class NGMixSim(dict):
         """
         guess_type=self['guess_type']
         if guess_type=='truth':
-            raise ValueError("don't guess truth")
             guess=imdict['pars']
         elif guess_type=='truth_random':
-            raise ValueError("don't guess truth_random")
             guess=self.get_guess_from_pars(imdict['pars'],n=1)
         elif guess_type=='draw_priors':
             guess=self.get_guess_draw_priors(n=1)
@@ -1666,12 +1769,12 @@ class SimpleSampler(object):
         T=self.T_dist.sample(n)
         counts=self.counts_dist.sample(n)
 
-        lnprob += self.cen_dist.get_lnprob_array(cen1,cen2)
-        lnprob += self.g_dist.get_lnprob_array(g1,g2)
+        #lnprob += self.cen_dist.get_lnprob_array(cen1,cen2)
+        #lnprob += self.g_dist.get_lnprob_array(g1,g2)
 
-        lnprob += self.T_dist.get_lnprob_array(T)
+        #lnprob += self.T_dist.get_lnprob_array(T)
 
-        lnprob += self.counts_dist.get_lnprob_array(counts)
+        #lnprob += self.counts_dist.get_lnprob_array(counts)
 
         samples[:, 0]=cen1
         samples[:, 1]=cen2
@@ -1680,4 +1783,28 @@ class SimpleSampler(object):
         samples[:, 4]=T
         samples[:, 5]=counts
 
+        lnprob = self.get_lnprob(samples)
+
         return samples, lnprob
+
+    def get_lnprob(self, pars):
+        n=pars.shape[0]
+        lnprob = numpy.zeros(n)
+
+        lnprob += self.cen_dist.get_lnprob_array(pars[:,0],pars[:,1])
+        lnprob += self.g_dist.get_lnprob_array(pars[:,2],pars[:,3])
+
+        lnprob += self.T_dist.get_lnprob_array(pars[:,4])
+
+        lnprob += self.counts_dist.get_lnprob_array(pars[:,5])
+
+        return lnprob
+
+    def re_center(self, pars):
+        self.cen_dist.cen1=pars[0]
+        self.cen_dist.cen2=pars[1]
+        self.g_dist.mean1=pars[2]
+        self.g_dist.mean2=pars[3]
+        self.T_dist.mean=pars[4]
+        self.counts_dist.mean=pars[5]
+

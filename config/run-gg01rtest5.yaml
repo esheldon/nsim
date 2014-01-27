@@ -1,0 +1,47 @@
+run: "run-gg01rtest5"
+sim: "sim-gg01"
+
+fitter: "isample-adapt"
+fit_model: "gauss"
+
+g_prior_during: false
+
+proposal_type: "maxlike"
+guess_type: "truth_random"
+
+# number of samples per component
+n_per: 200
+
+# maximum number of components to add
+max_components: 200
+
+# convergence is when the mean moves by less than
+# this fraction of the error in the mean
+max_fdiff: [0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
+
+expand_shear_true: true
+
+# we normalize splits by split for is2n==0
+desired_err: 2.5e-05
+
+nsplit0: 1000
+s2n_vals: [ 100, 500, 1000 ]
+
+# doubled for slow machines
+sec_per_pair: 16.0
+
+
+# in case we are using it
+nwalkers: 80
+burnin: 400
+nstep: 200
+mca_a: 3.0
+
+# for if we start from maxlike
+lm_pars:
+    maxfev: 300
+    ftol:   1.0e-6
+    xtol:   1.0e-6
+    epsfcn: 1.0e-6
+
+

@@ -7,7 +7,17 @@ THE BIAS IS NOT ADDITIVE
         - 200 min had bias high. Most were > 1000 actually
         - try 1000 min, same, maybe no surprise
         - try 5000 min same
-        - try 200 but no prior during
+        - try 200 but no prior during. Looks better. I wonder if I changed
+          something else at the same time that made the difference.
+          
+          Re-running again because I *did* make a few changes after starting
+          that run that were supposed to be irrelevant.  Looks like shit now.
+
+          argh... now very low. running again rtest3 same pars to see if we
+          are consistent. I don't know, could be OK
+
+        - running s/n = 15 to see
+
 - bdf
     - bdf01r01 terrible
         - was not keeping low arate, and many had low arate.

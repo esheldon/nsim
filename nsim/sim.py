@@ -252,16 +252,22 @@ class NGMixSim(dict):
         fitter_type=self['fitter']
         if fitter_type == 'mcmc':
             fitter = self.fit_galaxy_mcmc(imdict)
+
         elif fitter_type == 'isample':
             fitter = self.fit_galaxy_isample(imdict)
-        elif fitter_type == 'isample-iter':
-            fitter = self.fit_galaxy_isample_iter(imdict)
+
+        elif fitter_type == 'isample-adapt':
+            fitter = self.fit_galaxy_isample_adapt(imdict)
+
         elif fitter_type=='isample-anze':
             fitter = self.fit_galaxy_isample_anze(imdict)
+
         elif fitter_type == 'lm':
             fitter = self.fit_galaxy_lm(imdict)
+
         elif fitter_type=='lm-meta':
             fitter = self.fit_galaxy_lm_meta(imdict)
+
         elif fitter_type=='lm-meta-bypars':
             fitter = self.fit_galaxy_lm_meta_bypars(imdict)
         else:
@@ -289,6 +295,7 @@ class NGMixSim(dict):
                                            trials,
                                            ln_probs,
 
+
                                            # not optional
                                            cen_prior=self.cen_prior,
                                            g_prior=self.g_prior,
@@ -311,7 +318,8 @@ class NGMixSim(dict):
             pprint.pprint(res)
         return fitter
 
-    def fit_galaxy_isample_iter(self, imdict):
+
+    def fit_galaxy_isample_adapt(self, imdict):
         """
         Fit the model to the galaxy using important sampling
         """
@@ -331,37 +339,38 @@ class NGMixSim(dict):
         else:
             raise ValueError("support guess type: '%s'" % self['guess_type'])
 
-        fitter=ngmix.fitting.ISampleSimpleIter(imdict['image'],
-                                               imdict['wt'],
-                                               imdict['jacobian'],
-                                               self.fit_model,
-                                               sampler,
+        fitter=ngmix.fitting.ISampleSimpleAdapt(imdict['image'],
+                                                imdict['wt'],
+                                                imdict['jacobian'],
+                                                self.fit_model,
+                                                sampler, # starting sampler component
 
-                                               n_samples=self['n_samples'],
-                                               n_samples_max=self['n_samples_max'],
-                                               min_eff_n_samples=self['min_eff_n_samples'],
+                                                n_per=self['n_per'],
+                                                max_components=self['max_components'],
+                                                max_fdiff=self['max_fdiff'],
 
-                                               # not optional
-                                               cen_prior=self.cen_prior,
-                                               g_prior=self.g_prior,
-                                               T_prior=self.T_prior,
-                                               counts_prior=self.counts_prior,
+                                                # not optional
+                                                cen_prior=self.cen_prior,
+                                                g_prior=self.g_prior,
+                                                T_prior=self.T_prior,
+                                                counts_prior=self.counts_prior,
 
-                                               g_prior_during=self['g_prior_during'],
+                                                g_prior_during=self['g_prior_during'],
 
-                                               shear_expand=self.shear_expand,
+                                                shear_expand=self.shear_expand,
 
-                                               psf=self.psf_gmix_fit,
+                                                psf=self.psf_gmix_fit,
 
-                                               do_pqr=True,
-                                               do_lensfit=True)
+                                                do_pqr=True,
+                                                do_lensfit=True)
         fitter.go()
         res = fitter.get_result()
 
-        if res['eff_n_samples'] < self['min_eff_n_samples']:
-            raise TryAgainError("too few")
+        if not fitter.has_converged():
+            raise TryAgainError("not converged")
 
         return fitter
+
 
 
     def get_simple_proposal_maxlike(self, imdict):
@@ -1745,13 +1754,14 @@ def run_fmin_powell(func, guess):
 def test_simple_sampler():
     import ngmix
     import mcmc
-    cen_dist = ngmix.priors.CenPrior(5.0, -3.0, 0.5, 0.5) 
-    g_dist=ngmix.priors.TruncatedGaussianPolar(0.5, -0.8, 0.3, 0.3, 1.0)
-    T_dist=ngmix.priors.LogNormal(16.0, 3.0)
-    counts_dist=ngmix.priors.LogNormal(100.0, 20.0)
+
+    cen_dist    = ngmix.priors.Student2D(5.0, -3.0, 0.5, 0.5) 
+    g_dist      = ngmix.priors.TruncatedStudentPolar(0.5, -0.8, 0.3, 0.3, 1.0)
+    T_dist      =ngmix.priors.StudentPositive(16.0, 3.0)
+    counts_dist =ngmix.priors.StudentPositive(100.0, 20.0)
 
     ss=SimpleSampler(cen_dist, g_dist, T_dist, counts_dist)
-    samples, lnprobs = ss.sample(10000)
+    samples = ss.sample(10000)
 
     mcmc.plot_results(samples)
 
@@ -1778,13 +1788,6 @@ class SimpleSampler(object):
         T=self.T_dist.sample(n)
         counts=self.counts_dist.sample(n)
 
-        #lnprob += self.cen_dist.get_lnprob_array(cen1,cen2)
-        #lnprob += self.g_dist.get_lnprob_array(g1,g2)
-
-        #lnprob += self.T_dist.get_lnprob_array(T)
-
-        #lnprob += self.counts_dist.get_lnprob_array(counts)
-
         samples[:, 0]=cen1
         samples[:, 1]=cen2
         samples[:, 2]=g1
@@ -1792,9 +1795,7 @@ class SimpleSampler(object):
         samples[:, 4]=T
         samples[:, 5]=counts
 
-        lnprob = self.get_lnprob(samples)
-
-        return samples, lnprob
+        return samples
 
     def get_lnprob(self, pars):
         n=pars.shape[0]
@@ -1809,20 +1810,20 @@ class SimpleSampler(object):
 
         return lnprob
 
-    def multiply_sigmas(self, fac):
+    def copy(self):
+        return SimpleSampler(self.cen_dist,
+                             self.g_dist,
+                             self.T_dist,
+                             self.counts_dist)
+    def re_center(self, cen1, cen2, g_mean1, g_mean2, T_mean, counts_mean):
         d=self.cen_dist
-        d.reset(d.mean1,
-                d.mean2,
-                d.sigma1*fac,
-                d.sigma2*fac)
+        d.reset(cen1, cen2, d.sigma1, d.sigma2)
 
         d=self.g_dist
-        d.reset(d.mean1,
-                d.mean2,
-                d.sigma1*fac,
-                d.sigma2*fac,
-                d.maxval)
+        d.reset(g_mean1, g_mean2, d.sigma1, d.sigma2, d.maxval)
 
+        d=self.T_dist
+        d.reset(T_mean, d.sigma)
 
-        self.T_dist.reset(self.T_dist.mean, self.T_dist.sigma*fac)
-        self.counts_dist.reset(self.counts_dist.mean, self.counts_dist.sigma*fac)
+        d=self.counts_dist
+        d.reset(counts_mean, d.sigma)

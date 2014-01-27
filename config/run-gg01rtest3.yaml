@@ -1,30 +1,45 @@
-# only 1 repeat used in fit
 run: "run-gg01rtest3"
 sim: "sim-gg01"
 
-fitter: "lm-meta"
+#fitter: "isample"
+fitter: "isample-iter"
 fit_model: "gauss"
-psf_ngauss: 1
 
+g_prior_during: false
+
+proposal_type: "maxlike"
 guess_type: "truth_random"
 
-# fixed or diff
-noise_type: "random"
+# starting number, may increase
+n_samples: 50000
+n_samples_max: 2000000
 
-npair_min: 1000
+# effective number after weighting should be this many
+min_eff_n_samples: 200
 
-# ftol,xtol are *relative* errors. epsfcn step size for derivatives
-lm_pars:
-    maxfev: 300
-    epsfcn: 1.0e-6
-    ftol:   1.0e-6
-    xtol:   1.0e-6
-
-npair_min: 1000
+expand_shear_true: true
 
 # we normalize splits by split for is2n==0
-desired_err: 4.5e-05
-nsplit0: 3000
+desired_err: 2.5e-05
 
-s2n_vals: [ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
+nsplit0: 10000
+s2n_vals: [ 100 ]
+
+# doubled for slow machines
+sec_per_pair: 20.0
+
+
+# in case we are using it
+nwalkers: 80
+burnin: 400
+nstep: 200
+mca_a: 3.0
+
+# for if we start from maxlike
+lm_pars:
+    maxfev: 300
+    ftol:   1.0e-6
+    xtol:   1.0e-6
+    epsfcn: 1.0e-6
+
 

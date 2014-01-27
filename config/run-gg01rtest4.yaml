@@ -30,13 +30,14 @@ min_eff_n_samples: 200
 expand_shear_true: true
 
 # we normalize splits by split for is2n==0
-desired_err: 4.5e-05
+desired_err: 2.5e-05
 
 #nsplit0: 20000
 #s2n_vals: [ 10 ]
-nsplit0: 4000
+nsplit0: 50000
 #nsplit0: 10000
-s2n_vals: [ 100 ]
+#s2n_vals: [ 100 ]
+s2n_vals: [ 15 ]
 
 # doubled for slow machines
 

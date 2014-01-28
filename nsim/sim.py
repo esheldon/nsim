@@ -253,6 +253,9 @@ class NGMixSim(dict):
         if fitter_type == 'mcmc':
             fitter = self.fit_galaxy_mcmc(imdict)
 
+        elif fitter_type == 'mh':
+            fitter = self.fit_galaxy_mh(imdict)
+
         elif fitter_type == 'isample':
             fitter = self.fit_galaxy_isample(imdict)
 
@@ -652,6 +655,17 @@ class NGMixSim(dict):
 
         return fitter
 
+    def fit_galaxy_mh(self, imdict):
+        """
+        Fit the model to the galaxy
+        """
+        if self.fit_model in ['gauss','exp','dev']:
+            fitter=self.run_simple_mh_fitter(imdict)
+        else:
+            raise ValueError("implement other mh fitters")
+        return fitter
+
+
     def get_guess(self, imdict, n=1):
         """
         Get a full guess, nwalkers x npars
@@ -851,6 +865,56 @@ class NGMixSim(dict):
                                         mca_a=self['mca_a'],
                                         do_pqr=True,
                                         do_lensfit=True)
+        fitter.go()
+        return fitter
+
+    def run_simple_mh_fitter(self, imdict):
+        """
+        Run metropolis hastings
+        """
+        import ngmix
+
+        # get guess and step size from lm
+        ntry=10
+        for i in xrange(ntry):
+            lm_fitter=self.fit_galaxy_lm(imdict)
+            res=lm_fitter.get_result()
+            if res['flags']==0:
+                break
+
+        if res['flags'] != 0:
+            raise TryAgainError("failed fit LM after %s tries" % ntry)
+
+        guess=res['pars']
+        step_sizes = 0.5*res['pars_err'].copy()
+        # soften step sizes, need to tune.
+        #step_sizes += numpy.array([0.001, 0.001, 0.005, 0.005, 0.1, 0.1])
+
+        fitter=ngmix.fitting.MHSimple(imdict['image'],
+                                      imdict['wt'],
+                                      imdict['jacobian'],
+                                      self.fit_model,
+
+                                      cen_prior=self.cen_prior,
+                                      g_prior=self.g_prior,
+                                      T_prior=self.T_prior,
+                                      counts_prior=self.counts_prior,
+
+                                      g_prior_during=self['g_prior_during'],
+
+                                      shear_expand=self.shear_expand,
+
+                                      psf=self.psf_gmix_fit,
+
+                                      nstep=self['nstep'],
+                                      burnin=self['burnin'],
+                                      guess=guess,
+                                      step_sizes=step_sizes,
+                                      min_arate=self['min_arate'],
+                                      ntry=self['ntry'],
+
+                                      do_pqr=True,
+                                      do_lensfit=True)
         fitter.go()
         return fitter
 
@@ -1809,6 +1873,11 @@ class SimpleSampler(object):
         lnprob += self.counts_dist.get_lnprob_array(pars[:,5])
 
         return lnprob
+
+    def get_prob(self, pars):
+        lnprob = self.get_lnprob(pars)
+        return numpy.exp( lnprob )
+
 
     def copy(self):
         return SimpleSampler(self.cen_dist,

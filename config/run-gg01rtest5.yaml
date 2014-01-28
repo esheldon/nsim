@@ -10,7 +10,7 @@ proposal_type: "maxlike"
 guess_type: "truth_random"
 
 # number of samples per component
-n_per: 200
+n_per: 1000
 
 # maximum number of components to add
 max_components: 200
@@ -24,11 +24,12 @@ expand_shear_true: true
 # we normalize splits by split for is2n==0
 desired_err: 2.5e-05
 
-nsplit0: 1000
+nsplit0: 9000
 s2n_vals: [ 100, 500, 1000 ]
 
 # doubled for slow machines
-sec_per_pair: 16.0
+#sec_per_pair: 16.0
+sec_per_pair: 50.0
 
 
 # in case we are using it

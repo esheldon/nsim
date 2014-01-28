@@ -2,6 +2,13 @@
 
 THE BIAS IS NOT ADDITIVE
 
+- MH
+    - 10000 burnin, 10000 step
+        - was more biased than emcee
+        - gg01rtest6 did prior after and looks better, but still more biased
+        - gg01rtest7 prior after and now 40000 after burnin to see if looks
+        better
+
 - isample
     - gg01rtest4
         - 200 min had bias high. Most were > 1000 actually

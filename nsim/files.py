@@ -142,60 +142,76 @@ err_ref_bdfg=[ 8.64686523781e-05,6.36021322793e-05,5.78428340247e-05,5.447748772
 
 # from a BA13 prior run, exp galaxy
 # /astro/u/esheldon/lensing/shapesim/cbafit-geg02r07/outputs/cbafit-geg02r07-000-avg.rec
-s2n_ref_geg=[15,  20,  25,  30,  40,  50,  60,  70,  80,  90,  100,  120,  140,  160,  180,  200,  250,  300,  350,  400]
+s2n_ref_eg_sr2=numpy.array([ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ],dtype='f8')
+err_ref_eg_sr2=numpy.array([5.86094527e-05,   4.24659823e-05,   4.15026596e-05,
+                            4.10366038e-05,   4.17969006e-05,   4.19735634e-05,
+                            4.19306727e-05,   4.19540700e-05,   4.14286130e-05,
+                            3.82807253e-05,   2.54193529e-05,   1.65443563e-05])
 
-err_ref_geg=[6.04966948076, 6.27720009086, 6.39230479966, 6.46027631805, 6.31490331065, 5.07534788684, 4.24058192767, 3.63903754734, 3.18832441297, 2.83577943389, 2.55346528496, 2.12927717929, 1.82605936882, 1.5983608504, 1.42135553436, 1.27964356694, 1.02561949518, 0.857061929443, 0.737296676262, 0.648170473541]
-npair_ref_geg=[1333000,  750000,  480000,  333000,  200000,  200000,  200000,  200000,  200000,  200000,  200000,  200000,  200000,  200000,  200000,  200000,  200000,  200000,  200000,  200000]
-
-s2n_ref_geg=numpy.array(s2n_ref_geg,dtype='f8')
-err_ref_geg=numpy.array(err_ref_geg)*1.e-5
-npair_ref_geg=numpy.array(npair_ref_geg)
-
-
-s2n_ref_deg=numpy.array([15,  20,  25,  30,  40,  50,  60,  70,  80,  90,  100,  120,  140,  160,  180,  200,  250,  300,  350,  400],dtype='f8')
+npair_ref_eg_sr2=numpy.array([4844000, 4844000, 2351416, 1079866,  459928,  196424,   86000,
+                              37368,   16320,    8300,    8300,    8300])
 
 
-err_ref_deg=numpy.array([  5.72424798e-05,   6.10264401e-05,   6.32783893e-05,
-                         6.47026643e-05,   6.63254272e-05,   6.71194744e-05,
-                         6.75744094e-05,   6.78835605e-05,   6.80540579e-05,
-                         6.81622436e-05,   6.82656513e-05,   6.84032611e-05,
-                         6.84544518e-05,   6.84826729e-05,   6.85100035e-05,
-                         6.85641846e-05,   6.84825446e-05,   6.83578669e-05,
-                         6.82696058e-05,   6.80481557e-05])
-npair_ref_deg=numpy.array([3768000, 2280984, 1514069, 1072740,  615414,  397620,  277595,
-                           204484,  156980,  124212,  100687,   69975,   51480,   39438,
-                           31178,   25272,   16236,   11336,    8397,    6489])
+# dg at different sigma ratios
+s2n_ref_dg_sr2=numpy.array([ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ],dtype='f8')
+
+err_ref_dg_sr2=numpy.array([5.40373117e-05,   4.38981156e-05,   4.29005342e-05,
+                            4.20680925e-05,   4.26229933e-05,   4.28001815e-05,
+                            4.26874563e-05,   4.26157464e-05,   4.22199810e-05,
+                            3.94608855e-05,   2.59115628e-05,   1.70170656e-05])
+
+npair_ref_dg_sr2=numpy.array([12200000, 12200000,  7000848,  3579968,  1616500,   703696,
+                              310856,   135176,    59292,    29768,    29768,    29768])
+
+# gg at different sigma ratios
+s2n_ref_gg_sr2=numpy.array([ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ],dtype='f8')
+err_ref_gg_sr2=numpy.array([4.76479645748e-05, 3.34475296565e-05, 3.21185913536e-05, 3.15101059311e-05,
+                            3.19010304786e-05, 3.19790601662e-05, 3.18597748978e-05, 3.18364047527e-05,
+                            3.18242541076e-05, 2.91863314321e-05, 1.91562340848e-05, 1.26330439144e-05])
+npair_ref_gg_sr2 = numpy.array([2412000, 2412000, 1169971,  537207,  230174,   98277,   42930,
+                                18600,    8140,    4152,    4152,    4152])
+
+s2n_ref_gg_sr1=numpy.array([ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ],dtype='f8')
+err_ref_gg_sr1=numpy.array([  3.52809767e-05,   3.53038557e-05,   3.53300171e-05,
+                            3.53451981e-05,   3.52917768e-05,   3.52483577e-05,
+                            3.52699247e-05,   3.50577662e-05,   3.49212158e-05,
+                            3.45652208e-05,   3.32411166e-05,   3.13146698e-05])
+
+npair_ref_gg_sr1 = numpy.array([5424000, 2673128, 1195540,  528388,  232328,   99450,   43200,
+                                18648,    8170,    3504,    1512,     656])
 
 
-s2n_ref_gg=numpy.array([ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ],dtype='f8')
-err_ref_gg=numpy.array([4.76479645748e-05, 3.34475296565e-05, 3.21185913536e-05, 3.15101059311e-05,
-                        3.19010304786e-05, 3.19790601662e-05, 3.18597748978e-05, 3.18364047527e-05,
-                        3.18242541076e-05, 2.91863314321e-05, 1.91562340848e-05, 1.26330439144e-05])
 
-npair_ref_gg = numpy.array([2412000, 2412000, 1169971,  537207,  230174,   98277,   42930,
-                            18600,    8140,    4152,    4152,    4152])
-
-
-def get_npair_by_noise(s2n, desired_err, run):
+def get_npair_by_noise(s2n, desired_err, run, sigratio):
     """
     given the desired final error, determine the required number of pairs
     """
 
-    if 'geg' in run or '-eg' in run:
-        npairii = numpy.interp([s2n], s2n_ref_geg, npair_ref_geg)
-        errii = numpy.interp([s2n], s2n_ref_geg, err_ref_geg)
+    if '-eg' in run:
+        if sigratio >= 1.99:
+            npairii = numpy.interp([s2n], s2n_ref_eg_sr2, npair_ref_eg_sr2)
+            errii = numpy.interp([s2n], s2n_ref_eg_sr2, err_ref_eg_sr2)
+        else:
+            raise ValueError("implement other sratio")
     elif 'bdfg' in run:
         # for bdf make sure you set sec_per_pair
         npairii = numpy.interp([s2n], s2n_ref_bdfg, npair_ref_bdfg)
         errii = numpy.interp([s2n], s2n_ref_bdfg, err_ref_bdfg)
-    elif 'deg' in run or '-dg' in run:
-        # for bdf make sure you set sec_per_pair
-        npairii = numpy.interp([s2n], s2n_ref_deg, npair_ref_deg)
-        errii = numpy.interp([s2n], s2n_ref_deg, err_ref_deg)
+    elif '-dg' in run:
+        if sigratio >= 1.99:
+            npairii = numpy.interp([s2n], s2n_ref_dg_sr2, npair_ref_dg_sr2)
+            errii = numpy.interp([s2n], s2n_ref_dg_sr2, err_ref_dg_sr2)
+        else:
+            raise ValueError("implement other sratio")
     elif '-gg' in run:
-        # for now work of eg, will be wrong
-        npairii = numpy.interp([s2n], s2n_ref_gg, npair_ref_gg)
-        errii = numpy.interp([s2n], s2n_ref_gg, err_ref_gg)
+        if sigratio >= 1.99:
+            npairii = numpy.interp([s2n], s2n_ref_gg_sr2, npair_ref_gg_sr2)
+            errii = numpy.interp([s2n], s2n_ref_gg_sr2, err_ref_gg_sr2)
+        elif sigratio >= 1.41:
+            raise ValueError("implement 1.4")
+        else:
+            npairii = numpy.interp([s2n], s2n_ref_gg_sr1, npair_ref_gg_sr1)
+            errii = numpy.interp([s2n], s2n_ref_gg_sr1, err_ref_gg_sr1)
     else:
         raise ValueError("support runs of type '%s'" % run)
 
@@ -214,7 +230,8 @@ def get_npair_nsplit_by_noise(c, is2n, npair_min=None):
 
     # this is the requirement from measurement error
     s2n = c['s2n_vals'][is2n]
-    npair_tot = get_npair_by_noise(s2n, c['desired_err'],c['run'])
+    sigratio = numpy.sqrt( c['simc']['obj_T_mean']/c['simc']['psf_T'] )
+    npair_tot = get_npair_by_noise(s2n, c['desired_err'],c['run'], sigratio)
 
     npair_shapenoise = 0
     ring=c.get('ring',True)
@@ -241,7 +258,7 @@ def get_npair_nsplit_by_noise(c, is2n, npair_min=None):
     if is2n==0:
         nsplit=nsplit0
     else:
-        npair_tot0 = get_npair_by_noise(c['s2n_vals'][0], c['desired_err'],c['run'])
+        npair_tot0 = get_npair_by_noise(c['s2n_vals'][0], c['desired_err'],c['run'],sigratio)
         npair_tot0 += npair_shapenoise
         nsplit = int( ceil( nsplit0*float(npair_tot)/npair_tot0 ))
 

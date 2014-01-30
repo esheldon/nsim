@@ -147,8 +147,15 @@ def do_sums(data, d, model, do_pqr=False, do_lensfit=False, use_scatter=False, f
     T_i = g2i+1
     flux_i = T_i+1
 
-    shear_cov_inv, w = get_shear_cov_inv(data, use_scatter=use_scatter, g1i=g1i, g2i=g2i)
+    #shear, shear_jack, shear_cov, Q_sum, Cinv_sum = \
+    #        lensing.pqr.pqr_jackknife(data['P'],data['Q'],data['R'],
+    #                                  verbose=True,
+    #                                  show=True,
+    #                                  fname='test.png')
+    #shear_cov_inv = numpy.linalg.inv(shear_cov)
+    #w=numpy.arange(data.size)
 
+    shear_cov_inv, w = get_shear_cov_inv(data, use_scatter=use_scatter, g1i=g1i, g2i=g2i)
     d['shear_cov_inv_sum'][0,:,:] += shear_cov_inv
 
     d['nsum'][0] += data.size
@@ -197,12 +204,13 @@ def do_sums(data, d, model, do_pqr=False, do_lensfit=False, use_scatter=False, f
 def do_avg(conf, d, model, do_pqr=False, do_lensfit=False):
 
     shear_cov = numpy.linalg.inv(d['shear_cov_inv_sum'][0])
-    d['shear_cov'][0,:,:] = shear_cov
 
     if do_pqr:
-        Cinv_sum = numpy.linalg.inv(d['Cinv_sum'][0])
+        C = numpy.linalg.inv(d['Cinv_sum'][0])
         Q_sum = d['Q_sum'][0]
-        shear = numpy.dot(Cinv_sum,Q_sum)
+        shear = numpy.dot(C,Q_sum)
+
+        #shear_cov = C
 
         # did we expand around the true shear?
         expand_shear=conf.get('expand_shear_true',False)
@@ -218,6 +226,7 @@ def do_avg(conf, d, model, do_pqr=False, do_lensfit=False):
         fracdiff_err=sherr/conf['simc']['shear'][0]
         print >>stderr,'fracdiff:          % .2e +/- %.2e' % (fracdiff, fracdiff_err)
 
+    d['shear_cov'][0,:,:] = shear_cov
 
     if do_lensfit:
         gmean = d['g_sum'][0]/d['nsum']

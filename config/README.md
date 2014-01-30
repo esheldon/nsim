@@ -1,6 +1,29 @@
 # vim: set filetype=markdown :
 
-THE BIAS IS NOT ADDITIVE
+Bias seems to have been a bug in my sims, drawing from the g prior!
+
+re-starting
+
+* general comments so far
+    - the error bars seem over-estimated
+    - I see a "wave" pattern as a function of s/n
+    - might try different guess, such as maximum likelihood?  But better may
+      mean something different for different models. For example BD models may
+      not want to start at max like for example.
+
+- sim-gg01 sigrat 2
+    - run-gg01r01  usual 80,400,200 prior after
+        - looks good, although error bars seem too small
+        - wonder if we should go back to prior during now...
+    - run-gg01r02 prior during
+        - looks about the same
+- sim-gg04 sigrat 1
+    - run-gg04r01
+- sim-dg01 sigrat 2
+    - run-dg01r01
+
+older stuff
+-----------
 
 - MH
     - 10000 burnin, 10000 step

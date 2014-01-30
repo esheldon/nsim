@@ -22,6 +22,7 @@ parser.add_option('--allow-missing',action='store_true',
 def combine_trials(run, is2n, allow_missing=True):
     fs=nsim.files.get_default_fs()
     c = nsim.files.read_config(run)
+    c['simc'] = nsim.files.read_config(c['sim'])
 
     npair_min=c.get('npair_min',None)
     npair,nsplit = nsim.files.get_npair_nsplit(c, is2n, npair_min=npair_min)

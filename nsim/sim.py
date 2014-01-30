@@ -252,6 +252,8 @@ class NGMixSim(dict):
         fitter_type=self['fitter']
         if fitter_type == 'mcmc':
             fitter = self.fit_galaxy_mcmc(imdict)
+        elif fitter_type == 'lm':
+            fitter = self.fit_galaxy_lm(imdict)
 
         elif fitter_type == 'mh':
             fitter = self.fit_galaxy_mh(imdict)
@@ -265,14 +267,6 @@ class NGMixSim(dict):
         elif fitter_type=='isample-anze':
             fitter = self.fit_galaxy_isample_anze(imdict)
 
-        elif fitter_type == 'lm':
-            fitter = self.fit_galaxy_lm(imdict)
-
-        elif fitter_type=='lm-meta':
-            fitter = self.fit_galaxy_lm_meta(imdict)
-
-        elif fitter_type=='lm-meta-bypars':
-            fitter = self.fit_galaxy_lm_meta_bypars(imdict)
         else:
             raise ValueError("bad fitter type: '%s'" % fitter_type)
 
@@ -942,7 +936,7 @@ class NGMixSim(dict):
         """
         import ngmix
 
-        #print >>stderr,'    guessing from priors'
+        #print >>stderr,'    ** guessing from priors'
         if self.npars != 6:
             raise ValueError("wrong npars for simple!")
 
@@ -1141,209 +1135,6 @@ class NGMixSim(dict):
 
         return fitter
 
-    def fit_galaxy_lm_meta_bypars(self, imdict):
-        """
-        Fit the model to the galaxy
-        """
-        import ngmix
-
-        nrand = self['nrand']
-
-        fitter = self.fit_galaxy_lm(imdict)
-        res=fitter.get_result()
-        if res['flags'] != 0:
-            return res,None
-
-        ngmix.fitting.print_pars(res['pars'],front='    initial pars: ',stream=stderr)
-
-        im=imdict['image']
-        wt=imdict['wt']
-        j=imdict['jacobian']
-        psf=self.psf_gmix_fit
-
-
-        sh=imdict['image'].shape
-        npix=sh[0]*sh[1]
-
-        tmodel = numpy.zeros(sh)
-
-        avg_meta_pars = 0*res['pars']
-
-        imdict_tmp={}
-        imdict_tmp.update(imdict)
-
-        pars=res['pars']
-        gm0=fitter.get_gmix()
-        gm=gm0.convolve(psf)
-        model_im = gm.make_image(sh, jacobian=j)
-        
-        for i in xrange(nrand):
-            while True:
-                tmodel[:,:] = model_im
-
-                # use sky noise for sim
-                tmodel += self.skysig*randn(npix).reshape(sh)
-
-                imdict_tmp['image'] = tmodel
-                fitter = self.fit_galaxy_lm(imdict_tmp)
-                tres=fitter.get_result()
-                if tres['flags'] == 0:
-                    break
-            
-            avg_meta_pars[:] += tres['pars']
-
-        avg_meta_pars *= (1.0/nrand)
-
-        corrected_pars = 2*pars - avg_meta_pars
-
-        fitter._result['pars'] = corrected_pars
-        return fitter
-
-    def _meta_runner(self, pars):
-        """
-        Find max likelihood solution for the input parameters
-        with noise added.
-        """
-        import ngmix
-        from ngmix.gexceptions import GMixRangeError
-        from ngmix.priors import LOWVAL, BIGVAL
-
-        imd=self._imdict_tmp
-
-        try:
-            gm0=ngmix.gmix.GMixModel(pars, self.fit_model)
-            gm=gm0.convolve( self.psf_gmix_fit )
-        except GMixRangeError:
-            #return pars*0 + LOWVAL
-            return BIGVAL
-
-        oim = imd['image']
-        dims = oim.shape
-        npix = oim.size
-
-        if self['noise_type']=='random':
-            nim = self.skysig*randn(npix).reshape(dims)
-        else:
-            #print >>stderr,'    USING FIXED OF SOME KIND'
-            nim=self._noise_image
-
-        im = gm.make_image(dims, jacobian=imd['jacobian'])
-        im += nim
-
-        imd['image']=im
-
-        success=False
-        ntry=5
-        for i in xrange(ntry):
-            # a different random guess will be tried each time
-            fitter = self.fit_galaxy_lm(imd)
-            res=fitter.get_result()
-            if res['flags'] == 0:
-                success=True
-                break
-
-        if not success:
-            #return 0*pars + LOWVAL
-            return BIGVAL
-            # maybe return 0*pars + LOWVAL instead of raising an error
-            #raise TryAgainError("failed after %s tries" % ntry)
-        else:
-            #return (res['pars']-self._tpars)*self._tierr
-            diffsq=(res['lnprob'] - self._t_lnprob)**2
-            #print >>stderr,'        ',diffsq
-            return diffsq
-
-    def fit_galaxy_lm_meta(self, imdict):
-        """
-        Fit the model to the galaxy
-        """
-        import ngmix
-
-        fitter = self.fit_galaxy_lm(imdict)
-        res=fitter.get_result()
-        if res['flags'] != 0:
-            return res,None
-
-        ngmix.fitting.print_pars(res['pars'],front='    initial pars: ',stream=stderr)
-
-        pars=res['pars']
-        perr=res['pars_err']
-
-        # 'image' will get updated in the meta runner
-        self._imdict_tmp = {}
-        self._imdict_tmp.update(imdict)
-        self._tpars=pars
-        self._tierr=1.0/(perr + 1.e-12) # small enough padding?
-
-        self._t_lnprob=res['lnprob']
-
-        dims=imdict['image'].shape
-        npix=dims[0]*dims[1]
-
-        # this is only not None if using a fixed noise image
-        self._noise_image = self.get_meta_noise_image(imdict, pars)
-
-        # hmm... actually there are zero dof!  maybe we should use likelihood
-        # as figure of merit rather than the parameters?
-        #dof=1.0
-        dof = len(pars)-1
-
-        brute=True
-        if brute:
-            np=200
-            allpars=self.get_guess_from_pars(pars, n=np, width=3*res['pars_err'])
-            lnprobs=numpy.zeros(np)
-            for i in xrange(np):
-                lnprobs[i] = self._meta_runner(allpars[i,:])
-            
-            w=numpy.abs(lnprobs-res['lnprob']).argmin()
-            tres={'flags':0, 'pars':allpars[w,:]}
-        else:
-            guess=self.get_lm_guess(imdict)
-            #guess=pars.copy()
-            ngmix.fitting.print_pars(guess,front='    meta guess:',stream=stderr)
-            #tres = ngmix.fitting.run_leastsq(self._meta_runner, guess, dof, **self['lm_pars'])
-
-            #tres=run_fmin(self._meta_runner, guess)
-            tres=run_fmin_powell(self._meta_runner, guess)
-            print >>stderr,'    meta nfev:',tres['nfev']
-            print >>stderr,'    min fval:',tres['fval']
-            #print >>stderr,'    meta perr:',tres['pars_err']
-            #if tres['flags']==0:
-            #    g_cov0 = tres['pars_cov0'][2:2+2,2:2+2] 
-            #    print >>stderr,'    meta g err0:',numpy.sqrt( numpy.diag(g_cov0) )
-
-        fitter._result['flags'] = tres['flags']
-        fitter._result['pars'] = tres['pars']
-        return fitter
-
-    def get_meta_noise_image(self, imdict, pars):
-        """
-        Noise image for meta fitting
-
-        pars only used if noise type is "diff"
-        """
-        import ngmix
-        noise_type=self['noise_type']
-
-        dims=imdict['image'].shape
-        npix=dims[0]*dims[1]
-
-        if noise_type=='fixed':
-            # A new but fixed noise model
-            nim = self.skysig*randn(npix).reshape(dims)
-        elif noise_type=='diff':
-            # noise from image-model
-            #print >>stderr,'    USING DIFF'
-            gm0=ngmix.gmix.GMixModel(pars, self.fit_model)
-            gm=gm0.convolve(self.psf_gmix_fit)
-            model_im = gm.make_image(dims, jacobian=imdict['jacobian'])
-            nim = imdict['image'] - model_im
-        elif noise_type=='random':
-            return None
-        else:
-            raise ValueError("bad noise type: '%s'" % noise_type)
-        return nim
 
     def get_lm_guess(self, imdict):
         """

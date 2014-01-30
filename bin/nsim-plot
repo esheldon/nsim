@@ -40,6 +40,8 @@ parser.add_option('--with-lensfit',action='store_true',
                   help="overplot lensfit results")
 parser.add_option('--add-run-label',action='store_true',
                   help="lable run as well")
+parser.add_option('--use-scatter',action='store_true',
+                  help="use scatter about zero for error; only works if unbiased!")
 
 parser.add_option('--panel',default=None,
                   help="labels for the panel")
@@ -80,8 +82,9 @@ def plot_run(plt, c, index, symbol, color, linestyle, options,
         shear=data['g_sum'][:,index]/data['nsum']
     else:
         shear=data[s_name][:,index]
-
     err=sqrt(data[scov_name][:,index,index])
+
+
     s2n_vals = data[options.s2n_field]
 
     if options.xrange is None:
@@ -99,6 +102,12 @@ def plot_run(plt, c, index, symbol, color, linestyle, options,
         yvals = shear-shear_true
         yerr = err
         yvals_lensfit = data['shear_lensfit'][:,0]
+
+    if options.use_scatter:
+        print 'using scatter'
+        yerr = yvals.std()
+        yerr=numpy.array([yerr]*shear.size,dtype='f8')
+
 
     pts = biggles.Points(s2n_vals, 
                          yvals,

@@ -330,6 +330,7 @@ def main():
 
 
     c = nsim.files.read_config(run)
+    c['simc'] = nsim.files.read_config(c['sim'])
     c['version'] = options.version
 
     make_some_dirs(run)

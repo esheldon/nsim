@@ -655,6 +655,7 @@ class NGMixSim(dict):
 
         return fitter
 
+
     def fit_galaxy_mh(self, imdict):
         """
         Fit the model to the galaxy
@@ -791,7 +792,6 @@ class NGMixSim(dict):
                                          do_pqr=True,
                                          do_lensfit=True)
             fitter.go()
-            #fitter.go_simple()
             res=fitter.get_result()
 
             arate=res['arate']
@@ -948,7 +948,8 @@ class NGMixSim(dict):
 
         guess=numpy.zeros( (n, self.npars) )
 
-        guess[:,0],guess[:,1]=self.cen_prior.sample(n=n)
+        if self.cen_prior is not None:
+            guess[:,0],guess[:,1]=self.cen_prior.sample(n=n)
         guess[:,2],guess[:,3]=self.g_prior.sample2d(n)
         guess[:,4]=self.T_prior.sample(nrand=n)
         guess[:,5]=self.counts_prior.sample(nrand=n)
@@ -1371,8 +1372,7 @@ class NGMixSim(dict):
         elif 'nfev' in res:
             print >>stderr,'    nfev:',res['nfev'],'s2n_w:',res['s2n_w']
 
-        ngmix.fitting.print_pars(true_pars,
-                                 front='    true: ',stream=stderr)
+        ngmix.fitting.print_pars(true_pars, front='    true: ',stream=stderr)
         ngmix.fitting.print_pars(res['pars'],front='    pars: ',stream=stderr)
         ngmix.fitting.print_pars(res['pars_err'],front='    perr: ',stream=stderr)
 
@@ -1471,10 +1471,11 @@ class NGMixSim(dict):
         T_sigma = self.simc['obj_T_sigma_frac']*T
         counts=self.simc['obj_counts_mean']
         counts_sigma = self.simc['obj_counts_sigma_frac']*counts
+
         cen_sigma=self.simc['cen_sigma']
+        self.cen_prior=ngmix.priors.CenPrior(0.0, 0.0, cen_sigma, cen_sigma)
 
         self.g_prior=ngmix.priors.GPriorBA(0.3)
-        self.cen_prior=ngmix.priors.CenPrior(0.0, 0.0, cen_sigma, cen_sigma)
         self.T_prior=ngmix.priors.LogNormal(T, T_sigma)
         self.counts_prior=ngmix.priors.LogNormal(counts, counts_sigma)
 
@@ -1532,11 +1533,11 @@ class NGMixSim(dict):
         self.ivar=1.0/skysig**2
 
 
-    def get_noisy_image_pair(self, random=True):
+    def get_noisy_image_pair(self):
         """
         Get an image pair, with noise added
         """
-        imdict=self.get_image_pair(random=random)
+        imdict=self.get_image_pair()
         self.add_noise(imdict['im1']['image'])
         self.add_noise(imdict['im2']['image'])
 
@@ -1558,6 +1559,7 @@ class NGMixSim(dict):
 
         If random is True, use draw random values from the priors.
         Otherwise use the mean of the priors
+
         """
         import ngmix
 
@@ -1572,7 +1574,8 @@ class NGMixSim(dict):
         T = gm1.get_T()
         dims, cen = self.get_dims_cen(T)
 
-        # jacobian is at center before offset
+        # jacobian is at center before offset so the prior
+        # will center on "zero"
         j=ngmix.jacobian.UnitJacobian(cen[0], cen[1])
 
         cen[0] += cen_offset[0]
@@ -1599,11 +1602,14 @@ class NGMixSim(dict):
     def get_pair_pars(self, random=True):
         """
         Get pair parameters
+
         """
         import ngmix
 
+
         if random:
             cen_offset=self.cen_prior.sample()
+
             g = self.g_prior.sample1d(1)
             g=g[0]
             rangle1 = randu()*2*numpy.pi

@@ -8,6 +8,39 @@ THE BIAS IS NOT ADDITIVE
         - gg01rtest6 did prior after and looks better, but still more biased
         - gg01rtest7 prior after and now 40000 after burnin to see if looks
         better
+            - yeah, maybe a bit better.  So maybe it is really just need of
+            more points?
+
+- very high emcee steps            
+    - reused run-gg01rtest to try a much larger number of points
+    - nstep 2000x80!!  Same burnin 400x80
+        - same
+    -  maybe the gain was all in prior after.  Try fewer walkers=20
+        run-gg01rtest2  quick look at plots doesn't look good
+
+- tighter distribution in flux 
+    - use 10% scatter instead of 30%.
+        - sim-gg10
+        - looks about the same
+
+- try nearly-fixed other paramters besides shape
+    - sim-gg02.  Widths 1.0e-5 for cen and frac for T and counts
+    - gg02r01 looks crappy!  Is it because we only used 200 step? Doubt it
+      since gg01r01 was fine. Simply number of trials? 1,700,000 should be enough..
+
+      This is an important clue.  Could it be the sampler itself? Or how priors
+      are calculated?
+
+    - remake sim to use more reasonable distributions. Say cen_sigma 0.01 and
+      width frac 0.01 for T and counts
+      - run-gg02rtest1 with s/n=10
+
+
+- fixcen
+    - sim-gg09
+    - run-gg01rtest1
+        - s/n 10  80,400,200
+        - looks the same pretty much
 
 - isample
     - gg01rtest4
@@ -243,16 +276,6 @@ THE BIAS IS NOT ADDITIVE
             - dg05r03 - running
             - dg05r04 - TODO
 
-- try nearly-fixed other paramters besides shape
-    - gg02r01 looks crappy!  Is it because we only used 200 step? Doubt it
-      since gg01r01 was fine. Simply number of trials? 1,700,000 should be enough..
-
-      This is an important clue.  Could it be the sampler itself? Or how priors
-      are calculated?
-
-    - gg02r02 here is where isample should shine, since the priors are actually
-      super important on all parameters besides shape
-
 - pop idea
     - measurements
         - N galaxies
@@ -342,9 +365,6 @@ THE BIAS IS NOT ADDITIVE
         - tried noise type "diff", difference of image and model.
             - total crap
         - noise type "random"
-    - gg01rtest2
-    - gg01rtest3
-    - gg01rtest4
 
 
 

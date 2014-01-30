@@ -92,11 +92,11 @@ def get_chunk_info(nrows):
 
     return nchunks
 
-def get_shear_cov_inv(data, use_scatter=False):
+def get_shear_cov_inv(data, use_scatter=False, g1i=2, g2i=3):
     names=data.dtype.names
     if use_scatter:
-        g1vals = data['pars'][:,2]
-        g2vals = data['pars'][:,3]
+        g1vals = data['pars'][:,g1i]
+        g2vals = data['pars'][:,g2i]
 
         g1var = g1vals.var()
         g2var = g2vals.var()
@@ -110,7 +110,7 @@ def get_shear_cov_inv(data, use_scatter=False):
             cov = data['g_cov']
         else:
             #print >>stderr,'ASSUMING g_cov in slot 2,3'
-            cov = data['pcov'][:,2:2+2, 2:2+2]
+            cov = data['pcov'][:,g1i:g1i+2, g1i:g1i+2]
 
         cov += COV_SOFTEN
 
@@ -134,10 +134,20 @@ def get_shear_cov_inv(data, use_scatter=False):
 
     return shear_cov_inv, w
 
-def do_sums(data, d, model, do_pqr=False, do_lensfit=False, use_scatter=False):
+def do_sums(data, d, model, do_pqr=False, do_lensfit=False, use_scatter=False, fixcen=False):
     names=data.dtype.names
 
-    shear_cov_inv, w = get_shear_cov_inv(data, use_scatter=use_scatter)
+    if fixcen:
+        g1i=0
+        g2i=1
+    else:
+        g1i=2
+        g2i=3
+
+    T_i = g2i+1
+    flux_i = T_i+1
+
+    shear_cov_inv, w = get_shear_cov_inv(data, use_scatter=use_scatter, g1i=g1i, g2i=g2i)
 
     d['shear_cov_inv_sum'][0,:,:] += shear_cov_inv
 
@@ -145,8 +155,7 @@ def do_sums(data, d, model, do_pqr=False, do_lensfit=False, use_scatter=False):
     if 'g' in names:
         d['g_sum'][0] += data['g'].sum(axis=0)
     else:
-        #print >>stderr,'ASSUMING g in slot 2,3'
-        d['g_sum'][0] += data['pars'][:,2:2+2].sum(axis=0)
+        d['g_sum'][0] += data['pars'][:,g1i:g1i+2].sum(axis=0)
 
     if do_pqr:
         Q_sum, Cinv_sum = lensing.pqr.get_shear_pqr_sums(data['P'],
@@ -159,8 +168,8 @@ def do_sums(data, d, model, do_pqr=False, do_lensfit=False, use_scatter=False):
         d['gsens_sum'] = data['gsens'].sum(axis=0)
 
     if model in simple_models or model=='bdf':
-        flux     = data['pars'][:,5:].sum(axis=1)
-        flux_var = data['pcov'][:,5:,5:].sum(axis=1).sum(axis=1)
+        flux     = data['pars'][:,flux_i:].sum(axis=1)
+        flux_var = data['pcov'][:,flux_i:,flux_i:].sum(axis=1).sum(axis=1)
         flux_var += COV_SOFTEN
 
         flux_err = sqrt(flux_var)
@@ -172,8 +181,8 @@ def do_sums(data, d, model, do_pqr=False, do_lensfit=False, use_scatter=False):
         flux_s2n_vals = flux/flux_err
         d['flux_s2n_sum'][0] += flux_s2n_vals.sum()
 
-        T=data['pars'][:,4]
-        T_var=data['pcov'][:,4,4]
+        T=data['pars'][:,T_i]
+        T_var=data['pcov'][:,T_i,T_i]
         T_var += COV_SOFTEN
         T_err=sqrt(T_var)
 
@@ -245,6 +254,11 @@ def get_averaged_gerror(conf, fname, s2n_matched, use_scatter=False):
 
     model=conf['fit_model']
 
+    if 'fixcen' in conf['fitter']:
+        fixcen=True
+    else:
+        fixcen=False
+
     print >>stderr,fname
     with fitsio.FITS(fname) as fobj:
         nrows=fobj[1].get_nrows()
@@ -266,7 +280,8 @@ def get_averaged_gerror(conf, fname, s2n_matched, use_scatter=False):
             do_sums(data, d, model,
                     do_pqr=do_pqr,
                     do_lensfit=do_lensfit,
-                    use_scatter=use_scatter)
+                    use_scatter=use_scatter,
+                    fixcen=fixcen)
 
     do_avg(conf,
            d,

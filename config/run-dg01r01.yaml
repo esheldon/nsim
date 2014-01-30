@@ -1,0 +1,24 @@
+run: "run-dg01r01"
+sim: "sim-dg01"
+
+fitter: "mcmc"
+fit_model: "dev"
+guess_type: "draw_priors"
+g_prior_during: false
+
+psf_ngauss: 1
+
+nwalkers: 80
+burnin:   400
+nstep:    200
+mca_a:    3.0
+
+expand_shear_true: true
+
+# we normalize splits by split for is2n==0
+desired_err: 5.0e-05
+nsplit0: 80000
+
+s2n_vals: [ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
+
+sec_per_pair: 22.0

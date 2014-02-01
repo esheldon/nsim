@@ -20,6 +20,7 @@ parser=OptionParser(__doc__)
 
 def do_sums(data, data0):
     data['nsum'] += data0['nsum']
+    data['P_sum'] += data0['P_sum']
     data['Q_sum'] += data0['Q_sum']
     data['Cinv_sum'] += data0['Cinv_sum']
     data['shear_cov_inv_sum'] += data0['shear_cov_inv_sum']

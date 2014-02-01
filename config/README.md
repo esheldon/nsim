@@ -5,22 +5,57 @@ Bias seems to have been a bug in my sims, drawing from the g prior!
 re-starting
 
 * general comments so far
+    - I have demonstrated that taking bad guesses (draw from priors) works well
+      at low s/n where the noise is high so even the bad guess isn't far from
+      the truth relative to the error; at high s/n I suspect slow burnin is a
+      problem.
+      
+      It is I think reasonable to move away from drawing from priors for simple
+      models, and for the purposes of testing *how well this can work*, draw
+      from truth. 
+    
+      for the purposes of how to work with real data we can guess based on the
+      maximum likelihood solution
+
     - the error bars seem over-estimated
     - I see a "wave" pattern as a function of s/n
-    - might try different guess, such as maximum likelihood?  But better may
-      mean something different for different models. For example BD models may
-      not want to start at max like for example.
+
+        - gg04rtest
+            - using guess around the truth to see if the wave disappears.  If
+              so we can try a max likelihood guess?
+                    - s/n=81 looks the same
+            - re-used gg04rtest for a=2. a little bit better, suggestive.
+              2-sigma from truth might warrant a new run to bring up s/n
+
+        - gg04rtest3 same configuratioin as gg04rtest
+
+            - a=2? a little bit better, suggestive. 2-sigma from truth
+               - might warrant a new run to bring up s/n
+            - more steps or walkers?
+            - Try MH?  I have no indication this would work better
+                - gg04rtest2
+            - try isample? I have no indication this would work better
 
 - sim-gg01 sigrat 2
-    - run-gg01r01  usual 80,400,200 prior after
+    - gg01r01  usual 80,400,200 prior after
         - looks good, although error bars seem too small
-        - wonder if we should go back to prior during now...
-    - run-gg01r02 prior during
+    - gg01r02 prior during
         - looks about the same
+    - gg01rtest a=2 and lots of stats; looks pretty good at fracdiff
+      -2.8e-4 +/- 1.25e-4.  Could live with that!
+    - gg01r03 same as the test run, everything same as gg01r01 but with a=2
+      also smaller error by factor of 2/5
+    - gg01r04 guess from truth, a=2, running
+
 - sim-gg04 sigrat 1
-    - run-gg04r01
+    - gg04r01
+        - strong "wave" pattern.
 - sim-dg01 sigrat 2
-    - run-dg01r01
+    - dg01r01
+    - looks quite good.  Problems at high s/n maybe from slow burnin?
+
+
+
 
 older stuff
 -----------

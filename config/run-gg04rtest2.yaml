@@ -1,25 +1,41 @@
 run: "run-gg04rtest2"
 sim: "sim-gg04"
 
-fitter: "mcmc"
+fitter: "mh"
 fit_model: "gauss"
-guess_type: "draw_priors"
 g_prior_during: false
 
-psf_ngauss: 2
+# we guess from the max like. This guess_type
+# is for the lm-fitter
+guess_type: "truth"
 
-nwalkers: 80
-burnin:   400
-nstep:    200
-mca_a:    3.0
+psf_ngauss: 1
+
+burnin:   10000
+nstep:    10000
+
+# need to examine this 
+min_arate: 0.35
+max_arate: 0.60
+
+# how many times to reduce step size to get arate up
+ntry: 10
 
 expand_shear_true: true
 
-# this is off by about a factor of two, because it was calibrated
-# for larger galaxies
-desired_err: 1.0e-05
-nsplit0: 10000
+# we normalize splits by split for is2n==0
+desired_err: 2.5e-05
+nsplit0: 4000
 
-s2n_vals: [ 35 ]
+s2n_vals: [ 81 ]
 
-sec_per_pair:  6.0
+sec_per_pair: 14.0
+
+# for if we start from maxlike
+lm_pars:
+    maxfev: 300
+    ftol:   1.0e-6
+    xtol:   1.0e-6
+    epsfcn: 1.0e-6
+
+

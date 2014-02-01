@@ -18,8 +18,11 @@ parser=OptionParser(__doc__)
 
 parser.add_option('--allow-missing',action='store_true',
                   help="allow missing splits")
+parser.add_option('--allow-mismatch',action='store_true',
+                  help="allow mismatch in counts")
 
-def combine_trials(run, is2n, allow_missing=True):
+
+def combine_trials(run, is2n, allow_missing=False, allow_mismatch=False):
     fs=nsim.files.get_default_fs()
     c = nsim.files.read_config(run)
     c['simc'] = nsim.files.read_config(c['sim'])
@@ -41,8 +44,9 @@ def combine_trials(run, is2n, allow_missing=True):
             t=eu.io.read(f)
 
 
-            if t.size != ntot:
-                raise ValueError("%s expected %d, got %d" % (f,npair,t.size))
+            if not allow_mismatch:
+                if t.size != ntot:
+                    raise ValueError("%s expected %d, got %d" % (f,npair,t.size))
 
             if 'processed' not in t.dtype.names:
                 t=eu.numpy_util.add_fields(t, [('processed','i2')])
@@ -66,7 +70,9 @@ def main():
     run=args[0]
     is2n=int(args[1])
 
-    combine_trials(run, is2n, allow_missing=options.allow_missing)
+    combine_trials(run, is2n,
+                   allow_missing=options.allow_missing,
+                   allow_mismatch=options.allow_mismatch)
 
 
 main()

@@ -667,7 +667,7 @@ class NGMixSim(dict):
         """
         guess_type=self['guess_type']
         if guess_type=='draw_truth':
-            print >>stderr,'guessing truth'
+            print >>stderr,'guessing randomized truth'
             full_guess=self.get_guess_from_pars(imdict['pars'], n=n)
         elif guess_type=='draw_priors':
             full_guess=self.get_guess_draw_priors(n=n)

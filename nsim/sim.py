@@ -61,7 +61,8 @@ from numpy.random import randn
 NSIGMA_RENDER=5.0
 
 # minutes
-DEFAULT_CHECKPOINTS=[5,30,60,100]
+#DEFAULT_CHECKPOINTS=[5,30,60,100]
+DEFAULT_CHECKPOINTS=[100]
 
 class TryAgainError(Exception):
     def __init__(self, message):

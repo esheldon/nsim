@@ -6,7 +6,6 @@
 import sys
 import os
 import numpy
-import esutil as eu
 
 import nsim
 
@@ -70,25 +69,7 @@ function runsim {
     echo "host: $(hostname)"
     echo "will write to file: $output"
 
-    # aliases are not inherited, and module is an alias
-    source /opt/astro/SL64/Modules/default/etc/profile.modules
-
-    # clear some modules that we may have inherited
-    echo "unloading modules"
-    module unload wq &> /dev/null  # from the the afs module
-    module unload espy_packages    # from my startup files
-
-    # This should be unnecessary
-    unset PYTHONPATH
-
-    # sets the PATH so that the env bin dir comes first
-    echo "loading modules"
-    module load nsim/env
-    which python
-
-    echo
-
-    nsim-run ${run} ${s2n} ${npair} ${output}
+    %(command)s ${run} ${s2n} ${npair} ${output}
     status=$?
 
     echo "time: $SECONDS"
@@ -195,7 +176,9 @@ def get_seconds_per_pair(c):
 
 def write_master(c):
     master_url=nsim.files.get_condor_master_url(c['run'])
-    eu.ostools.makedirs_fromfile(master_url)
+    d=os.path.dirname(master_url)
+    if not os.path.exists(d):
+        os.makedirs(d)
 
     print master_url
     with open(master_url,'w') as fobj:
@@ -317,6 +300,11 @@ def start_new_file(run, filenum, master_script, overall_name, missing=False):
 
     return fobj
 
+def get_command():
+    dir=os.environ['NSIM_DIR']
+    cmd = os.path.join(dir, 'bin/nsim-run')
+    return cmd
+
 def main():
     options,args = parser.parse_args(sys.argv[1:])
 
@@ -332,6 +320,7 @@ def main():
     c = nsim.files.read_config(run)
     c['simc'] = nsim.files.read_config(c['sim'])
     c['version'] = options.version
+    c['command'] = get_command()
 
     make_some_dirs(run)
     master_script=write_master(c)

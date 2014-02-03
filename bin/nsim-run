@@ -93,11 +93,16 @@ def run_sim(sim_conf,run_conf,s2n,npairs,output_file,options):
 
     data=sim.get_data()
 
-    print >>stderr,'writing:',output_file
-    with fitsio.FITS(output_file,'rw',clobber=True) as fobj:
-        fobj.write(data)
+    success=nsim.sim.write_fits(output_file, data)
+    if success:
+        cleanup_checkpoint(checkpoint_file)
+    else:
+        print >>stderr,'not removing checkpoint due to write failure'
 
-    cleanup_checkpoint(checkpoint_file)
+    #print >>stderr,'writing:',output_file
+    #with fitsio.FITS(output_file,'rw',clobber=True) as fobj:
+    #    fobj.write(data)
+
 
 def main():
     options,args = parser.parse_args(sys.argv[1:])

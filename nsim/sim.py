@@ -62,7 +62,8 @@ NSIGMA_RENDER=5.0
 
 # minutes
 #DEFAULT_CHECKPOINTS=[5,30,60,100]
-DEFAULT_CHECKPOINTS=[100]
+DEFAULT_CHECKPOINTS=[30,90]
+#DEFAULT_CHECKPOINTS=[0,100]
 
 class TryAgainError(Exception):
     def __init__(self, message):
@@ -1523,14 +1524,15 @@ class NGMixSim(dict):
     def write_checkpoint(self):
         """
         Write the checkpoint file
+
+        The file is written to the cwd and if this is not the final
+        destination, an attempt is made to move it there.  This may fail and if
+        so a message is printed.
+
         """
-        import fitsio
 
         print >>stderr,'checkpointing at',self.tm_minutes,'minutes'
-        print >>stderr,self.checkpoint_file
-
-        with fitsio.FITS(self.checkpoint_file,'rw',clobber=True) as fobj:
-            fobj.write(self.data)
+        success=write_fits(self.checkpoint_file, self.data)
 
 
     def copy_to_output(self, res, i):
@@ -1694,3 +1696,47 @@ class SimpleSampler(object):
 
         d=self.counts_dist
         d.reset(counts_mean, d.sigma)
+
+def write_fits(filename, data):
+    """
+    Assume condor where cwd is scratch dir
+
+    Write to cwd assuming scratch the move the file.
+
+    The move may fail; it is retried a few times.
+    """
+    import fitsio
+    import time
+
+    output_file=os.path.abspath(filename)
+
+    local_file=os.path.abspath( os.path.basename(output_file) )
+    print >>stderr,"writing local file:",local_file
+
+    with fitsio.FITS(local_file,'rw',clobber=True) as fobj:
+        fobj.write(data)
+
+    if local_file==output_file:
+        return
+
+    # remove if it exists
+    try:
+        os.remove(output_file)
+    except:
+        pass
+
+    # try a few times
+    print >>stderr,"moving to:",output_file
+    cmd='mv -v %s %s' % (local_file, output_file)
+    for i in xrange(5):
+        stat=os.system(cmd)
+        if stat==0:
+            print >>stderr,'success'
+            success=True
+            break
+        else:
+            print >>stderr,'error moving file, trying again'
+            time.sleep(5)
+            success=False
+
+    return success

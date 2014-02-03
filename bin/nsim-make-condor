@@ -89,8 +89,6 @@ logfile=$4
 
 run=%(run)s
 
-# start with a clean log file
-rm -f ${logfile}
 
 # temporary log file, to be transferred later
 log_bname=$(basename $logfile)
@@ -104,15 +102,15 @@ tmplog="$tmpdir/$log_bname"
 runsim &> ${tmplog}
 status=$?
 
-echo "copying log file ${tmplog} -> ${logfile}" >> ${tmplog}
+echo "moving log file ${tmplog} -> ${logfile}" >> ${tmplog}
 
 # errors go to the jobs stderr
-cp "${tmplog}" "${logfile}" 1>&2
+mv -fv "${tmplog}" "${logfile}" 1>&2
 status2=$?
 
 if [[ $status2 != "0" ]]; then
     # this error message will go to main error file
-    echo "error ${status2} copying to log: ${logfile}" 1>&2
+    echo "error ${status2} moving log to: ${logfile}" 1>&2
 
     status=$status2
 fi

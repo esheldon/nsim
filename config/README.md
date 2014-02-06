@@ -48,7 +48,8 @@ re-starting
       also smaller error by factor of 2/5. Looks quite good; do see the "wave"
       at low amplitude.
     - gg01r04 guess from truth, a=2, running
-    - r03 and r04 pretty consistent, could maybe average them.
+    - r03 and r04 pretty consistent, I averaged them in gg01rcomb
+    - gg01rcomb average of r03 r04
 
 - sim-gg04 sigrat 1
     - gg04r01
@@ -62,6 +63,7 @@ re-starting
     - dg01r01
     - looks quite good.  Problems at high s/n maybe from slow burnin?
     - dg01r02 guess true, a=2, running
+        - errors are larger, but looks rather similar
 
 
 

@@ -91,13 +91,15 @@ run=%(run)s
 
 
 # temporary log file, to be transferred later
-log_bname=$(basename $logfile)
 if [[ -n $_CONDOR_SCRATCH_DIR ]]; then
     tmpdir=$_CONDOR_SCRATCH_DIR
 else
     tmpdir=$TMPDIR
 fi
-tmplog="$tmpdir/$log_bname"
+
+cd $tmpdir
+
+tmplog=$(basename $logfile)
 
 runsim &> ${tmplog}
 status=$?

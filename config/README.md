@@ -51,6 +51,9 @@ re-starting
     - r03 and r04 pretty consistent, I averaged them in gg01rcomb
     - gg01rcomb average of r03 r04
 
+- sim-gg03 sigrat 1.4
+    - run-gg03r01 running....
+
 - sim-gg04 sigrat 1
     - gg04r01
         - strong "wave" pattern.
@@ -65,7 +68,8 @@ re-starting
     - dg01r02 guess true, a=2, running
         - errors are larger, but looks rather similar
 
-
+- sim-eg01 sigrat 2
+    - run-dg01r01
 
 
 older stuff

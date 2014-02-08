@@ -33,8 +33,8 @@ parser.add_option('--png',default=None,
 #parser.add_option('--labels',default=None,
 #                  help="labels for each run")
 
-parser.add_option('--method',default='ba13',
-                  help="method to plot ('lensfit,'ba13','gmean')")
+parser.add_option('--method',default='ba',
+                  help="method to plot ('lensfit,'ba','gmean')")
 
 parser.add_option('--with-lensfit',action='store_true',
                   help="overplot lensfit results")
@@ -49,7 +49,7 @@ parser.add_option('--noshow',action='store_true',
                   help="don't show on the screen")
 
 def get_names(method):
-    if method == 'BA13':
+    if method == 'BA':
         s_name='shear'
         scov_name='shear_cov'
     elif method=='LENSFIT':
@@ -63,9 +63,15 @@ def get_names(method):
 
     return s_name, scov_name
 
+def get_method_name(method):
+    if method=='BA':
+        return 'B&A'
+    else:
+        return method
+
 def plot_run(plt, c, index, symbol, color, linestyle, options,
              with_points=True, with_curve=True,
-             method='BA13', with_lensfit=False,
+             method='BA', with_lensfit=False,
              add_run_label=False):
 
     label = c['simc']['label']
@@ -248,12 +254,13 @@ def main():
     plt.add(key)
     plt.xrange=xrng
 
-    tl=biggles.PlotLabel(0.9,0.1,r'$\gamma_{true} = %.02f$' % c['simc']['shear'][index],
-                         halign='right')
-    plt.add(tl)
+    #tl=biggles.PlotLabel(0.9,0.17,r'$\gamma_{true} = %.02f$' % c['simc']['shear'][index],
+    #                     halign='right')
+    #plt.add(tl)
 
-    ml=biggles.PlotLabel(0.9,0.17,method, halign='right')
-    plt.add(ml)
+    #method_name=get_method_name(method)
+    #ml=biggles.PlotLabel(0.9,0.1,method_name, halign='right')
+    #plt.add(ml)
 
 
     if options.panel is not None:

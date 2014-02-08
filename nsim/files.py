@@ -141,8 +141,7 @@ npair_ref_bdfg=[1240000, 1240000,  711574,  363878,  164300,
 err_ref_bdfg=[ 8.64686523781e-05,6.36021322793e-05,5.78428340247e-05,5.44774877257e-05,5.41502412604e-05,5.39701794399e-05,5.35799931151e-05,5.38147319202e-05,5.35173339764e-05,4.97357492734e-05,3.24657802612e-05,2.14956557248e-05]
 
 
-# from a BA13 prior run, exp galaxy
-# /astro/u/esheldon/lensing/shapesim/cbafit-geg02r07/outputs/cbafit-geg02r07-000-avg.rec
+# from eg01r04 with bugged code
 s2n_ref_eg_sr2=array([ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ],dtype='f8')
 err_ref_eg_sr2=array([5.86094527e-05,   4.24659823e-05,   4.15026596e-05,
                       4.10366038e-05,   4.17969006e-05,   4.19735634e-05,
@@ -171,6 +170,14 @@ err_ref_gg_sr2=array([4.98680203e-05,   4.98357873e-05,   4.99109235e-05,
                       4.99418567e-05,   4.95626495e-05,   4.99953840e-05])
 npair_ref_gg_sr2 = array([2200000, 1084160,  482895,  213525,   93732,   40296,   17440,
                           7560,    3312,    1421,     612,     266])
+
+s2n_ref_gg_sr14 = array([ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ],dtype='f8')
+err_ref_gg_sr14 = array([5.61174116e-05,   5.80381439e-05,   5.90672346e-05,
+                         5.94514283e-05,   5.96208412e-05,   6.00325336e-05,
+                         5.97678990e-05,   6.01893373e-05,   5.92819589e-05,
+                         6.06123456e-05,   5.93288780e-05,   6.02809294e-05])
+npair_ref_gg_sr14 =array([2720000, 1340416,  599624,  265064,  116416,   49680,   21600,
+                          9315,    4092,    1755,     756,     330])
 
 
 # from gg04r01
@@ -210,7 +217,8 @@ def get_npair_by_noise(s2n, desired_err, run, sigratio):
             npairii = numpy.interp([s2n], s2n_ref_gg_sr2, npair_ref_gg_sr2)
             errii = numpy.interp([s2n], s2n_ref_gg_sr2, err_ref_gg_sr2)
         elif sigratio >= 1.41:
-            raise ValueError("implement 1.4")
+            npairii = numpy.interp([s2n], s2n_ref_gg_sr14, npair_ref_gg_sr14)
+            errii = numpy.interp([s2n], s2n_ref_gg_sr14, err_ref_gg_sr14)
         else:
             npairii = numpy.interp([s2n], s2n_ref_gg_sr1, npair_ref_gg_sr1)
             errii = numpy.interp([s2n], s2n_ref_gg_sr1, err_ref_gg_sr1)

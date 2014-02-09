@@ -36,40 +36,47 @@ re-starting
                 - gg04rtest2
             - try isample? I have no indication this would work better
 
-- sim-gg01 sigrat 2
-    - gg01r01  usual 80,400,200 prior after
-        - looks good, although error bars seem too small
-    - gg01r02 prior during
-        - looks about the same
-    - gg01rtest a=2 and lots of stats; looks pretty good at fracdiff -2.8e-4
-      +/- 1.25e-4.  Could live with that!
+- sigrat 2
+    - sim-gg01
+        - gg01r01  usual 80,400,200 prior after
+            - looks good, although error bars seem too small
+        - gg01r02 prior during
+            - looks about the same
+        - gg01rtest a=2 and lots of stats; looks pretty good at fracdiff -2.8e-4
+          +/- 1.25e-4.  Could live with that!
 
-    - gg01r03 same as the test run, everything same as gg01r01 but with a=2
-      also smaller error by factor of 2/5. Looks quite good; do see the "wave"
-      at low amplitude.
-    - gg01r04 guess from truth, a=2, running
-    - r03 and r04 pretty consistent, I averaged them in gg01rcomb
-    - gg01rcomb average of r03 r04
+        - gg01r03 same as the test run, everything same as gg01r01 but with a=2
+          also smaller error by factor of 2/5. Looks quite good; do see the "wave"
+          at low amplitude.
+        - gg01r04 guess from truth, a=2, running
+        - r03 and r04 pretty consistent, I averaged them in gg01rcomb
+        - gg01rcomb average of r03 r04
 
-- sim-gg03 sigrat 1.4
-    - run-gg03r01 running....
+    - sim-dg01 sigrat 2
+        - dg01r01
+        - looks quite good.  Problems at high s/n maybe from slow burnin?
 
-- sim-gg04 sigrat 1
-    - gg04r01
-        - strong "wave" pattern.
-    - gg04r02
-        - try with new settings draw truth and a=2, still high error 5.0e-5
-        - looks pretty consistent with gg04r01
-    - averaged those
+    - sim-eg01 sigrat 2
+        - run-dg01r01
+        - run-dg01r02 guess true, a=2, running
+            - errors are larger, but looks rather similar
 
-- sim-dg01 sigrat 2
-    - dg01r01
-    - looks quite good.  Problems at high s/n maybe from slow burnin?
-    - dg01r02 guess true, a=2, running
-        - errors are larger, but looks rather similar
+- sigrat 1.4
+    - sim-gg03
+        - run-gg03r01
+    - sim-eg03
+        - run-eg03r01 running....
+    - sim-dg04
 
-- sim-eg01 sigrat 2
-    - run-dg01r01
+- sigrat 1
+    - sim-gg04
+        - gg04r01
+            - strong "wave" pattern.
+        - gg04r02
+            - try with new settings draw truth and a=2, still high error 5.0e-5
+            - looks pretty consistent with gg04r01
+        - averaged those
+
 
 
 older stuff

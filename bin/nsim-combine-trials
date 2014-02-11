@@ -10,7 +10,7 @@ import nsim
 import fitsio
 from optparse import OptionParser
 
-import esutil as eu
+#import esutil as eu
 
 import nsim
 
@@ -41,16 +41,17 @@ def combine_trials(run, is2n, allow_missing=False, allow_mismatch=False):
             if allow_missing and not os.path.exists(f):
                 continue
             print f
-            t=eu.io.read(f)
+            t=fitsio.read(f)
+            #t=eu.io.read(f)
 
 
             if not allow_mismatch:
                 if t.size != ntot:
                     raise ValueError("%s expected %d, got %d" % (f,npair,t.size))
 
-            if 'processed' not in t.dtype.names:
-                t=eu.numpy_util.add_fields(t, [('processed','i2')])
-                t['processed']=1
+            #if 'processed' not in t.dtype.names:
+            #    t=eu.numpy_util.add_fields(t, [('processed','i2')])
+            #    t['processed']=1
 
             if isplit == 0:
                 output.write(t)

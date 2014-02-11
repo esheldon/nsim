@@ -1,5 +1,5 @@
-run: "run-dg05r01"
-sim: "sim-dg05"
+run: "run-dg04rcomb"
+sim: "sim-dg04"
 
 fitter: "mcmc"
 fit_model: "dev"

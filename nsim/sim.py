@@ -252,7 +252,8 @@ class NGMixSim(dict):
         """
 
         fitter_type=self['fitter']
-        if fitter_type == 'mcmc':
+        #if fitter_type == 'mcmc':
+        if 'mcmc' in fitter_type:
             fitter = self.fit_galaxy_mcmc(imdict)
         elif fitter_type == 'lm':
             fitter = self.fit_galaxy_lm(imdict)
@@ -673,6 +674,8 @@ class NGMixSim(dict):
             full_guess=self.get_guess_from_pars(imdict['pars'], n=n)
         elif guess_type=='draw_priors':
             full_guess=self.get_guess_draw_priors(n=n)
+        elif guess_type=='draw_maxlike':
+            full_guess=self.get_guess_draw_maxlike(imdict, n=n)
         else:
             raise ValueError("bad guess type: '%s'" % guess_type)
         
@@ -991,6 +994,35 @@ class NGMixSim(dict):
 
         return guess
 
+    def get_guess_draw_maxlike(self, imdict, n=1):
+        """
+        Get the maximum likelihood fit and draw from that using
+        width from the fit
+
+        start lm near the truth
+        """
+        import ngmix
+
+        ntry=10
+        for i in xrange(ntry):
+            lm_guess=self.get_guess_from_pars(imdict['pars'], n=1)
+            fitter=self.fit_galaxy_lm(imdict, guess=lm_guess)
+            res=fitter.get_result()
+            if res['flags']==0:
+                break
+
+        if res['flags'] != 0:
+            raise TryAgainError("failed fit LM after %s tries" % ntry)
+
+        pars=res['pars']
+        perr=res['pars_err']
+        ngmix.fitting.print_pars(pars, front='        lmpars: ',stream=stderr)
+        ngmix.fitting.print_pars(perr, front='        lmperr: ',stream=stderr)
+
+        guess=self.get_guess_from_pars(pars, n=n, width=perr)
+
+        return guess
+
     def get_guess_from_pars(self, pars, n=1, width=None):
         """
         Get a guess centered on the truth
@@ -1105,13 +1137,14 @@ class NGMixSim(dict):
         return vals
 
 
-    def fit_galaxy_lm(self, imdict):
+    def fit_galaxy_lm(self, imdict, guess=None):
         """
         Fit the model to the galaxy
         """
         import ngmix
 
-        guess=self.get_lm_guess(imdict)
+        if guess is None:
+            guess=self.get_lm_guess(imdict)
 
         im=imdict['image']
         wt=imdict['wt']

@@ -67,6 +67,10 @@ re-starting
     - sim-eg03
         - run-eg03r01 running....
     - sim-dg04
+        - run-dg04r01 looks pretty all over the place, more scatter than error
+          bars
+        - run-dg04rtest1 guess about the max like
+            - looks similar
 
 - sigrat 1
     - sim-gg04
@@ -76,8 +80,11 @@ re-starting
             - try with new settings draw truth and a=2, still high error 5.0e-5
             - looks pretty consistent with gg04r01
         - averaged those
-
-
+    - sim-eg04
+        - run-eg04r01
+            - similar wave pattern
+    - sim-dg05
+        - run-dg05r01, using maxlike
 
 older stuff
 -----------

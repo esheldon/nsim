@@ -162,6 +162,16 @@ npair_ref_eg_sr14= array([2420000, 2420000, 1174789,  539418,  230989,   98736, 
                           18600,    8160,    4165,    4165,    4165])
 
 
+s2n_ref_eg_sr1 = array([ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ],dtype='f8')
+err_ref_eg_sr1 = array([8.39715840e-05,   6.76302528e-05,   7.12956923e-05,
+                        7.33158683e-05,   7.59915389e-05,   7.68021383e-05,
+                        7.65095703e-05,   7.72849329e-05,   7.62656351e-05,
+                        7.01269993e-05,   4.64553805e-05,   3.04000144e-05])
+
+npair_ref_eg_sr1=array([2412000, 2412000, 1171026,  537675,  230346,   98490,   43014,
+                        18600,    8159,    4158,    4158,    4158])
+
+
 
 # from dg03r06
 s2n_ref_dg_sr2=array([ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ],dtype='f8')
@@ -184,6 +194,17 @@ err_ref_dg_sr14= array([1.02841516e-04,   8.68572034e-05,   8.80118512e-05,
 
 npair_ref_dg_sr14= array([1935000, 1935000, 1110432,  567858,  256452,  111714,   49407,
                           21376,    9417,    4699,    4699,    4699])
+
+
+s2n_ref_dg_sr1=array([ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ],dtype='f8')
+
+err_ref_dg_sr1= array([6.15830895e-05,   5.41834995e-05,   5.75238159e-05,
+                       5.98859154e-05,   6.27954858e-05,   6.42454388e-05,
+                       6.44668215e-05,   6.45949509e-05,   6.39895879e-05,
+                       5.94180555e-05,   3.92390091e-05,   2.59813120e-05])
+
+npair_ref_dg_sr1= array([6100000, 6100000, 3500424, 1789984,  808250,  351848,  155428,
+                         67588,   29646,   14884,   14884,   14884])
 
 
 
@@ -229,7 +250,8 @@ def get_npair_by_noise(s2n, desired_err, run, sigratio):
             npairii = numpy.interp([s2n], s2n_ref_eg_sr14, npair_ref_eg_sr14)
             errii = numpy.interp([s2n], s2n_ref_eg_sr14, err_ref_eg_sr14)
         else:
-            raise ValueError("implement other sratio")
+            npairii = numpy.interp([s2n], s2n_ref_eg_sr1, npair_ref_eg_sr1)
+            errii = numpy.interp([s2n], s2n_ref_eg_sr1, err_ref_eg_sr1)
     elif 'bdfg' in run:
         # for bdf make sure you set sec_per_pair
         npairii = numpy.interp([s2n], s2n_ref_bdfg, npair_ref_bdfg)
@@ -242,7 +264,8 @@ def get_npair_by_noise(s2n, desired_err, run, sigratio):
             npairii = numpy.interp([s2n], s2n_ref_dg_sr14, npair_ref_dg_sr14)
             errii = numpy.interp([s2n], s2n_ref_dg_sr14, err_ref_dg_sr14)
         else:
-            raise ValueError("implement other sratio")
+            npairii = numpy.interp([s2n], s2n_ref_dg_sr1, npair_ref_dg_sr1)
+            errii = numpy.interp([s2n], s2n_ref_dg_sr1, err_ref_dg_sr1)
     elif '-gg' in run:
         if sigratio >= 1.99:
             npairii = numpy.interp([s2n], s2n_ref_gg_sr2, npair_ref_gg_sr2)

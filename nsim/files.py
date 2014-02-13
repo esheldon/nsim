@@ -100,20 +100,15 @@ def get_output_dir(run, sub=None, fs=None):
         dir = path_join(dir, sub)
     return dir
 
-def get_output_url(run, is2, ie, itrial=None, fs=None, ext='fits'):
+def get_output_url(run, is2, is2n, itrial=None, fs=None, ext='fits'):
     """
-
-    is2 and ie are the index in the list of s2 and ellip vals for a given run.
-    They should be within [0,nums2) and [0,nume)
-
-    Note ie might actually be is2n
-
+    is2 and is2n are the index in the list of s2 and s2n vals for a given run.
     """
     sub=None
     if itrial is not None:
         sub='bytrial'
     dir=get_output_dir(run, sub=sub, fs=fs)
-    f='%s-%03i-%03i' % (run,is2,ie)
+    f='%s-%03i-%03i' % (run,is2,is2n)
     if itrial is not None:
         if itrial == '*':
             f += '-*'
@@ -123,16 +118,20 @@ def get_output_url(run, is2, ie, itrial=None, fs=None, ext='fits'):
     return path_join(dir, f)
 
 
-def get_averaged_url(run, is2, fs=None, ext='fits'):
+def get_averaged_url(run, is2n=None, fs=None, ext='fits'):
     """
-    All the trials are averaged in a given s2 bin, and all
-    ellip/s2n bins are in a single struct.
+    send is2n= for the split one
     """
 
     dir=get_output_dir(run, fs=fs)
-    f='%s-%03i-avg' % (run,is2)
+    if is2n is not None:
+        f='%s-%03i-%03i-avg' % (run,0,is2n)
+    else:
+        f='%s-%03i-avg' % (run,0)
     f = '%s.%s' % (f,ext)
     return path_join(dir, f)
+
+
 
 s2n_ref_bdfg=[ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
 npair_ref_bdfg=[1240000, 1240000,  711574,  363878,  164300,
@@ -196,15 +195,29 @@ npair_ref_dg_sr14= array([1935000, 1935000, 1110432,  567858,  256452,  111714, 
                           21376,    9417,    4699,    4699,    4699])
 
 
+# jackknife from run-dg05r01
 s2n_ref_dg_sr1=array([ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ],dtype='f8')
 
-err_ref_dg_sr1= array([6.15830895e-05,   5.41834995e-05,   5.75238159e-05,
-                       5.98859154e-05,   6.27954858e-05,   6.42454388e-05,
-                       6.44668215e-05,   6.45949509e-05,   6.39895879e-05,
-                       5.94180555e-05,   3.92390091e-05,   2.59813120e-05])
+err_ref_dg_sr1= array( [0.00010934769005102428, 8.34675545843533e-05, 6.8885858378181809e-05,
+                        6.2408171398520217e-05, 6.0111501604497353e-05, 5.9265828120324162e-05,
+                        5.94227339673447e-05, 5.9275576860331574e-05, 5.927755979925429e-05,
+                        6.0059247335501772e-05, 6.0083958777380203e-05, 
+                        5.9532082538788167e-05])
+    
+npair_ref_dg_sr1= array([9279768, 7184112, 4646496, 2575200, 1278552, 582784,
+                         259144, 113216, 48720, 21021, 9200, 4032])
 
-npair_ref_dg_sr1= array([6100000, 6100000, 3500424, 1789984,  808250,  351848,  155428,
-                         67588,   29646,   14884,   14884,   14884])
+
+# old one without jackknife
+#s2n_ref_dg_sr1=array([ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ],dtype='f8')
+
+#err_ref_dg_sr1= array([6.15830895e-05,   5.41834995e-05,   5.75238159e-05,
+#                       5.98859154e-05,   6.27954858e-05,   6.42454388e-05,
+#                       6.44668215e-05,   6.45949509e-05,   6.39895879e-05,
+#                       5.94180555e-05,   3.92390091e-05,   2.59813120e-05])
+
+#npair_ref_dg_sr1= array([6100000, 6100000, 3500424, 1789984,  808250,  351848,  155428,
+#                         67588,   29646,   14884,   14884,   14884])
 
 
 

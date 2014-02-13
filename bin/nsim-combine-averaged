@@ -1,0 +1,40 @@
+#!/usr/bin/env python
+"""
+    %prog run
+"""
+
+import sys
+import numpy
+import nsim
+import fitsio
+
+from optparse import OptionParser
+parser=OptionParser(__doc__)
+
+def main():
+    options,args = parser.parse_args(sys.argv[1:])
+
+    if len(args) < 1:
+        parser.print_help()
+        sys.exit(45)
+
+    run=args[0]
+    conf = nsim.files.read_config(run)
+
+    ns2n = len(conf['s2n_vals'])
+
+    for is2n in xrange(ns2n):
+        fname=nsim.files.get_averaged_url(run, is2n=is2n)
+        data = fitsio.read(fname)
+
+        if is2n==0:
+            output=numpy.zeros(ns2n, dtype=data.dtype)
+
+        output[is2n] = data
+
+    out_fname=nsim.files.get_averaged_url(run)
+    print >>stderr,'writing:',out_fname
+
+    fitsio.write(out_fname, output, clobber=True)
+
+main()

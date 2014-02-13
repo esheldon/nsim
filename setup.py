@@ -3,6 +3,7 @@ import glob
 from distutils.core import setup
 
 scripts=['nsim-average-outputs',
+         'nsim-combine-averaged',
          'nsim-average-runs',
          'nsim-combine-trials',
          'nsim-make-condor',

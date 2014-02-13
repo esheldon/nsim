@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-    %prog run
+    %prog run is2n
 """
 
 import sys
@@ -21,17 +21,13 @@ parser=OptionParser(__doc__)
 
 parser.add_option('--skip',default=None,
                   help="is2n elements to skip")
-parser.add_option('--use-scatter',action='store_true',
-                  help="use the scatter in shapes for error (effectively assuming no ring)")
+parser.add_option('--pqr-cov',action='store_true',
+                  help="use the pqr covariance (effectively assuming no ring)")
 
 parser.add_option('--jackknife',action='store_true',
                   help="use jackknife errors")
-parser.add_option('--show',action='store_true',
-                  help="plot histogram of jackknife shears")
 
 
-
-COV_SOFTEN=1.0e-14
 
 CHUNKSIZE=1000000
 
@@ -48,28 +44,20 @@ def get_dtype(fobj, model):
            ('nsum','i8'),
            ('g_sum','f8',2),
            ('shear_cov','f8',(2,2)),
-           ('shear_cov_inv_sum','f8',(2,2))]
-
-    if 'P' in names:
-        do_pqr=True
-        dt += [('P_sum','f8'),
-               ('Q_sum','f8',2),
-               ('Cinv_sum','f8',(2,2)),
-               ('shear','f8',2)]
-    else:
-        do_pqr=False
+           ('shear_cov_inv_sum','f8',(2,2)),
+           ('P_sum','f8'),
+           ('Q_sum','f8',2),
+           ('Cinv_sum','f8',(2,2)),
+           ('shear','f8',2)]
 
 
     if 'gsens' in data.dtype.names:
-        do_lensfit=True
         dt += [('gsens_sum','f8',2),
                ('shear_lensfit','f8',2),
                ('shear_lensfit_cov','f8',(2,2)),
                ('shear_lensfit_cov_inv_sum','f8',(2,2)),
               ]
 
-    else:
-        do_lensfit=False
 
     if model in simple_models or model =='bdf':
         dt += [('flux_sum','f8'),
@@ -86,7 +74,7 @@ def get_dtype(fobj, model):
                ('T_err','f8'),
                ('T_s2n','f8')]
 
-    return dt, do_pqr, do_lensfit
+    return dt
 
 def get_chunk_info(nrows):
     nchunks=nrows//CHUNKSIZE
@@ -97,29 +85,35 @@ def get_chunk_info(nrows):
 
     return nchunks
 
-def get_shear_cov_inv(data, options, g1i=2, g2i=3):
-    names=data.dtype.names
-    if options.use_scatter:
-        g1vals = data['pars'][:,g1i]
-        g2vals = data['pars'][:,g2i]
+def get_shear_stats(conf, data, options, g1i=2, g2i=3):
 
-        g1var = g1vals.var()
-        g2var = g2vals.var()
+    P_sum, Q_sum, Cinv_sum = lensing.pqr.get_shear_pqr_sums(data['P'],
+                                                            data['Q'],
+                                                            data['R'])
 
-        shear_cov_inv = numpy.zeros( (2,2) )
-        shear_cov_inv[0,0] = data.size/g2vals.var()
-        shear_cov_inv[1,1] = data.size/g1vals.var()
+
+    if options.jackknife:
+        shear, shear_cov = \
+                lensing.pqr.pqr_jackknife(data['P'],data['Q'],data['R'],
+                                          verbose=True,
+                                          eps=conf['eps'])
+
+        shear_cov_inv = numpy.linalg.inv(shear_cov)
+        w=numpy.arange(data.size)
+
+    elif options.pqr_cov:
+        # no ring
+        shear_cov_inv = Cinv_sum.copy()
         w=numpy.arange(data.size)
     else:
+        names=data.dtype.names
         if 'g_cov' in names:
             cov = data['g_cov']
         else:
             #print >>stderr,'ASSUMING g_cov in slot 2,3'
             cov = data['pcov'][:,g1i:g1i+2, g1i:g1i+2]
 
-        cov += COV_SOFTEN
-
-        cov_inv = cov.copy()
+        cov_inv = cov
 
         det = cov[:,0,0]*cov[:,1,1] - cov[:,0,1]*cov[:,1,0]
         cov_inv[:,0,0] = cov[:,1,1]
@@ -137,60 +131,26 @@ def get_shear_cov_inv(data, options, g1i=2, g2i=3):
 
         shear_cov_inv = cov_inv.sum(axis=0)
 
-    return shear_cov_inv, w
+    return P_sum, Q_sum, Cinv_sum, shear_cov_inv, w
 
-def do_sums(conf,
-            data, d, model, options,
-            do_pqr=False, do_lensfit=False,
-            jackknife_eps=None):
-    names=data.dtype.names
 
-    g1i=2
-    g2i=3
+def add_more_sums(data, d, w, g1i=2, g2i=3):
 
     T_i = g2i+1
     flux_i = T_i+1
 
-    if options.jackknife:
-        shear, shear_jack, shear_cov, Q_sum, Cinv_sum = \
-                lensing.pqr.pqr_jackknife(data['P'],data['Q'],data['R'],
-                                          verbose=True,
-                                          show=options.show,
-                                          eps=jackknife_eps)
-        true_shear=conf['simc']['shear'][0]
-        if conf['expand_shear_true']:
-            shear_jack = shear_jack + array(true_shear)
-        jfdiff = shear_jack[0]/true_shear - 1.0
-        print 'jackknife fracdiff: %.2e' % jfdiff
-
-        shear_cov_inv = numpy.linalg.inv(shear_cov)
-        w=numpy.arange(data.size)
-    else:
-        shear_cov_inv, w = get_shear_cov_inv(data, options, g1i=g1i, g2i=g2i)
-
-    d['shear_cov_inv_sum'][0,:,:] += shear_cov_inv
-
-    d['nsum'][0] += data.size
+    names=data.dtype.names
     if 'g' in names:
         d['g_sum'][0] += data['g'].sum(axis=0)
     else:
         d['g_sum'][0] += data['pars'][:,g1i:g1i+2].sum(axis=0)
 
-    if do_pqr:
-        P_sum, Q_sum, Cinv_sum = lensing.pqr.get_shear_pqr_sums(data['P'],
-                                                                data['Q'],
-                                                                data['R'])
-        d['P_sum'][0] += P_sum
-        d['Q_sum'][0] += Q_sum
-        d['Cinv_sum'][0] += Cinv_sum
-
-    if do_lensfit:
+    if 'gsens' in names:
         d['gsens_sum'] = data['gsens'].sum(axis=0)
 
     if model in simple_models or model=='bdf':
         flux     = data['pars'][:,flux_i:].sum(axis=1)
         flux_var = data['pcov'][:,flux_i:,flux_i:].sum(axis=1).sum(axis=1)
-        flux_var += COV_SOFTEN
 
         flux_err = sqrt(flux_var)
 
@@ -203,7 +163,6 @@ def do_sums(conf,
 
         T=data['pars'][:,T_i]
         T_var=data['pcov'][:,T_i,T_i]
-        T_var += COV_SOFTEN
         T_err=sqrt(T_var)
 
         # these are for getting the overall mean T not the mean
@@ -214,35 +173,56 @@ def do_sums(conf,
         T_s2n_vals = T/T_err
         d['T_s2n_sum'][0] += T_s2n_vals.sum()
 
-def do_avg(conf, d, model, do_pqr=False, do_lensfit=False):
+def do_sums(conf,
+            data, d,
+            options,
+            jackknife_eps=None):
+
+
+    model=conf['fit_model']
+    g1i=2
+    g2i=3
+
+
+    P_sum, Q_sum, Cinv_sum, shear_cov_inv, w = \
+            get_shear_stats(conf, data, options, g1i=g1i, g2i=g2i)
+
+    d['nsum'][0] += data.size
+    d['P_sum'][0] += P_sum
+    d['Q_sum'][0] += Q_sum
+    d['Cinv_sum'][0] += Cinv_sum
+    d['shear_cov_inv_sum'][0,:,:] += shear_cov_inv
+
+    add_more_sums(data, d, w, g1i=g1i, g2i=g2i)
+
+def do_avg(conf, d):
+
+    model=conf['fit_model']
 
     shear_cov = numpy.linalg.inv(d['shear_cov_inv_sum'][0,:,:])
 
-    if do_pqr:
-        C = numpy.linalg.inv(d['Cinv_sum'][0,:,:])
-        Q_sum = d['Q_sum'][0,:]
-        shear = numpy.dot(C,Q_sum)
+    C = numpy.linalg.inv(d['Cinv_sum'][0,:,:])
+    Q_sum = d['Q_sum'][0,:]
+    shear = numpy.dot(C,Q_sum)
 
 
-        # did we expand around the true shear?
-        expand_shear=conf.get('expand_shear_true',False)
-        if expand_shear:
-            true_shear = numpy.array( conf['simc']['shear'] )
-            print 'adding expand shear:',true_shear
-            shear += true_shear
+    # did we expand around the true shear?
+    expand_shear=conf.get('expand_shear_true',False)
+    if expand_shear:
+        true_shear = numpy.array( conf['simc']['shear'] )
+        print 'adding expand shear:',true_shear
+        shear += true_shear
 
-        d['shear'][0] = shear
+    d['shear'][0] = shear
 
-        #shear_cov = C.copy()
-
-        sherr=numpy.sqrt(shear_cov[0,0])
-        fracdiff=shear[0]/conf['simc']['shear'][0]-1.0
-        fracdiff_err=sherr/conf['simc']['shear'][0]
-        print >>stderr,'fracdiff:          % .2e +/- %.2e' % (fracdiff, fracdiff_err)
+    sherr=numpy.sqrt(shear_cov[0,0])
+    fracdiff=shear[0]/conf['simc']['shear'][0]-1.0
+    fracdiff_err=sherr/conf['simc']['shear'][0]
+    print >>stderr,'fracdiff:          % .2e +/- %.2e' % (fracdiff, fracdiff_err)
 
     d['shear_cov'][0,:,:] = shear_cov
 
-    if do_lensfit:
+    if 'gsens_sum' in d.dtype.names:
         gmean = d['g_sum'][0]/d['nsum']
         gsens = d['gsens_sum'][0]/d['nsum']
         
@@ -273,53 +253,56 @@ def do_avg(conf, d, model, do_pqr=False, do_lensfit=False):
         d['T_err'] = sqrt(1.0/d['T_err2invsum'])
         d['T_s2n'] = d['T_s2n_sum']/d['nsum']
 
-def get_averaged(conf, fname, s2n_matched, options):
+def get_jackknife_eps(fname):
+    dirname=os.path.dirname(fname)
+    bname=os.path.basename(fname)
+
+    pdir = dirname.replace('outputs','plots')
+    if not os.path.exists(pdir):
+        os.makedirs(pdir)
+
+    jname=bname.replace('.fits','-jackknife.eps')
+
+    jname = os.path.join(pdir, jname)
+    return jname
+
+def do_sums_jackknife(conf, fobj, d, options):
+    # we can't do jackknifing by chunks
+
+    data = fobj[1][:]
+    conf['eps']=get_jackknife_eps(conf['fname'])
+    do_sums(conf, data, d, options)
+
+def do_sums_bychunk(conf, fobj, d, options):
+    nrows=fobj[1].get_nrows()
+    nchunks = get_chunk_info(nrows)
+
+    for i in xrange(nchunks):
+        beg = i*CHUNKSIZE
+        end = (i+1)*CHUNKSIZE
+        print '    %s:%s of %s' % (beg,end,nrows)
+        data = fobj[1][beg:end]
+
+        do_sums(conf, data, d, options)
+
+def get_averaged(conf, s2n_matched, options):
 
     model=conf['fit_model']
 
-    print >>stderr,fname
-    with fitsio.FITS(fname) as fobj:
-        nrows=fobj[1].get_nrows()
+    print >>stderr,conf['fname']
+    with fitsio.FITS(conf['fname']) as fobj:
 
-        dt, do_pqr, do_lensfit = get_dtype(fobj,model)
+        dt= get_dtype(fobj,model)
 
         d=numpy.zeros(1, dtype=dt)
         d['s2n_matched'] = s2n_matched
 
-
         if options.jackknife:
-            # we can't do it by chunks
-            jackknife_eps=fname.replace('.fits','-jackknif.eps')
-            data = fobj[1][:]
-            do_sums(conf,
-                    data, d, model, options,
-                    do_pqr=do_pqr,
-                    do_lensfit=do_lensfit,
-                    jackknife_eps=jackknife_eps)
+            do_sums_jackknife(conf, fobj, d, options)
         else:
-            nchunks = get_chunk_info(nrows)
+            do_sums_bychunk(conf, fobj, d, options)
 
-            for i in xrange(nchunks):
-                beg = i*CHUNKSIZE
-                end = (i+1)*CHUNKSIZE
-                print '    %s:%s of %s' % (beg,end,nrows)
-                data = fobj[1][beg:end]
-
-                do_sums(conf,
-                        data, d, model, options,
-                        do_pqr=do_pqr,
-                        do_lensfit=do_lensfit)
-
-    do_avg(conf,
-           d,
-           model,
-           do_pqr=do_pqr,
-           do_lensfit=do_lensfit)
-
-    if options.jackknife and options.show:
-        key=raw_input("hit a key (q to quit): ")
-        if key=='q':
-            stop
+    do_avg(conf, d)
 
     return d
 
@@ -327,12 +310,13 @@ def get_averaged(conf, fname, s2n_matched, options):
 def main():
     options,args = parser.parse_args(sys.argv[1:])
 
-    if len(args) < 1:
+    if len(args) < 2:
         parser.print_help()
         sys.exit(45)
 
 
     run=args[0]
+    is2n=int(args[1])
 
     if options.skip is None:
         skip=[]
@@ -344,24 +328,12 @@ def main():
 
     s2n_vals    = c['s2n_vals']
 
-    n_s2n = len(s2n_vals)
+    s2n_matched = s2n_vals[is2n]
+    c['fname']=nsim.files.get_output_url(run, 0, is2n)
 
-    dlist=[]
-    for is2n in reversed(xrange(n_s2n)):
+    output = get_averaged(c, s2n_matched, options)
 
-    #for is2n in xrange(n_s2n):
-        if is2n in skip:
-            continue
-
-        s2n_matched = s2n_vals[is2n]
-        fname=nsim.files.get_output_url(run, 0, is2n)
-
-        d = get_averaged(c, fname, s2n_matched, options)
-
-        dlist.append(d)
-
-    output = eu.numpy_util.combine_arrlist(dlist)
-    out_fname=nsim.files.get_averaged_url(run, 0)
+    out_fname=nsim.files.get_averaged_url(run, is2n=is2n)
     print >>stderr,'writing:',out_fname
     eu.io.write(out_fname, output, clobber=True)
 

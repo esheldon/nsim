@@ -95,7 +95,7 @@ def main():
     print 'runs2average:',runs2average
 
     for i,run in enumerate(runs2average):
-        fname=nsim.files.get_averaged_url(run, 0)
+        fname=nsim.files.get_averaged_url(run)
         print fname
         data0=eu.io.read(fname)
 
@@ -106,7 +106,7 @@ def main():
 
     do_avg(conf, data)
 
-    fout=nsim.files.get_averaged_url(new_run_name, 0)
+    fout=nsim.files.get_averaged_url(new_run_name)
     eu.ostools.makedirs_fromfile(fout)
     print 'writing run average:',fout
     eu.io.write(fout, data, clobber=True)

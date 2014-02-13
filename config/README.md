@@ -77,8 +77,9 @@ current set
     - sim-dg04
         - run-dg04r01 looks pretty all over the place, more scatter than error
           bars
+        - run-dg04r02 max like, looks about the same
+        - run-dg04rcomb holds average
            
-        - run-dg04rtest1 guess about the max like
 
 - sigrat 1
     - sim-gg04
@@ -101,6 +102,10 @@ current set
           get analytic
         - run-dg05rtest4 now have analytic deriviatives at non-zero shear! 4
           times slower than the numerical ones, but this can be optimized
+
+        - pretty clear the errors are underestimated.  Will re-set the
+        predicted error bars based on jackknife
+        - run-dg05r02. Predicted errors now from jackknifed run-dg05r01
 
 older stuff
 -----------

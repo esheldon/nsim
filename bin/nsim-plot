@@ -79,7 +79,7 @@ def plot_run(plt, c, index, symbol, color, linestyle, options,
         label='%s %s' % (c['run'].replace('run-',''), label )
     shear_true=c['simc']['shear'][index]
 
-    url=nsim.files.get_averaged_url(c['run'], 0)
+    url=nsim.files.get_averaged_url(c['run'])
     print url
     data=eu.io.read(url)
 
@@ -94,7 +94,7 @@ def plot_run(plt, c, index, symbol, color, linestyle, options,
     s2n_vals = data[options.s2n_field]
 
     if options.xrange is None:
-        xrng=[0.75*s2n_vals[0], 1.25*s2n_vals[-1]]
+        xrng=[0.75*s2n_vals.min(), 1.25*s2n_vals.max()]
     else:
         xrng=options.xrange.split(',')
         xrng=[float(xr) for xr in xrng]

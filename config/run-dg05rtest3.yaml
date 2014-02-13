@@ -1,10 +1,10 @@
-run: "run-dg02rtest"
-sim: "sim-dg02"
+run: "run-dg05rtest3"
+sim: "sim-dg05"
 
 fitter: "mcmc"
 fit_model: "dev"
 guess_type: "draw_maxlike"
-g_prior_during: false
+g_prior_during: true
 
 psf_ngauss: 1
 
@@ -13,11 +13,11 @@ burnin:   400
 nstep:    200
 mca_a:    2.0
 
-expand_shear_true: false
+expand_shear_true: true
 
 # we normalize splits by split for is2n==0
-desired_err: 0.625e-05
-nsplit0: 2500000
+desired_err: 5.0e-05
+nsplit0: 40000
 
 s2n_vals: [ 15 ]
 

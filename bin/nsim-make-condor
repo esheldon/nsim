@@ -37,6 +37,7 @@ Executable      = {master_script}
 Image_Size      = 730000
 
 # maybe rcas2630 too?
+#requirements = (CPU_Experiment == "star") && Machine != "rcas2259" && Machine != "rcas2259.rcf.bnl.gov" && Machine != "rcrs6020" && Machine != "rcrs6020.rcf.bnl.gov" && Machine != "rcrs6022" && Machine != "rcrs6022.rcf.bnl.gov"
 requirements = Machine != "rcas2259" && Machine != "rcas2259.rcf.bnl.gov" && Machine != "rcrs6020" && Machine != "rcrs6020.rcf.bnl.gov" && Machine != "rcrs6022" && Machine != "rcrs6022.rcf.bnl.gov"
 
 # rcas6189 rcrs6022

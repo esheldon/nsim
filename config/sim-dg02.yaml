@@ -9,14 +9,17 @@ psf_T: 4.0
 psf_shape: [0.0, 0.0]
 
 obj_model: "dev"
-obj_T_mean: 16.0
+
+cen_sigma: 0.1
+
+obj_T_mean: 4.0
 obj_T_sigma_frac: 0.3
 
 obj_counts_mean: 100.0
 obj_counts_sigma_frac: 0.3
 
-shear: [0.04,0.0]
+shear: [0.01,0.0]
 
 nsub: 16
 
-label: '$dev \gamma=0.04 \sigma_{gal}/\sigma_{PSF}=2$'
+label: '$dev \gamma=0.01 \sigma_{gal}/\sigma_{PSF}=2$'

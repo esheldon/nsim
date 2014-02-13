@@ -7,7 +7,7 @@ import sys
 from sys import stderr
 import os
 import numpy
-from numpy import sqrt
+from numpy import sqrt, array
 
 import esutil as eu
 import fitsio
@@ -139,8 +139,10 @@ def get_shear_cov_inv(data, options, g1i=2, g2i=3):
 
     return shear_cov_inv, w
 
-def do_sums(data, d, model, options,
-            do_pqr=False, do_lensfit=False):
+def do_sums(conf,
+            data, d, model, options,
+            do_pqr=False, do_lensfit=False,
+            jackknife_eps=None):
     names=data.dtype.names
 
     g1i=2
@@ -153,7 +155,14 @@ def do_sums(data, d, model, options,
         shear, shear_jack, shear_cov, Q_sum, Cinv_sum = \
                 lensing.pqr.pqr_jackknife(data['P'],data['Q'],data['R'],
                                           verbose=True,
-                                          show=options.show)
+                                          show=options.show,
+                                          eps=jackknife_eps)
+        true_shear=conf['simc']['shear'][0]
+        if conf['expand_shear_true']:
+            shear_jack = shear_jack + array(true_shear)
+        jfdiff = shear_jack[0]/true_shear - 1.0
+        print 'jackknife fracdiff: %.2e' % jfdiff
+
         shear_cov_inv = numpy.linalg.inv(shear_cov)
         w=numpy.arange(data.size)
     else:
@@ -278,17 +287,28 @@ def get_averaged(conf, fname, s2n_matched, options):
         d['s2n_matched'] = s2n_matched
 
 
-        nchunks = get_chunk_info(nrows)
-
-        for i in xrange(nchunks):
-            beg = i*CHUNKSIZE
-            end = (i+1)*CHUNKSIZE
-            print '    %s:%s of %s' % (beg,end,nrows)
-            data = fobj[1][beg:end]
-
-            do_sums(data, d, model, options,
+        if options.jackknife:
+            # we can't do it by chunks
+            jackknife_eps=fname.replace('.fits','-jackknif.eps')
+            data = fobj[1][:]
+            do_sums(conf,
+                    data, d, model, options,
                     do_pqr=do_pqr,
-                    do_lensfit=do_lensfit)
+                    do_lensfit=do_lensfit,
+                    jackknife_eps=jackknife_eps)
+        else:
+            nchunks = get_chunk_info(nrows)
+
+            for i in xrange(nchunks):
+                beg = i*CHUNKSIZE
+                end = (i+1)*CHUNKSIZE
+                print '    %s:%s of %s' % (beg,end,nrows)
+                data = fobj[1][beg:end]
+
+                do_sums(conf,
+                        data, d, model, options,
+                        do_pqr=do_pqr,
+                        do_lensfit=do_lensfit)
 
     do_avg(conf,
            d,
@@ -311,6 +331,7 @@ def main():
         parser.print_help()
         sys.exit(45)
 
+
     run=args[0]
 
     if options.skip is None:
@@ -326,9 +347,9 @@ def main():
     n_s2n = len(s2n_vals)
 
     dlist=[]
-    #for is2n in reversed(xrange(n_s2n)):
+    for is2n in reversed(xrange(n_s2n)):
 
-    for is2n in xrange(n_s2n):
+    #for is2n in xrange(n_s2n):
         if is2n in skip:
             continue
 

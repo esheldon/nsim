@@ -26,6 +26,9 @@ parser.add_option('--pqr-cov',action='store_true',
 
 parser.add_option('--jackknife',action='store_true',
                   help="use jackknife errors")
+parser.add_option('--progress',action='store_true',
+                  help="show progress during jackknifing")
+
 
 
 
@@ -93,9 +96,10 @@ def get_shear_stats(conf, data, options, g1i=2, g2i=3):
 
 
     if options.jackknife:
+        print >>stderr,'jackknifing'
         shear, shear_cov = \
                 lensing.pqr.pqr_jackknife(data['P'],data['Q'],data['R'],
-                                          verbose=True,
+                                          verbose=options.progress,
                                           eps=conf['eps'])
 
         shear_cov_inv = numpy.linalg.inv(shear_cov)
@@ -110,7 +114,6 @@ def get_shear_stats(conf, data, options, g1i=2, g2i=3):
         if 'g_cov' in names:
             cov = data['g_cov']
         else:
-            #print >>stderr,'ASSUMING g_cov in slot 2,3'
             cov = data['pcov'][:,g1i:g1i+2, g1i:g1i+2]
 
         cov_inv = cov
@@ -134,8 +137,9 @@ def get_shear_stats(conf, data, options, g1i=2, g2i=3):
     return P_sum, Q_sum, Cinv_sum, shear_cov_inv, w
 
 
-def add_more_sums(data, d, w, g1i=2, g2i=3):
+def add_more_sums(conf, data, d, w, g1i=2, g2i=3):
 
+    model=conf['fit_model']
     T_i = g2i+1
     flux_i = T_i+1
 
@@ -173,16 +177,10 @@ def add_more_sums(data, d, w, g1i=2, g2i=3):
         T_s2n_vals = T/T_err
         d['T_s2n_sum'][0] += T_s2n_vals.sum()
 
-def do_sums(conf,
-            data, d,
-            options,
-            jackknife_eps=None):
+def do_sums(conf, data, d, options):
 
-
-    model=conf['fit_model']
     g1i=2
     g2i=3
-
 
     P_sum, Q_sum, Cinv_sum, shear_cov_inv, w = \
             get_shear_stats(conf, data, options, g1i=g1i, g2i=g2i)
@@ -193,7 +191,7 @@ def do_sums(conf,
     d['Cinv_sum'][0] += Cinv_sum
     d['shear_cov_inv_sum'][0,:,:] += shear_cov_inv
 
-    add_more_sums(data, d, w, g1i=g1i, g2i=g2i)
+    add_more_sums(conf, data, d, w, g1i=g1i, g2i=g2i)
 
 def do_avg(conf, d):
 
@@ -210,7 +208,7 @@ def do_avg(conf, d):
     expand_shear=conf.get('expand_shear_true',False)
     if expand_shear:
         true_shear = numpy.array( conf['simc']['shear'] )
-        print 'adding expand shear:',true_shear
+        print >>stderr,'adding expand shear:',true_shear
         shear += true_shear
 
     d['shear'][0] = shear
@@ -280,7 +278,7 @@ def do_sums_bychunk(conf, fobj, d, options):
     for i in xrange(nchunks):
         beg = i*CHUNKSIZE
         end = (i+1)*CHUNKSIZE
-        print '    %s:%s of %s' % (beg,end,nrows)
+        print >>stderr,'    %s:%s of %s' % (beg,end,nrows)
         data = fobj[1][beg:end]
 
         do_sums(conf, data, d, options)

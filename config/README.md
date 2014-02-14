@@ -94,6 +94,7 @@ J have jackknife errors calculated
     - sim-dg05
         - J run-dg05r01, running using maxlike
             - pretty bad at low s/n
+
         - run-dg05rtest1 ..!! looks fine!
         - run-dg05rtest2 .. looks bad
         - run-dg05rtest3 maybe it is the deriviatives.  Try prior during to

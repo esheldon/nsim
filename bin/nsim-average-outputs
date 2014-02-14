@@ -9,7 +9,6 @@ import os
 import numpy
 from numpy import sqrt, array
 
-import esutil as eu
 import fitsio
 import lensing
 import nsim
@@ -26,6 +25,8 @@ parser.add_option('--pqr-cov',action='store_true',
 
 parser.add_option('--jackknife',action='store_true',
                   help="use jackknife errors")
+parser.add_option('--chunksize',default=1,
+                  help="jackknife chunk size, number of pairs")
 parser.add_option('--progress',action='store_true',
                   help="show progress during jackknifing")
 
@@ -96,11 +97,36 @@ def get_shear_stats(conf, data, options, g1i=2, g2i=3):
 
 
     if options.jackknife:
+        t0=time.time()
         print >>stderr,'jackknifing'
-        shear, shear_cov = \
-                lensing.pqr.pqr_jackknife(data['P'],data['Q'],data['R'],
-                                          verbose=options.progress,
-                                          eps=conf['eps'])
+        if False:
+            shear, shear_cov = \
+                    lensing.pqr.pqr_jackknife(data['P'],data['Q'],data['R'],
+                                              verbose=options.progress,
+                                              eps=conf['eps'])
+        else:
+            npair=data.size/2
+            chunksize = npair/1000
+            #if chunksize > 100:
+            #    chunksize=100
+            #else:
+            #    chunksize=1
+
+            if chunksize < 1:
+                chunksize=1
+            elif chunksize > 100:
+                chunksize=100
+            print >>stderr,'    jackknife chunksize:',chunksize
+
+            shear, shear_cov = \
+                    pqr_jackknife(data['P'],data['Q'],data['R'],
+                                  verbose=options.progress,
+                                  #chunksize=int(options.chunksize),
+                                  chunksize=chunksize,
+                                  eps=conf['eps'])
+
+        tm=time.time()-t0
+        print 'time to jackknife:',tm/60.,'minutes'
 
         shear_cov_inv = numpy.linalg.inv(shear_cov)
         w=numpy.arange(data.size)
@@ -304,6 +330,85 @@ def get_averaged(conf, s2n_matched, options):
 
     return d
 
+def pqr_jackknife(P, Q, R,
+                  chunksize=1,
+                  get_sums=False,
+                  verbose=False,
+                  show=False,
+                  eps=None,
+                  png=None):
+    """
+    Get the shear covariance matrix using jackknife resampling.
+
+    The trick is that this must be done in pairs
+
+    chunksize is the number of *pairs* to remove for each chunk
+    """
+
+    if verbose:
+        import progressbar
+        pg=progressbar.ProgressBar(width=70)
+
+    ntot = P.size
+    if ( (ntot % 2) != 0 ):
+        raise  ValueError("expected factor of two, got %d" % ntot)
+    npair = ntot/2
+
+    #if (ntot % chunksize) != 0:
+    #    raise  ValueError("chunksize must be multiple of number "
+    #                      "of pairs %d, got %d" % (npair,chunksize))
+
+    # some may not get used
+    nchunks = npair/chunksize
+
+    P_sum, Q_sum, Cinv_sum = lensing.pqr.get_shear_pqr_sums(P,Q,R)
+    C = numpy.linalg.inv(Cinv_sum)
+    shear = numpy.dot(C,Q_sum)
+
+    shears = numpy.zeros( (nchunks, 2) )
+    for i in xrange(nchunks):
+
+        beg = i*chunksize*2
+        end = (i+1)*chunksize*2
+        
+        if verbose:
+            frac=float(i+1)/nchunks
+            pg.update(frac=frac)
+
+        Ptmp = P[beg:end]
+        Qtmp = Q[beg:end,:]
+        Rtmp = R[beg:end,:,:]
+
+        P_sum, Q_sum_tmp, Cinv_sum_tmp = \
+                lensing.pqr.get_shear_pqr_sums(Ptmp,Qtmp,Rtmp)
+        
+        Q_sum_tmp    = Q_sum - Q_sum_tmp
+        Cinv_sum_tmp = Cinv_sum - Cinv_sum_tmp
+
+        Ctmp = numpy.linalg.inv(Cinv_sum_tmp)
+        shear_tmp = numpy.dot(C,Q_sum_tmp)
+
+        shears[i, :] = shear_tmp
+
+    shear_cov = numpy.zeros( (2,2) )
+    fac = (nchunks-1)/float(nchunks)
+
+    shear = shears.mean(axis=0)
+
+    shear_cov[0,0] = fac*( ((shear[0]-shears[:,0])**2).sum() )
+    shear_cov[0,1] = fac*( ((shear[0]-shears[:,0]) * (shear[1]-shears[:,1])).sum() )
+    shear_cov[1,0] = shear_cov[0,1]
+    shear_cov[1,1] = fac*( ((shear[1]-shears[:,1])**2).sum() )
+
+    if show or eps or png:
+        lensing.pqr._plot_shears(shears, show=show, eps=eps, png=png)
+
+    if get_sums:
+        return shear, shear_cov, Q_sum, Cinv_sum
+    else:
+        return shear, shear_cov
+
+
 
 def main():
     options,args = parser.parse_args(sys.argv[1:])
@@ -333,6 +438,7 @@ def main():
 
     out_fname=nsim.files.get_averaged_url(run, is2n=is2n)
     print >>stderr,'writing:',out_fname
-    eu.io.write(out_fname, output, clobber=True)
+    fitsio.write(out_fname, output, clobber=True)
+
 
 main()

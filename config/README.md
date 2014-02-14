@@ -41,6 +41,7 @@ current set
     sigrat1.4 gg03r01   eg03r01 dg04rcomb
     sigrat1.0 gg04rcomb eg04r01 dg05r01
 
+J have jackknife errors calculated
 - sigrat 2
     - sim-gg01
         - gg01r01  usual 80,400,200 prior after
@@ -50,50 +51,48 @@ current set
         - gg01rtest a=2 and lots of stats; looks pretty good at fracdiff -2.8e-4
           +/- 1.25e-4.  Could live with that!
 
-        - gg01r03 same as the test run, everything same as gg01r01 but with a=2
+        - J gg01r03 same as the test run, everything same as gg01r01 but with a=2
           also smaller error by factor of 2/5. Looks quite good; do see the "wave"
           at low amplitude.
-        - gg01r04 guess from truth, a=2, running
-        - r03 and r04 pretty consistent, I averaged them in gg01rcomb
-
-        - gg01rcomb average of r03 r04
+        - J gg01r04 guess from truth, a=2, running
+        - J gg01rcomb average of r03 r04
 
     - sim-eg01 sigrat 2
-        - eg01r01
+        - J eg01r01
         - looks quite good.  Problems at high s/n maybe from slow burnin?
 
     - sim-dg01 sigrat 2
-        - run-dg01r01
-        - run-dg01r02 guess true, a=2, running
+        - J run-dg01r01
+        - J run-dg01r02 guess true, a=2, running
             - errors are larger, but looks rather similar
 
-        - combined in dg01rcomb
+        - J dg01rcomb combined 01 and 02
 
 - sigrat 1.4
     - sim-gg03
-        - run-gg03r01
+        - J run-gg03r01
     - sim-eg03
-        - run-eg03r01
+        - J run-eg03r01
     - sim-dg04
-        - run-dg04r01 looks pretty all over the place, more scatter than error
+        - J run-dg04r01 looks pretty all over the place, more scatter than error
           bars
-        - run-dg04r02 max like, looks about the same
-        - run-dg04rcomb holds average
+        - J run-dg04r02 max like, looks about the same
+        - J run-dg04rcomb holds average
            
 
 - sigrat 1
     - sim-gg04
-        - gg04r01
+        - J gg04r01
             - strong "wave" pattern.
-        - gg04r02
+        - J gg04r02
             - try with new settings draw truth and a=2, still high error 5.0e-5
             - looks pretty consistent with gg04r01
-        - gg04rcomb averaged those
+        - J gg04rcomb averaged those
     - sim-eg04
-        - run-eg04r01
+        - J run-eg04r01
             - similar wave pattern
     - sim-dg05
-        - run-dg05r01, running using maxlike
+        - J run-dg05r01, running using maxlike
             - pretty bad at low s/n
         - run-dg05rtest1 ..!! looks fine!
         - run-dg05rtest2 .. looks bad
@@ -105,7 +104,7 @@ current set
 
         - pretty clear the errors are underestimated.  Will re-set the
         predicted error bars based on jackknife
-        - run-dg05r02. Predicted errors now from jackknifed run-dg05r01
+        - run-dg05r02. running. Predicted errors now from jackknifed run-dg05r01
 
 older stuff
 -----------

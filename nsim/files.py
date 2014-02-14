@@ -131,6 +131,10 @@ def get_averaged_url(run, is2n=None, fs=None, ext='fits'):
     f = '%s.%s' % (f,ext)
     return path_join(dir, f)
 
+def read_averaged(run, is2n=None, fs=None, ext='fits'):
+    import fitsio
+    fname=get_averaged_url(run, is2n=is2n, fs=fs, ext=ext)
+    return fitsio.read(fname)
 
 
 s2n_ref_bdfg=[ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]

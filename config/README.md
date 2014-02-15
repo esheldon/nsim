@@ -1,8 +1,11 @@
 # vim: set filetype=markdown :
 
-Bias seems to have been a bug in my sims, drawing from the g prior!
 
-re-starting
+- try new seed (probably won't fix bias at low s/n)
+    - exactly 7000 failed with
+        ValueError: object of too small depth for desired array
+- push in new ngmix changes too, but note I didn't see any
+  errors in those priors, just made easier to maintain
 
 * general comments so far
     - I have demonstrated that taking bad guesses (draw from priors) works well

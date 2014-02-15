@@ -17,12 +17,12 @@ expand_shear_true: true
 
 # we normalize splits by split for is2n==0
 desired_err: 5.0e-05
-nsplit0: 40000
+nsplit0: 8000
 
-s2n_vals: [ 15 ]
+s2n_vals: [ 53, 81, 123, 187, 285, 433, 658, 1000 ]
 
 # faster because they are smaller!
-sec_per_pair: 18.0
+sec_per_pair: 16.0
 
 lm_pars:
     maxfev: 300

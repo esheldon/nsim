@@ -79,6 +79,9 @@ class NGMixSim(dict):
         """
         import ngmix
 
+        # seed the numpy random generator
+        seed_from_devrand()
+
         self.set_config(sim_conf, run_conf)
         self.update(self.conf)
         self.update(keys)
@@ -1773,3 +1776,35 @@ def write_fits(filename, data):
             success=False
 
     return success
+
+def seed_from_devrand():
+    """
+    Seed the numpy random state from /dev/random
+    """
+    seed = get_devrand_uint()
+    print >>stderr,'seed from devrand:',seed
+    numpy.random.seed(seed)
+
+def get_devrand_uint():
+    """
+    Read 4 bytes from /dev/random and convert to an
+    unsigned int. The returned value is a normal
+    python int
+    """
+    import struct
+    four_bytes = get_random_bytes(4)
+    # I is unsigned int
+    tup = struct.unpack("I", four_bytes)
+    val = tup[0]
+    return val
+
+
+def get_random_bytes(nbytes):
+    """
+    Get the specified number of bytes from /dev/random
+    """
+    fd = os.open("/dev/random",os.O_RDONLY)
+    thebytes=os.read(fd, 4)
+    os.close(fd)
+
+    return thebytes

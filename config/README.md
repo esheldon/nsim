@@ -109,6 +109,13 @@ J have jackknife errors calculated
         - pretty clear the errors are underestimated.  Will re-set the
         predicted error bars based on jackknife
         - run-dg05r02. running. Predicted errors now from jackknifed run-dg05r01
+            - looks similar
+        
+        - run-dg05r03 new seed from /dev/random, some minor changes to priors
+          functions.  Going a bit larger error, 7.5e-5
+            - randomness does look more correct
+        - run-dg05r04
+            - same as 03 but running on phenix only
 
 older stuff
 -----------

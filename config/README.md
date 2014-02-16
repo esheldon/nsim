@@ -98,8 +98,8 @@ J have jackknife errors calculated
         - J run-dg05r01, running using maxlike
             - pretty bad at low s/n
 
-        - run-dg05rtest1 ..!! looks fine!
-        - run-dg05rtest2 .. looks bad
+        - run-dg05rtest1 s/n 15 only  ..!! looks fine!
+        - run-dg05rtest2 same         .. looks bad
         - run-dg05rtest3 maybe it is the deriviatives.  Try prior during to
           smooth it out?  Also might try to resurrect the mathematica stuff to
           get analytic
@@ -107,13 +107,16 @@ J have jackknife errors calculated
           times slower than the numerical ones, but this can be optimized
 
         - pretty clear the errors are underestimated.  Will re-set the
-        predicted error bars based on jackknife
-        - run-dg05r02. running. Predicted errors now from jackknifed run-dg05r01
+          predicted error bars based on jackknife
+
+        - run-dg05r02. running. Predicted errors now from jackknifed
+          the run-dg05r01 
             - looks similar
         
         - run-dg05r03 new seed from /dev/random, some minor changes to priors
           functions.  Going a bit larger error, 7.5e-5
-            - randomness does look more correct
+            - ARGHHH turns out emcee will start it's own random number generator
+            so this did nothing
         - run-dg05r04
             - same as 03 but running on phenix only
 

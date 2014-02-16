@@ -79,8 +79,9 @@ class NGMixSim(dict):
         """
         import ngmix
 
-        # seed the numpy random generator
-        seed_from_devrand()
+        # seed a new MT random generator from devrand
+        # and return the object
+        self.random_state=get_random_state_devrand()
 
         self.set_config(sim_conf, run_conf)
         self.update(self.conf)
@@ -739,6 +740,7 @@ class NGMixSim(dict):
                                              mca_a=self['mca_a'][ipass],
                                              ntry=1,
                                              min_arate=min_arate,
+                                             random_state=self.random_state,
                                              do_pqr=True,
                                              do_lensfit=True)
                 fitter.go()
@@ -791,6 +793,7 @@ class NGMixSim(dict):
                                          mca_a=self['mca_a'],
                                          #ntry=ntry,
                                          min_arate=min_arate,
+                                         random_state=self.random_state,
                                          do_pqr=True,
                                          do_lensfit=True)
             fitter.go()
@@ -865,6 +868,7 @@ class NGMixSim(dict):
                                         nstep=self['nstep'],
                                         burnin=self['burnin'],
                                         mca_a=self['mca_a'],
+                                        random_state=self.random_state,
                                         do_pqr=True,
                                         do_lensfit=True)
         fitter.go()
@@ -1777,13 +1781,13 @@ def write_fits(filename, data):
 
     return success
 
-def seed_from_devrand():
+def get_random_state_devrand():
     """
     Seed the numpy random state from /dev/random
     """
     seed = get_devrand_uint()
     print >>stderr,'seed from devrand:',seed
-    numpy.random.seed(seed)
+    return numpy.random.mtrand.RandomState(seed=seed)
 
 def get_devrand_uint():
     """

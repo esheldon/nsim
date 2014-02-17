@@ -66,14 +66,12 @@ J have jackknife errors calculated
     - sim-gg03
         - J run-gg03r01
     - sim-eg03
-        - J run-eg03r01
+        * J run-eg03r01
     - sim-dg04
-        - J run-dg04r01 looks pretty all over the place, more scatter than error
-          bars
-        - J run-dg04r02 max like, looks about the same
+        - J run-dg04r01
+        - J run-dg04r02 redoing
+        * J run-dg04r03 with new seeding
         - J run-dg04rcomb holds average
-
-        - run-dg04r03 with new seeding. running
            
 
 - sigrat 1

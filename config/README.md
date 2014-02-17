@@ -8,20 +8,11 @@
   errors in those priors, just made easier to maintain
 
 * general comments so far
-    - I have demonstrated that taking bad guesses (draw from priors) works well
-      at low s/n where the noise is high so even the bad guess isn't far from
-      the truth relative to the error; at high s/n I suspect slow burnin is a
-      problem.
-      
-      It is I think reasonable to move away from drawing from priors for simple
-      models, and for the purposes of testing *how well this can work*, draw
-      from truth. 
-    
-      for the purposes of how to work with real data we can guess based on the
-      maximum likelihood solution
+    - get basically same results for draw priors, truth, maxlike
 
-    - the error bars seem over-estimated
-    - I see a "wave" pattern as a function of s/n
+    - I see a "wave" pattern as a function of s/n. I think this was bad seeds.
+      Turns out mtrand uses /dev/urandom.  Had to replace emcee._random with my
+      own.
 
         - gg04rtest
             - using guess around the truth to see if the wave disappears.  If
@@ -111,16 +102,17 @@ J have jackknife errors calculated
         - pretty clear the errors are underestimated.  Will re-set the
           predicted error bars based on jackknife
 
-        - run-dg05r02. running. Predicted errors now from jackknifed
+        - J run-dg05r02. running. Predicted errors now from jackknifed
           the run-dg05r01 
             - looks similar
         
-        - run-dg05r03 new seed from /dev/random, some minor changes to priors
+        - J run-dg05r03 new seed from /dev/random, some minor changes to priors
           functions.  Going a bit larger error, 7.5e-5
             - ARGHHH turns out emcee will start it's own random number generator
             so this did nothing
-        - run-dg05r04
-            - same as 03 but new seeding actually in place now
+        - J run-dg05r04
+            - same as 03 but now actually seeding from /dev/random
+            - certainly looks random but errors are large
 
 older stuff
 -----------

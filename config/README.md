@@ -62,6 +62,8 @@ J have jackknife errors calculated
 
         - J dg01rcomb combined 01 and 02
 
+        * dg01r03 new seeding
+
 - sigrat 1.4
     - sim-gg03
         - J run-gg03r01
@@ -69,9 +71,10 @@ J have jackknife errors calculated
         * J run-eg03r01
     - sim-dg04
         - J run-dg04r01
-        - J run-dg04r02 redoing
+        * J run-dg04r02 redoing with new seeding
         * J run-dg04r03 with new seeding
-        - J run-dg04rcomb holds average
+            - averaging...
+        - J run-dg04rcomb currently holds old average
            
 
 - sigrat 1

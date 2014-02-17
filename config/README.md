@@ -81,6 +81,8 @@ J have jackknife errors calculated
           bars
         - J run-dg04r02 max like, looks about the same
         - J run-dg04rcomb holds average
+
+        - run-dg04r03 with new seeding. running
            
 
 - sigrat 1
@@ -118,7 +120,7 @@ J have jackknife errors calculated
             - ARGHHH turns out emcee will start it's own random number generator
             so this did nothing
         - run-dg05r04
-            - same as 03 but running on phenix only
+            - same as 03 but new seeding actually in place now
 
 older stuff
 -----------

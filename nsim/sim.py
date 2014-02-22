@@ -82,6 +82,8 @@ class NGMixSim(dict):
         # seed a new MT random generator from devrand
         # and return the object
         self.random_state=get_random_state_devrand()
+        # also seed the global random number generator
+        seed_global_devrand()
 
         self.set_config(sim_conf, run_conf)
         self.update(self.conf)
@@ -1780,6 +1782,14 @@ def write_fits(filename, data):
             success=False
 
     return success
+
+def seed_global_devrand():
+    """
+    Seed the "global" random number generator
+    """
+    seed = get_devrand_uint()
+    print >>stderr,'seed global from devrand:',seed
+    numpy.random.seed(seed)
 
 def get_random_state_devrand():
     """

@@ -75,6 +75,8 @@ J have jackknife errors calculated
         * J run-dg04r03 with new seeding
             - averaging...
         - J run-dg04rcomb currently holds old average
+        - J run-dg04rcomb2 currently holds new average from all 3
+
            
 
 - sigrat 1

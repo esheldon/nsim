@@ -82,7 +82,7 @@ class NGMixSim(dict):
         # seed a new MT random generator from devrand
         # and return the object
         self.random_state=get_random_state_devrand()
-        # also seed the global random number generator
+        # also seed the global random number generator from devrand
         seed_global_devrand()
 
         self.set_config(sim_conf, run_conf)
@@ -117,6 +117,7 @@ class NGMixSim(dict):
         self.set_noise()
 
         pprint.pprint(self, stream=stderr)
+        pprint.pprint(self.simc, stream=stderr)
 
     def set_config(self, sim_conf, run_conf):
         """

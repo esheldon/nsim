@@ -42,7 +42,7 @@ Image_Size      = 730000
 
 #requirements = (CPU_Experiment == "phenix") && Machine != "rcas2259" && Machine != "rcas2259.rcf.bnl.gov" && Machine != "rcrs6020" && Machine != "rcrs6020.rcf.bnl.gov" && Machine != "rcrs6022" && Machine != "rcrs6022.rcf.bnl.gov"
 
-requirements = Machine != "rcas2259" && Machine != "rcas2259.rcf.bnl.gov" && Machine != "rcrs6020" && Machine != "rcrs6020.rcf.bnl.gov" && Machine != "rcrs6022" && Machine != "rcrs6022.rcf.bnl.gov"
+requirements = Machine != "rcas2259" && Machine != "rcas2259.rcf.bnl.gov" && Machine != "rcrs6020" && Machine != "rcrs6020.rcf.bnl.gov" && Machine != "rcrs6022" && Machine != "rcrs6022.rcf.bnl.gov" && Machine != "rcrs6051" && Machine != "rcrs6051.rcf.bnl.gov"
 
 # we need this or nothing works
 GetEnv = True

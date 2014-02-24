@@ -117,6 +117,35 @@ J have jackknife errors calculated
             - same as 03 but now actually seeding from /dev/random
             - certainly looks random but errors are large
 
+FWHM RAT
+---------
+
+- FWHM 1.2
+    - turns out for deg srat 2 is same as fwhm rat 1.2, very far off for others
+
+    - sim-eg05 0.08
+        - eg05rtest1
+        - srat 0.85, T rat of 0.715.
+
+        - hypothesis: higher ellipticity is having problems due to an aperture
+          effect.  Would be worse for higher shear. Why ok at higher s/n?
+
+        - hypothesis: psf sampling is becoming a problem?  Why OK at higher s/n?
+
+        - hypothesis: there are too many small ones to be realistic. 
+            - trying again with smaller width for both flux and size
+            - shear 0.08
+    
+    - sim-eg06 shear 0.15
+        - did mean over the ellip distribution, 
+        - might be nsigma render
+        - use 10 instead of 5
+        - nope same
+        
+        - trying larger psf
+
+        - may try two gauss?  was horrible I recall
+
 older stuff
 -----------
 

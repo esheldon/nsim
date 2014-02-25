@@ -1349,14 +1349,14 @@ class NGMixSim(dict):
 
         print >>stderr,"setting priors"
 
-        joint_dist = self.simc.get('joint_dist',None)
-        if joint_dist is not None:
-            if joint_dist=='exp':
-                self.joint_prior=ngmix.priors.TFluxPriorCosmosExp()
-            elif joint_dist=='dev':
-                self.joint_prior=ngmix.priors.TFluxPriorCosmosDev()
+        joint_TF_dist = self.simc.get('joint_TF_dist',None)
+        if joint_TF_dist is not None:
+            if joint_TF_dist=='exp':
+                self.joint_Tf_prior=ngmix.priors.TFluxPriorCosmosExp()
+            elif joint_TF_dist=='dev':
+                self.joint_Tf_prior=ngmix.priors.TFluxPriorCosmosDev()
             else:
-                raise ValueError("bad joint dist '%s'" % joint_dist)
+                raise ValueError("bad joint dist '%s'" % joint_TF_dist)
 
             self.T_prior=None
             self.counts_prior=None
@@ -1368,7 +1368,7 @@ class NGMixSim(dict):
             self.T_prior=ngmix.priors.LogNormal(T, T_sigma)
             self.counts_prior=ngmix.priors.LogNormal(counts, counts_sigma)
 
-            self.joint_prior=None
+            self.joint_Tf_prior=None
 
         cen_sigma=self.simc['cen_sigma']
         self.cen_prior=ngmix.priors.CenPrior(0.0, 0.0, cen_sigma, cen_sigma)
@@ -1505,7 +1505,7 @@ class NGMixSim(dict):
             g1_2 = g*numpy.cos(2*rangle2)
             g2_2 = g*numpy.sin(2*rangle2)
 
-            if self.joint_prior is not None:
+            if self.joint_Tf_prior is not None:
                 p=self.join_prior.sample(1)
                 T,counts = p[0,:]
             else:
@@ -1518,9 +1518,9 @@ class NGMixSim(dict):
             g1_2=0.0
             g2_2=0.0
 
-            if self.joint_prior is not None:
-                T=self.joint_prior.T_near
-                counts=self.joint_prior.fmode
+            if self.joint_Tf_prior is not None:
+                T=self.joint_Tf_prior.T_near
+                counts=self.joint_Tf_prior.fmode
             else:
                 T=self.T_prior.mean
                 counts=self.counts_prior.mean

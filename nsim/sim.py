@@ -53,6 +53,7 @@ import time
 import pprint
 
 import numpy
+from numpy import array
 from numpy.random import random as randu
 from numpy.random import randn
 
@@ -104,6 +105,8 @@ class NGMixSim(dict):
         self.fit_model=self['fit_model']
         self.npars=ngmix.gmix.get_model_npars(self.fit_model)
 
+        self.recenter_psf=self.simc.get('recenter_psf',False)
+
         self.make_plots=keys.get('make_plots',False)
         self.plot_base=keys.get('plot_base',None)
 
@@ -114,6 +117,10 @@ class NGMixSim(dict):
 
         self.set_priors()
         self.make_psf()
+
+        if not self.recenter_psf:
+            self.set_psf_image()
+
         self.set_noise()
 
         pprint.pprint(self, stream=stderr)
@@ -152,7 +159,8 @@ class NGMixSim(dict):
         """
         Run the simulation, fitting psf and all pairs
         """
-        self.fit_psf()
+        if not self.recenter_psf:
+            self.fit_psf()
 
         self.start_timer()
 
@@ -206,6 +214,10 @@ class NGMixSim(dict):
         import ngmix
 
         imdicts = self.get_noisy_image_pair()
+
+        if self.recenter_psf:
+            self.fit_psf()
+
         reslist=[]
         for key in imdicts:
 
@@ -403,7 +415,7 @@ class NGMixSim(dict):
         perr=res['pars_err']
 
         # soften covariance, need to tune
-        #perr += numpy.array([0.005,0.005,0.005,0.005,0.1,1.0])
+        #perr += array([0.005,0.005,0.005,0.005,0.1,1.0])
 
         cen_dist    = ngmix.priors.Student2D(pars[0], pars[1], perr[0], perr[1])
         g_dist      = ngmix.priors.TruncatedStudentPolar(pars[2], pars[3], perr[2], perr[3], 1.0)
@@ -897,7 +909,7 @@ class NGMixSim(dict):
         guess=res['pars']
         step_sizes = 0.5*res['pars_err'].copy()
         # soften step sizes, need to tune.
-        #step_sizes += numpy.array([0.001, 0.001, 0.005, 0.005, 0.1, 0.1])
+        #step_sizes += array([0.001, 0.001, 0.005, 0.005, 0.1, 0.1])
 
         fitter=ngmix.fitting.MHSimple(imdict['image'],
                                       imdict['wt'],
@@ -1212,6 +1224,39 @@ class NGMixSim(dict):
         ngmix.fitting.print_pars(res['pars'],front='    pars: ',stream=stderr)
         ngmix.fitting.print_pars(res['pars_err'],front='    perr: ',stream=stderr)
 
+    def make_psf(self):
+        """
+        make the psf gaussian mixture model
+        """
+        import ngmix
+
+        print >>stderr,"making psf"
+
+        pars=[0.0,
+              0.0,
+              self.simc['psf_shape'][0],
+              self.simc['psf_shape'][1],
+              self.simc['psf_T'],
+              1.0]
+
+        self.psf_gmix_true=ngmix.gmix.GMixModel(pars, self.simc['psf_model'])
+        
+    def set_psf_image(self, dims=None, cen=[0.0,0.0] ):
+        """
+        Make the actual image
+        """
+
+        if dims is None:
+            T=self.psf_gmix_true.get_T()
+            self.psf_dims, self.psf_cen = self.get_dims_cen(T)
+        else:
+            self.psf_dims=dims.copy()
+            self.psf_cen=cen
+
+        self.psf_gmix_true.set_cen(cen[0], cen[1])
+        self.psf_image=self.psf_gmix_true.make_image(self.psf_dims,
+                                                     nsub=self.nsub)
+
     def fit_psf(self):
         """
         Fit the pixelized psf to a model
@@ -1222,7 +1267,7 @@ class NGMixSim(dict):
         import ngmix
         from ngmix.gexceptions import GMixMaxIterEM
 
-        print >>stderr,'fitting psf'
+        print >>stderr,'    fitting psf'
         imsky,sky=ngmix.em.prep_image(self.psf_image)
 
         em=ngmix.em.GMixEM(imsky)
@@ -1232,7 +1277,7 @@ class NGMixSim(dict):
 
         while True:
             guess=self.get_psf_guess()
-            print >>stderr,'psf guess:'
+            print >>stderr,'    psf guess:'
             print >>stderr,guess
             try:
                 em.go(guess, sky, tol=tol,maxiter=maxiter)
@@ -1303,40 +1348,36 @@ class NGMixSim(dict):
         import ngmix
 
         print >>stderr,"setting priors"
-        T=self.simc['obj_T_mean']
-        T_sigma = self.simc['obj_T_sigma_frac']*T
-        counts=self.simc['obj_counts_mean']
-        counts_sigma = self.simc['obj_counts_sigma_frac']*counts
+
+        joint_dist = self.simc.get('joint_dist',None)
+        if joint_dist is not None:
+            if joint_dist=='exp':
+                self.joint_prior=ngmix.priors.TFluxPriorCosmosExp()
+            elif joint_dist=='dev':
+                self.joint_prior=ngmix.priors.TFluxPriorCosmosDev()
+            else:
+                raise ValueError("bad joint dist '%s'" % joint_dist)
+
+            self.T_prior=None
+            self.counts_prior=None
+        else:
+            T=self.simc['obj_T_mean']
+            T_sigma = self.simc['obj_T_sigma_frac']*T
+            counts=self.simc['obj_counts_mean']
+            counts_sigma = self.simc['obj_counts_sigma_frac']*counts
+            self.T_prior=ngmix.priors.LogNormal(T, T_sigma)
+            self.counts_prior=ngmix.priors.LogNormal(counts, counts_sigma)
+
+            self.joint_prior=None
 
         cen_sigma=self.simc['cen_sigma']
         self.cen_prior=ngmix.priors.CenPrior(0.0, 0.0, cen_sigma, cen_sigma)
 
         self.g_prior=ngmix.priors.GPriorBA(0.3)
-        self.T_prior=ngmix.priors.LogNormal(T, T_sigma)
-        self.counts_prior=ngmix.priors.LogNormal(counts, counts_sigma)
+
 
         self.bfrac_prior=ngmix.priors.BFrac()
 
-    def make_psf(self):
-        """
-        make the psf gaussian mixture model
-        """
-        import ngmix
-
-        print >>stderr,"making psf"
-
-        self.psf_dims, self.psf_cen=self.get_dims_cen(self.simc['psf_T'])
-
-        pars=[self.psf_cen[0],
-              self.psf_cen[1],
-              self.simc['psf_shape'][0],
-              self.simc['psf_shape'][1],
-              self.simc['psf_T'],
-              1.0]
-        self.psf_gmix_true=ngmix.gmix.GMixModel(pars, self.simc['psf_model'])
-        
-        self.psf_image=self.psf_gmix_true.make_image(self.psf_dims,
-                                                     nsub=self.nsub)
     
     def set_noise(self):
         """
@@ -1408,29 +1449,35 @@ class NGMixSim(dict):
         gm2  = gm2_pre.convolve(self.psf_gmix_true)
 
         T = gm1.get_T()
-        dims, cen = self.get_dims_cen(T)
+        dims, cen0 = self.get_dims_cen(T)
+
+
 
         # jacobian is at center before offset so the prior
         # will center on "zero"
-        j=ngmix.jacobian.UnitJacobian(cen[0], cen[1])
+        j=ngmix.jacobian.UnitJacobian(cen0[0], cen0[1])
 
-        cen[0] += cen_offset[0]
-        cen[1] += cen_offset[1]
+        cen = cen0 + cen_offset
+
+        print >>stderr,'offset:',cen_offset,'cen0:',cen0,'cen:',cen
 
         gm1.set_cen(cen[0], cen[1])
         gm2.set_cen(cen[0], cen[1])
+
+        self.set_psf_image(dims=dims, cen=cen)
 
         nsub = self.nsub
         im1=gm1.make_image(dims, nsub=nsub)
         im2=gm2.make_image(dims, nsub=nsub)
 
-        pars_true1=numpy.array(pars1)
-        pars_true2=numpy.array(pars2)
+        pars_true1=array(pars1)
+        pars_true2=array(pars2)
         pars_true1[0] += cen_offset[0]
         pars_true1[1] += cen_offset[1]
         pars_true2[0] += cen_offset[0]
         pars_true2[1] += cen_offset[1]
 
+        
         out={'im1':{'pars':pars_true1,'gm_pre':gm1_pre,'gm':gm1,'image':im1,'jacobian':j},
              'im2':{'pars':pars_true2,'gm_pre':gm2_pre,'gm':gm2,'image':im2,'jacobian':j}}
         return out
@@ -1444,7 +1491,7 @@ class NGMixSim(dict):
 
 
         if random:
-            cen_offset=self.cen_prior.sample()
+            cen_offset=array( self.cen_prior.sample() )
 
             g = self.g_prior.sample1d(1)
             g=g[0]
@@ -1458,16 +1505,25 @@ class NGMixSim(dict):
             g1_2 = g*numpy.cos(2*rangle2)
             g2_2 = g*numpy.sin(2*rangle2)
 
-            T=self.T_prior.sample()
-            counts=self.counts_prior.sample()
+            if self.joint_prior is not None:
+                p=self.join_prior.sample(1)
+                T,counts = p[0,:]
+            else:
+                T=self.T_prior.sample()
+                counts=self.counts_prior.sample()
         else:
-            cen_offset=[0.0, 0.0]
+            cen_offset=array( [0.0, 0.0] )
             g1_1=0.0
             g2_1=0.0
             g1_2=0.0
             g2_2=0.0
-            T=self.T_prior.mean
-            counts=self.counts_prior.mean
+
+            if self.joint_prior is not None:
+                T=self.joint_prior.T_near
+                counts=self.joint_prior.fmode
+            else:
+                T=self.T_prior.mean
+                counts=self.counts_prior.mean
 
         shape1=ngmix.shape.Shape(g1_1, g2_1)
         shape2=ngmix.shape.Shape(g1_2, g2_2)
@@ -1497,8 +1553,8 @@ class NGMixSim(dict):
         Based on T, get the required dimensions and a center
         """
         sigma=numpy.sqrt(T/2.)
-        dims = [2.*sigma*self.nsigma_render]*2
-        cen = [(dims[0]-1.)/2.]*2
+        dims = array( [2.*sigma*self.nsigma_render]*2 )
+        cen = array( [(dims[0]-1.)/2.]*2 )
 
         return dims, cen
 

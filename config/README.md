@@ -143,8 +143,27 @@ FWHM RAT
         - nope same
         
         - trying larger psf
+            - looks a bit different, higher instead of lower.  Maybe better?
 
-        - may try two gauss?  was horrible I recall
+    - sim-eg07 0.15
+        - now psf T=30, sigma 3.87 to see if even more improvement
+    - sim-eg08 0.08
+        - recenter psf probably not right
+        - no difference
+
+        - try lower shear?  How to justify?
+            - running
+
+    - current picture
+        - in convolved FWHM ratio space the exp seems to perform worse than dev
+          at 1.2
+            - this fwhm ratio corresponds to smaller exp in terms of moments
+              than dev
+            - but I haven't checked s/n=5 for dev
+        - even with tight priors on size and flux biased at s/n=5
+        - is prior too tight?  Would s/n flux or size be lower without it and
+          indicate a problem?  Yes.  Check cosmos for width of prior?
+        - still seeing waves in some runs but not others
 
 older stuff
 -----------

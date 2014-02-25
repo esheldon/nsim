@@ -25,7 +25,7 @@ npair_min: 1000
 s2n_vals: [ 5, 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
 
 # 30 for now double sized psf
-sec_per_pair: 30.0
+sec_per_pair: 50.0
 
 lm_pars:
     maxfev: 300

@@ -23,14 +23,14 @@ expand_shear_true: true
 # we normalize splits by split for is2n==0
 #desired_err: 6.67e-05
 #nsplit0: 60000
-desired_err: 1.0e-05
-nsplit0: 1000
+desired_err: 5.0e-05
+nsplit0: 2000
 
 npair_min: 1000
 
 # this is now the s/n at mode(flux)
-#s2n_vals: [ 5, 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
-s2n_vals: [ 1000 ]
+s2n_vals: [ 81, 123, 187, 285, 433, 658, 1000 ]
+#s2n_vals: [ 1000 ]
 
 # doubled for slower machines
 sec_per_pair: 20.0

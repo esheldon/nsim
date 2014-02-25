@@ -1360,8 +1360,8 @@ class NGMixSim(dict):
 
         if joint_TF_dist is not None:
 
+            # this defines our size threshold
             T_bounds   = self.simc.get('T_bounds',None)
-            flux_bounds   = self.simc.get('flux_bounds',None)
 
             if joint_TF_dist=='cosmos-exp':
                 cls=ngmix.priors.TFluxPriorCosmosExp
@@ -1370,7 +1370,19 @@ class NGMixSim(dict):
             else:
                 raise ValueError("bad joint dist '%s'" % joint_TF_dist)
 
+            # we choose the flux bound as a multiple of
+            # the flux_mode to get the expected s/n
+            flux_mode_s2n = self.simc['flux_mode_s2n']
+            flux_min = cls.flux_mode*self.s2n/flux_mode_s2n
+            flux_max = self.simc['flux_max']
+            flux_bounds   = [flux_min, flux_max]
+
             pixel_scale   = self.simc['pixel_scale']
+            print """
+    flux_mode:   %s
+    flux_bounds: %s
+            """ % (cls.flux_mode, flux_bounds)
+
             self.joint_TF_prior=cls(T_bounds=T_bounds,
                                     flux_bounds=flux_bounds,
                                     pixel_scale=pixel_scale)
@@ -1542,7 +1554,7 @@ class NGMixSim(dict):
                 # This is mean size near flux mode
                 # will be in pixels if pixel_scale=1
                 T=self.joint_TF_prior.get_T_near()
-                counts=self.joint_TF_prior.get_fmode()
+                counts=self.joint_TF_prior.get_flux_mode()
             else:
                 T=self.T_prior.mean
                 counts=self.counts_prior.mean

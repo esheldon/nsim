@@ -165,6 +165,15 @@ FWHM RAT
           indicate a problem?  Yes.  Check cosmos for width of prior?
         - still seeing waves in some runs but not others
 
+flux limit based on cosmos
+--------------------------
+
+- set the flux mode to have s/n=5
+- then just make size cuts
+    - do in fwhm ratio space.  Means different cuts for exp and dev.
+    - can also change s/n scale but need to think how best to do that, because
+      the distribution is joint
+
 older stuff
 -----------
 

@@ -1,10 +1,14 @@
+# joint size-flux from cosmos
 # re-center psf
+
 run: "run-eg08rtest1"
 sim: "sim-eg08"
 
 fitter: "mcmc"
 fit_model: "exp"
-guess_type: "draw_maxlike"
+
+# for now to delay testing the lm fitter with joint prior
+guess_type: "draw_truth"
 g_prior_during: false
 
 psf_ngauss: 1
@@ -17,14 +21,19 @@ mca_a:    2.0
 expand_shear_true: true
 
 # we normalize splits by split for is2n==0
-desired_err: 6.67e-05
-nsplit0: 60000
+#desired_err: 6.67e-05
+#nsplit0: 60000
+desired_err: 1.0e-05
+nsplit0: 1000
+
 npair_min: 1000
 
-s2n_vals: [ 5, 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
+# this is now the s/n at mode(flux)
+#s2n_vals: [ 5, 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
+s2n_vals: [ 1000 ]
 
-# 30 for now double sized psf
-sec_per_pair: 14.0
+# doubled for slower machines
+sec_per_pair: 20.0
 
 lm_pars:
     maxfev: 300

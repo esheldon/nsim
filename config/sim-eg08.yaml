@@ -16,11 +16,9 @@ cen_sigma: 0.1
 joint_TF_dist: "cosmos-exp"
 pixel_scale: 0.27
 
-# s/n value at the flux mode
-fmode_s2n: 100.0
-
-# can be null
-TF_bounds: [16.0, 0.0]
+# we will want to loosen this for the real test
+T_bounds: [4.0, 100.0]
+flux_bounds: [0.01, 100.0]
 
 nsigma_render: 5.0
 
@@ -30,4 +28,4 @@ shear: [0.08,0.0]
 
 nsub: 16
 
-label: '$exp FWHM/FWHM_{PSF}=1.2$'
+label: '$exp FWHM/FWHM_{PSF}=?$'

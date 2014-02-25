@@ -335,7 +335,13 @@ def get_npair_nsplit_by_noise(c, is2n, npair_min=None):
 
     # this is the requirement from measurement error
     s2n = c['s2n_vals'][is2n]
-    sigratio = numpy.sqrt( c['simc']['obj_T_mean']/c['simc']['psf_T'] )
+
+    if 'obj_T_mean' not in c['simc']:
+        # for now; this might be conservative?
+        sigratio=2.0
+    else:
+        sigratio = numpy.sqrt( c['simc']['obj_T_mean']/c['simc']['psf_T'] )
+
     npair_tot = get_npair_by_noise(s2n, c['desired_err'],c['run'], sigratio)
 
     npair_shapenoise = 0

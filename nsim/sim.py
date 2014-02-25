@@ -1357,10 +1357,11 @@ class NGMixSim(dict):
         print >>stderr,"setting priors"
 
         joint_TF_dist = self.simc.get('joint_TF_dist',None)
+
         if joint_TF_dist is not None:
 
-            TF_bounds=self.get('TF_bounds',None)
-            pixel_scale=self.get('pixel_scale',1.0)
+            T_bounds   = self.simc.get('T_bounds',None)
+            flux_bounds   = self.simc.get('flux_bounds',None)
 
             if joint_TF_dist=='cosmos-exp':
                 cls=ngmix.priors.TFluxPriorCosmosExp
@@ -1369,7 +1370,10 @@ class NGMixSim(dict):
             else:
                 raise ValueError("bad joint dist '%s'" % joint_TF_dist)
 
-            self.joint_Tf_prior=cls(bounds=TF_bounds,pixel_scale=pixel_scale)
+            pixel_scale   = self.simc['pixel_scale']
+            self.joint_TF_prior=cls(T_bounds=T_bounds,
+                                    flux_bounds=flux_bounds,
+                                    pixel_scale=pixel_scale)
 
             self.T_prior=None
             self.counts_prior=None
@@ -1382,7 +1386,7 @@ class NGMixSim(dict):
             self.T_prior=ngmix.priors.LogNormal(T, T_sigma)
             self.counts_prior=ngmix.priors.LogNormal(counts, counts_sigma)
 
-            self.joint_Tf_prior=None
+            self.joint_TF_prior=None
 
         cen_sigma=self.simc['cen_sigma']
         self.cen_prior=ngmix.priors.CenPrior(0.0, 0.0, cen_sigma, cen_sigma)
@@ -1521,8 +1525,8 @@ class NGMixSim(dict):
             g1_2 = g*numpy.cos(2*rangle2)
             g2_2 = g*numpy.sin(2*rangle2)
 
-            if self.joint_Tf_prior is not None:
-                p=self.join_prior.sample(1)
+            if self.joint_TF_prior is not None:
+                p=self.joint_TF_prior.sample(1)
                 T,counts = p[0,:]
             else:
                 T=self.T_prior.sample()
@@ -1534,10 +1538,11 @@ class NGMixSim(dict):
             g1_2=0.0
             g2_2=0.0
 
-            if self.joint_Tf_prior is not None:
+            if self.joint_TF_prior is not None:
                 # This is mean size near flux mode
-                T=self.joint_Tf_prior.T_near
-                counts=self.joint_Tf_prior.fmode
+                # will be in pixels if pixel_scale=1
+                T=self.joint_TF_prior.get_T_near()
+                counts=self.joint_TF_prior.get_fmode()
             else:
                 T=self.T_prior.mean
                 counts=self.counts_prior.mean

@@ -862,30 +862,37 @@ class NGMixSim(dict):
 
         full_guess=self.get_guess(imdict, n=self['nwalkers'])
 
-        fitter=ngmix.fitting.MCMCSimple(imdict['image'],
-                                        imdict['wt'],
-                                        imdict['jacobian'],
-                                        self.fit_model,
+        if self.joint_TF_prior is not None:
+            cls=ngmix.fitting.MCMCSimpleJointTF
+        else:
+            cls=ngmix.fitting.MCMCSimple
 
-                                        cen_prior=self.cen_prior,
-                                        g_prior=self.g_prior,
-                                        T_prior=self.T_prior,
-                                        counts_prior=self.counts_prior,
+        fitter=cls(imdict['image'],
+                   imdict['wt'],
+                   imdict['jacobian'],
+                   self.fit_model,
 
-                                        g_prior_during=self['g_prior_during'],
+                   cen_prior=self.cen_prior,
+                   g_prior=self.g_prior,
 
-                                        full_guess=full_guess,
+                   T_prior=self.T_prior,
+                   counts_prior=self.counts_prior,
+                   joint_TF_prior=self.joint_TF_prior,
 
-                                        shear_expand=self.shear_expand,
+                   g_prior_during=self['g_prior_during'],
 
-                                        psf=self.psf_gmix_fit,
-                                        nwalkers=self['nwalkers'],
-                                        nstep=self['nstep'],
-                                        burnin=self['burnin'],
-                                        mca_a=self['mca_a'],
-                                        random_state=self.random_state,
-                                        do_pqr=True,
-                                        do_lensfit=True)
+                   full_guess=full_guess,
+
+                   shear_expand=self.shear_expand,
+
+                   psf=self.psf_gmix_fit,
+                   nwalkers=self['nwalkers'],
+                   nstep=self['nstep'],
+                   burnin=self['burnin'],
+                   mca_a=self['mca_a'],
+                   random_state=self.random_state,
+                   do_pqr=True,
+                   do_lensfit=True)
         fitter.go()
         return fitter
 
@@ -1351,15 +1358,22 @@ class NGMixSim(dict):
 
         joint_TF_dist = self.simc.get('joint_TF_dist',None)
         if joint_TF_dist is not None:
-            if joint_TF_dist=='exp':
-                self.joint_Tf_prior=ngmix.priors.TFluxPriorCosmosExp()
-            elif joint_TF_dist=='dev':
-                self.joint_Tf_prior=ngmix.priors.TFluxPriorCosmosDev()
+
+            TF_bounds=self.get('TF_bounds',None)
+            pixel_scale=self.get('pixel_scale',1.0)
+
+            if joint_TF_dist=='cosmos-exp':
+                cls=ngmix.priors.TFluxPriorCosmosExp
+            elif joint_TF_dist=='cosmos-dev':
+                cls=ngmix.priors.TFluxPriorCosmosDev
             else:
                 raise ValueError("bad joint dist '%s'" % joint_TF_dist)
 
+            self.joint_Tf_prior=cls(bounds=TF_bounds,pixel_scale=pixel_scale)
+
             self.T_prior=None
             self.counts_prior=None
+
         else:
             T=self.simc['obj_T_mean']
             T_sigma = self.simc['obj_T_sigma_frac']*T
@@ -1373,6 +1387,7 @@ class NGMixSim(dict):
         cen_sigma=self.simc['cen_sigma']
         self.cen_prior=ngmix.priors.CenPrior(0.0, 0.0, cen_sigma, cen_sigma)
 
+        # can instead use fits from cosmos....
         self.g_prior=ngmix.priors.GPriorBA(0.3)
 
 
@@ -1486,6 +1501,7 @@ class NGMixSim(dict):
         """
         Get pair parameters
 
+        if not random, then a particular position is chosen. 
         """
         import ngmix
 
@@ -1519,6 +1535,7 @@ class NGMixSim(dict):
             g2_2=0.0
 
             if self.joint_Tf_prior is not None:
+                # This is mean size near flux mode
                 T=self.joint_Tf_prior.T_near
                 counts=self.joint_Tf_prior.fmode
             else:

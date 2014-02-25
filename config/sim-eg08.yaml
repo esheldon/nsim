@@ -12,18 +12,21 @@ obj_model: "exp"
 
 cen_sigma: 0.1
 
-# T ratio of 0.715 gives FWHM ratio convolved of 1.2
-obj_T_mean: 2.86
-obj_T_sigma_frac: 0.3
+# joint size-flux distribution
+joint_TF_dist: "cosmos-exp"
+pixel_scale: 0.27
 
-obj_counts_mean: 100.0
-obj_counts_sigma_frac: 0.3
+# s/n value at the flux mode
+fmode_s2n: 100.0
+
+# can be null
+TF_bounds: [16.0, 0.0]
 
 nsigma_render: 5.0
 
 recenter_psf: true
 
-shear: [0.04,0.0]
+shear: [0.08,0.0]
 
 nsub: 16
 

@@ -1378,7 +1378,7 @@ class NGMixSim(dict):
             flux_bounds   = [flux_min, flux_max]
 
             pixel_scale   = self.simc['pixel_scale']
-            print """
+            print >>stderr,"""
     flux_mode:   %s
     flux_bounds: %s
             """ % (cls.flux_mode, flux_bounds)

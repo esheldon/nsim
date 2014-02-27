@@ -5,19 +5,25 @@
 name: "sim-eg07"
 
 psf_model: "gauss"
-psf_T: 4.0
+
+# arcsec^2 -> 4.0 pixels^2
+# corresponds to 0.9'' FWHM
+psf_T: 0.293
 psf_shape: [0.0, 0.0]
 
 obj_model: "exp"
 
-cen_sigma: 0.1
+# in arcsec; this is 0.1 pixels
+cen_sigma: 0.027
 
 # joint size-flux distribution
 joint_TF_dist: "cosmos-exp"
+
 pixel_scale: 0.27
 
 # T ratio of 0.715 gives FWHM ratio convolved of 1.2
-T_bounds: [2.86, 100.0]
+# this is in arcsec^2.
+T_bounds: [0.21, 100.0]
 
 # s/n at the flux mode
 flux_mode_s2n: 5.0

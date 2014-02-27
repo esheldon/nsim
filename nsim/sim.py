@@ -96,6 +96,8 @@ class NGMixSim(dict):
 
         self.check_pqr_shear()
 
+        # this might be mean for correspond to a flux threshold, 
+        # depending on the type of run
         self.s2n=s2n
         self.npairs=npairs
 
@@ -104,8 +106,6 @@ class NGMixSim(dict):
         self.obj_model=self.simc['obj_model']
         self.fit_model=self['fit_model']
         self.npars=ngmix.gmix.get_model_npars(self.fit_model)
-
-        self.recenter_psf=self.simc.get('recenter_psf',False)
 
         self.make_plots=keys.get('make_plots',False)
         self.plot_base=keys.get('plot_base',None)
@@ -117,9 +117,6 @@ class NGMixSim(dict):
 
         self.set_priors()
         self.make_psf()
-
-        if not self.recenter_psf:
-            self.set_psf_image()
 
         self.set_noise()
 
@@ -159,8 +156,6 @@ class NGMixSim(dict):
         """
         Run the simulation, fitting psf and all pairs
         """
-        if not self.recenter_psf:
-            self.fit_psf()
 
         self.start_timer()
 
@@ -215,11 +210,10 @@ class NGMixSim(dict):
 
         imdicts = self.get_noisy_image_pair()
 
-        if self.recenter_psf:
-            self.fit_psf()
+        self.fit_psf(imdicts['psf']['im'])
 
         reslist=[]
-        for key in imdicts:
+        for key in ['im1','im2']:
 
             fitter=self.fit_galaxy(imdicts[key])
             res=fitter.get_result()
@@ -309,7 +303,7 @@ class NGMixSim(dict):
 
         fitter=ngmix.fitting.ISampleSimple(imdict['image'],
                                            imdict['wt'],
-                                           imdict['jacobian'],
+                                           self.jacobian,
                                            self.fit_model,
                                            trials,
                                            ln_probs,
@@ -360,7 +354,7 @@ class NGMixSim(dict):
 
         fitter=ngmix.fitting.ISampleSimpleAdapt(imdict['image'],
                                                 imdict['wt'],
-                                                imdict['jacobian'],
+                                                self.jacobian,
                                                 self.fit_model,
                                                 sampler, # starting sampler component
 
@@ -497,7 +491,7 @@ class NGMixSim(dict):
 
         fitter=ngmix.fitting.ISampleBDFAnze(imdict['image'],
                                             imdict['wt'],
-                                            imdict['jacobian'],
+                                            self.jacobian,
 
                                             cen_prior=self.cen_prior,
                                             g_prior=self.g_prior,
@@ -540,7 +534,7 @@ class NGMixSim(dict):
 
         fitter=ngmix.fitting.ISampleSimple(imdict['image'],
                                            imdict['wt'],
-                                           imdict['jacobian'],
+                                           self.jacobian,
                                            self.fit_model,
 
                                            trials,
@@ -585,12 +579,16 @@ class NGMixSim(dict):
         trials = numpy.zeros( (n_samples, self.npars) )
         ln_probs = numpy.zeros(n_samples)
 
-        cen_sigma=self.simc['cen_sigma']
+        cen_sigma_arcsec = self.simc['cen_sigma']
         g_sigma=0.3
         T_sigma = self.simc['obj_T_sigma_frac']*pars[4]
         counts_sigma = self.simc['obj_counts_sigma_frac']*pars[5]
 
-        cen_dist=ngmix.priors.CenPrior(pars[0], pars[1], cen_sigma, cen_sigma)
+        cen_dist=ngmix.priors.CenPrior(pars[0],
+                                       pars[1],
+                                       cen_sigma_arcsec,
+                                       cen_sigma_arcsec)
+
         g_dist = ngmix.priors.CenPrior(pars[2],pars[3], g_sigma, g_sigma)
         T_dist=ngmix.priors.LogNormal(pars[4], T_sigma)
         counts_dist=ngmix.priors.LogNormal(pars[5], counts_sigma)
@@ -689,7 +687,7 @@ class NGMixSim(dict):
         """
         guess_type=self['guess_type']
         if guess_type=='draw_truth':
-            print >>stderr,'guessing randomized truth'
+            print >>stderr,'    * guessing randomized truth'
             full_guess=self.get_guess_from_pars(imdict['pars'], n=n)
         elif guess_type=='draw_priors':
             full_guess=self.get_guess_draw_priors(n=n)
@@ -698,6 +696,11 @@ class NGMixSim(dict):
         else:
             raise ValueError("bad guess type: '%s'" % guess_type)
         
+        Tm=full_guess[:,4].mean()
+        print >>stderr,'MEAN T GUESS:',Tm
+        print >>stderr,'MEAN SIG GUESS (pix):',\
+                numpy.sqrt(Tm/2.)/self.pixel_scale
+        print >>stderr,'MEAN FLUX GUESS:',full_guess[:,5].mean()
         return full_guess
 
     def get_mcmc_fitter(self, imdict, full_guess):
@@ -733,7 +736,7 @@ class NGMixSim(dict):
             for itry in xrange(ntry):
                 fitter=ngmix.fitting.MCMCBDF(imdict['image'],
                                              imdict['wt'],
-                                             imdict['jacobian'],
+                                             self.jacobian,
 
                                              cen_prior=self.cen_prior,
                                              g_prior=self.g_prior,
@@ -786,7 +789,7 @@ class NGMixSim(dict):
         for i in xrange(ntry):
             fitter=ngmix.fitting.MCMCBDF(imdict['image'],
                                          imdict['wt'],
-                                         imdict['jacobian'],
+                                         self.jacobian,
 
                                          cen_prior=self.cen_prior,
                                          g_prior=self.g_prior,
@@ -869,7 +872,7 @@ class NGMixSim(dict):
 
         fitter=cls(imdict['image'],
                    imdict['wt'],
-                   imdict['jacobian'],
+                   self.jacobian,
                    self.fit_model,
 
                    cen_prior=self.cen_prior,
@@ -920,7 +923,7 @@ class NGMixSim(dict):
 
         fitter=ngmix.fitting.MHSimple(imdict['image'],
                                       imdict['wt'],
-                                      imdict['jacobian'],
+                                      self.jacobian,
                                       self.fit_model,
 
                                       cen_prior=self.cen_prior,
@@ -1177,12 +1180,11 @@ class NGMixSim(dict):
 
         im=imdict['image']
         wt=imdict['wt']
-        j=imdict['jacobian']
         psf=self.psf_gmix_fit
         
         counts_prior = self.counts_prior
 
-        fitter=ngmix.fitting.LMSimple(im, wt, j,
+        fitter=ngmix.fitting.LMSimple(im, wt, self.jacobian,
                                       self.fit_model,
                                       guess,
 
@@ -1248,23 +1250,18 @@ class NGMixSim(dict):
 
         self.psf_gmix_true=ngmix.gmix.GMixModel(pars, self.simc['psf_model'])
         
-    def set_psf_image(self, dims=None, cen=[0.0,0.0] ):
+    def get_psf_image(self, dims_pix, cen_arcsec):
         """
         Make the actual image
         """
 
-        if dims is None:
-            T=self.psf_gmix_true.get_T()
-            self.psf_dims, self.psf_cen = self.get_dims_cen(T)
-        else:
-            self.psf_dims=dims.copy()
-            self.psf_cen=cen
+        self.psf_gmix_true.set_cen(cen_arcsec[0], cen_arcsec[1])
+        psf_image=self.psf_gmix_true.make_image(dims_pix,
+                                                jacobian=self.jacobian,
+                                                nsub=self.nsub)
+        return psf_image
 
-        self.psf_gmix_true.set_cen(cen[0], cen[1])
-        self.psf_image=self.psf_gmix_true.make_image(self.psf_dims,
-                                                     nsub=self.nsub)
-
-    def fit_psf(self):
+    def fit_psf(self, image):
         """
         Fit the pixelized psf to a model
 
@@ -1275,9 +1272,9 @@ class NGMixSim(dict):
         from ngmix.gexceptions import GMixMaxIterEM
 
         print >>stderr,'    fitting psf'
-        imsky,sky=ngmix.em.prep_image(self.psf_image)
+        imsky,sky=ngmix.em.prep_image(image)
 
-        em=ngmix.em.GMixEM(imsky)
+        em=ngmix.em.GMixEM(imsky,jacobian=self.jacobian)
 
         tol=self.get('psf_tol',1.0e-5)
         maxiter=self.get('psf_maxiter',1000)
@@ -1356,41 +1353,50 @@ class NGMixSim(dict):
 
         print >>stderr,"setting priors"
 
-        joint_TF_dist = self.simc.get('joint_TF_dist',None)
 
-        if joint_TF_dist is not None:
+        self.pixel_scale = self.simc.get('pixel_scale',1.0)
 
-            # this defines our size threshold
-            T_bounds   = self.simc.get('T_bounds',None)
 
-            if joint_TF_dist=='cosmos-exp':
+        TF_dist = self.simc.get('joint_TF_dist',None)
+        if TF_dist is not None:
+
+            # this defines our size threshold in arcsec**2
+            self.T_bounds = array(self.simc['T_bounds'],dtype='f8')
+
+            if TF_dist=='cosmos-exp':
                 cls=ngmix.priors.TFluxPriorCosmosExp
-            elif joint_TF_dist=='cosmos-dev':
+            elif TF_dist=='cosmos-dev':
                 cls=ngmix.priors.TFluxPriorCosmosDev
             else:
-                raise ValueError("bad joint dist '%s'" % joint_TF_dist)
+                raise ValueError("bad joint dist '%s'" % TF_dist)
 
             # we choose the flux bound as a multiple of
             # the flux_mode to get the expected s/n
+            flux_mode=cls.flux_mode
             flux_mode_s2n = self.simc['flux_mode_s2n']
-            flux_min = cls.flux_mode*self.s2n/flux_mode_s2n
+            flux_min = flux_mode*self.s2n/flux_mode_s2n
             flux_max = self.simc['flux_max']
-            flux_bounds   = [flux_min, flux_max]
+            self.flux_bounds   = [flux_min, flux_max]
 
-            pixel_scale   = self.simc['pixel_scale']
+            # here self.s2n just corresponds to a threshold
+            self.s2n_for_noise = flux_mode_s2n
+
+
             print >>stderr,"""
     flux_mode:   %s
     flux_bounds: %s
-            """ % (cls.flux_mode, flux_bounds)
+            """ % (flux_mode, self.flux_bounds)
 
-            self.joint_TF_prior=cls(T_bounds=T_bounds,
-                                    flux_bounds=flux_bounds,
-                                    pixel_scale=pixel_scale)
+            self.joint_TF_prior=cls(T_bounds=self.T_bounds,
+                                    flux_bounds=self.flux_bounds)
 
             self.T_prior=None
             self.counts_prior=None
 
         else:
+            # here the s/n for noise is same as the mean
+            self.s2n_for_noise = self.s2n
+
             T=self.simc['obj_T_mean']
             T_sigma = self.simc['obj_T_sigma_frac']*T
             counts=self.simc['obj_counts_mean']
@@ -1400,8 +1406,11 @@ class NGMixSim(dict):
 
             self.joint_TF_prior=None
 
-        cen_sigma=self.simc['cen_sigma']
-        self.cen_prior=ngmix.priors.CenPrior(0.0, 0.0, cen_sigma, cen_sigma)
+        cen_sigma_arcsec=self.simc['cen_sigma']
+        self.cen_prior=ngmix.priors.CenPrior(0.0,
+                                             0.0,
+                                             cen_sigma_arcsec,
+                                             cen_sigma_arcsec)
 
         # can instead use fits from cosmos....
         self.g_prior=ngmix.priors.GPriorBA(0.3)
@@ -1430,24 +1439,49 @@ class NGMixSim(dict):
         print >>stderr,"setting noise"
 
         imdict=self.get_image_pair(random=False)
-        im=imdict['im1']['image']
-        skysig2 = (im**2).sum()/self.s2n**2
+        im=imdict['im1']['image0']
+        skysig2 = (im**2).sum()/self.s2n_for_noise**2
         skysig = numpy.sqrt(skysig2)
 
-        s2n_check = numpy.sqrt( (im**2).sum()/skysig**2 )
-        print >>stderr,"S/N goal:",self.s2n,"found:",s2n_check
 
         self.skysig=skysig
         self.ivar=1.0/skysig**2
 
+        imn=self.add_noise(im)
+        s2n_numer = (imn*im*self.ivar).sum()
+        s2n_denom = numpy.sqrt( (im**2*self.ivar).sum() )
+        s2n_check = s2n_numer/s2n_denom
+
+        print >>stderr,"S/N goal:",self.s2n_for_noise,"found:",s2n_check
+
+    def get_model_s2n(self, im):
+        s2n = numpy.sqrt( (im**2).sum() )/self.skysig
+        return s2n
 
     def get_noisy_image_pair(self):
         """
         Get an image pair, with noise added
         """
-        imdict=self.get_image_pair()
-        self.add_noise(imdict['im1']['image'])
-        self.add_noise(imdict['im2']['image'])
+
+        while True:
+            imdict=self.get_image_pair()
+            if self.joint_TF_prior is None:
+                break
+            else:
+                # we have a s/n threshold
+                s2n_model=self.get_model_s2n(imdict['im1']['image0'])
+
+                if s2n_model > self.s2n:
+                    break
+                else:
+                    print >>stderr,'    - rejecting s/n:',s2n_model
+
+
+        im1=self.add_noise(imdict['im1']['image0'])
+        im2=self.add_noise(imdict['im2']['image0'])
+
+        imdict['im1']['image'] = im1
+        imdict['im2']['image'] = im2
 
         wt=numpy.zeros(imdict['im1']['image'].shape) + self.ivar
         imdict['im1']['wt']=wt
@@ -1459,7 +1493,7 @@ class NGMixSim(dict):
         Add gaussian random noise
         """
 
-        im[:,:] += self.skysig*randn(im.size).reshape(im.shape)
+        return im + self.skysig*randn(im.size).reshape(im.shape)
 
     def get_image_pair(self, random=True):
         """
@@ -1471,7 +1505,7 @@ class NGMixSim(dict):
         """
         import ngmix
 
-        pars1, pars2, cen_offset = self.get_pair_pars(random=random)
+        pars1, pars2, cen_offset_arcsec = self.get_pair_pars(random=random)
 
         gm1_pre=ngmix.gmix.GMixModel(pars1, self.obj_model)
         gm2_pre=ngmix.gmix.GMixModel(pars2, self.obj_model)
@@ -1480,37 +1514,37 @@ class NGMixSim(dict):
         gm2  = gm2_pre.convolve(self.psf_gmix_true)
 
         T = gm1.get_T()
-        dims, cen0 = self.get_dims_cen(T)
+        dims_pix, cen0_pix = self.get_dims_cen(T)
 
+        print >>stderr,'cen0(pix):',cen0_pix,\
+                'offset(pix):',cen_offset_arcsec/self.pixel_scale
 
+        gm1.set_cen(cen_offset_arcsec[0], cen_offset_arcsec[1])
+        gm2.set_cen(cen_offset_arcsec[0], cen_offset_arcsec[1])
 
-        # jacobian is at center before offset so the prior
-        # will center on "zero"
-        j=ngmix.jacobian.UnitJacobian(cen0[0], cen0[1])
+        # conversion between pixels and sky in arcsec
+        self.jacobian=ngmix.jacobian.Jacobian(cen0_pix[0],
+                                              cen0_pix[1],
+                                              self.pixel_scale,
+                                              0.0,
+                                              0.0,
+                                              self.pixel_scale)
 
-        cen = cen0 + cen_offset
-
-        print >>stderr,'offset:',cen_offset,'cen0:',cen0,'cen:',cen
-
-        gm1.set_cen(cen[0], cen[1])
-        gm2.set_cen(cen[0], cen[1])
-
-        self.set_psf_image(dims=dims, cen=cen)
+        psf_image=self.get_psf_image(dims_pix, cen_offset_arcsec)
 
         nsub = self.nsub
-        im1=gm1.make_image(dims, nsub=nsub)
-        im2=gm2.make_image(dims, nsub=nsub)
+        im1=gm1.make_image(dims_pix, nsub=nsub, jacobian=self.jacobian)
+        im2=gm2.make_image(dims_pix, nsub=nsub, jacobian=self.jacobian)
 
         pars_true1=array(pars1)
         pars_true2=array(pars2)
-        pars_true1[0] += cen_offset[0]
-        pars_true1[1] += cen_offset[1]
-        pars_true2[0] += cen_offset[0]
-        pars_true2[1] += cen_offset[1]
+        pars_true1[0:0+2] = cen_offset_arcsec
+        pars_true2[0:0+2] = cen_offset_arcsec
 
         
-        out={'im1':{'pars':pars_true1,'gm_pre':gm1_pre,'gm':gm1,'image':im1,'jacobian':j},
-             'im2':{'pars':pars_true2,'gm_pre':gm2_pre,'gm':gm2,'image':im2,'jacobian':j}}
+        out={'psf':{'im':psf_image},
+             'im1':{'pars':pars_true1,'gm_pre':gm1_pre,'gm':gm1,'image0':im1},
+             'im2':{'pars':pars_true2,'gm_pre':gm2_pre,'gm':gm2,'image0':im2}}
         return out
 
     def get_pair_pars(self, random=True):
@@ -1523,7 +1557,8 @@ class NGMixSim(dict):
 
 
         if random:
-            cen_offset=array( self.cen_prior.sample() )
+            # offset in arcsec
+            cen_offset_arcsec=array( self.cen_prior.sample() )
 
             g = self.g_prior.sample1d(1)
             g=g[0]
@@ -1544,16 +1579,22 @@ class NGMixSim(dict):
                 T=self.T_prior.sample()
                 counts=self.counts_prior.sample()
         else:
-            cen_offset=array( [0.0, 0.0] )
+            cen_offset_arcsec=array( [0.0, 0.0] )
             g1_1=0.0
             g2_1=0.0
             g1_2=0.0
             g2_2=0.0
 
             if self.joint_TF_prior is not None:
-                # This is mean size near flux mode
-                # will be in pixels if pixel_scale=1
-                T=self.joint_TF_prior.get_T_near()
+                T_near=self.joint_TF_prior.get_T_near()
+                T_min=self.T_bounds[0]
+                if T_near < T_min:
+                    T = T_min
+                    mess='T_near=%.2f too small, using bound: %.2f'
+                    print >>stderr,mess % (T_near,T_min)
+                else:
+                    T=T_near
+
                 counts=self.joint_TF_prior.get_flux_mode()
             else:
                 T=self.T_prior.mean
@@ -1580,17 +1621,19 @@ class NGMixSim(dict):
             pars1+=[counts]
             pars2+=[counts]
 
-        return pars1, pars2, cen_offset
+        return pars1, pars2, cen_offset_arcsec
 
     def get_dims_cen(self, T):
         """
         Based on T, get the required dimensions and a center
         """
-        sigma=numpy.sqrt(T/2.)
-        dims = array( [2.*sigma*self.nsigma_render]*2 )
-        cen = array( [(dims[0]-1.)/2.]*2 )
 
-        return dims, cen
+        sigma_pix=numpy.sqrt(T/2.)/self.pixel_scale
+
+        dims_pix = array( [2.*sigma_pix*self.nsigma_render]*2 )
+        cen_pix = array( [(dims_pix[0]-1.)/2.]*2 )
+
+        return dims_pix, cen_pix
 
     def setup_checkpoints(self, **keys):
         """
@@ -1676,6 +1719,7 @@ class NGMixSim(dict):
         d['processed'][i] = 1
         d['pars'][i,:] = res['pars']
         d['pcov'][i,:,:] = res['pars_cov']
+        d['s2n_w'][i] = res['s2n_w']
 
         if 'P' in res:
             d['P'][i] = res['P']
@@ -1695,7 +1739,8 @@ class NGMixSim(dict):
 
         dt=[('processed','i2'),
             ('pars','f8',npars),
-            ('pcov','f8',(npars,npars))]
+            ('pcov','f8',(npars,npars)),
+            ('s2n_w','f8')]
 
         if 'lm' in self['fitter']:
             dt += [('nfev','i4')]

@@ -21,20 +21,10 @@ mca_a:    2.0
 
 expand_shear_true: true
 
-# we normalize splits by split for is2n==0
-desired_err: 5.0e-05
-#nsplit0: 50000
-npair_min: 1000
-
 s2n_vals: [ 5.0, 10.7, 23, 48, 103, 220, 469, 1000.0 ]
 
-
-# dominated by highest s/n with largest objects
-# about 10 for the lowest s/n bin
-# about 20 for highest
-# then double usually.  I think we will just take 20 and let the higher
-# ones run a bit longer
-sec_per_pair: 20.0
-
-# per split in hours
+desired_err: 5.0e-05
 desired_hours: 1.0
+sec_per_pair: 20.0
+npair_min: 1000
+

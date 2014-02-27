@@ -1,11 +1,13 @@
 # vim: set filetype=markdown :
 
+- I'm seeing some low arates.  And generally strange arate distribution with a
+  pileup at 0.52 or so
+  - less than 0.4 is rare, but does often go with falures.  If it is a part in
+    a thousand then it can be the source of the error.
+  - try a min
+  - maybe try draw priors if fail with true guess?  Would that be worse?  Or
+    maybe just continue and run more?
 
-- try new seed (probably won't fix bias at low s/n)
-    - exactly 7000 failed with
-        ValueError: object of too small depth for desired array
-- push in new ngmix changes too, but note I didn't see any
-  errors in those priors, just made easier to maintain
 
 * general comments so far
     - get basically same results for draw priors, truth, maxlike

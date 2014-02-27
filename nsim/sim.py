@@ -666,7 +666,6 @@ class NGMixSim(dict):
                 fitter=self.run_bdf_mcmc_fitter(imdict)
         else:
             fitter=self.run_simple_mcmc_fitter(imdict)
-
         return fitter
 
 
@@ -697,10 +696,10 @@ class NGMixSim(dict):
             raise ValueError("bad guess type: '%s'" % guess_type)
         
         Tm=full_guess[:,4].mean()
-        print >>stderr,'MEAN T GUESS:',Tm
-        print >>stderr,'MEAN SIG GUESS (pix):',\
-                numpy.sqrt(Tm/2.)/self.pixel_scale
-        print >>stderr,'MEAN FLUX GUESS:',full_guess[:,5].mean()
+        #print >>stderr,'MEAN T GUESS:',Tm
+        #print >>stderr,'MEAN SIG GUESS (pix):',\
+        #        numpy.sqrt(Tm/2.)/self.pixel_scale
+        #print >>stderr,'MEAN FLUX GUESS:',full_guess[:,5].mean()
         return full_guess
 
     def get_mcmc_fitter(self, imdict, full_guess):
@@ -859,7 +858,7 @@ class NGMixSim(dict):
 
     def run_simple_mcmc_fitter(self, imdict):
         """
-        Get a bdf (Bulge-Disk Fixed size ratio) mcmc fitter
+        simple gauss,exp,dev
         """
         import ngmix
 
@@ -896,8 +895,21 @@ class NGMixSim(dict):
                    random_state=self.random_state,
                    do_pqr=True,
                    do_lensfit=True)
+
         fitter.go()
+
+        if 'min_arate' in self:
+            res=fitter.get_result()
+            if res['arate'] < self['min_arate']:
+                # just fail; I verified that no further trying helps 
+                # with any type of guess
+                mess='    failing: arate %s lower than threshold %s'
+                mess=mess % (res['arate'],self['min_arate'])
+                raise TryAgainError(mess)
+ 
         return fitter
+
+
 
     def run_simple_mh_fitter(self, imdict):
         """
@@ -982,8 +994,13 @@ class NGMixSim(dict):
         if self.cen_prior is not None:
             guess[:,0],guess[:,1]=self.cen_prior.sample(n=n)
         guess[:,2],guess[:,3]=self.g_prior.sample2d(n)
-        guess[:,4]=self.T_prior.sample(nrand=n)
-        guess[:,5]=self.counts_prior.sample(nrand=n)
+
+        if self.T_prior is not None:
+            guess[:,4]=self.T_prior.sample(nrand=n)
+            guess[:,5]=self.counts_prior.sample(nrand=n)
+        else:
+            T_and_F = self.joint_TF_prior.sample(n)
+            guess[:,4:4+2] = T_and_F
 
         return guess
 
@@ -1723,6 +1740,7 @@ class NGMixSim(dict):
         d['pars'][i,:] = res['pars']
         d['pcov'][i,:,:] = res['pars_cov']
         d['s2n_w'][i] = res['s2n_w']
+        d['arate'][i] = res['arate']
 
         if 'P' in res:
             d['P'][i] = res['P']
@@ -1743,7 +1761,8 @@ class NGMixSim(dict):
         dt=[('processed','i2'),
             ('pars','f8',npars),
             ('pcov','f8',(npars,npars)),
-            ('s2n_w','f8')]
+            ('s2n_w','f8'),
+            ('arate','f8')]
 
         if 'lm' in self['fitter']:
             dt += [('nfev','i4')]

@@ -4,7 +4,7 @@ from os.path import join as path_join
 
 import yaml
 import numpy
-from numpy import array
+from numpy import array, sqrt, log10
 
 
 def get_s2n_nrepeat(s2n, fac=0.4):
@@ -155,6 +155,16 @@ npair_ref_bdfg=[1240000, 1240000,  711574,  363878,  164300,
                3038,   3038,   3038]
 err_ref_bdfg=[ 8.64686523781e-05,6.36021322793e-05,5.78428340247e-05,5.44774877257e-05,5.41502412604e-05,5.39701794399e-05,5.35799931151e-05,5.38147319202e-05,5.35173339764e-05,4.97357492734e-05,3.24657802612e-05,2.14956557248e-05]
 
+
+# for flux lim sigratio > 0.85
+s2n_ref_eg_fluxlim85=array([ 5.0, 10.7, 23., 48., 103., 220., 469., 1000.0 ],
+                           dtype='f8')
+err_ref_eg_fluxlim85=array([3.77692058e-05,   4.30906570e-05,   4.15750598e-05,
+                            4.13269876e-05,   4.70262497e-05,   5.09335013e-05,
+                            6.04725966e-05,   4.16510351e-05],
+                           dtype='f8')
+npair_ref_eg_fluxlim85=array([9700000, 3080138,  811114,  219026,
+                              48500,   10615,    2184, 1002],dtype='f8')
 
 # from eg01r04 with bugged code
 # 5 is fake right now
@@ -334,6 +344,34 @@ def get_npair_by_noise(s2n, desired_err, run, sigratio):
 
     return npair[0]
     
+def get_npair_by_noise_fluxlim(s2n, desired_err, run, sigratio_low):
+    """
+    given the desired final error, determine the required number of pairs
+    """
+
+    if '-eg' in run:
+        print >>stderr,'DOING FLUXLIM'
+        if sigratio_low < 0.85:
+
+            s2n_ref   = s2n_ref_eg_fluxlim85 
+            npair_ref = npair_ref_eg_fluxlim85 
+            err_ref   = err_ref_eg_fluxlim85 
+
+    else:
+        raise ValueError("support '%s'" % run)
+
+
+    log_s2n=log10( s2n_ref )
+    log_npair=log10( npair_ref )
+
+    log_npairii = numpy.interp(log10([s2n]), log_s2n, log_npair)
+    npairii = 10.0**log_npairii
+
+    errii = numpy.interp([s2n], s2n_ref, err_ref)
+
+    npair = npairii*(errii/desired_err)**2
+    print 'NPAIR for s/n=%s is %s' % (s2n,npair)
+    return npair
 
 def get_npair_nsplit_by_noise(c, is2n, npair_min=None):
     """
@@ -344,13 +382,19 @@ def get_npair_nsplit_by_noise(c, is2n, npair_min=None):
     # this is the requirement from measurement error
     s2n = c['s2n_vals'][is2n]
 
-    if 'obj_T_mean' not in c['simc']:
-        # for now; this might be conservative?
-        sigratio=2.0
-    else:
-        sigratio = numpy.sqrt( c['simc']['obj_T_mean']/c['simc']['psf_T'] )
+    if 'joint_TF_dist' in c['simc']:
 
-    npair_tot = get_npair_by_noise(s2n, c['desired_err'],c['run'], sigratio)
+        #
+        # This is the lowest sig ratio now
+        #
+
+        sigratio=sqrt(c['simc']['T_bounds'][0]/c['simc']['psf_T'])
+        npair_tot = get_npair_by_noise_fluxlim(s2n,
+                                               c['desired_err'],c['run'],
+                                               sigratio)
+    else:
+        sigratio = sqrt( c['simc']['obj_T_mean']/c['simc']['psf_T'] )
+        npair_tot = get_npair_by_noise(s2n, c['desired_err'],c['run'], sigratio)
 
     npair_shapenoise = 0
     ring=c.get('ring',True)
@@ -360,28 +404,36 @@ def get_npair_nsplit_by_noise(c, is2n, npair_min=None):
         ngal = (0.16/c['desired_err'])**2
         npair_shapenoise = int(ngal/2.)
 
-
-    #print 'meas noise npair:',npair_tot
-    #print 'shapenoise npair:',npair_shapenoise 
     npair_tot += npair_shapenoise
 
     if npair_min is not None and npair_tot < npair_min:
         npair_tot = npair_min
 
-    #print 'desired_err:',c['desired_err']
-    #print 'npair_tot:',npair_tot
+    if 'desired_hours' in c:
+        # desired time per split
+        # = sec_per_pair * npair_per_split
 
-    # to keep equal time, normalize to zeroth
-    nsplit0 = c['nsplit0']
-
-    if is2n==0:
-        nsplit=nsplit0
+        # convert from hours to seconds
+        tmsec = c['desired_hours']*3600.0
+        
+        npair_per = tmsec/c['sec_per_pair']
+        npair_per = int(ceil(npair_per))
+        nsplit = int(ceil( npair_tot/float(npair_per) ))
     else:
-        npair_tot0 = get_npair_by_noise(c['s2n_vals'][0], c['desired_err'],c['run'],sigratio)
-        npair_tot0 += npair_shapenoise
-        nsplit = int( ceil( nsplit0*float(npair_tot)/npair_tot0 ))
+        # to keep equal time, normalize to zeroth
+        nsplit0 = c['nsplit0']
 
-    npair_per = int(ceil(npair_tot/float(nsplit)))
+        if is2n==0:
+            nsplit=nsplit0
+        else:
+            npair_tot0 = get_npair_by_noise(c['s2n_vals'][0],
+                                            c['desired_err'],
+                                            c['run'],sigratio)
+            npair_tot0 += npair_shapenoise
+            nsplit = int( ceil( nsplit0*float(npair_tot)/npair_tot0 ))
+
+        npair_per = int(ceil(npair_tot/float(nsplit)))
+
 
     return npair_per, nsplit
 

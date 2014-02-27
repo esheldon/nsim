@@ -254,11 +254,12 @@ def write_condor_file(c, master_script, equal_time=False, missing=False, max_job
         npair, nsplit = nsim.files.get_npair_nsplit(c, is2n, npair_min=npair_min)
 
         time_hours = npair*seconds_per/3600.0
+        print '    nsplit:',nsplit,'npair:',npair,'time (hours):',time_hours
+
         if time_hours > MAXTIME_HOURS:
             raise ValueError("time is greater than %.2f "
                              "hours: %d*%.2f/3600.0 = %s" % (MAXTIME_HOURS,npair,seconds_per,time_hours))
 
-        print '    nsplit:',nsplit,'npair:',npair,'time (hours):',time_hours
 
         for isplit in xrange(nsplit):
             npair_tot += npair

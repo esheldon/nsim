@@ -23,13 +23,11 @@ expand_shear_true: true
 
 # we normalize splits by split for is2n==0
 desired_err: 5.0e-05
-#nsplit0: 4000
-nsplit0: 18000
+#nsplit0: 50000
 npair_min: 1000
 
-s2n_vals: [ 5, 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
-#s2n_vals: [ 81, 123, 187, 285, 433, 658, 1000 ]
-#s2n_vals: [ 5, 10, 15, 23, 35, 53, 81 ]
+s2n_vals: [ 5.0, 10.7, 23, 48, 103, 220, 469, 1000.0 ]
+
 
 # dominated by highest s/n with largest objects
 # about 10 for the lowest s/n bin
@@ -38,9 +36,5 @@ s2n_vals: [ 5, 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
 # ones run a bit longer
 sec_per_pair: 20.0
 
-lm_pars:
-    maxfev: 300
-    ftol:   1.0e-6
-    xtol:   1.0e-6
-    epsfcn: 1.0e-6
-
+# per split in hours
+desired_hours: 1.0

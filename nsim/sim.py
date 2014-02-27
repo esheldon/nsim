@@ -1463,6 +1463,7 @@ class NGMixSim(dict):
         Get an image pair, with noise added
         """
 
+        '''
         while True:
             imdict=self.get_image_pair()
             if self.joint_TF_prior is None:
@@ -1475,7 +1476,9 @@ class NGMixSim(dict):
                     break
                 else:
                     print >>stderr,'    - rejecting s/n:',s2n_model
+        '''
 
+        imdict=self.get_image_pair()
 
         im1=self.add_noise(imdict['im1']['image0'])
         im2=self.add_noise(imdict['im2']['image0'])

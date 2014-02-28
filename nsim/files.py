@@ -303,40 +303,61 @@ def get_npair_by_noise(s2n, desired_err, run, sigratio):
 
     if '-eg' in run:
         if sigratio >= 1.99:
-            npairii = numpy.interp([s2n], s2n_ref_eg_sr2, npair_ref_eg_sr2)
-            errii = numpy.interp([s2n], s2n_ref_eg_sr2, err_ref_eg_sr2)
+            s2n_ref = s2n_ref_eg_sr2
+            npair_ref = npair_ref_eg_sr2
+            err_ref = err_ref_eg_sr2
         elif sigratio >= 1.41:
-            npairii = numpy.interp([s2n], s2n_ref_eg_sr14, npair_ref_eg_sr14)
-            errii = numpy.interp([s2n], s2n_ref_eg_sr14, err_ref_eg_sr14)
+            s2n_ref = s2n_ref_eg_sr14
+            npair_ref = npair_ref_eg_sr14
+            err_ref = err_ref_eg_sr14
         else:
-            npairii = numpy.interp([s2n], s2n_ref_eg_sr1, npair_ref_eg_sr1)
-            errii = numpy.interp([s2n], s2n_ref_eg_sr1, err_ref_eg_sr1)
+            s2n_ref = s2n_ref_eg_sr1
+            npair_ref = npair_ref_eg_sr1
+            err_ref = err_ref_eg_sr1
     elif 'bdfg' in run:
         # for bdf make sure you set sec_per_pair
-        npairii = numpy.interp([s2n], s2n_ref_bdfg, npair_ref_bdfg)
-        errii = numpy.interp([s2n], s2n_ref_bdfg, err_ref_bdfg)
+        s2n_ref = s2n_ref_bdfg
+        npair_ref = npair_ref_bdfg
+        err_ref = err_ref_eg_bdfg
     elif '-dg' in run:
         if sigratio >= 1.99:
-            npairii = numpy.interp([s2n], s2n_ref_dg_sr2, npair_ref_dg_sr2)
-            errii = numpy.interp([s2n], s2n_ref_dg_sr2, err_ref_dg_sr2)
+            s2n_ref = s2n_ref_dg_sr2
+            npair_ref = npair_ref_dg_sr2
+            err_ref = err_ref_dg_sr2
         elif sigratio >= 1.41:
-            npairii = numpy.interp([s2n], s2n_ref_dg_sr14, npair_ref_dg_sr14)
-            errii = numpy.interp([s2n], s2n_ref_dg_sr14, err_ref_dg_sr14)
+            s2n_ref = s2n_ref_dg_sr14
+            npair_ref = npair_ref_dg_sr14
+            err_ref = err_ref_dg_sr14
         else:
-            npairii = numpy.interp([s2n], s2n_ref_dg_sr1, npair_ref_dg_sr1)
-            errii = numpy.interp([s2n], s2n_ref_dg_sr1, err_ref_dg_sr1)
+            s2n_ref = s2n_ref_dg_sr1
+            npair_ref = npair_ref_dg_sr1
+            err_ref = err_ref_dg_sr1
+
     elif '-gg' in run:
         if sigratio >= 1.99:
-            npairii = numpy.interp([s2n], s2n_ref_gg_sr2, npair_ref_gg_sr2)
-            errii = numpy.interp([s2n], s2n_ref_gg_sr2, err_ref_gg_sr2)
+            s2n_ref = s2n_ref_gg_sr2
+            npair_ref = npair_ref_gg_sr2
+            err_ref = err_ref_gg_sr2
         elif sigratio >= 1.41:
-            npairii = numpy.interp([s2n], s2n_ref_gg_sr14, npair_ref_gg_sr14)
-            errii = numpy.interp([s2n], s2n_ref_gg_sr14, err_ref_gg_sr14)
+            s2n_ref = s2n_ref_gg_sr14
+            npair_ref = npair_ref_gg_sr14
+            err_ref = err_ref_gg_sr14
         else:
-            npairii = numpy.interp([s2n], s2n_ref_gg_sr1, npair_ref_gg_sr1)
-            errii = numpy.interp([s2n], s2n_ref_gg_sr1, err_ref_gg_sr1)
+            s2n_ref = s2n_ref_gg_sr1
+            npair_ref = npair_ref_gg_sr1
+            err_ref = err_ref_gg_sr1
+
     else:
         raise ValueError("support runs of type '%s'" % run)
+
+    log_s2n=log10( s2n_ref )
+    log_npair=log10( npair_ref )
+
+    log_npairii = numpy.interp(log10([s2n]), log_s2n, log_npair)
+    npairii = 10.0**log_npairii
+
+    errii = numpy.interp([s2n], s2n_ref, err_ref)
+
 
     # desired_err = errii*sqrt(npairii/npair)
     # thus npair = npairii*(errii/desired_err)^2
@@ -373,7 +394,7 @@ def get_npair_by_noise_fluxlim(s2n, desired_err, run, sigratio_low):
     print 'NPAIR for s/n=%s is %s' % (s2n,npair)
     return npair
 
-def get_npair_nsplit_by_noise(c, is2n, npair_min=None):
+def get_npair_nsplit(c, is2n, npair_min=None):
     """
     Get the npair/nsplit given the input config and s2n index
     """
@@ -393,7 +414,13 @@ def get_npair_nsplit_by_noise(c, is2n, npair_min=None):
                                                c['desired_err'],c['run'],
                                                sigratio)
     else:
-        sigratio = sqrt( c['simc']['obj_T_mean']/c['simc']['psf_T'] )
+        simc=c['simc']
+        if 'obj_T' in simc:
+            T=simc['obj_T']
+        else:
+            T=simc['obj_T_mean']
+
+        sigratio = sqrt( T/simc['psf_T'] )
         npair_tot = get_npair_by_noise(s2n, c['desired_err'],c['run'], sigratio)
 
     npair_shapenoise = 0
@@ -409,49 +436,14 @@ def get_npair_nsplit_by_noise(c, is2n, npair_min=None):
     if npair_min is not None and npair_tot < npair_min:
         npair_tot = npair_min
 
-    if 'desired_hours' in c:
-        # desired time per split
-        # = sec_per_pair * npair_per_split
+    # desired time per split
+    # = sec_per_pair * npair_per_split
 
-        # convert from hours to seconds
-        tmsec = c['desired_hours']*3600.0
-        
-        npair_per = tmsec/c['sec_per_pair']
-        npair_per = int(ceil(npair_per))
-        nsplit = int(ceil( npair_tot/float(npair_per) ))
-    else:
-        # to keep equal time, normalize to zeroth
-        nsplit0 = c['nsplit0']
-
-        if is2n==0:
-            nsplit=nsplit0
-        else:
-            npair_tot0 = get_npair_by_noise(c['s2n_vals'][0],
-                                            c['desired_err'],
-                                            c['run'],sigratio)
-            npair_tot0 += npair_shapenoise
-            nsplit = int( ceil( nsplit0*float(npair_tot)/npair_tot0 ))
-
-        npair_per = int(ceil(npair_tot/float(nsplit)))
-
+    # convert from hours to seconds
+    tmsec = c['desired_hours']*3600.0
+    
+    npair_per = tmsec/c['sec_per_pair']
+    npair_per = int(ceil(npair_per))
+    nsplit = int(ceil( npair_tot/float(npair_per) ))
 
     return npair_per, nsplit
-
-def get_npair_nsplit(c, is2n, npair_min=None):
-    """
-    Get number of pairs per split and number of splits
-
-    For equal_time, we take number per split from is2n==0
-    """
-    if 'desired_err' in c:
-        return get_npair_nsplit_by_noise(c, is2n, npair_min=npair_min)
-    else:
-        s2n = c['s2n_vals'][is2n]
-
-        npair = get_s2n_nrepeat(s2n, fac=c['s2n_fac'])
-        if npair < c['min_npair']:
-            npair = c['min_npair']
-        nsplit=c['nsplit']
-
-        return npair,nsplit
-

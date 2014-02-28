@@ -2,11 +2,7 @@
 
 - I'm seeing some low arates.  And generally strange arate distribution with a
   pileup at 0.52 or so
-  - less than 0.4 is rare, but does often go with falures.  If it is a part in
-    a thousand then it can be the source of the error.
-  - try a min
-  - maybe try draw priors if fail with true guess?  Would that be worse?  Or
-    maybe just continue and run more?
+  - saw better arate with prior during.  But did a run and it did not help.
 
 
 * general comments so far
@@ -123,7 +119,7 @@ FWHM RAT
 ---------
 
 - FWHM 1.2
-    - turns out for deg srat 2 is same as fwhm rat 1.2, very far off for others
+    - turns out for dev srat 2 is same as fwhm rat 1.2, very far off for others
 
     - sim-eg05 0.08
         - eg05rtest1

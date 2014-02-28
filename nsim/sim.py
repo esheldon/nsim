@@ -90,6 +90,8 @@ class NGMixSim(dict):
         self.update(self.conf)
         self.update(keys)
 
+        self.fixed_pars=self.simc.get('fixed_pars',False)
+
         self.shear=self.simc['shear']
         self.nsub=self.simc['nsub']
         self.nsigma_render=self.simc.get('nsigma_render',NSIGMA_RENDER)
@@ -215,13 +217,18 @@ class NGMixSim(dict):
         reslist=[]
         for key in ['im1','im2']:
 
-            fitter=self.fit_galaxy(imdicts[key])
+            imd = imdicts[key]
+
+            fitter=self.fit_galaxy(imd)
             res=fitter.get_result()
             if res['flags'] != 0:
                 raise TryAgainError("failed at %s" % key)
 
+            res['pars_true'] = imd['pars']
+            res['s2n_true'] = imd['s2n']
+            self.print_res(res)
+
             reslist.append(res)
-            self.print_res(res,imdicts[key]['pars'])
 
             if self.make_plots:
                 self.do_make_plots(fitter,key)
@@ -285,6 +292,20 @@ class NGMixSim(dict):
 
         else:
             raise ValueError("bad fitter type: '%s'" % fitter_type)
+
+        if self.fixed_pars:
+            res=fitter._result
+            res['pars_shape_only'] = res['pars']
+            res['pars_err_shape_only'] = res['pars_err']
+            res['pars_cov_shape_only'] = res['pars_cov']
+
+            res['pars'] = imdict['pars'].copy()
+            res['pars'][2:2+2] = res['pars_shape_only']
+
+            res['pars_cov'] = numpy.zeros( (self.npars,self.npars) )
+            res['pars_cov'][2:2+2, 2:2+2] = res['pars_cov_shape_only']
+            res['pars_err'] = numpy.sqrt(numpy.diag(res['pars_cov']))
+
 
         return fitter
 
@@ -665,7 +686,10 @@ class NGMixSim(dict):
             else:
                 fitter=self.run_bdf_mcmc_fitter(imdict)
         else:
-            fitter=self.run_simple_mcmc_fitter(imdict)
+            if self['fitter']=='mcmc-fixed':    
+                fitter=self.run_simple_mcmc_fixed_fitter(imdict)
+            else:
+                fitter=self.run_simple_mcmc_fitter(imdict)
         return fitter
 
 
@@ -910,6 +934,77 @@ class NGMixSim(dict):
         return fitter
 
 
+    def run_simple_mcmc_fixed_fitter(self, imdict):
+        """
+        simple gauss,exp,dev
+        """
+        import ngmix
+
+
+        assert self['guess_type']=='draw_truth',"only draw truth for now"
+
+        pars=imdict['pars'].copy()
+        nwalkers=self['nwalkers']
+        guess_shape=self.get_shape_guess(pars[0],pars[1],nwalkers)
+
+        cls=ngmix.fitting.MCMCSimpleFixed
+        fitter=cls(imdict['image'],
+                   imdict['wt'],
+                   self.jacobian,
+                   self.fit_model,
+
+                   fixed_pars=pars,
+
+                   g_prior=self.g_prior,
+
+                   g_prior_during=self['g_prior_during'],
+
+                   full_guess=guess_shape,
+
+                   shear_expand=self.shear_expand,
+
+                   psf=self.psf_gmix_fit,
+                   nwalkers=nwalkers,
+                   nstep=self['nstep'],
+                   burnin=self['burnin'],
+                   mca_a=self['mca_a'],
+                   random_state=self.random_state,
+                   do_pqr=True)
+
+        fitter.go()
+
+        if 'min_arate' in self:
+            res=fitter.get_result()
+            if res['arate'] < self['min_arate']:
+                # just fail; I verified that no further trying helps 
+                # with any type of guess
+                mess='    failing: arate %s lower than threshold %s'
+                mess=mess % (res['arate'],self['min_arate'])
+                raise TryAgainError(mess)
+ 
+        return fitter
+
+    def get_guess_from_pars_shapeonly(self, pars, n=1, width=None):
+        """
+        Get a guess centered on the truth
+
+        width is relative for T and counts
+        """
+
+        if width is None:
+            width = pars*0 + 0.01
+        else:
+            if len(width) != len(pars):
+                raise ValueError("width not same size as pars")
+
+        guess=numpy.zeros( (n, 2) )
+
+        guess_shape=self.get_shape_guess(pars[0],pars[1],n,width=width[2:2+2])
+        guess[:,0]=guess_shape[:,0]
+        guess[:,1]=guess_shape[:,1]
+        return guess
+
+ 
 
     def run_simple_mh_fitter(self, imdict):
         """
@@ -1234,7 +1329,7 @@ class NGMixSim(dict):
             raise ValueError("bad guess type: '%s'" % guess_type)
         return guess
 
-    def print_res(self,res,true_pars):
+    def print_res(self,res):
         """
         print some stats
         """
@@ -1246,7 +1341,7 @@ class NGMixSim(dict):
         elif 'nfev' in res:
             print >>stderr,'    nfev:',res['nfev'],'s2n_w:',res['s2n_w']
 
-        ngmix.fitting.print_pars(true_pars, front='    true: ',stream=stderr)
+        ngmix.fitting.print_pars(res['pars_true'], front='    true: ',stream=stderr)
         ngmix.fitting.print_pars(res['pars'],front='    pars: ',stream=stderr)
         ngmix.fitting.print_pars(res['pars_err'],front='    perr: ',stream=stderr)
 
@@ -1370,8 +1465,17 @@ class NGMixSim(dict):
 
         print >>stderr,"setting priors"
 
-
         self.pixel_scale = self.simc.get('pixel_scale',1.0)
+
+        # can instead use fits from cosmos....
+        self.g_prior=ngmix.priors.GPriorBA(0.3)
+
+        # we may over-ride below
+        self.s2n_for_noise = self.s2n
+
+        if self.fixed_pars:
+            return
+
 
 
         TF_dist = self.simc.get('joint_TF_dist',None)
@@ -1411,8 +1515,6 @@ class NGMixSim(dict):
             self.counts_prior=None
 
         else:
-            # here the s/n for noise is same as the mean
-            self.s2n_for_noise = self.s2n
 
             T=self.simc['obj_T_mean']
             T_sigma = self.simc['obj_T_sigma_frac']*T
@@ -1429,8 +1531,6 @@ class NGMixSim(dict):
                                              cen_sigma_arcsec,
                                              cen_sigma_arcsec)
 
-        # can instead use fits from cosmos....
-        self.g_prior=ngmix.priors.GPriorBA(0.3)
 
 
         self.bfrac_prior=ngmix.priors.BFrac()
@@ -1480,28 +1580,21 @@ class NGMixSim(dict):
         Get an image pair, with noise added
         """
 
-        '''
-        while True:
-            imdict=self.get_image_pair()
-            if self.joint_TF_prior is None:
-                break
-            else:
-                # we have a s/n threshold
-                s2n_model=self.get_model_s2n(imdict['im1']['image0'])
-
-                if s2n_model > self.s2n:
-                    break
-                else:
-                    print >>stderr,'    - rejecting s/n:',s2n_model
-        '''
-
         imdict=self.get_image_pair()
 
-        im1=self.add_noise(imdict['im1']['image0'])
-        im2=self.add_noise(imdict['im2']['image0'])
+        im1_0 = imdict['im1']['image0']
+        im2_0 = imdict['im2']['image0']
+        im1=self.add_noise(im1_0)
+        im2=self.add_noise(im2_0)
 
         imdict['im1']['image'] = im1
         imdict['im2']['image'] = im2
+
+        im1_s2n = self.get_model_s2n(im1_0)
+        im2_s2n = self.get_model_s2n(im2_0)
+
+        imdict['im1']['s2n'] = im1_s2n
+        imdict['im2']['s2n'] = im2_s2n
 
         wt=numpy.zeros(imdict['im1']['image'].shape) + self.ivar
         imdict['im1']['wt']=wt
@@ -1556,6 +1649,7 @@ class NGMixSim(dict):
         im1=gm1.make_image(dims_pix, nsub=nsub, jacobian=self.jacobian)
         im2=gm2.make_image(dims_pix, nsub=nsub, jacobian=self.jacobian)
 
+
         pars_true1=array(pars1)
         pars_true2=array(pars2)
         pars_true1[0:0+2] = cen_offset_arcsec
@@ -1576,9 +1670,9 @@ class NGMixSim(dict):
         import ngmix
 
 
+        cen_offset_arcsec=array([0.0, 0.0])
         if random:
             # offset in arcsec
-            cen_offset_arcsec=array( self.cen_prior.sample() )
 
             g = self.g_prior.sample1d(1)
             g=g[0]
@@ -1592,33 +1686,41 @@ class NGMixSim(dict):
             g1_2 = g*numpy.cos(2*rangle2)
             g2_2 = g*numpy.sin(2*rangle2)
 
-            if self.joint_TF_prior is not None:
-                p=self.joint_TF_prior.sample(1)
-                T,counts = p[0,:]
+            if self.fixed_pars:
+                T=self.simc['obj_T']
+                counts=self.simc['obj_counts']
             else:
-                T=self.T_prior.sample()
-                counts=self.counts_prior.sample()
+                cen_offset_arcsec=array( self.cen_prior.sample() )
+                if self.joint_TF_prior is not None:
+                    p=self.joint_TF_prior.sample(1)
+                    T,counts = p[0,:]
+                else:
+                    T=self.T_prior.sample()
+                    counts=self.counts_prior.sample()
         else:
-            cen_offset_arcsec=array( [0.0, 0.0] )
             g1_1=0.0
             g2_1=0.0
             g1_2=0.0
             g2_2=0.0
 
-            if self.joint_TF_prior is not None:
-                T_near=self.joint_TF_prior.get_T_near()
-                T_min=self.T_bounds[0]
-                if T_near < T_min:
-                    T = T_min
-                    mess='T_near=%.2f too small, using bound: %.2f'
-                    print >>stderr,mess % (T_near,T_min)
-                else:
-                    T=T_near
-
-                counts=self.joint_TF_prior.get_flux_mode()
+            if self.fixed_pars:
+                T=self.simc['obj_T']
+                counts=self.simc['obj_counts']
             else:
-                T=self.T_prior.mean
-                counts=self.counts_prior.mean
+                if self.joint_TF_prior is not None:
+                    T_near=self.joint_TF_prior.get_T_near()
+                    T_min=self.T_bounds[0]
+                    if T_near < T_min:
+                        T = T_min
+                        mess='T_near=%.2f too small, using bound: %.2f'
+                        print >>stderr,mess % (T_near,T_min)
+                    else:
+                        T=T_near
+
+                    counts=self.joint_TF_prior.get_flux_mode()
+                else:
+                    T=self.T_prior.mean
+                    counts=self.counts_prior.mean
 
         shape1=ngmix.shape.Shape(g1_1, g2_1)
         shape2=ngmix.shape.Shape(g1_2, g2_2)
@@ -1737,8 +1839,13 @@ class NGMixSim(dict):
         """
         d=self.data
         d['processed'][i] = 1
+
+        d['s2n_true'][i] = res['s2n_true']
+        d['pars_true'][i,:] = res['pars_true']
+
         d['pars'][i,:] = res['pars']
         d['pcov'][i,:,:] = res['pars_cov']
+
         d['s2n_w'][i] = res['s2n_w']
         d['arate'][i] = res['arate']
 
@@ -1747,7 +1854,6 @@ class NGMixSim(dict):
             d['Q'][i,:] = res['Q']
             d['R'][i,:,:] = res['R']
             d['g'][i,:] = res['g']
-            d['gsens'][i,:] = res['g_sens']
             d['nuse'][i] = res['nuse']
         else:
             d['nfev'][i] = res['nfev']
@@ -1759,6 +1865,8 @@ class NGMixSim(dict):
         npars=self.npars
 
         dt=[('processed','i2'),
+            ('s2n_true','f8'),
+            ('pars_true','f8',npars),
             ('pars','f8',npars),
             ('pcov','f8',(npars,npars)),
             ('s2n_w','f8'),
@@ -1771,7 +1879,6 @@ class NGMixSim(dict):
                    ('Q','f8',2),
                    ('R','f8',(2,2)),
                    ('g','f8',2),
-                   ('gsens','f8',2),
                    ('nuse','i4')]
         self.data=numpy.zeros(self.npairs*2, dtype=dt)
 

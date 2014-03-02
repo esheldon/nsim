@@ -7,9 +7,9 @@ import numpy
 from numpy import array, zeros, cos, sin
 from numpy.random import random as randu
 
-def test(err_sigma, npair, **keys):
+def test(err_sigma, ngal, **keys):
     ts=ToySim(err_sigma, **keys)
-    ts.go(npair)
+    ts.go(ngal)
     return ts.get_data()
 
 class ToySim(object):
@@ -17,12 +17,12 @@ class ToySim(object):
                  err_sigma,
 
                  ba_sigma=0.3,
-                 shear=[0.01,0.0],
+                 shear=[0.08,0.0],
 
-                 sampler='mcmc', # can also allow truth
+                 sampler='mcmc', # can also be 'true'
 
                  # for true sampler
-                 nsamples_true=2000,
+                 nsamples=1000,
 
                  # for mcmc
                  nwalkers=80,
@@ -30,7 +30,7 @@ class ToySim(object):
                  nstep=200,
                  mca_a=2.0,
                  random_state=None,
-                 print_step=1,
+                 print_step=1000,
                  make_plots=False):
 
         self.shear=array(shear)
@@ -45,7 +45,7 @@ class ToySim(object):
         self.nstep=nstep
         self.mca_a=mca_a
 
-        self.nsamples_true=nsamples_true
+        self.nsamples=nsamples
 
         self.print_step=print_step
         self.make_plots=make_plots
@@ -57,30 +57,27 @@ class ToySim(object):
         if self.sampler_type=='mcmc':
             self._set_mcmc_sampler()
 
-    def go(self, npair):
+    def go(self, ngal):
         """
-        Run an MCMC for each trial
+        Get P,Q,R for sampled points
         """
 
-        self.make_output(npair)
+        self.make_output(ngal)
 
         i=0
         t0=time.time()
-        for ipair in xrange(npair):
-            ipair1=ipair+1
-            if (ipair1 % self.print_step)==0:
-                print("pair %d/%d" % (ipair1, npair), file=stderr)
-            glikes_pair = self.get_pair()
+        for i in xrange(ngal):
+            i1=i+1
+            if (i1 % self.print_step)==0:
+                print("gal %d/%d" % (i1, ngal), file=stderr)
 
-            for glike in glikes_pair:
-                P,Q,R,arate=self._do_trials(glike)
-                self._copy_to_output(i,P,Q,R,arate)
+            glike = self._get_galaxy_glike()
 
-                i+=1
+            P,Q,R,arate,neff=self._do_trials(glike)
+            self._copy_to_output(i,P,Q,R,arate,neff)
 
         tm=time.time()-t0
-        print("time per image:",tm/npair/2., file=stderr)
-        print("time per pair: ",tm/npair, file=stderr)
+        print("time per galaxy:",tm/ngal, file=stderr)
         print("total time:    ",tm, file=stderr)
 
     def get_data(self):
@@ -96,28 +93,138 @@ class ToySim(object):
         Run the mcmc for a single object
         """
         if self.sampler_type=='mcmc':
-            trials, arate = self._do_mcmc(glike)
+            raise ValueError("make work for mcmc")
+            runner=self._do_mcmc
         elif self.sampler_type=='true':
-            trials = self._get_trials_true(glike)
-            arate=1.0
+            runner=self._get_trials_true
         else:
             raise ValueError("bad sampler type: '%s'" % self.sampler_type)
 
-        if self.make_plots:
-            self.do_make_plots(trials)
+        Pmax=0.0
+        ntot=0
 
-        P,Q,R = self._get_PQR(trials)
-        return P,Q,R,arate
+        Psum=0.0
+        Qsum=numpy.zeros(2)
+        Rsum=numpy.zeros( (2,2) )
+
+        arate_sum=0.0
+
+        niter=0
+        neff=0.0
+        while neff < self.nsamples:
+            trials, arate = runner(glike)
+            Pi, Qi, Ri = self._get_PQR_arrays(trials)
+
+            Pmaxi = Pi.max()
+            if Pmaxi > Pmax:
+                Pmax=Pmaxi
+
+            Psum += Pi.sum()
+            Qsum += Qi.sum(axis=0)
+            Rsum += Ri.sum(axis=0)
+
+
+            neff = Psum/Pmax
+            #print("    neff:",neff,file=stderr)
+
+            arate_sum += arate
+            niter+=1
+            ntot += Pi.size
+
+            if self.make_plots:
+                self.do_make_plots(trials, glike)
+
+        arate = arate_sum/niter
+
+        P = Psum/ntot
+        Q = Qsum/ntot
+        R = Rsum/ntot
+        return P,Q,R,arate,neff
 
     def _get_trials_true(self, glike):
         """
         Sample values directly from the actual like func
         """
 
-        trials = zeros( (self.nsamples_true, 2) )
-        trials[:,0], trials[:,1] = glike.sample(self.nsamples_true)
+        trials = zeros( (self.nsamples, 2) )
+        trials[:,0], trials[:,1] = glike.sample(self.nsamples)
 
-        return trials
+        arate=1.0
+        return trials, arate
+
+
+    def _get_PQR_arrays(self, trials):
+        g1=trials[:,0]
+        g2=trials[:,1]
+
+        # expand around zero
+        #Pi,Qi,Ri = self.g_prior.get_pqr(g1,g2)
+
+        sh=self.shear
+        Pi,Qi,Ri = self.g_prior.get_pqr_expand(g1,g2,sh[0],sh[1])
+
+        return Pi, Qi, Ri
+
+    def _get_PQR(self, trials):
+        """
+        get the marginalized P,Q,R from Bernstein & Armstrong
+
+        If the prior is already in our mcmc chain, so we need to divide by the
+        prior everywhere.
+
+        zero prior values should be removed prior to calling
+        """
+        
+        Pi, Qi, Ri = self._get_PQR_arrays(trials)
+
+        neff=Pi.sum()/Pi.max()
+        #Pi,Qi,Ri = self.g_prior.get_pqr_num(g1,g2)
+
+        P = Pi.mean()
+        Q = Qi.mean(axis=0)
+        R = Ri.mean(axis=0)
+
+        return P,Q,R,neff
+
+    def _get_galaxy_glike(self):
+        """
+        Get the likelihood function
+        """
+        import ngmix
+
+        g1,g2 = self.g_prior.sample2d(1)
+        #g1,g2 = self.g_prior.sample2d_brute(1)
+
+        shape=ngmix.shape.Shape(g1[0], g2[0])
+        shape.shear( self.shear[0], self.shear[1] )
+
+        #glike = self._get_glike(shape.g1, shape.g2)
+        glike=self._add_error(shape)
+        
+        return glike
+
+    def _add_error(self, shape):
+
+        # first draw from gaussian centered at the true position
+        glike0 = self._get_glike(shape.g1, shape.g2)
+
+        g1p, g2p = glike0.sample()
+
+        # now our likelihood is the same width but centered on the sampled
+        # point
+        return self._get_glike(g1p, g2p)
+
+    def _get_glike(self, g1, g2):
+        import ngmix
+        glike = ngmix.priors.TruncatedGauss2D(g1,
+                                              g2,
+                                              self.err_sigma,
+                                              self.err_sigma,
+                                              1.0)
+
+        return glike
+
+
 
     def _do_mcmc(self, glike):
         """
@@ -164,97 +271,8 @@ class ToySim(object):
         g1,g2=pars[0],pars[1]
 
         lnp = self.glike.get_lnprob_nothrow(g1,g2)
-        #try:
-        #    lnp = self.glike.get_lnprob(g1,g2)
-        #except GMixRangeError:
-        #    lnp=LOWVAL
 
         return lnp
-
-    def _get_PQR(self, trials):
-        """
-        get the marginalized P,Q,R from Bernstein & Armstrong
-
-        If the prior is already in our mcmc chain, so we need to divide by the
-        prior everywhere.
-
-        zero prior values should be removed prior to calling
-        """
-        
-        g1=trials[:,0]
-        g2=trials[:,1]
-
-        # expand around zero
-        Pi,Qi,Ri = self.g_prior.get_pqr(g1,g2)
-
-        P = Pi.mean()
-        Q = Qi.mean(axis=0)
-        R = Ri.mean(axis=0)
-
-        return P,Q,R
-
-    def _get_mean_pqr(self, Pi, Qi, Ri):
-        """
-        Get the mean P,Q,R marginalized over priors.  Optionally weighted for
-        importance sampling
-        """
-
-
-        return P,Q,R
-
-
-    def get_pair(self):
-        """
-        Get g1,g2 values with error added
-        """
-
-        g = self.g_prior.sample1d(1)
-        g=g[0]
-
-        rangle_first = randu()*2*numpy.pi
-        rangle_sec = rangle_first + numpy.pi/2.0
-
-        glike_first = self._get_glike_from_true(g, rangle_first)
-        glike_sec   = self._get_glike_from_true(g, rangle_sec)
-
-        return glike_first, glike_sec
-
-    def _get_glike_from_true(self, g, theta):
-        import ngmix
-        g1 = g*cos(2*theta)
-        g2 = g*sin(2*theta)
-
-        shape=ngmix.shape.Shape(g1, g2)
-        shape.shear( self.shear[0], self.shear[1] )
-
-        g1_true=shape.g1
-        g2_true=shape.g2
-
-        glike=self._add_error(g1_true, g2_true)
-        
-        return glike
-
-    def _add_error(self, g1, g2):
-
-        # first draw from gaussian centered at the true position
-        glike = self._get_glike(g1, g2)
-
-        g1p, g2p = glike.sample()
-
-        # now our likelihood is the same width but centered on the one with error
-        new_glike = self._get_glike(g1p, g2p)
-
-        return new_glike
-
-    def _get_glike(self, g1, g2):
-        import ngmix
-        glike = ngmix.priors.TruncatedGauss2D(g1,
-                                              g2,
-                                              self.err_sigma,
-                                              self.err_sigma,
-                                              1.0)
-
-        return glike
 
     def _set_mcmc_sampler(self):
         """
@@ -284,28 +302,73 @@ class ToySim(object):
         import ngmix
         self.g_prior=ngmix.priors.GPriorBA(self.ba_sigma)
 
-    def do_make_plots(self, trials):
+    def do_make_plots(self, trials, glike):
         import mcmc
-        mcmc.plot_results(trials, names=['g1','g2'])
+        tab=mcmc.plot_results(trials, names=['g1','g2'])
+
+        if self.sampler_type != 'true':
+            import biggles
+            import esutil as eu
+            # add some points drawn from true distribution
+            sh=trials.shape
+            true_trials=numpy.zeros( sh )
+            true_trials[:,0],true_trials[:,1]=glike.sample(sh[0])
+
+            
+
         key=raw_input('hit a key (q to quit): ')
         if key=='q':
             stop
 
-    def _copy_to_output(self, i, P,Q,R,arate):
+    def _copy_to_output(self, i, P,Q,R, arate, neff):
         data=self.data
         data['P'][i] = P
         data['Q'][i,:] = Q
         data['R'][i,:,:] = R
         data['arate'][i] = arate
+        data['neff'][i] = neff
 
 
-    def make_output(self, npair):
+    def make_output(self, ngal):
         dtype=[('P','f8'),
                ('Q','f8',2),
                ('R','f8', (2,2) ),
-               ('arate','f8')]
+               ('arate','f8'),
+               ('neff','f8')]
 
-        ntot = npair*2
-        self.data=zeros(ntot, dtype=dtype)
+        self.data=zeros(ngal, dtype=dtype)
 
 
+def quick(shear, err_sigma, ngal, ntrials):
+    import ngmix
+    P=numpy.zeros(ngal)
+    Q=numpy.zeros( (ngal,2) )
+    R=numpy.zeros( (ngal,2,2) )
+
+    g_prior=ngmix.priors.GPriorBA(0.3)
+
+    for i in xrange(ngal):
+        i1=i+1
+        if (i1 % 1000) == 0:
+            print("%s/%s" % (i1,ngal),file=stderr)
+
+        g1,g2=g_prior.sample2d(1)
+        shape=ngmix.shape.Shape(g1[0],g2[0])
+        shape.shear( shear[0], shear[1] )
+
+        errdist=ngmix.priors.TruncatedGauss2D(shape.g1,shape.g2,
+                                              err_sigma, err_sigma,
+                                              1.0)
+        g1p,g2p=errdist.sample()
+        glike=ngmix.priors.TruncatedGauss2D(g1p,g2p,
+                                            err_sigma, err_sigma,
+                                            1.0)
+
+        g1t,g2t=glike.sample(ntrials)
+        Pi,Qi,Ri=g_prior.get_pqr_num(g1t,g2t,s1=shear[0],s2=shear[1])
+
+        P[i]     = Pi.mean()
+        Q[i,:]   = Qi.mean(axis=0)
+        R[i,:,:] = Ri.mean(axis=0)
+
+    return P,Q,R

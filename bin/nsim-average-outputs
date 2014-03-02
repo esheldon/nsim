@@ -91,39 +91,33 @@ def get_chunk_info(nrows):
 
 def get_shear_stats(conf, data, options, g1i=2, g2i=3):
 
-    P_sum, Q_sum, Cinv_sum = lensing.pqr.get_shear_pqr_sums(data['P'],
-                                                            data['Q'],
-                                                            data['R'])
+    P_sum, Q_sum, Cinv_sum = lensing.pqr.get_pqr_sums(data['P'],
+                                                      data['Q'],
+                                                      data['R'])
 
 
     if options.jackknife:
         t0=time.time()
         print >>stderr,'jackknifing'
-        if False:
-            shear, shear_cov = \
-                    lensing.pqr.pqr_jackknife(data['P'],data['Q'],data['R'],
-                                              progress=options.progress,
-                                              eps=conf['eps'])
-        else:
-            npair=data.size/2
-            chunksize = npair/1000
-            #if chunksize > 100:
-            #    chunksize=100
-            #else:
-            #    chunksize=1
 
-            if chunksize < 1:
-                chunksize=1
-            elif chunksize > 100:
-                chunksize=100
-            print >>stderr,'    jackknife chunksize:',chunksize
+        npair=data.size/2
+        chunksize = npair/1000
+        #if chunksize > 100:
+        #    chunksize=100
+        #else:
+        #    chunksize=1
 
-            shear, shear_cov = \
-                    pqr_jackknife(data['P'],data['Q'],data['R'],
-                                  progress=options.progress,
-                                  #chunksize=int(options.chunksize),
-                                  chunksize=chunksize,
-                                  eps=conf['eps'])
+        if chunksize < 1:
+            chunksize=1
+        elif chunksize > 100:
+            chunksize=100
+        print >>stderr,'    jackknife chunksize:',chunksize
+
+        shear, shear_cov = \
+                lensing.pqr.pqr_jackknife(data['P'],data['Q'],data['R'],
+                                          progress=options.progress,
+                                          chunksize=chunksize,
+                                          eps=conf['eps'])
 
         tm=time.time()-t0
         print 'time to jackknife:',tm/60.,'minutes'
@@ -355,14 +349,10 @@ def pqr_jackknife(P, Q, R,
         raise  ValueError("expected factor of two, got %d" % ntot)
     npair = ntot/2
 
-    #if (ntot % chunksize) != 0:
-    #    raise  ValueError("chunksize must be multiple of number "
-    #                      "of pairs %d, got %d" % (npair,chunksize))
-
     # some may not get used
     nchunks = npair/chunksize
 
-    P_sum, Q_sum, Cinv_sum = lensing.pqr.get_shear_pqr_sums(P,Q,R)
+    P_sum, Q_sum, Cinv_sum = lensing.pqr.get_pqr_sums(P,Q,R)
     C = numpy.linalg.inv(Cinv_sum)
     shear = numpy.dot(C,Q_sum)
 
@@ -381,7 +371,7 @@ def pqr_jackknife(P, Q, R,
         Rtmp = R[beg:end,:,:]
 
         P_sum, Q_sum_tmp, Cinv_sum_tmp = \
-                lensing.pqr.get_shear_pqr_sums(Ptmp,Qtmp,Rtmp)
+                lensing.pqr.get_pqr_sums(Ptmp,Qtmp,Rtmp)
         
         Q_sum_tmp    = Q_sum - Q_sum_tmp
         Cinv_sum_tmp = Cinv_sum - Cinv_sum_tmp

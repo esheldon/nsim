@@ -1,0 +1,24 @@
+run: "run-eg09rtest2"
+sim: "sim-eg09"
+
+fitter: "mcmc-fixed"
+fit_model: "exp"
+guess_type: "draw_truth"
+g_prior_during: false
+
+psf_ngauss: 1
+
+nwalkers: 80
+burnin:   400
+nstep:    800
+mca_a:    2.0
+
+expand_shear_true: true
+
+s2n_vals: [ 5, 11, 22, 47, 100 ]
+
+desired_err: 2.0e-04
+desired_hours: 1.0
+sec_per_pair: 24.0
+npair_min: 1000
+

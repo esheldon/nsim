@@ -17,7 +17,6 @@ expand_shear_true: true
 
 s2n_vals: [ 5, 11, 22, 47, 100 ]
 
-# off by factor of two
 desired_err: 1.0e-04
 desired_hours: 1.0
 sec_per_pair: 24.0

@@ -23,6 +23,9 @@ parser.add_option('--index',default=0,
 parser.add_option('-y','--yrange',default=None, help='y range')
 parser.add_option('-x','--xrange',default=None,
                   help='x range')
+parser.add_option('--xticks',default=None,
+                  help='the x tickes to label')
+
 
 parser.add_option('--s2n-field',default='s2n_matched',
                   help="field for s2n")
@@ -322,6 +325,11 @@ def main():
     key=biggles.PlotKey(0.9,ypos,cobj,halign='right')
     plt.add(key)
     plt.xrange=xrng
+
+    if options.xticks is not None:
+        xticks=options.xticks.split(',')
+        xticks = [int(xt) for xt in xticks]
+        plt.x1.ticks = xticks
 
 
     if options.panel is not None:

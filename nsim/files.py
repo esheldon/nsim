@@ -215,6 +215,11 @@ npair_ref_eg_sr1=array([8412000,2412000, 2412000, 1171026,  537675,  230346,   9
                         18600,    8159,    4158,    4158,    4158])
 
 
+s2n_ref_eg_sr084 = array([ 5, 11, 22, 47, 100 ], dtype='f8')
+
+err_ref_eg_sr084 =array([ 0.00038262,  0.00036024,  0.00027844,  0.00024308,  0.0002513 ])
+npair_ref_eg_sr084=array([1703550,  392850,  158400,   41550,    9600])
+
 
 # from dg01r01 jackknifed
 s2n_ref_dg_sr2=array([ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ],dtype='f8')
@@ -310,10 +315,15 @@ def get_npair_by_noise(s2n, desired_err, run, sigratio):
             s2n_ref = s2n_ref_eg_sr14
             npair_ref = npair_ref_eg_sr14
             err_ref = err_ref_eg_sr14
-        else:
+        elif sigratio >= 1.0:
             s2n_ref = s2n_ref_eg_sr1
             npair_ref = npair_ref_eg_sr1
             err_ref = err_ref_eg_sr1
+        else:
+            s2n_ref = s2n_ref_eg_sr084
+            npair_ref = npair_ref_eg_sr084
+            err_ref = err_ref_eg_sr084
+
     elif 'bdfg' in run:
         # for bdf make sure you set sec_per_pair
         s2n_ref = s2n_ref_bdfg

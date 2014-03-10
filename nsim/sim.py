@@ -107,7 +107,8 @@ class NGMixSim(dict):
 
         self.obj_model=self.simc['obj_model']
         self.fit_model=self['fit_model']
-        self.npars=ngmix.gmix.get_model_npars(self.fit_model)
+        if self.fit_model is not None:
+            self.npars=ngmix.gmix.get_model_npars(self.fit_model)
 
         self.make_plots=keys.get('make_plots',False)
         self.plot_base=keys.get('plot_base',None)
@@ -142,7 +143,8 @@ class NGMixSim(dict):
         about
         """
 
-        if self['expand_shear_true']:
+        expand_shear_true=self.get('expand_shear_true',None)
+        if expand_shear_true:
             self.shear_expand=self.shear
             print >>stderr,'nsim: expanding about shear:',self.shear_expand
         else:
@@ -1629,8 +1631,8 @@ class NGMixSim(dict):
         T = gm1.get_T()
         dims_pix, cen0_pix = self.get_dims_cen(T)
 
-        print >>stderr,'cen0(pix):',cen0_pix,\
-                'offset(pix):',cen_offset_arcsec/self.pixel_scale
+        #print >>stderr,'cen0(pix):',cen0_pix,\
+        #        'offset(pix):',cen_offset_arcsec/self.pixel_scale
 
         gm1.set_cen(cen_offset_arcsec[0], cen_offset_arcsec[1])
         gm2.set_cen(cen_offset_arcsec[0], cen_offset_arcsec[1])

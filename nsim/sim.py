@@ -72,6 +72,7 @@ class TryAgainError(Exception):
         # Call the base class constructor with the parameters it needs
         Exception.__init__(self, message)
 
+
 class NGMixSim(dict):
     def __init__(self, sim_conf, run_conf, s2n, npairs, **keys):
         """
@@ -115,6 +116,8 @@ class NGMixSim(dict):
 
         self.setup_checkpoints(**keys)
 
+        self.verbose=run_conf.get('verbose',True)
+
         if self.data is None:
             self.make_struct()
 
@@ -125,6 +128,45 @@ class NGMixSim(dict):
 
         pprint.pprint(self, stream=stderr)
         pprint.pprint(self.simc, stream=stderr)
+
+    def run_sim(self):
+        """
+        Run the simulation, fitting psf and all pairs
+        """
+
+        self.start_timer()
+
+        i=0
+        npairs=self.npairs
+        for ipair in xrange(npairs):
+            if self.verbose:
+                print >>stderr,'%s/%s' % (ipair+1,npairs)
+
+            self.ipair=ipair
+            if self.data['processed'][i]:
+                i += 2 # skip the pair
+            else:
+                while True:
+                    try:
+                        reslist=self.process_pair()
+                        break
+                    except TryAgainError as err:
+                        print >>stderr,str(err)
+
+                self.copy_to_output(reslist[0], i)
+                i += 1
+                self.copy_to_output(reslist[1], i)
+                i += 1
+
+            self.set_elapsed_time()
+            self.try_checkpoint()
+
+        self.set_elapsed_time()
+        print >>stderr,'time minutes:',self.tm_minutes
+        print >>stderr,'time per pair sec:',self.tm/npairs
+        print >>stderr,'time per image sec:',self.tm/(2*npairs)
+
+
 
     def set_config(self, sim_conf, run_conf):
         """
@@ -156,41 +198,6 @@ class NGMixSim(dict):
         """
         return self.data
 
-    def run_sim(self):
-        """
-        Run the simulation, fitting psf and all pairs
-        """
-
-        self.start_timer()
-
-        i=0
-        npairs=self.npairs
-        for ipair in xrange(npairs):
-            print >>stderr,'%s/%s' % (ipair+1,npairs)
-
-            self.ipair=ipair
-            if self.data['processed'][i]:
-                i += 2 # skip the pair
-            else:
-                while True:
-                    try:
-                        reslist=self.process_pair()
-                        break
-                    except TryAgainError as err:
-                        print >>stderr,str(err)
-
-                self.copy_to_output(reslist[0], i)
-                i += 1
-                self.copy_to_output(reslist[1], i)
-                i += 1
-
-            self.set_elapsed_time()
-            self.try_checkpoint()
-
-        self.set_elapsed_time()
-        print >>stderr,'time minutes:',self.tm_minutes
-        print >>stderr,'time per pair sec:',self.tm/npairs
-        print >>stderr,'time per image sec:',self.tm/(2*npairs)
 
     def start_timer(self):
         """
@@ -721,7 +728,7 @@ class NGMixSim(dict):
         else:
             raise ValueError("bad guess type: '%s'" % guess_type)
         
-        Tm=full_guess[:,4].mean()
+        #Tm=full_guess[:,4].mean()
         #print >>stderr,'MEAN T GUESS:',Tm
         #print >>stderr,'MEAN SIG GUESS (pix):',\
         #        numpy.sqrt(Tm/2.)/self.pixel_scale
@@ -1554,24 +1561,28 @@ class NGMixSim(dict):
           (S/N)^2
         """
         
+        skysig=self.simc['skysig']
+        if skysig is not None:
+            self.skysig=skysig
+            self.ivar=1.0/skysig**2
+        else:
+            print >>stderr,"setting noise"
 
-        print >>stderr,"setting noise"
-
-        imdict=self.get_image_pair(random=False)
-        im=imdict['im1']['image0']
-        skysig2 = (im**2).sum()/self.s2n_for_noise**2
-        skysig = numpy.sqrt(skysig2)
+            imdict=self.get_image_pair(random=False)
+            im=imdict['im1']['image0']
+            skysig2 = (im**2).sum()/self.s2n_for_noise**2
+            skysig = numpy.sqrt(skysig2)
 
 
-        self.skysig=skysig
-        self.ivar=1.0/skysig**2
+            self.skysig=skysig
+            self.ivar=1.0/skysig**2
 
-        imn=self.add_noise(im)
-        s2n_numer = (imn*im*self.ivar).sum()
-        s2n_denom = numpy.sqrt( (im**2*self.ivar).sum() )
-        s2n_check = s2n_numer/s2n_denom
+            imn=self.add_noise(im)
+            s2n_numer = (imn*im*self.ivar).sum()
+            s2n_denom = numpy.sqrt( (im**2*self.ivar).sum() )
+            s2n_check = s2n_numer/s2n_denom
 
-        print >>stderr,"S/N goal:",self.s2n_for_noise,"found:",s2n_check
+            print >>stderr,"S/N goal:",self.s2n_for_noise,"found:",s2n_check
 
     def get_model_s2n(self, im):
         s2n = numpy.sqrt( (im**2).sum() )/self.skysig
@@ -1883,6 +1894,79 @@ class NGMixSim(dict):
                    ('g','f8',2),
                    ('nuse','i4')]
         self.data=numpy.zeros(self.npairs*2, dtype=dt)
+
+
+class NGMixSimJoint(NGMixSim):
+
+    def fit_galaxy(self, imdict):
+        """
+        Fit BDF model with joint prior
+        """
+        from ngmix.fitting import MCMCBDFJoint
+
+        nwalkers = self['nwalkers']
+
+        full_guess=self.get_guess_from_pars_bdf(imdict['pars'],
+                                                n=nwalkers)
+
+        fitter=MCMCBDFJoint(imdict['image'],
+                            imdict['wt'],
+                            self.jacobian,
+
+                            cen_prior=self.cen_prior,
+                            joint_prior=self.joint_prior,
+
+                            full_guess=full_guess,
+
+                            shear_expand=self.shear_expand,
+
+                            psf=self.psf_gmix_fit,
+                            nwalkers=nwalkers,
+                            nstep=self['nstep'],
+                            burnin=self['burnin'],
+                            mca_a=self['mca_a'],
+                            #ntry=ntry,
+                            random_state=self.random_state,
+                            do_pqr=True)
+        fitter.go()
+        res=fitter.get_result()
+
+        if res['arate'] < self['min_arate']:
+            if self['keep_low_arate']:
+                fitter._result['flags'] =0
+            else:
+                fitter._result['flags'] |= LOW_ARATE
+
+
+        return fitter
+
+
+    def set_priors(self):
+        """
+        Set all the priors
+        """
+        import ngmix
+
+        print >>stderr,"setting priors"
+
+        self.pixel_scale = self.simc.get('pixel_scale',1.0)
+        self.skyskig = self.simc['skysig']
+
+        joint_prior_type = self.simc['joint_prior_type']
+        if 'great3' in joint_prior_type:
+            import great3
+            self.joint_prior = \
+                great3.joint_prior.make_joint_prior_bdf(type=joint_prior_type)
+        else:
+            raise ValueError("bad joint prior type: '%s'" % joint_prior_type)
+
+        cen_sigma_arcsec=self.simc['cen_sigma']
+        self.cen_prior=ngmix.priors.CenPrior(0.0,
+                                             0.0,
+                                             cen_sigma_arcsec,
+                                             cen_sigma_arcsec)
+
+
 
 def srandu(num=None):
     """

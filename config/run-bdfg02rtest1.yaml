@@ -1,0 +1,23 @@
+run: "run-bdfg02rtest1"
+sim: "sim-bdfg02"
+
+fitter: "mcmc"
+fit_model: "bdf"
+guess_type: "draw_truth"
+
+psf_ngauss: 1
+
+nwalkers: 80
+burnin:   400
+nstep:    800
+mca_a:    2.0
+
+min_arate: 0.40
+
+expand_shear_true: true
+
+desired_err: 1.0e-04
+desired_hours: 1.0
+sec_per_pair: 24.0
+npair_min: 1000
+

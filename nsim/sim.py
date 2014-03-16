@@ -1897,6 +1897,9 @@ class NGMixSim(dict):
 
 
 class NGMixSimJoint(NGMixSim):
+    def __init__(self, sim_conf, run_conf, npairs, **keys):
+        s2n=-1
+        super(NGMixSimJoint,self).__init__(sim_conf, run_conf, s2n, npairs, **keys)
 
     def fit_galaxy(self, imdict):
         """
@@ -1906,8 +1909,7 @@ class NGMixSimJoint(NGMixSim):
 
         nwalkers = self['nwalkers']
 
-        full_guess=self.get_guess_from_pars_bdf(imdict['pars'],
-                                                n=nwalkers)
+        full_guess=self.get_guess(imdict, n=nwalkers)
 
         fitter=MCMCBDFJoint(imdict['image'],
                             imdict['wt'],
@@ -1940,6 +1942,34 @@ class NGMixSimJoint(NGMixSim):
 
         return fitter
 
+    def get_pair_pars(self, **keys):
+        """
+        Get pair parameters
+        """
+        from numpy import pi
+        import ngmix
+
+        pars1=numpy.zeros(7)
+        pars2=numpy.zeros(7)
+
+        cen_offset_arcsec=array( self.cen_prior.sample() )
+
+        pars1[2:] = self.joint_prior.sample()
+        pars2=pars1.copy()
+        
+
+        shape1 = ngmix.shape.Shape(pars1[2], pars1[3])
+        shape2 = shape1.copy()
+        shape2.rotate(pi/2.0)
+
+        shear=self.shear
+        shape1.shear(shear[0], shear[1])
+        shape2.shear(shear[0], shear[1])
+
+        pars1[2], pars1[3] = shape1.g1, shape1.g2
+        pars2[2], pars2[3] = shape2.g1, shape2.g2
+
+        return pars1, pars2, cen_offset_arcsec
 
     def set_priors(self):
         """

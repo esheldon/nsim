@@ -7,7 +7,9 @@ pixel_scale: 0.2
 skysig: 0.078
 
 psf_model: "gauss"
-psf_T: 4.0
+#psf_T: 4.0
+# this is 4.0 for 0.2 arcsec pixels
+psf_T: 0.8
 psf_shape: [0.0, 0.0]
 
 obj_model: "bdf"

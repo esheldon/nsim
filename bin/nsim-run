@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """
     %prog run s2n npairs output_file
+
+s2n ignored for joint prior
 """
 
 import sys
@@ -79,15 +81,25 @@ def profile_sim_pycallgraph(sim_conf,run_conf,s2n,npairs,output_file,options):
 def run_sim(sim_conf,run_conf,s2n,npairs,output_file,options):
     """
     Run the sim and deal with checkpointing
+
+    s2n ignored for Joint
     """
 
     checkpoint_file, checkpoint_data=get_checkpoint_data(output_file)
     plot_base=output_file.replace('.fits','')
-    sim=nsim.sim.NGMixSim(sim_conf, run_conf, s2n, npairs,
-                          checkpoint_file=checkpoint_file,
-                          checkpoint_data=checkpoint_data,
-                          make_plots=options.make_plots,
-                          plot_base=plot_base)
+
+    if 'joint_prior_type' in sim_conf:
+        sim=nsim.sim.NGMixSimJoint(sim_conf, run_conf, npairs,
+                                   checkpoint_file=checkpoint_file,
+                                   checkpoint_data=checkpoint_data,
+                                   make_plots=options.make_plots,
+                                   plot_base=plot_base)
+    else:
+        sim=nsim.sim.NGMixSim(sim_conf, run_conf, s2n, npairs,
+                              checkpoint_file=checkpoint_file,
+                              checkpoint_data=checkpoint_data,
+                              make_plots=options.make_plots,
+                              plot_base=plot_base)
 
     sim.run_sim()
 

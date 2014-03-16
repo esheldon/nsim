@@ -410,6 +410,20 @@ def get_npair_nsplit(c, is2n, npair_min=None):
     """
     from math import ceil
 
+    if 'npair' in c:
+        npair_tot=c['npair'][is2n]
+
+        # this is per
+        tmsec = c['desired_hours']*3600.0
+        seconds_per=c['sec_per_pair']
+        npair_per = int(round( tmsec/seconds_per ))
+
+        nsplit = int(ceil( npair_tot/float(npair_per) ))
+
+        return npair_per, nsplit
+
+
+
     # this is the requirement from measurement error
     s2n = c['s2n_vals'][is2n]
 

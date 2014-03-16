@@ -5,6 +5,7 @@
 
 import sys
 import os
+from math import ceil
 import numpy
 
 import nsim
@@ -253,12 +254,13 @@ def write_condor_file(c, master_script, equal_time=False, missing=False, max_job
 
         s2n=c['s2n_vals'][is2n]
 
-        if 'npair' in c:
-            npair_tot=c['npair']
-            npair_per = int(round( tmsec/seconds_per ))
-            nsplit = int(ceil( npair_tot/float(npair_per) ))
-        else:
-            npair, nsplit = nsim.files.get_npair_nsplit(c, is2n, npair_min=npair_min)
+        #if 'npair' in c:
+        #    npair_tot=c['npair'][is2n]
+        #    # this is per
+        #    npair = int(round( tmsec/seconds_per ))
+        #    nsplit = int(ceil( npair_tot/float(npair) ))
+        #else:
+        npair, nsplit = nsim.files.get_npair_nsplit(c, is2n, npair_min=npair_min)
 
         time_hours = npair*seconds_per/3600.0
         print '    nsplit:',nsplit,'npair:',npair,'time (hours):',time_hours

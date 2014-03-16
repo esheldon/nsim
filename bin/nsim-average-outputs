@@ -352,6 +352,7 @@ def pqr_jackknife(P, Q, R,
     # some may not get used
     nchunks = npair/chunksize
 
+    print >>stderr,'getting overall sums'
     P_sum, Q_sum, Cinv_sum = lensing.pqr.get_pqr_sums(P,Q,R)
     C = numpy.linalg.inv(Cinv_sum)
     shear = numpy.dot(C,Q_sum)

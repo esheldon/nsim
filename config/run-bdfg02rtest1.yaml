@@ -20,9 +20,11 @@ expand_shear_true: true
 # this is a dummy position
 s2n_vals: [9999]
 
-desired_hours: 1.0
+desired_hours: 0.20
 sec_per_pair: 40.0
-npair: [1000]
-#desired_err: 1.0e-04
-#npair_min: 1000
+npair: [100000]
+
+# 10000 pairs gave a jackknifed fractional error of 8.27e-03
+# so 100000 should give frac error of 2.6e-3
+# and 1,000,000 should give           8.27e-4
 

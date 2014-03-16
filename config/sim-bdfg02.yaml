@@ -3,13 +3,14 @@
 
 name: "sim-bdfg02"
 
+# arcsec/pixel
 pixel_scale: 0.2
 skysig: 0.078
 
 psf_model: "gauss"
-#psf_T: 4.0
-# this is 4.0 for 0.2 arcsec pixels
-psf_T: 0.8
+
+# in arcsec
+psf_fwhm: 0.9 
 psf_shape: [0.0, 0.0]
 
 obj_model: "bdf"

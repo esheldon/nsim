@@ -12,12 +12,17 @@ burnin:   400
 nstep:    800
 mca_a:    2.0
 
-min_arate: 0.40
+min_arate: 0.35
+keep_low_arate: False
 
 expand_shear_true: true
 
-desired_err: 1.0e-04
+# this is a dummy position
+s2n_vals: [9999]
+
 desired_hours: 1.0
-sec_per_pair: 24.0
-npair_min: 1000
+sec_per_pair: 40.0
+npair: [1000]
+#desired_err: 1.0e-04
+#npair_min: 1000
 

@@ -233,6 +233,8 @@ def write_condor_file(c, master_script, equal_time=False, missing=False, max_job
     seconds_per=get_seconds_per_pair(c)
     print 'seconds per:',seconds_per
 
+    tmsec = c['desired_hours']*3600.0
+
     if 'desired_err' in c:
         do_by_noise=True
     else:
@@ -251,7 +253,12 @@ def write_condor_file(c, master_script, equal_time=False, missing=False, max_job
 
         s2n=c['s2n_vals'][is2n]
 
-        npair, nsplit = nsim.files.get_npair_nsplit(c, is2n, npair_min=npair_min)
+        if 'npair' in c:
+            npair_tot=c['npair']
+            npair_per = int(round( tmsec/seconds_per ))
+            nsplit = int(ceil( npair_tot/float(npair_per) ))
+        else:
+            npair, nsplit = nsim.files.get_npair_nsplit(c, is2n, npair_min=npair_min)
 
         time_hours = npair*seconds_per/3600.0
         print '    nsplit:',nsplit,'npair:',npair,'time (hours):',time_hours

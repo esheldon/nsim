@@ -1197,7 +1197,6 @@ class NGMixSim(dict):
         width is relative for T and counts
         """
 
-        print >>stderr,'guessing pars bdf'
         if width is None:
             width = pars*0 + 0.01
         else:
@@ -1361,6 +1360,11 @@ class NGMixSim(dict):
         import ngmix
 
         print >>stderr,"making psf"
+
+        if 'psf_fwhm' in self.simc:
+            psf_sigma = self.simc['psf_fwhm']/2.3548200450309493
+            self.simc['psf_T'] = 2*psf_sigma**2
+            print >>stderr,'psf_T:',self.simc['psf_T']
 
         pars=[0.0,
               0.0,
@@ -1905,7 +1909,7 @@ class NGMixSimJoint(NGMixSim):
         """
         Fit BDF model with joint prior
         """
-        from ngmix.fitting import MCMCBDFJoint
+        from ngmix.fitting import MCMCBDFJoint, LOW_ARATE
 
         nwalkers = self['nwalkers']
 
@@ -1937,6 +1941,7 @@ class NGMixSimJoint(NGMixSim):
             if self['keep_low_arate']:
                 fitter._result['flags'] =0
             else:
+                print >>stderr,'        low arate:',res['arate']
                 fitter._result['flags'] |= LOW_ARATE
 
 

@@ -1,5 +1,24 @@
 # vim: set filetype=markdown :
 
+- great3 priors
+    - sim-bdfg02
+        - fiducial seeing 0.9'', and sky noise 0.079
+        - run-bdfg02rtest1
+            - standard parameters
+        - run-bdfg02rtest2
+            - 1600 steps
+        - run-bdfg02rtest3
+            - 160 walkers
+
+        - seeing ~0.01 error in all of above
+
+    - sim-bdfg03
+        - much smaller noise.  See 0.001 error
+
+    - so is somehow related to noise
+        - exploring likelihood is very noisy in T,Fb,Fd
+        - prior evaluation wrong?
+
 - I'm seeing some low arates.  And generally strange arate distribution with a
   pileup at 0.52 or so
   - saw better arate with prior during.  But did a run and it did not help.

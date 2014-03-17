@@ -53,7 +53,7 @@ import time
 import pprint
 
 import numpy
-from numpy import array
+from numpy import array, zeros
 from numpy.random import random as randu
 from numpy.random import randn
 
@@ -1866,12 +1866,13 @@ class NGMixSim(dict):
         d['s2n_w'][i] = res['s2n_w']
         d['arate'][i] = res['arate']
 
+        d['nuse'][i] = res['nuse']
+
         if 'P' in res:
             d['P'][i] = res['P']
             d['Q'][i,:] = res['Q']
             d['R'][i,:,:] = res['R']
             d['g'][i,:] = res['g']
-            d['nuse'][i] = res['nuse']
         else:
             d['nfev'][i] = res['nfev']
 
@@ -1931,6 +1932,8 @@ class NGMixSimJoint(NGMixSim):
                             nstep=self['nstep'],
                             burnin=self['burnin'],
                             mca_a=self['mca_a'],
+
+                            Tfracdiff_max=self['Tfracdiff_max'],
                             #ntry=ntry,
                             random_state=self.random_state,
                             do_pqr=True)
@@ -1946,6 +1949,17 @@ class NGMixSimJoint(NGMixSim):
 
 
         return fitter
+
+    def get_guess_draw_priors_bdf(self, n=1):
+        """
+        Get a guess drawn from the priors
+
+        This is an over-ride
+        """
+        guess=zeros( (n, 7) )
+        guess[:,0],guess[:,1]=self.cen_prior.sample(n=n)
+        guess[:,2:] = self.joint_prior.sample(n)
+        return guess
 
     def get_pair_pars(self, **keys):
         """

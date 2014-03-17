@@ -1,0 +1,27 @@
+# setting noise low
+# using a joint prior fit from great3 deep fields
+# noise is from the median standard field
+
+name: "sim-bdfg03"
+
+# arcsec/pixel
+pixel_scale: 0.2
+#skysig: 0.078
+skysig: 0.005
+
+psf_model: "gauss"
+
+# in arcsec
+psf_fwhm: 0.9 
+psf_shape: [0.0, 0.0]
+
+obj_model: "bdf"
+
+joint_prior_type: "great3-control-ground-constant"
+cen_sigma: 0.1
+
+shear: [0.08,0.0]
+
+nsub: 16
+
+label: 'BDF Great3'

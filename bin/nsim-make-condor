@@ -20,6 +20,8 @@ parser.add_option('--missing',action='store_true',
 parser.add_option('--max-jobs',default=1000,
                   help=('max jobs per condor file, as split on run, '
                         'default %default') )
+parser.add_option('--image-size',default='800000',
+                  help=('predicted image size as condor sees it') )
 
 
 MAXTIME_HOURS=1.5
@@ -35,7 +37,7 @@ Executable      = {master_script}
 
 # Estimate of init. image size.  This is actually high
 # condor always raises it to 60-90 Meg
-Image_Size      = 730000
+Image_Size      = {image_size}
 
 # maybe rcas2630 too?
 
@@ -249,7 +251,8 @@ def write_condor_file(c, master_script, equal_time=False, missing=False, max_job
     filenum=0
 
     fobj=start_new_file(run, filenum, master_script, 
-                        overall_name, missing=missing)
+                        overall_name, missing=missing,
+                        image_size=c['image_size'])
     for is2n in xrange(ns2n):
 
         s2n=c['s2n_vals'][is2n]
@@ -296,13 +299,14 @@ def write_condor_file(c, master_script, equal_time=False, missing=False, max_job
                 njobs_thisfile=0
                 fobj.close()
                 fobj=start_new_file(run, filenum, master_script, 
-                                    overall_name, missing=missing)
+                                    overall_name, missing=missing,
+                                    image_size=c['image_size'])
 
 
     print 'total jobs: ',njobs
     print 'total pairs:',npair_tot
 
-def start_new_file(run, filenum, master_script, overall_name, missing=False):
+def start_new_file(run, filenum, master_script, overall_name, missing=False, image_size='800000'):
     condor_job_url=nsim.files.get_condor_job_url(run,
                                                  filenum=filenum,
                                                  missing=missing)
@@ -311,7 +315,8 @@ def start_new_file(run, filenum, master_script, overall_name, missing=False):
     print condor_job_url
     fobj=open(condor_job_url,'w')
     text = _condor_template_head.format(master_script=master_script,
-                                        overall_name=oname)
+                                        overall_name=oname,
+                                        image_size=image_size)
     fobj.write(text)
 
     return fobj
@@ -337,6 +342,7 @@ def main():
     c['simc'] = nsim.files.read_config(c['sim'])
     c['version'] = options.version
     c['command'] = get_command()
+    c['image_size'] = options.image_size
 
     make_some_dirs(run)
     master_script=write_master(c)

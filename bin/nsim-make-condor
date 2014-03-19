@@ -2,7 +2,7 @@
 """
     %prog run
 """
-
+from __future__ import print_function
 import sys
 import os
 from math import ceil
@@ -145,7 +145,7 @@ def get_seconds_per_pair(c):
             raise ValueError("support fit_model: '%s'" % fit_model)
     elif 'lm' in c['fitter']:
         nrand=c.get('nrand',1)
-        print 'nrand:',nrand
+        print('nrand:',nrand)
         if fit_model=='dev':
             # 0.03 on astro0034
             secper=0.1*nrand
@@ -186,10 +186,10 @@ def write_master(c):
     if not os.path.exists(d):
         os.makedirs(d)
 
-    print master_url
+    print(master_url)
     with open(master_url,'w') as fobj:
         fobj.write(_master_template % c)
-    print
+    print()
 
     os.system('chmod 755 %s' % master_url)
     return master_url
@@ -234,7 +234,7 @@ def write_condor_file(c, master_script, equal_time=False, missing=False, max_job
 
     ns2n=len(c['s2n_vals'])
     seconds_per=get_seconds_per_pair(c)
-    print 'seconds per:',seconds_per
+    print('seconds per:',seconds_per)
 
     tmsec = c['desired_hours']*3600.0
 
@@ -266,7 +266,7 @@ def write_condor_file(c, master_script, equal_time=False, missing=False, max_job
         npair, nsplit = nsim.files.get_npair_nsplit(c, is2n, npair_min=npair_min)
 
         time_hours = npair*seconds_per/3600.0
-        print '    nsplit:',nsplit,'npair:',npair,'time (hours):',time_hours
+        print('    nsplit:',nsplit,'npair:',npair,'time (hours):',time_hours)
 
         if time_hours > MAXTIME_HOURS:
             raise ValueError("time is greater than %.2f "
@@ -303,16 +303,16 @@ def write_condor_file(c, master_script, equal_time=False, missing=False, max_job
                                     image_size=c['image_size'])
 
 
-    print 'total jobs: ',njobs
-    print 'total pairs:',npair_tot
+    print('total jobs: ',njobs)
+    print('total pairs:',npair_tot)
 
 def start_new_file(run, filenum, master_script, overall_name, missing=False, image_size='800000'):
     condor_job_url=nsim.files.get_condor_job_url(run,
                                                  filenum=filenum,
                                                  missing=missing)
     oname='%s-%03d' % (overall_name,filenum)
-    print 'starting new job file:'
-    print condor_job_url
+    print('starting new job file:')
+    print(condor_job_url)
     fobj=open(condor_job_url,'w')
     text = _condor_template_head.format(master_script=master_script,
                                         overall_name=oname,

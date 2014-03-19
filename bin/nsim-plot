@@ -4,7 +4,7 @@
 
 run can be a csv
 """
-
+from __future__ import print_function
 import sys
 import biggles
 import fitsio
@@ -80,7 +80,7 @@ def plot_shear(plt, c, index, symbol, color, linestyle, options,
     shear_true=c['simc']['shear'][index]
 
     url=nsim.files.get_averaged_url(c['run'])
-    print url
+    print(url)
     data=fitsio.read(url)
 
     s_name,scov_name=get_names(method)
@@ -108,9 +108,9 @@ def plot_shear(plt, c, index, symbol, color, linestyle, options,
         yerr = err
 
     if options.use_scatter:
-        print 'using scatter'
+        print('using scatter')
         w,=numpy.where( (s2n_vals >= xrng[0]) & (s2n_vals <= xrng[1]) )
-        print s2n_vals[w]
+        print(s2n_vals[w])
         yerr = yvals[w].std()
         yerr=numpy.array([yerr]*shear.size,dtype='f8')
 
@@ -151,7 +151,7 @@ def plot_pqr_weights(plt, c, symbol, color, linestyle, options, max_weight,
         label='%s %s' % (c['run'].replace('run-',''), label )
 
     url=nsim.files.get_averaged_url(c['run'])
-    print url
+    print(url)
     data=fitsio.read(url)
 
     s2n_vals = data[options.s2n_field]
@@ -165,7 +165,7 @@ def plot_pqr_weights(plt, c, symbol, color, linestyle, options, max_weight,
 
     yvals = data['Cinv_sum'][:, 0, 0]/data['nsum']/max_weight
 
-    print 'max val:',yvals.max()
+    print('max val:',yvals.max())
 
     pts = biggles.Points(s2n_vals, 
                          yvals,
@@ -341,9 +341,9 @@ def main():
         plt.show()
 
     if options.png:
-        print options.png
+        print(options.png)
         plt.write_img(800,800,options.png)
     if options.eps:
-        print options.eps
+        print(options.eps)
         plt.write_eps(options.eps)
 main()

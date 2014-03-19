@@ -5,6 +5,8 @@
 s2n ignored for joint prior
 """
 
+from __future__ import print_function
+
 import sys
 import os
 from sys import stderr
@@ -31,7 +33,7 @@ def get_checkpoint_data(output_file):
     data=None
 
     if os.path.exists(checkpoint_file):
-        print >>stderr,'reading checkpoint data:',checkpoint_file
+        print('reading checkpoint data:',checkpoint_file)
         data=fitsio.read(checkpoint_file)
 
     return checkpoint_file, data
@@ -42,7 +44,7 @@ def cleanup_checkpoint(checkpoint_file):
     the checkpoint file
     """
     if os.path.exists(checkpoint_file):
-        print >>stderr,'removing checkpoint file',checkpoint_file
+        print('removing checkpoint file',checkpoint_file)
         os.remove(checkpoint_file)
 
 def profile_sim(sim_conf,run_conf,s2n,npairs,output_file,options):
@@ -70,7 +72,7 @@ def profile_sim_pycallgraph(sim_conf,run_conf,s2n,npairs,output_file,options):
 
     img_name=options.profile_image
     graphviz = GraphvizOutput()
-    print 'profile image:',img_name
+    print('profile image:',img_name)
     graphviz.output_file = img_name
     config=pycallgraph.Config(groups=False)
 
@@ -109,11 +111,7 @@ def run_sim(sim_conf,run_conf,s2n,npairs,output_file,options):
     if success:
         cleanup_checkpoint(checkpoint_file)
     else:
-        print >>stderr,'not removing checkpoint due to write failure'
-
-    #print >>stderr,'writing:',output_file
-    #with fitsio.FITS(output_file,'rw',clobber=True) as fobj:
-    #    fobj.write(data)
+        print('not removing checkpoint due to write failure')
 
 
 def main():
@@ -128,18 +126,18 @@ def main():
     npairs=int(args[2])
     output_file=args[3]
 
-    print >>stderr,'reading config files'
+    print('reading config files')
     run_conf = nsim.files.read_config(run)
     sim_conf = nsim.files.read_config(run_conf['sim'])
 
     if options.profile_image is not None:
-        print >>stderr,'profiling sim with pycallgraph'
+        print('profiling sim with pycallgraph')
         profile_sim_pycallgraph(sim_conf,run_conf,s2n,npairs,output_file,options)
     elif options.profile:
-        print >>stderr,'profiling sim with cProfile'
+        print('profiling sim with cProfile')
         profile_sim(sim_conf,run_conf,s2n,npairs,output_file,options)
     else:
-        print >>stderr,'running sim'
+        print('running sim')
         run_sim(sim_conf,run_conf,s2n,npairs,output_file,options)
 
 main()

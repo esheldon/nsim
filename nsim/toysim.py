@@ -1,6 +1,5 @@
 from __future__ import print_function
 
-from sys import stderr
 import time
 
 import numpy
@@ -69,7 +68,7 @@ class ToySim(object):
         for i in xrange(ngal):
             i1=i+1
             if (i1 % self.print_step)==0:
-                print("gal %d/%d" % (i1, ngal), file=stderr)
+                print("gal %d/%d" % (i1, ngal) )
 
             glike = self._get_galaxy_glike()
 
@@ -77,8 +76,8 @@ class ToySim(object):
             self._copy_to_output(i,P,Q,R,arate,neff)
 
         tm=time.time()-t0
-        print("time per galaxy:",tm/ngal, file=stderr)
-        print("total time:    ",tm, file=stderr)
+        print("time per galaxy:",tm/ngal )
+        print("total time:    ",tm)
 
     def get_data(self):
         """
@@ -125,7 +124,6 @@ class ToySim(object):
 
 
             neff = Psum/Pmax
-            #print("    neff:",neff,file=stderr)
 
             arate_sum += arate
             niter+=1
@@ -290,7 +288,7 @@ class ToySim(object):
             # fail silently which is the stupidest thing I have ever seen in my
             # entire life.  If I want to set the state it is important to me!
             
-            print('    replacing random state',file=stderr)
+            print('    replacing random state')
 
             # OK, we will just hope that _random doesn't change names in the future.
             # but at least we get control back
@@ -350,7 +348,7 @@ def quick(shear, err_sigma, ngal, ntrials):
     for i in xrange(ngal):
         i1=i+1
         if (i1 % 1000) == 0:
-            print("%s/%s" % (i1,ngal),file=stderr)
+            print("%s/%s" % (i1,ngal))
 
         g1,g2=g_prior.sample2d(1)
         shape=ngmix.shape.Shape(g1[0],g2[0])

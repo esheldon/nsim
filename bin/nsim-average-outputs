@@ -2,9 +2,8 @@
 """
     %prog run is2n
 """
-
+from __future__ import print_function
 import sys
-from sys import stderr
 import os
 import numpy
 from numpy import sqrt, array
@@ -98,7 +97,7 @@ def get_shear_stats(conf, data, options, g1i=2, g2i=3):
 
     if options.jackknife:
         t0=time.time()
-        print >>stderr,'jackknifing'
+        print('jackknifing')
 
         npair=data.size/2
         chunksize = npair/1000
@@ -111,7 +110,7 @@ def get_shear_stats(conf, data, options, g1i=2, g2i=3):
             chunksize=1
         elif chunksize > 100:
             chunksize=100
-        print >>stderr,'    jackknife chunksize:',chunksize
+        print('    jackknife chunksize:',chunksize)
 
         shear, shear_cov = \
                 lensing.pqr.pqr_jackknife(data['P'],data['Q'],data['R'],
@@ -120,7 +119,7 @@ def get_shear_stats(conf, data, options, g1i=2, g2i=3):
                                           eps=conf['eps'])
 
         tm=time.time()-t0
-        print 'time to jackknife:',tm/60.,'minutes'
+        print('time to jackknife:',tm/60.,'minutes')
 
         shear_cov_inv = numpy.linalg.inv(shear_cov)
         w=numpy.arange(data.size)
@@ -228,7 +227,7 @@ def do_avg(conf, d):
     expand_shear=conf.get('expand_shear_true',False)
     if expand_shear:
         true_shear = numpy.array( conf['simc']['shear'] )
-        print >>stderr,'adding expand shear:',true_shear
+        print('adding expand shear:',true_shear)
         shear += true_shear
 
     d['shear'][0] = shear
@@ -236,7 +235,7 @@ def do_avg(conf, d):
     sherr=numpy.sqrt(shear_cov[0,0])
     fracdiff=shear[0]/conf['simc']['shear'][0]-1.0
     fracdiff_err=sherr/conf['simc']['shear'][0]
-    print >>stderr,'fracdiff:          % .2e +/- %.2e' % (fracdiff, fracdiff_err)
+    print('fracdiff:          % .2e +/- %.2e' % (fracdiff, fracdiff_err))
 
     d['shear_cov'][0,:,:] = shear_cov
 
@@ -261,7 +260,7 @@ def do_avg(conf, d):
 
         fracdiff=shl[0]/conf['simc']['shear'][0]-1.0
         fracdiff_err=sherr/conf['simc']['shear'][0]
-        print >>stderr,'fracdiff(lensfit): % .2e +/- %.2e' % (fracdiff, fracdiff_err)
+        print('fracdiff(lensfit): % .2e +/- %.2e' % (fracdiff, fracdiff_err))
 
     if model in simple_models or model=='bdf':
         d['flux'] = d['flux_sum']/d['nsum']
@@ -298,7 +297,7 @@ def do_sums_bychunk(conf, fobj, d, options):
     for i in xrange(nchunks):
         beg = i*CHUNKSIZE
         end = (i+1)*CHUNKSIZE
-        print >>stderr,'    %s:%s of %s' % (beg,end,nrows)
+        print('    %s:%s of %s' % (beg,end,nrows))
         data = fobj[1][beg:end]
 
         do_sums(conf, data, d, options)
@@ -307,7 +306,7 @@ def get_averaged(conf, s2n_matched, options):
 
     model=conf['fit_model']
 
-    print >>stderr,conf['fname']
+    print(conf['fname'])
     with fitsio.FITS(conf['fname']) as fobj:
 
         dt= get_dtype(fobj,model)
@@ -352,7 +351,7 @@ def pqr_jackknife(P, Q, R,
     # some may not get used
     nchunks = npair/chunksize
 
-    print >>stderr,'getting overall sums'
+    print('getting overall sums')
     P_sum, Q_sum, Cinv_sum = lensing.pqr.get_pqr_sums(P,Q,R)
     C = numpy.linalg.inv(Cinv_sum)
     shear = numpy.dot(C,Q_sum)
@@ -431,7 +430,7 @@ def main():
     output = get_averaged(c, s2n_matched, options)
 
     out_fname=nsim.files.get_averaged_url(run, is2n=is2n)
-    print >>stderr,'writing:',out_fname
+    print('writing:',out_fname)
     fitsio.write(out_fname, output, clobber=True)
 
 

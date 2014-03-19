@@ -48,7 +48,6 @@ s2n_vals: [ 15, 21, 30, 42, 60, 86, 122, 174, 247, 352, 500]
 """
 
 import os
-from sys import stderr
 import time
 import pprint
 
@@ -127,8 +126,8 @@ class NGMixSim(dict):
         self.set_noise()
 
         if self.verbose:
-            pprint.pprint(self, stream=stderr)
-            pprint.pprint(self.simc, stream=stderr)
+            pprint.pprint(self)
+            pprint.pprint(self.simc)
 
     def run_sim(self):
         """
@@ -141,7 +140,7 @@ class NGMixSim(dict):
         npairs=self.npairs
         for ipair in xrange(npairs):
             if self.verbose:
-                print >>stderr,'%s/%s' % (ipair+1,npairs)
+                print('%s/%s' % (ipair+1,npairs) )
 
             self.ipair=ipair
             if self.data['processed'][i]:
@@ -153,7 +152,7 @@ class NGMixSim(dict):
                         break
                     except TryAgainError as err:
                         if self.verbose:
-                            print >>stderr,str(err)
+                            print(str(err))
 
                 self.copy_to_output(reslist[0], i)
                 i += 1
@@ -165,9 +164,9 @@ class NGMixSim(dict):
 
         self.set_elapsed_time()
         if self.verbose:
-            print >>stderr,'time minutes:',self.tm_minutes
-            print >>stderr,'time per pair sec:',self.tm/npairs
-            print >>stderr,'time per image sec:',self.tm/(2*npairs)
+            print('time minutes:',self.tm_minutes)
+            print('time per pair sec:',self.tm/npairs)
+            print('time per image sec:',self.tm/(2*npairs))
 
 
 
@@ -191,7 +190,7 @@ class NGMixSim(dict):
         expand_shear_true=self.get('expand_shear_true',None)
         if expand_shear_true:
             self.shear_expand=self.shear
-            print >>stderr,'nsim: expanding about shear:',self.shear_expand
+            print('nsim: expanding about shear:',self.shear_expand)
         else:
             self.shear_expand=None
 
@@ -267,14 +266,14 @@ class NGMixSim(dict):
             trials_plot=self.plot_base+'-%06d-%s-trials.png' % (self.ipair,key)
             trials_wplot=self.plot_base+'-%06d-%s-wtrials.png' % (self.ipair,key)
 
-            print >>stderr,trials_plot
+            print(trials_plot)
             p.write_img(width,height,trials_plot)
-            print >>stderr,trials_wplot
+            print(trials_wplot)
             wp.write_img(width,height,trials_wplot)
 
         else:
             trials_plot=self.plot_base+'-%06d-%s-trials.png' % (self.ipair,key)
-            print >>stderr,trials_plot
+            print(trials_plot)
             tp.write_img(width,height,trials_plot)
 
 
@@ -358,7 +357,7 @@ class NGMixSim(dict):
         res = fitter.get_result()
 
         ew=res['eff_iweight']
-        print >>stderr,'    eff iweight:',ew,'eff samples:',res['eff_n_samples']
+        print('    eff iweight:',ew,'eff samples:',res['eff_n_samples'])
 
         if False:
             pprint.pprint(res)
@@ -592,7 +591,7 @@ class NGMixSim(dict):
             pprint.pprint(res)
 
         ew=res['eff_iweight']
-        print >>stderr,'    eff iweight:',ew,'eff samples:',res['eff_n_samples']
+        print('    eff iweight:',ew,'eff samples:',res['eff_n_samples'])
 
         return res
 
@@ -722,7 +721,7 @@ class NGMixSim(dict):
         """
         guess_type=self['guess_type']
         if guess_type=='draw_truth':
-            print >>stderr,'    * guessing randomized truth'
+            print('    * guessing randomized truth')
             full_guess=self.get_guess_from_pars(imdict['pars'], n=n)
         elif guess_type=='draw_priors':
             full_guess=self.get_guess_draw_priors(n=n)
@@ -731,11 +730,6 @@ class NGMixSim(dict):
         else:
             raise ValueError("bad guess type: '%s'" % guess_type)
         
-        #Tm=full_guess[:,4].mean()
-        #print >>stderr,'MEAN T GUESS:',Tm
-        #print >>stderr,'MEAN SIG GUESS (pix):',\
-        #        numpy.sqrt(Tm/2.)/self.pixel_scale
-        #print >>stderr,'MEAN FLUX GUESS:',full_guess[:,5].mean()
         return full_guess
 
     def get_mcmc_fitter(self, imdict, full_guess):
@@ -758,13 +752,12 @@ class NGMixSim(dict):
 
         for ipass in [0,1]:
             if ipass==0:
-                print >>stderr,'    pass 1'
+                print('    pass 1')
                 full_guess=self.get_guess(imdict, n=nwalkers)
             else:
                 best_pars=fitter.best_pars
                 ngmix.fitting.print_pars(best_pars,
-                                         front='    pass 2 pars: ',
-                                         stream=stderr)
+                                         front='    pass 2 pars: ')
                 full_guess=self.get_guess_from_pars(best_pars, n=nwalkers)
 
             min_arate=self['min_arate'][ipass]
@@ -799,7 +792,7 @@ class NGMixSim(dict):
                 fitter.go()
                 if fitter.arate < min_arate and itry < (ntry-1):
                     nwalkers = nwalkers*2
-                    print >>stderr,'        trying nwalkers:',nwalkers
+                    print('        trying nwalkers:',nwalkers)
                     full_guess=self.get_guess(imdict, n=nwalkers)
                 else:
                     break
@@ -856,10 +849,10 @@ class NGMixSim(dict):
             if arate >= min_arate:
                 break
             elif i < (ntry-1):
-                print >>stderr,"        arate",arate,"<",min_arate
+                print("        arate",arate,"<",min_arate)
                 nwalkers_old=nwalkers
                 nwalkers = nwalkers*2
-                print >>stderr,'        trying nwalkers:',nwalkers
+                print('        trying nwalkers:',nwalkers)
 
                 #full_guess=self.get_guess(imdict, n=nwalkers)
 
@@ -880,7 +873,7 @@ class NGMixSim(dict):
                 #full_guess[nwalkers_old:]=chain[:, -2:, :]
                 #full_guess[:,:] = trials[-nwalkers:, :]
 
-                print '       ',full_guess.shape
+                print('       ',full_guess.shape)
 
         if arate < min_arate:
             if self['keep_low_arate']:
@@ -1092,7 +1085,6 @@ class NGMixSim(dict):
         """
         import ngmix
 
-        #print >>stderr,'    ** guessing from priors'
         if self.npars != 6:
             raise ValueError("wrong npars for simple!")
 
@@ -1117,7 +1109,6 @@ class NGMixSim(dict):
         """
         import ngmix
 
-        #print >>stderr,'    guessing from priors'
         if self.npars != 7:
             raise ValueError("wrong npars for bdf!")
 
@@ -1172,8 +1163,8 @@ class NGMixSim(dict):
 
         pars=res['pars']
         perr=res['pars_err']
-        ngmix.fitting.print_pars(pars, front='        lmpars: ',stream=stderr)
-        ngmix.fitting.print_pars(perr, front='        lmperr: ',stream=stderr)
+        ngmix.fitting.print_pars(pars, front='        lmpars: ')
+        ngmix.fitting.print_pars(perr, front='        lmperr: ')
 
         guess=self.get_guess_from_pars(pars, n=n, width=perr)
 
@@ -1347,14 +1338,14 @@ class NGMixSim(dict):
         import ngmix
 
         if 'arate' in res:
-            print >>stderr,'    arate:',res['arate'],'s2n_w:',\
-                    res['s2n_w'],'nuse:',res['nuse']
+            print('    arate:',res['arate'],'s2n_w:',
+                    res['s2n_w'],'nuse:',res['nuse'])
         elif 'nfev' in res:
-            print >>stderr,'    nfev:',res['nfev'],'s2n_w:',res['s2n_w']
+            print('    nfev:',res['nfev'],'s2n_w:',res['s2n_w'])
 
-        ngmix.fitting.print_pars(res['pars_true'], front='    true: ',stream=stderr)
-        ngmix.fitting.print_pars(res['pars'],front='    pars: ',stream=stderr)
-        ngmix.fitting.print_pars(res['pars_err'],front='    perr: ',stream=stderr)
+        ngmix.fitting.print_pars(res['pars_true'], front='    true: ')
+        ngmix.fitting.print_pars(res['pars'],front='    pars: ')
+        ngmix.fitting.print_pars(res['pars_err'],front='    perr: ')
 
     def make_psf(self):
         """
@@ -1362,12 +1353,11 @@ class NGMixSim(dict):
         """
         import ngmix
 
-        #print >>stderr,"making psf"
 
         if 'psf_fwhm' in self.simc:
             psf_sigma = self.simc['psf_fwhm']/2.3548200450309493
             self.simc['psf_T'] = 2*psf_sigma**2
-            print >>stderr,'psf_T:',self.simc['psf_T']
+            print('psf_T:',self.simc['psf_T'])
 
         pars=[0.0,
               0.0,
@@ -1399,7 +1389,7 @@ class NGMixSim(dict):
         import ngmix
         from ngmix.gexceptions import GMixMaxIterEM
 
-        print >>stderr,'    fitting psf'
+        print('    fitting psf')
         imsky,sky=ngmix.em.prep_image(image)
 
         em=ngmix.em.GMixEM(imsky,jacobian=self.jacobian)
@@ -1409,18 +1399,18 @@ class NGMixSim(dict):
 
         while True:
             guess=self.get_psf_guess()
-            print >>stderr,'    psf guess:'
-            print >>stderr,guess
+            print('    psf guess:')
+            print(guess)
             try:
                 em.go(guess, sky, tol=tol,maxiter=maxiter)
                 break
             except GMixMaxIterEM as e:
-                print >>stderr,str(e)
-                print >>stderr,'re-trying'
+                print(str(e))
+                print('re-trying')
 
         self.psf_gmix_fit=em.get_gmix()
-        print >>stderr,'psf fit:'
-        print >>stderr,self.psf_gmix_fit
+        print('psf fit:')
+        print(self.psf_gmix_fit)
 
     def get_psf_guess(self):
         """
@@ -1479,8 +1469,6 @@ class NGMixSim(dict):
         """
         import ngmix
 
-        #print >>stderr,"setting priors"
-
         self.pixel_scale = self.simc.get('pixel_scale',1.0)
 
         # can instead use fits from cosmos....
@@ -1519,10 +1507,10 @@ class NGMixSim(dict):
             self.s2n_for_noise = flux_mode_s2n
 
 
-            print >>stderr,"""
+            print("""
     flux_mode:   %s
     flux_bounds: %s
-            """ % (flux_mode, self.flux_bounds)
+            """ % (flux_mode, self.flux_bounds) )
 
             self.joint_TF_prior=cls(T_bounds=self.T_bounds,
                                     flux_bounds=self.flux_bounds)
@@ -1573,7 +1561,6 @@ class NGMixSim(dict):
             self.skysig=skysig
             self.ivar=1.0/skysig**2
         else:
-            #   print >>stderr,"setting noise"
 
             imdict=self.get_image_pair(random=False)
             im=imdict['im1']['image0']
@@ -1589,7 +1576,6 @@ class NGMixSim(dict):
             s2n_denom = numpy.sqrt( (im**2*self.ivar).sum() )
             s2n_check = s2n_numer/s2n_denom
 
-            #print >>stderr,"S/N goal:",self.s2n_for_noise,"found:",s2n_check
 
     def get_model_s2n(self, im):
         s2n = numpy.sqrt( (im**2).sum() )/self.skysig
@@ -1649,8 +1635,6 @@ class NGMixSim(dict):
         T = gm1.get_T()
         dims_pix, cen0_pix = self.get_dims_cen(T)
 
-        #print >>stderr,'cen0(pix):',cen0_pix,\
-        #        'offset(pix):',cen_offset_arcsec/self.pixel_scale
 
         gm1.set_cen(cen_offset_arcsec[0], cen_offset_arcsec[1])
         gm2.set_cen(cen_offset_arcsec[0], cen_offset_arcsec[1])
@@ -1733,7 +1717,7 @@ class NGMixSim(dict):
                     if T_near < T_min:
                         T = T_min
                         mess='T_near=%.2f too small, using bound: %.2f'
-                        print >>stderr,mess % (T_near,T_min)
+                        print(mess % (T_near,T_min))
                     else:
                         T=T_near
 
@@ -1849,7 +1833,7 @@ class NGMixSim(dict):
 
         """
 
-        print >>stderr,'checkpointing at',self.tm_minutes,'minutes'
+        print('checkpointing at',self.tm_minutes,'minutes')
         success=write_fits(self.checkpoint_file, self.data)
 
 
@@ -1947,7 +1931,7 @@ class NGMixSimJoint(NGMixSim):
             if self['keep_low_arate']:
                 fitter._result['flags'] =0
             else:
-                print >>stderr,'        low arate:',res['arate']
+                print('        low arate:',res['arate'])
                 fitter._result['flags'] |= LOW_ARATE
 
 
@@ -1999,7 +1983,6 @@ class NGMixSimJoint(NGMixSim):
         """
         import ngmix
 
-        #print >>stderr,"setting priors"
 
         self.pixel_scale = self.simc.get('pixel_scale',1.0)
         self.skyskig = self.simc['skysig']
@@ -2156,7 +2139,7 @@ def write_fits(filename, data):
     output_file=os.path.abspath(filename)
 
     local_file=os.path.abspath( os.path.basename(output_file) )
-    print >>stderr,"writing local file:",local_file
+    print("writing local file:",local_file)
 
     with fitsio.FITS(local_file,'rw',clobber=True) as fobj:
         fobj.write(data)
@@ -2171,16 +2154,16 @@ def write_fits(filename, data):
         pass
 
     # try a few times
-    print >>stderr,"moving to:",output_file
+    print("moving to:",output_file)
     cmd='mv -v %s %s' % (local_file, output_file)
     for i in xrange(5):
         stat=os.system(cmd)
         if stat==0:
-            print >>stderr,'success'
+            print('success')
             success=True
             break
         else:
-            print >>stderr,'error moving file, trying again'
+            print('error moving file, trying again')
             time.sleep(5)
             success=False
 
@@ -2191,7 +2174,6 @@ def seed_global_devrand():
     Seed the "global" random number generator
     """
     seed = get_devrand_uint()
-    #print >>stderr,'seed global from devrand:',seed
     numpy.random.seed(seed)
 
 def get_random_state_devrand():
@@ -2199,7 +2181,6 @@ def get_random_state_devrand():
     Seed the numpy random state from /dev/random
     """
     seed = get_devrand_uint()
-    #print >>stderr,'seed from devrand:',seed
     return numpy.random.mtrand.RandomState(seed=seed)
 
 def get_devrand_uint():

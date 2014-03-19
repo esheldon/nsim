@@ -2,7 +2,7 @@
 """
     %prog run
 """
-
+from __future__ import print_function
 import sys
 import numpy
 import nsim
@@ -25,7 +25,7 @@ def main():
 
     for is2n in xrange(ns2n):
         fname=nsim.files.get_averaged_url(run, is2n=is2n)
-        print fname
+        print(fname)
         data = fitsio.read(fname)
 
         if is2n==0:
@@ -34,7 +34,7 @@ def main():
         output[is2n] = data
 
     out_fname=nsim.files.get_averaged_url(run)
-    print 'writing:',out_fname
+    print('writing:',out_fname)
 
     fitsio.write(out_fname, output, clobber=True)
 

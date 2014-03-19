@@ -1,4 +1,4 @@
-from sys import stderr
+from sys import stdout
 import numpy
 
 # region over which to render images and calculate likelihoods
@@ -46,9 +46,9 @@ class Width(object):
 
         for i,Trat in enumerate(T_ratios):
             if (i % 5) == 0:
-                stderr.write('\nTrat: %s\n' % Trat)
+                stdout.write('\nTrat: %s\n' % Trat)
             else:
-                stderr.write('.')
+                stdout.write('.')
 
             test_T = Trat*self.psf_T
 
@@ -57,7 +57,7 @@ class Width(object):
 
             width_ratios[i] = (fwhm/psf_fwhm).mean()
 
-        stderr.write('\n')
+        stdout.write('\n')
 
         T_ratio_a = numpy.interp(numpy.array([width_ratio]),
                                  width_ratios,

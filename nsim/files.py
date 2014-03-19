@@ -1,4 +1,3 @@
-from sys import stderr
 import os
 from os.path import join as path_join
 
@@ -381,7 +380,7 @@ def get_npair_by_noise_fluxlim(s2n, desired_err, run, sigratio_low):
     """
 
     if '-eg' in run:
-        print >>stderr,'DOING FLUXLIM'
+        print('DOING FLUXLIM')
         if sigratio_low < 0.85:
 
             s2n_ref   = s2n_ref_eg_fluxlim85 
@@ -401,7 +400,7 @@ def get_npair_by_noise_fluxlim(s2n, desired_err, run, sigratio_low):
     errii = numpy.interp([s2n], s2n_ref, err_ref)
 
     npair = npairii*(errii/desired_err)**2
-    print 'NPAIR for s/n=%s is %s' % (s2n,npair)
+    print('NPAIR for s/n=%s is %s' % (s2n,npair) )
     return npair
 
 def get_npair_nsplit(c, is2n, npair_min=None):

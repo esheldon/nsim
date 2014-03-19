@@ -322,7 +322,7 @@ def main():
     elif options.plot_type=='weights':
         ypos=0.5
 
-    key=biggles.PlotKey(0.9,ypos,cobj,halign='right')
+    key=biggles.PlotKey(0.9,ypos,cobj,halign='right',fontsize=1)
     plt.add(key)
     plt.xrange=xrng
 

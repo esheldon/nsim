@@ -22,4 +22,5 @@ shear: [0.08,0.0]
 
 nsub: 16
 
-label: '$exp \sigma_{gal}/\sigma_{PSF}=2.0$'
+#label: '$exp \sigma_{gal}/\sigma_{PSF}=2.0$'
+label: '$exp$'

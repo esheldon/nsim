@@ -22,4 +22,5 @@ shear: [0.08,0.0]
 
 nsub: 16
 
-label: '$dev \sigma_{gal}/\sigma_{PSF}=2.0$'
+#label: '$dev \sigma_{gal}/\sigma_{PSF}=2.0$'
+label: '$fwhm/fwhm_{psf}=1.2 dev$'

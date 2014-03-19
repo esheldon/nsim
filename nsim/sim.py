@@ -126,8 +126,9 @@ class NGMixSim(dict):
 
         self.set_noise()
 
-        pprint.pprint(self, stream=stderr)
-        pprint.pprint(self.simc, stream=stderr)
+        if self.verbose:
+            pprint.pprint(self, stream=stderr)
+            pprint.pprint(self.simc, stream=stderr)
 
     def run_sim(self):
         """
@@ -151,7 +152,8 @@ class NGMixSim(dict):
                         reslist=self.process_pair()
                         break
                     except TryAgainError as err:
-                        print >>stderr,str(err)
+                        if self.verbose:
+                            print >>stderr,str(err)
 
                 self.copy_to_output(reslist[0], i)
                 i += 1
@@ -162,9 +164,10 @@ class NGMixSim(dict):
             self.try_checkpoint()
 
         self.set_elapsed_time()
-        print >>stderr,'time minutes:',self.tm_minutes
-        print >>stderr,'time per pair sec:',self.tm/npairs
-        print >>stderr,'time per image sec:',self.tm/(2*npairs)
+        if self.verbose:
+            print >>stderr,'time minutes:',self.tm_minutes
+            print >>stderr,'time per pair sec:',self.tm/npairs
+            print >>stderr,'time per image sec:',self.tm/(2*npairs)
 
 
 
@@ -1359,7 +1362,7 @@ class NGMixSim(dict):
         """
         import ngmix
 
-        print >>stderr,"making psf"
+        #print >>stderr,"making psf"
 
         if 'psf_fwhm' in self.simc:
             psf_sigma = self.simc['psf_fwhm']/2.3548200450309493
@@ -1476,7 +1479,7 @@ class NGMixSim(dict):
         """
         import ngmix
 
-        print >>stderr,"setting priors"
+        #print >>stderr,"setting priors"
 
         self.pixel_scale = self.simc.get('pixel_scale',1.0)
 
@@ -1565,12 +1568,12 @@ class NGMixSim(dict):
           (S/N)^2
         """
         
-        skysig=self.simc['skysig']
+        skysig=self.simc.get('skysig')
         if skysig is not None:
             self.skysig=skysig
             self.ivar=1.0/skysig**2
         else:
-            print >>stderr,"setting noise"
+            #   print >>stderr,"setting noise"
 
             imdict=self.get_image_pair(random=False)
             im=imdict['im1']['image0']
@@ -1586,7 +1589,7 @@ class NGMixSim(dict):
             s2n_denom = numpy.sqrt( (im**2*self.ivar).sum() )
             s2n_check = s2n_numer/s2n_denom
 
-            print >>stderr,"S/N goal:",self.s2n_for_noise,"found:",s2n_check
+            #print >>stderr,"S/N goal:",self.s2n_for_noise,"found:",s2n_check
 
     def get_model_s2n(self, im):
         s2n = numpy.sqrt( (im**2).sum() )/self.skysig
@@ -1996,7 +1999,7 @@ class NGMixSimJoint(NGMixSim):
         """
         import ngmix
 
-        print >>stderr,"setting priors"
+        #print >>stderr,"setting priors"
 
         self.pixel_scale = self.simc.get('pixel_scale',1.0)
         self.skyskig = self.simc['skysig']
@@ -2188,7 +2191,7 @@ def seed_global_devrand():
     Seed the "global" random number generator
     """
     seed = get_devrand_uint()
-    print >>stderr,'seed global from devrand:',seed
+    #print >>stderr,'seed global from devrand:',seed
     numpy.random.seed(seed)
 
 def get_random_state_devrand():
@@ -2196,7 +2199,7 @@ def get_random_state_devrand():
     Seed the numpy random state from /dev/random
     """
     seed = get_devrand_uint()
-    print >>stderr,'seed from devrand:',seed
+    #print >>stderr,'seed from devrand:',seed
     return numpy.random.mtrand.RandomState(seed=seed)
 
 def get_devrand_uint():

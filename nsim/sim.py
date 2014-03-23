@@ -46,7 +46,7 @@ nsplit0: 60000
 s2n_vals: [ 15, 21, 30, 42, 60, 86, 122, 174, 247, 352, 500] 
 
 """
-
+from __future__ import print_function
 import os
 import time
 import pprint
@@ -1888,10 +1888,10 @@ class NGMixSim(dict):
         self.data=numpy.zeros(self.npairs*2, dtype=dt)
 
 
-class NGMixSimJoint(NGMixSim):
+class NGMixSimJointBDF(NGMixSim):
     def __init__(self, sim_conf, run_conf, npairs, **keys):
         s2n=-1
-        super(NGMixSimJoint,self).__init__(sim_conf, run_conf, s2n, npairs, **keys)
+        super(NGMixSimJointBDF,self).__init__(sim_conf, run_conf, s2n, npairs, **keys)
 
     def fit_galaxy(self, imdict):
         """
@@ -1994,6 +1994,99 @@ class NGMixSimJoint(NGMixSim):
                 great3.joint_prior.make_joint_prior_bdf(type=joint_prior_type)
         else:
             raise ValueError("bad joint prior type: '%s'" % joint_prior_type)
+
+        cen_sigma_arcsec=self.simc['cen_sigma']
+        self.cen_prior=ngmix.priors.CenPrior(0.0,
+                                             0.0,
+                                             cen_sigma_arcsec,
+                                             cen_sigma_arcsec)
+
+
+class NGMixSimJointSimple(NGMixSim):
+    def __init__(self, sim_conf, run_conf, npairs, **keys):
+        s2n=-1
+        super(NGMixSimJointSimple,self).__init__(sim_conf, run_conf, s2n, npairs, **keys)
+
+    def fit_galaxy(self, imdict):
+        """
+        Fit BDF model with joint prior
+        """
+        from ngmix.fitting import MCMCSimpleJoint
+
+        nwalkers = self['nwalkers']
+
+        full_guess=self.get_guess(imdict, n=nwalkers)
+
+        fitter=MCMCSimpleJoint(imdict['image'],
+                               imdict['wt'],
+                               self.jacobian,
+                               self['fit_model'],
+
+                               cen_prior=self.cen_prior,
+                               joint_prior=self.joint_prior,
+
+                               full_guess=full_guess,
+
+                               shear_expand=self.shear_expand,
+
+                               psf=self.psf_gmix_fit,
+                               nwalkers=nwalkers,
+                               nstep=self['nstep'],
+                               burnin=self['burnin'],
+                               mca_a=self['mca_a'],
+
+                               prior_during=self['prior_during'],
+
+                               random_state=self.random_state,
+                               do_pqr=True)
+        fitter.go()
+        res=fitter.get_result()
+
+        return fitter
+
+    def get_pair_pars(self, **keys):
+        """
+        Get pair parameters
+        """
+        from numpy import pi
+        import ngmix
+
+        pars1=numpy.zeros(6)
+        pars2=numpy.zeros(6)
+
+        cen_offset_arcsec=array( self.cen_prior.sample() )
+
+        pars1[2:] = self.joint_prior.sample()
+        pars2=pars1.copy()
+        
+
+        shape1 = ngmix.shape.Shape(pars1[2], pars1[3])
+        shape2 = shape1.copy()
+        shape2.rotate(pi/2.0)
+
+        shear=self.shear
+        shape1.shear(shear[0], shear[1])
+        shape2.shear(shear[0], shear[1])
+
+        pars1[2], pars1[3] = shape1.g1, shape1.g2
+        pars2[2], pars2[3] = shape2.g1, shape2.g2
+
+        return pars1, pars2, cen_offset_arcsec
+
+    def set_priors(self):
+        """
+        Set all the priors
+        """
+        import great3
+        import ngmix
+
+
+        self.pixel_scale = self.simc.get('pixel_scale',1.0)
+        self.skyskig = self.simc['skysig']
+
+        joint_prior_type = self.simc['joint_prior_type']
+        self.joint_prior = \
+            great3.joint_prior.make_joint_prior_simple(type=joint_prior_type)
 
         cen_sigma_arcsec=self.simc['cen_sigma']
         self.cen_prior=ngmix.priors.CenPrior(0.0,

@@ -91,11 +91,16 @@ def run_sim(sim_conf,run_conf,s2n,npairs,output_file,options):
     plot_base=output_file.replace('.fits','')
 
     if 'joint_prior_type' in sim_conf:
-        sim=nsim.sim.NGMixSimJoint(sim_conf, run_conf, npairs,
-                                   checkpoint_file=checkpoint_file,
-                                   checkpoint_data=checkpoint_data,
-                                   make_plots=options.make_plots,
-                                   plot_base=plot_base)
+        jptype=sim_conf['joint_prior_type']
+        if 'bdf' in jptype:
+            cls=nsim.sim.NGMixSimJointBDF
+        elif 'exp' in jptype or 'dev' in jptype:
+            cls=nsim.sim.NGMixSimJointSimple
+        sim=cls(sim_conf, run_conf, npairs,
+                checkpoint_file=checkpoint_file,
+                checkpoint_data=checkpoint_data,
+                make_plots=options.make_plots,
+                plot_base=plot_base)
     else:
         sim=nsim.sim.NGMixSim(sim_conf, run_conf, s2n, npairs,
                               checkpoint_file=checkpoint_file,

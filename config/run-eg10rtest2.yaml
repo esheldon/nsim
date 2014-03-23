@@ -1,0 +1,32 @@
+# prior during
+run: "run-eg10rtest2"
+sim: "sim-eg10"
+
+fitter: "mcmc"
+fit_model: "exp"
+guess_type: "draw_truth"
+
+psf_ngauss: 1
+
+nwalkers: 80
+burnin:   400
+nstep:    800
+mca_a:    2.0
+
+prior_during: true
+
+expand_shear_true: true
+
+# this is a dummy position
+s2n_vals: [9999]
+
+desired_hours: 1.0
+sec_per_pair: 28.0
+npair: [10000]
+
+# in the bdf runs:
+# 10000 pairs gave a jackknifed fractional error of 8.27e-03
+# 100000 should give frac error of 2.6e-3
+# 400000 should give frac error of 1.3e-3
+# and 1,000,000 should give           8.27e-4
+

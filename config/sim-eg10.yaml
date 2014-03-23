@@ -1,0 +1,25 @@
+# using a joint prior fit from great3 real galaxy deep fields
+# noise is from the median standard field
+
+name: "sim-eg10"
+
+# arcsec/pixel
+pixel_scale: 0.2
+skysig: 0.078
+
+psf_model: "gauss"
+
+# in arcsec
+psf_fwhm: 0.9 
+psf_shape: [0.0, 0.0]
+
+obj_model: "exp"
+
+joint_prior_type: "great3-real_galaxy-ground-constant-exp"
+cen_sigma: 0.1
+
+shear: [0.08,0.0]
+
+nsub: 16
+
+label: 'exp Great3 real/ground/constant'

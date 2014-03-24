@@ -1,6 +1,4 @@
-# THIS RUN HAD A BUG I think, not dividing by correct P
-# prior during
-run: "run-eg10rtest2"
+run: "run-eg10rtest3"
 sim: "sim-eg10"
 
 fitter: "mcmc"

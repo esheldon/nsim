@@ -1,6 +1,4 @@
-# THIS RUN HAD A BUG I think, not dividing by correct P
-# prior during
-run: "run-eg10rtest2"
+run: "run-eg10rtest4"
 sim: "sim-eg10"
 
 fitter: "mcmc"
@@ -14,14 +12,15 @@ burnin:   400
 nstep:    800
 mca_a:    2.0
 
-prior_during: true
+# only the center prior is applied
+prior_during: false
 
 expand_shear_true: true
 
 # this is a dummy position
 s2n_vals: [9999]
 
-desired_hours: 0.25
+desired_hours: 0.10
 sec_per_pair: 28.0
 npair: [10000]
 

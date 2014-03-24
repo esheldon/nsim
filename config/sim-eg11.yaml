@@ -1,7 +1,7 @@
 # using a joint prior fit from great3 real galaxy deep fields
 # noise is from the median standard field
 
-name: "sim-eg10"
+name: "sim-eg11"
 
 # arcsec/pixel
 pixel_scale: 0.2
@@ -15,7 +15,7 @@ psf_shape: [0.0, 0.0]
 
 obj_model: "exp"
 
-joint_prior_type: "great3-real_galaxy-ground-constant-exp"
+joint_prior_type: "great3-real_galaxy-ground-constant-exp-linpars"
 cen_sigma: 0.02
 
 shear: [0.08,0.0]

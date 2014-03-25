@@ -20,7 +20,7 @@ expand_shear_true: true
 s2n_vals: [9999]
 
 desired_hours: 1.0
-sec_per_pair: 25.0
+sec_per_pair: 20.0
 npair: [10000]
 
 # in the bdf runs:

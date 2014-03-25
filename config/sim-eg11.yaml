@@ -5,7 +5,8 @@ name: "sim-eg11"
 
 # arcsec/pixel
 pixel_scale: 0.2
-skysig: 0.078
+#skysig: 0.078
+skysig: 0.0078
 
 psf_model: "gauss"
 

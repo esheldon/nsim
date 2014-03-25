@@ -19,8 +19,15 @@
         - exploring likelihood is very noisy in T,Fb,Fd
         - prior evaluation wrong?
 
-- I'm seeing some low arates.  And generally strange arate distribution with a
-  pileup at 0.52 or so
+    - sim-eg10 logpars
+    - sim-eg11 linpars
+        - for both looks very biased, similar to bdf
+        - tried low noise see same, so this is perhaps some mathematical error
+          in the P,Q,R 
+        - tried priors during looks same
+
+- for bdf I'm seeing some low arates.  And generally strange arate distribution
+  with a pileup at 0.52 or so
   - saw better arate with prior during.  But did a run and it did not help.
 
 

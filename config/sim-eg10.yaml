@@ -5,7 +5,8 @@ name: "sim-eg10"
 
 # arcsec/pixel
 pixel_scale: 0.2
-skysig: 0.078
+#skysig: 0.078
+skysig: 0.0078
 
 psf_model: "gauss"
 
@@ -15,7 +16,7 @@ psf_shape: [0.0, 0.0]
 
 obj_model: "exp"
 
-joint_prior_type: "great3-real_galaxy-ground-constant-exp"
+joint_prior_type: "great3-real_galaxy-ground-constant-exp-logpars"
 cen_sigma: 0.02
 
 shear: [0.08,0.0]

@@ -52,7 +52,7 @@ import time
 import pprint
 
 import numpy
-from numpy import array, zeros
+from numpy import array, zeros, log10, exp
 from numpy.random import random as randu
 from numpy.random import randn
 
@@ -2002,20 +2002,128 @@ class NGMixSimJointBDF(NGMixSim):
                                              cen_sigma_arcsec)
 
 
-class NGMixSimJointSimple(NGMixSim):
+
+class NGMixSimJointSimpleLinPars(NGMixSim):
+    """
+    Simple model with joint prior on g1,g2,T,Flux
+    """
+    def __init__(self, sim_conf, run_conf, npairs, **keys):
+        s2n=-1
+        super(NGMixSimJointSimpleLinPars,self).__init__(sim_conf, run_conf, s2n, npairs, **keys)
+
+    def fit_galaxy(self, imdict):
+        """
+        Fit simple model with joint prior
+        """
+        from ngmix.fitting import MCMCSimpleJointLinPars
+
+        nwalkers = self['nwalkers']
+
+        full_guess=self.get_guess(imdict, n=nwalkers)
+
+        fitter=MCMCSimpleJointLinPars(imdict['image'],
+                                      imdict['wt'],
+                                      self.jacobian,
+                                      self['fit_model'],
+
+                                      cen_prior=self.cen_prior,
+                                      joint_prior=self.joint_prior,
+
+                                      full_guess=full_guess,
+
+                                      shear_expand=self.shear_expand,
+
+                                      psf=self.psf_gmix_fit,
+                                      nwalkers=nwalkers,
+                                      nstep=self['nstep'],
+                                      burnin=self['burnin'],
+                                      mca_a=self['mca_a'],
+
+                                      prior_during=self['prior_during'],
+
+                                      random_state=self.random_state,
+                                      do_pqr=True)
+        fitter.go()
+        res=fitter.get_result()
+
+        return fitter
+
+
+    def get_pair_pars(self, **keys):
+        """
+        Get pair parameters
+        """
+        from numpy import pi
+        import ngmix
+
+        # centers zero
+        pars1=numpy.zeros(6)
+
+        # [g,T,Flux]
+        sample=self.joint_prior.sample2d()
+        pars1[4] = sample[2]
+        pars1[5] = sample[3]
+
+        g1,g2=sample[0],sample[1]
+        shape1=ngmix.shape.Shape(g1,g2)
+
+        shape2=shape1.copy()
+        shape2.rotate(pi/2.0)
+
+        shear=self.shear
+        shape1.shear(shear[0], shear[1])
+        shape2.shear(shear[0], shear[1])
+
+        pars1[2] = shape1.g1
+        pars1[3] = shape1.g2
+
+        pars2=pars1.copy()
+        pars2[2] = shape2.g1
+        pars2[3] = shape2.g2
+
+        cen_offset_arcsec=array( self.cen_prior.sample() )
+        return pars1, pars2, cen_offset_arcsec
+
+    def set_priors(self):
+        """
+        Set all the priors
+        """
+        import great3
+        import ngmix
+
+
+        self.pixel_scale = self.simc.get('pixel_scale',1.0)
+        self.skyskig = self.simc['skysig']
+
+        joint_prior_type = self.simc['joint_prior_type']
+        self.joint_prior = \
+            great3.joint_prior.make_joint_prior_simple(type=joint_prior_type)
+
+        cen_sigma_arcsec=self.simc['cen_sigma']
+        self.cen_prior=ngmix.priors.CenPrior(0.0,
+                                             0.0,
+                                             cen_sigma_arcsec,
+                                             cen_sigma_arcsec)
+
+
+
+class NGMixSimJointSimpleLogPars(NGMixSim):
+    """
+    Simple model with joint prior on g1,g2,T,Flux
+    """
     def __init__(self, sim_conf, run_conf, npairs, **keys):
         s2n=-1
         super(NGMixSimJointSimple,self).__init__(sim_conf, run_conf, s2n, npairs, **keys)
 
     def fit_galaxy(self, imdict):
         """
-        Fit BDF model with joint prior
+        Fit simple model with joint prior
         """
         from ngmix.fitting import MCMCSimpleJoint
 
         nwalkers = self['nwalkers']
 
-        full_guess=self.get_guess(imdict, n=nwalkers)
+        full_guess=self.get_guess(imdict['pars'], n=nwalkers)
 
         fitter=MCMCSimpleJoint(imdict['image'],
                                imdict['wt'],
@@ -2044,21 +2152,69 @@ class NGMixSimJointSimple(NGMixSim):
 
         return fitter
 
+    def get_guess(self, pars, n=1):
+        """
+        Get a guess centered on the truth
+
+        width is relative for T and counts
+        """
+        from ngmix.shape import g1g2_to_eta1eta2
+
+        guess=numpy.zeros( (n, pars.size) )
+        
+        guess[:,0] = 0.001*srandu(n)
+        guess[:,1] = 0.001*srandu(n)
+
+        # convert pars to log
+        eta1,eta2=g1g2_to_eta1eta2(pars[2],pars[3])
+        logT=log10(pars[4])
+        logF=log10(pars[5])
+
+        guess[:,2] = eta1*(1.0 + 0.001*srandu(n))
+        guess[:,3] = eta2*(1.0 + 0.001*srandu(n))
+        guess[:,4] = logT*(1.0 + 0.01*srandu(n))
+        guess[:,5] = logF*(1.0 + 0.01*srandu(n))
+
+        return guess
+
+
     def get_pair_pars(self, **keys):
         """
         Get pair parameters
         """
         from numpy import pi
         import ngmix
+        from ngmix.shape import eta1eta2_to_g1g2
+        from ngmix.gexceptions import GMixRangeError
 
+        # centers zero
         pars1=numpy.zeros(6)
-        pars2=numpy.zeros(6)
 
-        cen_offset_arcsec=array( self.cen_prior.sample() )
+        while True:
+            try:
+                logpars1=self.joint_prior.sample()
 
-        pars1[2:] = self.joint_prior.sample()
+                eta1=logpars1[0]
+                eta2=logpars1[1]
+                logT=logpars1[2]
+                logF=logpars1[3]
+                
+                # this might raise an exception
+                g1,g2=eta1eta2_to_g1g2(eta1,eta2)
+                T=10.0**(logT)
+                F=10.0**(logF)
+
+                pars1[2] = g1
+                pars1[3] = g2
+                pars1[4] = T
+                pars1[5] = F
+                break
+            except GMixRangeError:
+                pass
+
+        print("logpars:",logpars1)
+
         pars2=pars1.copy()
-        
 
         shape1 = ngmix.shape.Shape(pars1[2], pars1[3])
         shape2 = shape1.copy()
@@ -2071,6 +2227,7 @@ class NGMixSimJointSimple(NGMixSim):
         pars1[2], pars1[3] = shape1.g1, shape1.g2
         pars2[2], pars2[3] = shape2.g1, shape2.g2
 
+        cen_offset_arcsec=array( self.cen_prior.sample() )
         return pars1, pars2, cen_offset_arcsec
 
     def set_priors(self):

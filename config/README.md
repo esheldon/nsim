@@ -1,34 +1,13 @@
 # vim: set filetype=markdown :
 
 - great3 priors
-    - sim-bdfg02
-        - fiducial seeing 0.9'', and sky noise 0.079
-        - run-bdfg02rtest1
-            - standard parameters
-        - run-bdfg02rtest2
-            - 1600 steps
-        - run-bdfg02rtest3
-            - 160 walkers
+    - look good as long as I keep the g prior separate.  Calling
+    this "hybrid"
 
-        - seeing ~0.01 error in all of above
-
-    - sim-bdfg03
-        - much smaller noise.  See 0.001 error
-
-    - so is somehow related to noise
-        - exploring likelihood is very noisy in T,Fb,Fd
-        - prior evaluation wrong?
-
-    - sim-eg10 logpars
-    - sim-eg11 linpars
-        - for both looks very biased, similar to bdf
-        - tried low noise see same, so this is perhaps some mathematical error
-          in the P,Q,R 
-        - tried priors during looks same
-
-- for bdf I'm seeing some low arates.  And generally strange arate distribution
-  with a pileup at 0.52 or so
-  - saw better arate with prior during.  But did a run and it did not help.
+    - sim-eg11
+        - exp fits from the real_galaxy deep as prior, things look good.  
+    - todo is to go back to bdf and do the g_prior separately and see if I can
+      do decently well.  Will want to fit bdf on the real_galaxy deep fields.
 
 
 * general comments so far

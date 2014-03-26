@@ -20,9 +20,9 @@ expand_shear_true: true
 # this is a dummy position
 s2n_vals: [9999]
 
-desired_hours: 0.10
+desired_hours: 0.40
 sec_per_pair: 20.0
-npair: [10000]
+npair: [400000]
 
 # in the bdf runs:
 # 10000 pairs gave a jackknifed fractional error of 8.27e-03

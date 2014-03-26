@@ -2107,6 +2107,148 @@ class NGMixSimJointSimpleLinPars(NGMixSim):
 
 
 
+
+class NGMixSimJointSimpleHybrid(NGMixSim):
+    """
+    Simple model with joint prior on g1,g2,T,Flux
+    """
+    def __init__(self, sim_conf, run_conf, npairs, **keys):
+        s2n=-1
+        super(NGMixSimJointSimpleHybrid,self).__init__(sim_conf, run_conf, s2n, npairs, **keys)
+
+    def fit_galaxy(self, imdict):
+        """
+        Fit simple model with joint prior
+        """
+        from ngmix.fitting import MCMCSimpleJointHybrid
+
+        nwalkers = self['nwalkers']
+
+        full_guess=self.get_guess(imdict['pars'], n=nwalkers)
+
+        fitter=MCMCSimpleJointHybrid(imdict['image'],
+                                     imdict['wt'],
+                                     self.jacobian,
+                                     self['fit_model'],
+
+                                     cen_prior=self.cen_prior,
+                                     joint_prior=self.joint_prior,
+
+                                     full_guess=full_guess,
+
+                                     shear_expand=self.shear_expand,
+
+                                     psf=self.psf_gmix_fit,
+                                     nwalkers=nwalkers,
+                                     nstep=self['nstep'],
+                                     burnin=self['burnin'],
+                                     mca_a=self['mca_a'],
+
+                                     prior_during=self['prior_during'],
+
+                                     random_state=self.random_state,
+                                     do_pqr=True)
+        fitter.go()
+        res=fitter.get_result()
+
+        return fitter
+
+
+    def get_pair_pars(self, **keys):
+        """
+        Get pair parameters
+        """
+        from numpy import pi
+        import ngmix
+
+        # centers zero
+        pars1=numpy.zeros(6)
+
+        g1a,g2a = self.joint_prior.g_prior.sample2d(1)
+
+        sample=self.joint_prior.sample()
+        logT=sample[0]
+        logF=sample[1]
+
+        pars1[4] = 10.0**logT
+        pars1[5] = 10.0**logF
+
+        shape1=ngmix.shape.Shape(g1a[0],g2a[0])
+
+        shape2=shape1.copy()
+        shape2.rotate(pi/2.0)
+
+        shear=self.shear
+        shape1.shear(shear[0], shear[1])
+        shape2.shear(shear[0], shear[1])
+
+        pars1[2] = shape1.g1
+        pars1[3] = shape1.g2
+
+        pars2=pars1.copy()
+        pars2[2] = shape2.g1
+        pars2[3] = shape2.g2
+
+        print("log pars:",logT,logF)
+
+        cen_offset_arcsec=array( self.cen_prior.sample() )
+        return pars1, pars2, cen_offset_arcsec
+
+    def set_priors(self):
+        """
+        Set all the priors
+        """
+        import great3
+        import ngmix
+
+
+        self.pixel_scale = self.simc.get('pixel_scale',1.0)
+        self.skyskig = self.simc['skysig']
+
+        joint_prior_type = self.simc['joint_prior_type']
+        self.joint_prior = \
+            great3.joint_prior.make_joint_prior_simple(type=joint_prior_type)
+
+        cen_sigma_arcsec=self.simc['cen_sigma']
+        self.cen_prior=ngmix.priors.CenPrior(0.0,
+                                             0.0,
+                                             cen_sigma_arcsec,
+                                             cen_sigma_arcsec)
+
+
+    def get_guess(self, pars, n=1, width=None):
+        """
+        Get a guess centered on the truth
+
+        width is relative for T and counts
+        """
+
+        if width is None:
+            width = pars*0 + 0.01
+        else:
+            if len(width) != len(pars):
+                raise ValueError("width not same size as pars")
+
+        guess=numpy.zeros( (n, pars.size) )
+
+        guess[:,0] = width[0]*srandu(n)
+        guess[:,1] = width[1]*srandu(n)
+        guess_shape=self.get_shape_guess(pars[2],pars[3],n,width=width[2:2+2])
+
+        guess[:,2]=guess_shape[:,0]
+        guess[:,3]=guess_shape[:,1]
+
+        logT=log10(pars[4])
+        logF=log10(pars[5])
+
+        guess[:,4] = logT*(1.0 + width[4]*srandu(n))
+        guess[:,5] = logF*(1.0 + width[5]*srandu(n))
+
+
+        return guess
+
+
+
 class NGMixSimJointSimpleLogPars(NGMixSim):
     """
     Simple model with joint prior on g1,g2,T,Flux

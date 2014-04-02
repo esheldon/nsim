@@ -20,7 +20,7 @@ parser.add_option('--missing',action='store_true',
 parser.add_option('--max-jobs',default=1000,
                   help=('max jobs per condor file, as split on run, '
                         'default %default') )
-parser.add_option('--image-size',default='800000',
+parser.add_option('--image-size',default='1000000',
                   help=('predicted image size as condor sees it') )
 
 

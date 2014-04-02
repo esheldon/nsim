@@ -107,8 +107,12 @@ class NGMixSim(dict):
 
         self.obj_model=self.simc['obj_model']
         self.fit_model=self['fit_model']
+
+        self.true_npars = ngmix.gmix.get_model_npars(self.obj_model)
+
         if self.fit_model is not None:
             self.npars=ngmix.gmix.get_model_npars(self.fit_model)
+            print("npars:",self.npars)
 
         self.make_plots=keys.get('make_plots',False)
         self.plot_base=keys.get('plot_base',None)
@@ -696,6 +700,8 @@ class NGMixSim(dict):
                 fitter=self.run_bdf_mcmc_fitter_with_restart(imdict)
             else:
                 fitter=self.run_bdf_mcmc_fitter(imdict)
+        elif 'coellip' in self.fit_model:
+                fitter=self.run_coellip_mcmc_fitter(imdict)
         else:
             if self['fitter']=='mcmc-fixed':    
                 fitter=self.run_simple_mcmc_fixed_fitter(imdict)
@@ -937,6 +943,75 @@ class NGMixSim(dict):
                 raise TryAgainError(mess)
  
         return fitter
+
+
+    def run_coellip_mcmc_fitter(self, imdict):
+        """
+        simple gauss,exp,dev
+        """
+        import ngmix
+        from ngmix.fitting import MCMCCoellip
+
+        print("fitting coellip")
+
+        full_guess=self.get_coellip_guess(imdict['pars'])
+
+        # note T and counts priors should be in log space
+        fitter=MCMCCoellip(imdict['image'],
+                           imdict['wt'],
+                           self.jacobian,
+
+                           cen_prior=self.cen_prior,
+                           g_prior=self.g_prior,
+
+                           priors_are_log=self['priors_are_log'],
+                           T_prior=self.T_prior,
+                           counts_prior=self.counts_prior,
+
+                           g_prior_during=self['g_prior_during'],
+
+                           full_guess=full_guess,
+
+                           shear_expand=self.shear_expand,
+
+                           psf=self.psf_gmix_fit,
+                           nwalkers=self['nwalkers'],
+                           nstep=self['nstep'],
+                           burnin=self['burnin'],
+                           mca_a=self['mca_a'],
+                           random_state=self.random_state,
+                           do_pqr=True)
+
+        fitter.go()
+ 
+        return fitter
+
+
+    def get_coellip_guess(self, simple_pars):
+        import ngmix
+        if self.fit_model=='coellip4':
+            ngauss=4
+
+        T = simple_pars[4]
+        counts = simple_pars[5]
+
+        nwalkers=self['nwalkers']
+
+        full_guess=zeros( (nwalkers, self.npars) )
+        full_guess[:,0] = 0.1*srandu(nwalkers)
+        full_guess[:,1] = 0.1*srandu(nwalkers)
+        full_guess[:,2] = simple_pars[2] + 0.01*srandu(nwalkers)
+        full_guess[:,3] = simple_pars[3] + 0.01*srandu(nwalkers)
+
+        pars0=array([0.01183116, 0.06115546,  0.3829298 ,  2.89446939,
+                     0.19880675,  0.18535747, 0.31701891,  0.29881687])
+
+        for i in xrange(ngauss):
+            full_guess[:,4+i] = T*pars0[i]*(1.0 + 0.01*srandu(nwalkers))
+            full_guess[:,4+ngauss+i] = \
+                    counts*pars0[ngauss+i]*(1.0 + 0.01*srandu(nwalkers))
+
+        return full_guess
 
 
     def run_simple_mcmc_fixed_fitter(self, imdict):
@@ -1871,7 +1946,7 @@ class NGMixSim(dict):
 
         dt=[('processed','i2'),
             ('s2n_true','f8'),
-            ('pars_true','f8',npars),
+            ('pars_true','f8',self.true_npars),
             ('pars','f8',npars),
             ('pcov','f8',(npars,npars)),
             ('s2n_w','f8'),
@@ -1889,17 +1964,27 @@ class NGMixSim(dict):
 
 
 class NGMixSimJointBDF(NGMixSim):
+    """
+    fit bdf with joint prior
+    """
     def __init__(self, sim_conf, run_conf, npairs, **keys):
         s2n=-1
-        super(NGMixSimJointBDF,self).__init__(sim_conf, run_conf, s2n, npairs, **keys)
+        super(NGMixSimJointBDF,self).__init__(sim_conf,
+                                              run_conf,
+                                              s2n,
+                                              npairs,
+                                              **keys)
 
     def fit_galaxy(self, imdict):
         """
-        Fit BDF model with joint prior
+        Fit BDF model with joint hybrid prior
         """
         from ngmix.fitting import MCMCBDFJoint, LOW_ARATE
 
         nwalkers = self['nwalkers']
+
+        guess_type=self['guess_type']
+        assert guess_type=="draw_truth","guess type should be truth"
 
         full_guess=self.get_guess(imdict, n=nwalkers)
 
@@ -1937,17 +2022,6 @@ class NGMixSimJointBDF(NGMixSim):
 
         return fitter
 
-    def get_guess_draw_priors_bdf(self, n=1):
-        """
-        Get a guess drawn from the priors
-
-        This is an over-ride
-        """
-        guess=zeros( (n, 7) )
-        guess[:,0],guess[:,1]=self.cen_prior.sample(n=n)
-        guess[:,2:] = self.joint_prior.sample(n)
-        return guess
-
     def get_pair_pars(self, **keys):
         """
         Get pair parameters
@@ -1981,11 +2055,10 @@ class NGMixSimJointBDF(NGMixSim):
         """
         Set all the priors
         """
+
         import ngmix
 
-
         self.pixel_scale = self.simc.get('pixel_scale',1.0)
-        self.skyskig = self.simc['skysig']
 
         joint_prior_type = self.simc['joint_prior_type']
         if 'great3' in joint_prior_type:
@@ -2093,7 +2166,6 @@ class NGMixSimJointSimpleLinPars(NGMixSim):
 
 
         self.pixel_scale = self.simc.get('pixel_scale',1.0)
-        self.skyskig = self.simc['skysig']
 
         joint_prior_type = self.simc['joint_prior_type']
         self.joint_prior = \
@@ -2203,7 +2275,6 @@ class NGMixSimJointSimpleHybrid(NGMixSim):
 
 
         self.pixel_scale = self.simc.get('pixel_scale',1.0)
-        self.skyskig = self.simc['skysig']
 
         joint_prior_type = self.simc['joint_prior_type']
         self.joint_prior = \
@@ -2381,7 +2452,6 @@ class NGMixSimJointSimpleLogPars(NGMixSim):
 
 
         self.pixel_scale = self.simc.get('pixel_scale',1.0)
-        self.skyskig = self.simc['skysig']
 
         joint_prior_type = self.simc['joint_prior_type']
         self.joint_prior = \

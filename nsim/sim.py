@@ -115,6 +115,10 @@ class NGMixSim(dict):
             print("npars:",self.npars)
 
         self.make_plots=keys.get('make_plots',False)
+        if 'coellip' in self.fit_model:
+            self.separate=True
+        else:
+            self.separate=False
         self.plot_base=keys.get('plot_base',None)
 
         self.setup_checkpoints(**keys)
@@ -263,17 +267,40 @@ class NGMixSim(dict):
         else:
             width,height=1100,1100
 
-        tp=fitter.make_plots(title=self.fit_model)
+        tp=fitter.make_plots(title=self.fit_model,
+                             separate=self.separate)
         if isinstance(tp, tuple):
-            p,wp=tp
+            if self.separate:
+                burnp, histp=tp
+                if isinstance(histp,tuple):
+                    tb=burnp
+                    th=histp
+                    burnp,histp=tb
+                    wburnp,whistp=th
 
-            trials_plot=self.plot_base+'-%06d-%s-trials.png' % (self.ipair,key)
-            trials_wplot=self.plot_base+'-%06d-%s-wtrials.png' % (self.ipair,key)
+                    whist_plot=self.plot_base+'-%06d-%s-whist.png' % (self.ipair,key)
+                    print(whist_plot)
+                    whistp.write_img(width,height,whist_plot)
 
-            print(trials_plot)
-            p.write_img(width,height,trials_plot)
-            print(trials_wplot)
-            wp.write_img(width,height,trials_wplot)
+                burn_plot=self.plot_base+'-%06d-%s-burn.png' % (self.ipair,key)
+                hist_plot=self.plot_base+'-%06d-%s-hist.png' % (self.ipair,key)
+
+                print(burn_plot)
+                burnp.write_img(width,height,burn_plot)
+                print(hist_plot)
+                histp.write_img(width,height,hist_plot)
+
+
+            else:
+                p,wp=tp
+
+                trials_plot=self.plot_base+'-%06d-%s-trials.png' % (self.ipair,key)
+                trials_wplot=self.plot_base+'-%06d-%s-wtrials.png' % (self.ipair,key)
+
+                print(trials_plot)
+                p.write_img(width,height,trials_plot)
+                print(trials_wplot)
+                wp.write_img(width,height,trials_wplot)
 
         else:
             trials_plot=self.plot_base+'-%06d-%s-trials.png' % (self.ipair,key)
@@ -954,7 +981,15 @@ class NGMixSim(dict):
 
         print("fitting coellip")
 
-        full_guess=self.get_coellip_guess(imdict['pars'])
+        guess_type=self['guess_type']
+        if guess_type == 'draw_truth':
+            full_guess=self.get_coellip_guess_truth(imdict['pars'])
+        elif guess_type=='draw_priors':
+            # only g prior
+            full_guess=self.get_coellip_guess_prior(imdict['pars'])
+        else:
+            raise ValueError("guess type not supported for "
+                             "coellip: %s" % guess_type)
 
         # note T and counts priors should be in log space
         fitter=MCMCCoellip(imdict['image'],
@@ -987,10 +1022,13 @@ class NGMixSim(dict):
         return fitter
 
 
-    def get_coellip_guess(self, simple_pars):
+    def get_coellip_guess_truth(self, simple_pars):
         import ngmix
+        #print("        drawing truth")
         if self.fit_model=='coellip4':
             ngauss=4
+        else:
+            raise ValueError("only support coellip4 now")
 
         T = simple_pars[4]
         counts = simple_pars[5]
@@ -1012,6 +1050,41 @@ class NGMixSim(dict):
                     counts*pars0[ngauss+i]*(1.0 + 0.01*srandu(nwalkers))
 
         return full_guess
+
+    def get_coellip_guess_prior(self, simple_pars):
+        """
+        random draw from g prior, but rest based on truth
+        """
+        import ngmix
+
+        #print("        drawing priors")
+
+        if self.fit_model=='coellip4':
+            ngauss=4
+        else:
+            raise ValueError("only support coellip4 now")
+
+        T = simple_pars[4]
+        counts = simple_pars[5]
+
+        nwalkers=self['nwalkers']
+
+        full_guess=zeros( (nwalkers, self.npars) )
+        full_guess[:,0] = 0.1*srandu(nwalkers)
+        full_guess[:,1] = 0.1*srandu(nwalkers)
+
+        full_guess[:,2],full_guess[:,3]=self.g_prior.sample2d(nwalkers)
+
+        pars0=array([0.01183116, 0.06115546,  0.3829298 ,  2.89446939,
+                     0.19880675,  0.18535747, 0.31701891,  0.29881687])
+
+        for i in xrange(ngauss):
+            full_guess[:,4+i] = T*pars0[i]*(1.0 + 0.01*srandu(nwalkers))
+            full_guess[:,4+ngauss+i] = \
+                    counts*pars0[ngauss+i]*(1.0 + 0.01*srandu(nwalkers))
+
+        return full_guess
+
 
 
     def run_simple_mcmc_fixed_fitter(self, imdict):

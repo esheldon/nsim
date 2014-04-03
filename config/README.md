@@ -38,6 +38,17 @@ current set
     sigrat1.4 gg03r01   eg03r01 dg04rcomb
     sigrat1.0 gg04rcomb eg04r01 dg05r01
 
+- coellip4
+    - test on exp profile
+        - eg01rctest1 guessing with broad range around truth; 0.05 scatter in
+          the ellipticity.  s/n=50.  fracdiff = -2.18e-04 +/- 7.56e-04
+        - eg01rctest2 guessing based on an exponential LM fit to the profile,
+          which itself has a biased guess.  This is I think a much more stringent
+          test, since I have seen the lm fit can be quite far off.
+
+    - test on dev profile
+        - do LM guess using exp as well...
+
 J have jackknife errors calculated
 - sigrat 2
     - sim-gg01

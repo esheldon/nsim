@@ -728,7 +728,7 @@ class NGMixSim(dict):
             else:
                 fitter=self.run_bdf_mcmc_fitter(imdict)
         elif 'coellip' in self.fit_model:
-                fitter=self.run_coellip_mcmc_fitter(imdict)
+            fitter=self.run_coellip_mcmc_fitter(imdict)
         else:
             if self['fitter']=='mcmc-fixed':    
                 fitter=self.run_simple_mcmc_fixed_fitter(imdict)
@@ -982,8 +982,10 @@ class NGMixSim(dict):
         print("fitting coellip")
 
         guess_type=self['guess_type']
-        if guess_type == 'draw_truth':
-            full_guess=self.get_coellip_guess_truth(imdict['pars'])
+        if guess_type=='draw_maxlike':
+            full_guess=self.get_coellip_exp_guess_maxlike(imdict)
+        elif guess_type == 'draw_truth':
+            full_guess=self.get_coellip_guess_pars(imdict['pars'])
         elif guess_type=='draw_priors':
             # only g prior
             full_guess=self.get_coellip_guess_prior(imdict['pars'])
@@ -1021,10 +1023,79 @@ class NGMixSim(dict):
  
         return fitter
 
-
-    def get_coellip_guess_truth(self, simple_pars):
+    def get_coellip_exp_guess_maxlike(self, imdict):
+        """
+        Get a guess using an exp fit using LM
+        """
         import ngmix
-        #print("        drawing truth")
+
+        print("    drawing exp maxlike")
+
+        im=imdict['image']
+        wt=imdict['wt']
+        psf=self.psf_gmix_fit
+        true_pars=imdict['pars']
+
+        # better idea for size?
+        Tpsf = psf.get_T()
+
+        ntry=10
+        for i in xrange(ntry):
+
+            # biased estimate of the size
+            T_guess = Tpsf*(1.0 + 0.1*srandu())
+
+            # we would have an accurate estimate of flux I think
+            counts_guess = true_pars[4]*(1.0 + 0.2*srandu())
+
+            # intentionally bad guess on ellipticity 
+            guess_shape=self.get_shape_guess(0.0, 0.0, 1, width=[0.3,0.3])
+
+            guess=array([0.1*srandu(),
+                         0.1*srandu(),
+                         guess_shape[0,0],
+                         guess_shape[0,1],
+                         T_guess,
+                         counts_guess])
+            
+
+            # need to generalize this for hybrid joint priors
+            fitter=ngmix.fitting.LMSimple(im, wt, self.jacobian,
+                                          "exp",
+                                          guess,
+
+                                          lm_pars=self['lm_pars'],
+
+                                          cen_prior=self.cen_prior,
+                                          g_prior=self.g_prior,
+                                          T_prior=self.T_prior,
+                                          counts_prior=self.counts_prior,
+
+                                          psf=psf)
+
+            fitter.go()
+
+            res=fitter.get_result()
+            if res['flags']==0:
+                break
+            else:
+                print("    lm exp fit failed:",res['flags'])
+
+        if res['flags']!=0:
+            raise TryAgainError("lm fit failed")
+
+        pars=res['pars']
+
+        mcmc_guess=self.get_coellip_guess_pars(pars,gwidth=[0.01,0.01])
+
+        return mcmc_guess
+
+
+    def get_coellip_guess_pars(self, simple_pars, swidth=0.10, gwidth=[0.05,0.05]):
+        """
+        Guess near the truth but not too near
+        """
+        import ngmix
         if self.fit_model=='coellip4':
             ngauss=4
         else:
@@ -1038,16 +1109,18 @@ class NGMixSim(dict):
         full_guess=zeros( (nwalkers, self.npars) )
         full_guess[:,0] = 0.1*srandu(nwalkers)
         full_guess[:,1] = 0.1*srandu(nwalkers)
-        full_guess[:,2] = simple_pars[2] + 0.01*srandu(nwalkers)
-        full_guess[:,3] = simple_pars[3] + 0.01*srandu(nwalkers)
+        guess_shape=self.get_shape_guess(simple_pars[0],simple_pars[1],nwalkers,
+                                         width=gwidth)
+        full_guess[:,2] = guess_shape[:,0]
+        full_guess[:,3] = guess_shape[:,1]
 
         pars0=array([0.01183116, 0.06115546,  0.3829298 ,  2.89446939,
                      0.19880675,  0.18535747, 0.31701891,  0.29881687])
 
         for i in xrange(ngauss):
-            full_guess[:,4+i] = T*pars0[i]*(1.0 + 0.01*srandu(nwalkers))
+            full_guess[:,4+i] = T*pars0[i]*(1.0 + swidth*srandu(nwalkers))
             full_guess[:,4+ngauss+i] = \
-                    counts*pars0[ngauss+i]*(1.0 + 0.01*srandu(nwalkers))
+                    counts*pars0[ngauss+i]*(1.0 + swidth*srandu(nwalkers))
 
         return full_guess
 

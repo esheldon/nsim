@@ -52,7 +52,7 @@ import time
 import pprint
 
 import numpy
-from numpy import array, zeros, log10, exp
+from numpy import array, zeros, log, log10, exp, sqrt
 from numpy.random import random as randu
 from numpy.random import randn
 
@@ -90,8 +90,6 @@ class NGMixSim(dict):
         self.update(self.conf)
         self.update(keys)
 
-        self.fixed_pars=self.simc.get('fixed_pars',False)
-
         self.shear=self.simc['shear']
         self.nsub=self.simc['nsub']
         self.nsigma_render=self.simc.get('nsigma_render',NSIGMA_RENDER)
@@ -123,7 +121,7 @@ class NGMixSim(dict):
         if self.data is None:
             self.make_struct()
 
-        self.set_priors()
+        self.set_prior()
         self.make_psf()
 
         self.set_noise()
@@ -318,20 +316,6 @@ class NGMixSim(dict):
         else:
             raise ValueError("bad fitter type: '%s'" % fitter_type)
 
-        if self.fixed_pars:
-            res=fitter._result
-            res['pars_shape_only'] = res['pars']
-            res['pars_err_shape_only'] = res['pars_err']
-            res['pars_cov_shape_only'] = res['pars_cov']
-
-            res['pars'] = imdict['pars'].copy()
-            res['pars'][2:2+2] = res['pars_shape_only']
-
-            res['pars_cov'] = numpy.zeros( (self.npars,self.npars) )
-            res['pars_cov'][2:2+2, 2:2+2] = res['pars_cov_shape_only']
-            res['pars_err'] = numpy.sqrt(numpy.diag(res['pars_cov']))
-
-
         return fitter
 
 
@@ -342,10 +326,7 @@ class NGMixSim(dict):
         """
         import ngmix
 
-        if self['fitter']=='mcmc-fixed':    
-            fitter=self.run_simple_mcmc_fixed_fitter(imdict)
-        else:
-            fitter=self.run_simple_mcmc_fitter(imdict)
+        fitter=self.run_simple_mcmc_fitter(imdict)
         return fitter
 
 
@@ -383,7 +364,7 @@ class NGMixSim(dict):
         fitter=MCMCSimple(obs,
                           self.fit_model,
 
-                          prior=self.prior,
+                          prior=self.prior_gflat, # no prior during
 
                           nwalkers=self['nwalkers'],
                           mca_a=self['mca_a'],
@@ -396,57 +377,6 @@ class NGMixSim(dict):
         raise RuntimeError("do lensfit and pqr here")
         #shear_expand=self.shear_expand
 
-        return fitter
-
-
-    def run_simple_mcmc_fixed_fitter(self, imdict):
-        """
-        simple gauss,exp,dev
-        """
-        import ngmix
-
-
-        assert self['guess_type']=='draw_truth',"only draw truth for now"
-
-        pars=imdict['pars'].copy()
-        nwalkers=self['nwalkers']
-        guess_shape=self.get_shape_guess(pars[0],pars[1],nwalkers)
-
-        cls=ngmix.fitting.MCMCSimpleFixed
-        fitter=cls(imdict['image'],
-                   imdict['wt'],
-                   self.jacobian,
-                   self.fit_model,
-
-                   fixed_pars=pars,
-
-                   g_prior=self.g_prior,
-
-                   g_prior_during=self['g_prior_during'],
-
-                   full_guess=guess_shape,
-
-                   shear_expand=self.shear_expand,
-
-                   psf=self.psf_gmix_fit,
-                   nwalkers=nwalkers,
-                   nstep=self['nstep'],
-                   burnin=self['burnin'],
-                   mca_a=self['mca_a'],
-                   random_state=self.random_state,
-                   do_pqr=True)
-
-        fitter.go()
-
-        if 'min_arate' in self:
-            res=fitter.get_result()
-            if res['arate'] < self['min_arate']:
-                # just fail; I verified that no further trying helps 
-                # with any type of guess
-                mess='    failing: arate %s lower than threshold %s'
-                mess=mess % (res['arate'],self['min_arate'])
-                raise TryAgainError(mess)
- 
         return fitter
 
 
@@ -738,7 +668,7 @@ class NGMixSim(dict):
 
         return guess
 
-    def set_priors(self):
+    def set_prior(self):
         """
         Set all the priors
         """
@@ -746,73 +676,52 @@ class NGMixSim(dict):
 
         self.pixel_scale = self.simc.get('pixel_scale',1.0)
 
-        # can instead use fits from cosmos....
-        self.g_prior=ngmix.priors.GPriorBA(0.3)
-
         # we may over-ride below
         self.s2n_for_noise = self.s2n
 
-        if self.fixed_pars:
-            return
+        simc=self.simc
 
+        if simc['prior_type'] == "separate":
+            from ngmix.joint_prior import PriorSimpleSep
+            # prior separate for all pars
+            cen_sigma_arcsec=simc['cen_sigma']
+            cen_prior=ngmix.priors.CenPrior(0.0,
+                                            0.0,
+                                            cen_sigma_arcsec,
+                                            cen_sigma_arcsec)
 
-
-        TF_dist = self.simc.get('joint_TF_dist',None)
-        if TF_dist is not None:
-
-            # this defines our size threshold in arcsec**2
-            self.T_bounds = array(self.simc['T_bounds'],dtype='f8')
-
-            if TF_dist=='cosmos-exp':
-                cls=ngmix.priors.TFluxPriorCosmosExp
-            elif TF_dist=='cosmos-dev':
-                cls=ngmix.priors.TFluxPriorCosmosDev
+            if simc['g_prior_type']=="ba":
+                g_prior_sigma=simc['g_prior_sigma']
+                g_prior=ngmix.priors.GPriorBA(g_prior_sigma)
             else:
-                raise ValueError("bad joint dist '%s'" % TF_dist)
+                raise ValueError("only g prior 'ba' for now")
 
-            # we choose the flux bound as a multiple of
-            # the flux_mode to get the expected s/n
-            flux_mode=cls.flux_mode
-            flux_mode_s2n = self.simc['flux_mode_s2n']
-            flux_min = flux_mode*self.s2n/flux_mode_s2n
-            flux_max = self.simc['flux_max']
-            self.flux_bounds   = [flux_min, flux_max]
+            g_prior_flat=ngmix.priors.Normal([0.0,0.0], 1.0)
 
-            # here self.s2n just corresponds to a threshold
-            self.s2n_for_noise = flux_mode_s2n
+            # T and scatter in linear space, convert to log
+            T            = simc['obj_T_mean']
+            T_sigma      = simc['obj_T_sigma_frac']*T
+            counts       = simc['obj_counts_mean']
+            counts_sigma = simc['obj_counts_sigma_frac']*counts
 
+            logT_mean, logT_sigma=ngmix.priors.lognorm_convert(T,T_sigma)
+            logcounts_mean, logcounts_sigma=ngmix.priors.lognorm_convert(counts,counts_sigma)
 
-            print("""
-    flux_mode:   %s
-    flux_bounds: %s
-            """ % (flux_mode, self.flux_bounds) )
+            # for drawing parameters, and after exploration to grab g_prior and calculate
+            # pqr etc.
+            self.prior = PriorSimpleSep(cen_prior,
+                                        g_prior,
+                                        T_prior,
+                                        F_prior)
 
-            self.joint_TF_prior=cls(T_bounds=self.T_bounds,
-                                    flux_bounds=self.flux_bounds)
-
-            self.T_prior=None
-            self.counts_prior=None
+            # for the exploration, for which we do not apply g prior during
+            self.prior_gflat = PriorSimpleSep(cen_prior,
+                                              g_prior_flat,
+                                              T_prior,
+                                              F_prior)
 
         else:
-
-            T=self.simc['obj_T_mean']
-            T_sigma = self.simc['obj_T_sigma_frac']*T
-            counts=self.simc['obj_counts_mean']
-            counts_sigma = self.simc['obj_counts_sigma_frac']*counts
-            self.T_prior=ngmix.priors.LogNormal(T, T_sigma)
-            self.counts_prior=ngmix.priors.LogNormal(counts, counts_sigma)
-
-            self.joint_TF_prior=None
-
-        cen_sigma_arcsec=self.simc['cen_sigma']
-        self.cen_prior=ngmix.priors.CenPrior(0.0,
-                                             0.0,
-                                             cen_sigma_arcsec,
-                                             cen_sigma_arcsec)
-
-
-
-        self.bfrac_prior=ngmix.priors.BFrac()
+            raise ValueError("bad prior type: %s" % simc['prior_type'])
 
     
     def set_noise(self):
@@ -954,9 +863,6 @@ class NGMixSim(dict):
         """
         import ngmix
         from numpy import pi
-
-        if self.fixed_pars:
-            raise RuntimeError("implement fixed in new system")
 
         if random:
             pars1 = self.prior.sample()
@@ -1216,7 +1122,7 @@ class NGMixSimJointSimpleLinPars(NGMixSim):
         cen_offset_arcsec=array( self.cen_prior.sample() )
         return pars1, pars2, cen_offset_arcsec
 
-    def set_priors(self):
+    def set_prior(self):
         """
         Set all the priors
         """
@@ -1325,7 +1231,7 @@ class NGMixSimJointSimpleHybrid(NGMixSim):
         cen_offset_arcsec=array( self.cen_prior.sample() )
         return pars1, pars2, cen_offset_arcsec
 
-    def set_priors(self):
+    def set_prior(self):
         """
         Set all the priors
         """
@@ -1502,7 +1408,7 @@ class NGMixSimJointSimpleLogPars(NGMixSim):
         cen_offset_arcsec=array( self.cen_prior.sample() )
         return pars1, pars2, cen_offset_arcsec
 
-    def set_priors(self):
+    def set_prior(self):
         """
         Set all the priors
         """

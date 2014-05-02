@@ -103,8 +103,6 @@ class NGMixSim(dict):
         self.s2n=s2n
         self.npairs=npairs
 
-        self.ring=self.get('ring',True)
-
         self.obj_model=self.simc['obj_model']
         self.fit_model=self['fit_model']
 
@@ -115,10 +113,7 @@ class NGMixSim(dict):
             print("npars:",self.npars)
 
         self.make_plots=keys.get('make_plots',False)
-        if 'coellip' in self.fit_model:
-            self.separate=True
-        else:
-            self.separate=False
+        self.separate=False
         self.plot_base=keys.get('plot_base',None)
 
         self.setup_checkpoints(**keys)
@@ -231,17 +226,21 @@ class NGMixSim(dict):
 
         imdicts = self.get_noisy_image_pair()
 
-        self.fit_psf(imdicts['psf']['im'])
 
         reslist=[]
         for key in ['im1','im2']:
 
             imd = imdicts[key]
 
+            obs = imd['obs']
+            psf_gmix=self.fit_psf(obs)
+
+            obs.set_psf_gmix(psf_gmix)
+
             fitter=self.fit_galaxy(imd)
             res=fitter.get_result()
             if res['flags'] != 0:
-                raise TryAgainError("failed at %s" % key)
+                raise TryAgainError("failed at %s flags %s" % (key,res['flags']))
 
             res['pars_true'] = imd['pars']
             res['s2n_true'] = imd['s2n']
@@ -261,11 +260,7 @@ class NGMixSim(dict):
         import biggles
         biggles.configure('default','fontsize_min',1.0)
 
-        if 'isample' in self['fitter']:
-            dims=(800,1100)
-            width,height=800,1100
-        else:
-            width,height=1100,1100
+        width,height=1100,1100
 
         tp=fitter.make_plots(title=self.fit_model,
                              separate=self.separate)
@@ -320,18 +315,6 @@ class NGMixSim(dict):
         elif fitter_type == 'lm':
             fitter = self.fit_galaxy_lm(imdict)
 
-        elif fitter_type == 'mh':
-            fitter = self.fit_galaxy_mh(imdict)
-
-        elif fitter_type == 'isample':
-            fitter = self.fit_galaxy_isample(imdict)
-
-        elif fitter_type == 'isample-adapt':
-            fitter = self.fit_galaxy_isample_adapt(imdict)
-
-        elif fitter_type=='isample-anze':
-            fitter = self.fit_galaxy_isample_anze(imdict)
-
         else:
             raise ValueError("bad fitter type: '%s'" % fitter_type)
 
@@ -351,370 +334,7 @@ class NGMixSim(dict):
 
         return fitter
 
-    def fit_galaxy_isample(self, imdict):
-        """
-        Fit the model to the galaxy using important sampling
-        """
-        import ngmix
 
-        # do checking for guess here?
-        if self['guess_type']=='truth':
-            sampler=self.get_simple_proposal_truth(imdict)
-            trials,ln_probs=sampler.sample(self['n_samples'])
-        else:
-            raise ValueError("support guess type: '%s'" % self['guess_type'])
-
-        fitter=ngmix.fitting.ISampleSimple(imdict['image'],
-                                           imdict['wt'],
-                                           self.jacobian,
-                                           self.fit_model,
-                                           trials,
-                                           ln_probs,
-
-
-                                           # not optional
-                                           cen_prior=self.cen_prior,
-                                           g_prior=self.g_prior,
-                                           T_prior=self.T_prior,
-                                           counts_prior=self.counts_prior,
-
-                                           shear_expand=self.shear_expand,
-
-                                           psf=self.psf_gmix_fit,
-
-                                           do_pqr=True,
-                                           do_lensfit=True)
-        fitter.go()
-        res = fitter.get_result()
-
-        ew=res['eff_iweight']
-        print('    eff iweight:',ew,'eff samples:',res['eff_n_samples'])
-
-        if False:
-            pprint.pprint(res)
-        return fitter
-
-
-    def fit_galaxy_isample_adapt(self, imdict):
-        """
-        Fit the model to the galaxy using important sampling
-        """
-        import ngmix
-
-        # this loop only makes sense for random guesses
-        # do checking for guess here?
-        if self['proposal_type']=='truth':
-            # note this suffers from bad "sigma" values
-            sampler=self.get_simple_proposal_truth(imdict)
-        elif self['proposal_type']=='maxlike':
-            # suffers from potential bad covariance matrices
-            sampler=self.get_simple_proposal_maxlike(imdict)
-        elif self['proposal_type']=='mcmc':
-            # suffers from potential bad covariance matrices
-            sampler=self.get_simple_proposal_mcmc(imdict)
-        else:
-            raise ValueError("support guess type: '%s'" % self['guess_type'])
-
-        fitter=ngmix.fitting.ISampleSimpleAdapt(imdict['image'],
-                                                imdict['wt'],
-                                                self.jacobian,
-                                                self.fit_model,
-                                                sampler, # starting sampler component
-
-                                                n_per=self['n_per'],
-                                                max_components=self['max_components'],
-                                                max_fdiff=self['max_fdiff'],
-
-                                                # not optional
-                                                cen_prior=self.cen_prior,
-                                                g_prior=self.g_prior,
-                                                T_prior=self.T_prior,
-                                                counts_prior=self.counts_prior,
-
-                                                g_prior_during=self['g_prior_during'],
-
-                                                shear_expand=self.shear_expand,
-
-                                                psf=self.psf_gmix_fit,
-
-                                                do_pqr=True,
-                                                do_lensfit=True)
-        fitter.go()
-        res = fitter.get_result()
-
-        if not fitter.has_converged():
-            raise TryAgainError("not converged")
-
-        return fitter
-
-
-
-    def get_simple_proposal_maxlike(self, imdict):
-        """
-        These guesses are better for low s/n but still pretty bad
-        """
-        import ngmix
-
-        if self['guess_type'] not in ['draw_priors','truth_random']:
-            raise ValueError("use draw_priors or truth_random for lm start")
-
-        ntry=10
-        for i in xrange(ntry):
-            fitter=self.fit_galaxy_lm(imdict)
-            res=fitter.get_result()
-            if res['flags']==0:
-                break
-
-        if res['flags'] != 0:
-            raise TryAgainError("failed fit LM after %s tries" % ntry)
-
-        pars=res['pars']
-        perr=res['pars_err']
-
-        # soften covariance, need to tune
-        #perr += array([0.005,0.005,0.005,0.005,0.1,1.0])
-
-        cen_dist    = ngmix.priors.Student2D(pars[0], pars[1], perr[0], perr[1])
-        g_dist      = ngmix.priors.TruncatedStudentPolar(pars[2], pars[3], perr[2], perr[3], 1.0)
-        #T_dist      = ngmix.priors.LogNormal(pars[4], perr[4])
-        #counts_dist = ngmix.priors.LogNormal(pars[5], perr[5])
-        T_dist      = ngmix.priors.StudentPositive(pars[4], perr[4])
-        counts_dist = ngmix.priors.StudentPositive(pars[5], perr[5])
- 
-        sampler=SimpleSampler(cen_dist, g_dist, T_dist, counts_dist)
-        return sampler
-
-    def get_simple_proposal_mcmc(self, imdict):
-        """
-        These guesses are better for low s/n but still pretty bad
-        """
-        import ngmix
-
-        fitter=self.fit_galaxy_mcmc(imdict)
-
-        res=fitter.get_result()
-        pars=res['pars']
-        perr=res['pars_err']*1.2
-
-        cen_dist    = ngmix.priors.Student2D(pars[0], pars[1], perr[0], perr[1])
-        g_dist      = ngmix.priors.TruncatedStudentPolar(pars[2], pars[3], perr[2], perr[3], 1.0)
-        T_dist      = ngmix.priors.LogNormal(pars[4], perr[4])
-        counts_dist = ngmix.priors.LogNormal(pars[5], perr[5])
- 
-        sampler=SimpleSampler(cen_dist, g_dist, T_dist, counts_dist)
-        return sampler
-
-
-    def get_simple_proposal_truth(self, imdict):
-        """
-        These guesses are better for low s/n but still pretty bad
-        """
-        import ngmix
-
-        pars=imdict['pars']
-
-        cen0=pars[0]
-        cen1=pars[1]
-        # should tune based on a max-like fit or something
-        g1=pars[2]
-        g2=pars[3]
-        T = pars[4]
-        counts = pars[5]
-
-        cen_sigma=self.simc['cen_sigma']
-        g_sigma=0.2
-        T_sigma = self.simc['obj_T_sigma_frac']*T
-        counts_sigma = self.simc['obj_counts_sigma_frac']*counts
-
-        #cen_dist=ngmix.priors.CenPrior(cen0, cen1, cen_sigma, cen_sigma)
-        #g_dist=ngmix.priors.TruncatedGaussianPolar(g1, g2, g_sigma, g_sigma, 1.0)
-        #T_dist=ngmix.priors.LogNormal(T, T_sigma)
-        #counts_dist=ngmix.priors.LogNormal(counts, counts_sigma)
-
-        cen_dist    = ngmix.priors.Student2D(cen0, cen1, cen_sigma, cen_sigma)
-        g_dist      = ngmix.priors.TruncatedStudentPolar(g1, g2, g_sigma, g_sigma, 1.0)
-        T_dist=ngmix.priors.LogNormal(T, T_sigma)
-        counts_dist=ngmix.priors.LogNormal(counts, counts_sigma)
- 
-        sampler=SimpleSampler(cen_dist, g_dist, T_dist, counts_dist)
-        return sampler
-
-
-    def fit_galaxy_isample_anze(self, imdict):
-        """
-        Fit the model to the galaxy using anze's game sampler
-        """
-        import ngmix
-
-        
-        # faking this for now
-        nwalkers=1
-
-        full_guess=imdict['pars'].copy()
-
-        fitter=ngmix.fitting.ISampleBDFAnze(imdict['image'],
-                                            imdict['wt'],
-                                            self.jacobian,
-
-                                            cen_prior=self.cen_prior,
-                                            g_prior=self.g_prior,
-                                            T_prior=self.T_prior,
-                                            counts_prior=self.counts_prior,
-
-                                            bfrac_prior=self.bfrac_prior,
-
-                                            g_prior_during=self['g_prior_during'],
-
-                                            full_guess=full_guess,
-
-                                            shear_expand=self.shear_expand,
-
-                                            psf=self.psf_gmix_fit,
-                                            nwalkers=nwalkers,
-                                            nstep=self['nstep'],
-                                            burnin=self['burnin'],
-                                            do_pqr=True,
-                                            do_lensfit=True)
-
-        fitter.go()
-        res = fitter.get_result()
-        if False:
-            pprint.pprint(res)
-
-        return res
-
-
-
-
-    def fit_galaxy_isample_old(self, imdict):
-        """
-        Fit the model to the galaxy using important sampling
-        """
-        import ngmix
-
-        trials,ln_probs=self.draw_isamples_priors()
-        #trials,ln_probs=self.draw_isamples_from_true(imdict['pars'])
-
-        fitter=ngmix.fitting.ISampleSimple(imdict['image'],
-                                           imdict['wt'],
-                                           self.jacobian,
-                                           self.fit_model,
-
-                                           trials,
-                                           ln_probs,
-
-                                           cen_prior=self.cen_prior,
-                                           g_prior=self.g_prior,
-                                           T_prior=self.T_prior,
-                                           counts_prior=self.counts_prior,
-
-                                           shear_expand=self.shear_expand,
-
-                                           psf=self.psf_gmix_fit,
-
-                                           n_samples=self['n_samples'],
-                                           do_pqr=True,
-                                           do_lensfit=True)
-        fitter.go()
-        res = fitter.get_result()
-        if False:
-            import pprint
-            pprint.pprint(res)
-
-        ew=res['eff_iweight']
-        print('    eff iweight:',ew,'eff samples:',res['eff_n_samples'])
-
-        return res
-
-    def draw_isamples_from_true(self, pars):
-        """
-        Draw samples for importance sampling
-
-        Forcing certain types of functions here
-        """
-
-        import ngmix
-
-        if self.npars != 6:
-            raise ValueError("support guess from non-simple!")
-
-        n_samples=self['n_samples']
-        trials = numpy.zeros( (n_samples, self.npars) )
-        ln_probs = numpy.zeros(n_samples)
-
-        cen_sigma_arcsec = self.simc['cen_sigma']
-        g_sigma=0.3
-        T_sigma = self.simc['obj_T_sigma_frac']*pars[4]
-        counts_sigma = self.simc['obj_counts_sigma_frac']*pars[5]
-
-        cen_dist=ngmix.priors.CenPrior(pars[0],
-                                       pars[1],
-                                       cen_sigma_arcsec,
-                                       cen_sigma_arcsec)
-
-        g_dist = ngmix.priors.CenPrior(pars[2],pars[3], g_sigma, g_sigma)
-        T_dist=ngmix.priors.LogNormal(pars[4], T_sigma)
-        counts_dist=ngmix.priors.LogNormal(pars[5], counts_sigma)
-
-
-        trials[:,0],trials[:,1] = cen_dist.sample(n=n_samples)
-        trials[:,2],trials[:,3] = g_dist.sample(n=n_samples)
-        trials[:,4]             = T_dist.sample(nrand=n_samples)
-        trials[:,5]             = counts_dist.sample(nrand=n_samples)
-
-        for i in xrange(n_samples):
-            pars=trials[i,:]
-
-            lnp = 0.0
-
-            lnp += cen_dist.get_lnprob(pars[0], pars[1])
-            lnp += g_dist.get_lnprob(pars[2], pars[3])
-            lnp += T_dist.get_lnprob_scalar(pars[4])
-            lnp += counts_dist.get_lnprob_scalar(pars[5])
-
-            ln_probs[i] = lnp
-
-        return trials, ln_probs
-
-
-    def draw_isamples_priors(self):
-        """
-        Draw samples for importance sampling
-
-        For now just draw from priors, but we will need to change this
-        """
-
-        import ngmix
-
-        if self.npars != 6:
-            raise ValueError("support isample guess from non-simple!")
-
-        n_samples=self['n_samples']
-        trials = numpy.zeros( (n_samples, self.npars) )
-        ln_probs = numpy.zeros(n_samples)
-
-        trials[:,0],trials[:,1]=self.cen_prior.sample(n=n_samples)
-        trials[:,2],trials[:,3]=self.g_prior.sample2d(n_samples)
-        trials[:,4]=self.T_prior.sample(nrand=n_samples)
-        trials[:,5]=self.counts_prior.sample(nrand=n_samples)
-
-        cen_prior=self.cen_prior
-        g_prior=self.g_prior
-        T_prior=self.T_prior
-        counts_prior=self.counts_prior
-        for i in xrange(n_samples):
-            pars=trials[i,:]
-
-            lnp = 0.0
-
-            lnp += cen_prior.get_lnprob(pars[0], pars[1])
-            lnp += g_prior.get_lnprob_scalar2d(pars[2], pars[3])
-            lnp += self.T_prior.get_lnprob_scalar(pars[4])
-            lnp += self.counts_prior.get_lnprob_scalar(pars[5])
-
-            ln_probs[i] = lnp
-
-        return trials, ln_probs
 
     def fit_galaxy_mcmc(self, imdict):
         """
@@ -722,29 +342,10 @@ class NGMixSim(dict):
         """
         import ngmix
 
-        if self.fit_model=='bdf':
-            if self['restart']:
-                fitter=self.run_bdf_mcmc_fitter_with_restart(imdict)
-            else:
-                fitter=self.run_bdf_mcmc_fitter(imdict)
-        elif 'coellip' in self.fit_model:
-            fitter=self.run_coellip_mcmc_fitter(imdict)
+        if self['fitter']=='mcmc-fixed':    
+            fitter=self.run_simple_mcmc_fixed_fitter(imdict)
         else:
-            if self['fitter']=='mcmc-fixed':    
-                fitter=self.run_simple_mcmc_fixed_fitter(imdict)
-            else:
-                fitter=self.run_simple_mcmc_fitter(imdict)
-        return fitter
-
-
-    def fit_galaxy_mh(self, imdict):
-        """
-        Fit the model to the galaxy
-        """
-        if self.fit_model in ['gauss','exp','dev']:
-            fitter=self.run_simple_mh_fitter(imdict)
-        else:
-            raise ValueError("implement other mh fitters")
+            fitter=self.run_simple_mcmc_fitter(imdict)
         return fitter
 
 
@@ -752,7 +353,9 @@ class NGMixSim(dict):
         """
         Get a full guess, nwalkers x npars
         """
+
         guess_type=self['guess_type']
+
         if guess_type=='draw_truth':
             print('    * guessing randomized truth')
             full_guess=self.get_guess_from_pars(imdict['pars'], n=n)
@@ -765,399 +368,35 @@ class NGMixSim(dict):
         
         return full_guess
 
-    def get_mcmc_fitter(self, imdict, full_guess):
-        """
-        Get the appropriate MCMC fitter
-        """
-        import ngmix
-
-        return fitter
-
-    def run_bdf_mcmc_fitter_with_restart(self, imdict):
-        """
-        Get a bdf (Bulge-Disk Fixed size ratio) mcmc fitter
-        """
-        import ngmix
-        from ngmix.fitting import LOW_ARATE
-
-        nwalkers = self['nwalkers']
-        ntry=self['ntry']
-
-        for ipass in [0,1]:
-            if ipass==0:
-                print('    pass 1')
-                full_guess=self.get_guess(imdict, n=nwalkers)
-            else:
-                best_pars=fitter.best_pars
-                ngmix.fitting.print_pars(best_pars,
-                                         front='    pass 2 pars: ')
-                full_guess=self.get_guess_from_pars(best_pars, n=nwalkers)
-
-            min_arate=self['min_arate'][ipass]
-            for itry in xrange(ntry):
-                fitter=ngmix.fitting.MCMCBDF(imdict['image'],
-                                             imdict['wt'],
-                                             self.jacobian,
-
-                                             cen_prior=self.cen_prior,
-                                             g_prior=self.g_prior,
-                                             T_prior=self.T_prior,
-                                             counts_prior=self.counts_prior,
-
-                                             bfrac_prior=self.bfrac_prior,
-
-                                             g_prior_during=self['g_prior_during'],
-
-                                             full_guess=full_guess,
-
-                                             shear_expand=self.shear_expand,
-
-                                             psf=self.psf_gmix_fit,
-                                             nwalkers=nwalkers,
-                                             nstep=self['nstep'],
-                                             burnin=self['burnin'],
-                                             mca_a=self['mca_a'][ipass],
-                                             ntry=1,
-                                             min_arate=min_arate,
-                                             random_state=self.random_state,
-                                             do_pqr=True,
-                                             do_lensfit=True)
-                fitter.go()
-                if fitter.arate < min_arate and itry < (ntry-1):
-                    nwalkers = nwalkers*2
-                    print('        trying nwalkers:',nwalkers)
-                    full_guess=self.get_guess(imdict, n=nwalkers)
-                else:
-                    break
-
-
-        return fitter
-
-    def run_bdf_mcmc_fitter(self, imdict):
-        """
-        Get a bdf (Bulge-Disk Fixed size ratio) mcmc fitter
-        """
-        import ngmix
-        from ngmix.fitting import LOW_ARATE
-
-        nwalkers = self['nwalkers']
-
-        full_guess=self.get_guess(imdict, n=nwalkers)
-
-        ntry=self['ntry']
-        min_arate=self['min_arate']
-
-        for i in xrange(ntry):
-            fitter=ngmix.fitting.MCMCBDF(imdict['image'],
-                                         imdict['wt'],
-                                         self.jacobian,
-
-                                         cen_prior=self.cen_prior,
-                                         g_prior=self.g_prior,
-                                         T_prior=self.T_prior,
-                                         counts_prior=self.counts_prior,
-
-                                         bfrac_prior=self.bfrac_prior,
-
-                                         g_prior_during=self['g_prior_during'],
-
-                                         full_guess=full_guess,
-
-                                         shear_expand=self.shear_expand,
-
-                                         psf=self.psf_gmix_fit,
-                                         nwalkers=nwalkers,
-                                         nstep=self['nstep'],
-                                         burnin=self['burnin'],
-                                         mca_a=self['mca_a'],
-                                         #ntry=ntry,
-                                         min_arate=min_arate,
-                                         random_state=self.random_state,
-                                         do_pqr=True,
-                                         do_lensfit=True)
-            fitter.go()
-            res=fitter.get_result()
-
-            arate=res['arate']
-            if arate >= min_arate:
-                break
-            elif i < (ntry-1):
-                print("        arate",arate,"<",min_arate)
-                nwalkers_old=nwalkers
-                nwalkers = nwalkers*2
-                print('        trying nwalkers:',nwalkers)
-
-                #full_guess=self.get_guess(imdict, n=nwalkers)
-
-                # start where we left off
-                #sampler=fitter.get_sampler()
-                w=fitter.lnprobs.argmax()
-                best_pars=fitter.trials[w, :]
-                full_guess=self.get_guess_from_pars(best_pars, n=nwalkers)
-
-                #full_guess=sampler.chain[:, -2:, :].reshape(nwalkers,self.npars)
-
-                #full_guess=numpy.zeros( (nwalkers,self.npars) )
-                #chain=sampler.chain
-                #pos=fitter.get_last_pos()
-                #full_guess[0:nwalkers_old]=pos
-                #full_guess[nwalkers_old:]=pos
-                #full_guess[0:nwalkers_old]=chain[:, -1:, :]
-                #full_guess[nwalkers_old:]=chain[:, -2:, :]
-                #full_guess[:,:] = trials[-nwalkers:, :]
-
-                print('       ',full_guess.shape)
-
-        if arate < min_arate:
-            if self['keep_low_arate']:
-                fitter._result['flags'] =0
-            else:
-                fitter._result['flags'] |= LOW_ARATE
-
-
-        # trying keeping low arate ones
-        return fitter
 
     def run_simple_mcmc_fitter(self, imdict):
         """
         simple gauss,exp,dev
         """
         import ngmix
+        from ngmix.fitting import MCMCSimple
 
-        full_guess=self.get_guess(imdict, n=self['nwalkers'])
+        guess=self.get_guess(imdict, n=self['nwalkers'])
 
-        if self.joint_TF_prior is not None:
-            cls=ngmix.fitting.MCMCSimpleJointTF
-        else:
-            cls=ngmix.fitting.MCMCSimple
+        obs=imdict['obs']
 
-        fitter=cls(imdict['image'],
-                   imdict['wt'],
-                   self.jacobian,
-                   self.fit_model,
+        fitter=MCMCSimple(obs,
+                          self.fit_model,
 
-                   cen_prior=self.cen_prior,
-                   g_prior=self.g_prior,
+                          prior=self.prior,
 
-                   T_prior=self.T_prior,
-                   counts_prior=self.counts_prior,
-                   joint_TF_prior=self.joint_TF_prior,
+                          nwalkers=self['nwalkers'],
+                          mca_a=self['mca_a'],
+                          random_state=self.random_state)
 
-                   g_prior_during=self['g_prior_during'],
-
-                   full_guess=full_guess,
-
-                   shear_expand=self.shear_expand,
-
-                   psf=self.psf_gmix_fit,
-                   nwalkers=self['nwalkers'],
-                   nstep=self['nstep'],
-                   burnin=self['burnin'],
-                   mca_a=self['mca_a'],
-                   random_state=self.random_state,
-                   do_pqr=True,
-                   do_lensfit=True)
-
-        fitter.go()
-
-        if 'min_arate' in self:
-            res=fitter.get_result()
-            if res['arate'] < self['min_arate']:
-                # just fail; I verified that no further trying helps 
-                # with any type of guess
-                mess='    failing: arate %s lower than threshold %s'
-                mess=mess % (res['arate'],self['min_arate'])
-                raise TryAgainError(mess)
+        pos=fitter.run_mcmc(guess,self['burnin'])
+        pos=fitter.run_mcmc(pos,self['nstep'])
+        fitter.calc_result()
  
+        raise RuntimeError("do lensfit and pqr here")
+        #shear_expand=self.shear_expand
+
         return fitter
-
-
-    def run_coellip_mcmc_fitter(self, imdict):
-        """
-        simple gauss,exp,dev
-        """
-        import ngmix
-        from ngmix.fitting import MCMCCoellip
-
-        print("fitting coellip")
-
-        guess_type=self['guess_type']
-        if guess_type=='draw_maxlike':
-            full_guess=self.get_coellip_exp_guess_maxlike(imdict)
-        elif guess_type == 'draw_truth':
-            full_guess=self.get_coellip_guess_pars(imdict['pars'])
-        elif guess_type=='draw_priors':
-            # only g prior
-            full_guess=self.get_coellip_guess_prior(imdict['pars'])
-        else:
-            raise ValueError("guess type not supported for "
-                             "coellip: %s" % guess_type)
-
-        # note T and counts priors should be in log space
-        fitter=MCMCCoellip(imdict['image'],
-                           imdict['wt'],
-                           self.jacobian,
-
-                           cen_prior=self.cen_prior,
-                           g_prior=self.g_prior,
-
-                           priors_are_log=self['priors_are_log'],
-                           T_prior=self.T_prior,
-                           counts_prior=self.counts_prior,
-
-                           g_prior_during=self['g_prior_during'],
-
-                           full_guess=full_guess,
-
-                           shear_expand=self.shear_expand,
-
-                           psf=self.psf_gmix_fit,
-                           nwalkers=self['nwalkers'],
-                           nstep=self['nstep'],
-                           burnin=self['burnin'],
-                           mca_a=self['mca_a'],
-                           random_state=self.random_state,
-                           do_pqr=True)
-
-        fitter.go()
- 
-        return fitter
-
-    def get_coellip_exp_guess_maxlike(self, imdict):
-        """
-        Get a guess using an exp fit using LM
-        """
-        import ngmix
-
-        print("    drawing exp maxlike")
-
-        im=imdict['image']
-        wt=imdict['wt']
-        psf=self.psf_gmix_fit
-        true_pars=imdict['pars']
-
-        # better idea for size?
-        Tpsf = psf.get_T()
-
-        ntry=10
-        for i in xrange(ntry):
-
-            # biased estimate of the size
-            T_guess = Tpsf*(1.0 + 0.1*srandu())
-
-            # we would have an accurate estimate of flux I think
-            counts_guess = true_pars[4]*(1.0 + 0.2*srandu())
-
-            # intentionally bad guess on ellipticity 
-            guess_shape=self.get_shape_guess(0.0, 0.0, 1, width=[0.3,0.3])
-
-            guess=array([0.1*srandu(),
-                         0.1*srandu(),
-                         guess_shape[0,0],
-                         guess_shape[0,1],
-                         T_guess,
-                         counts_guess])
-            
-
-            # need to generalize this for hybrid joint priors
-            fitter=ngmix.fitting.LMSimple(im, wt, self.jacobian,
-                                          "exp",
-                                          guess,
-
-                                          lm_pars=self['lm_pars'],
-
-                                          cen_prior=self.cen_prior,
-                                          g_prior=self.g_prior,
-                                          T_prior=self.T_prior,
-                                          counts_prior=self.counts_prior,
-
-                                          psf=psf)
-
-            fitter.go()
-
-            res=fitter.get_result()
-            if res['flags']==0:
-                break
-            else:
-                print("    lm exp fit failed:",res['flags'])
-
-        if res['flags']!=0:
-            raise TryAgainError("lm fit failed")
-
-        pars=res['pars']
-
-        mcmc_guess=self.get_coellip_guess_pars(pars,gwidth=[0.01,0.01])
-
-        return mcmc_guess
-
-
-    def get_coellip_guess_pars(self, simple_pars, swidth=0.10, gwidth=[0.05,0.05]):
-        """
-        Guess near the truth but not too near
-        """
-        import ngmix
-        if self.fit_model=='coellip4':
-            ngauss=4
-        else:
-            raise ValueError("only support coellip4 now")
-
-        T = simple_pars[4]
-        counts = simple_pars[5]
-
-        nwalkers=self['nwalkers']
-
-        full_guess=zeros( (nwalkers, self.npars) )
-        full_guess[:,0] = 0.1*srandu(nwalkers)
-        full_guess[:,1] = 0.1*srandu(nwalkers)
-        guess_shape=self.get_shape_guess(simple_pars[0],simple_pars[1],nwalkers,
-                                         width=gwidth)
-        full_guess[:,2] = guess_shape[:,0]
-        full_guess[:,3] = guess_shape[:,1]
-
-        pars0=array([0.01183116, 0.06115546,  0.3829298 ,  2.89446939,
-                     0.19880675,  0.18535747, 0.31701891,  0.29881687])
-
-        for i in xrange(ngauss):
-            full_guess[:,4+i] = T*pars0[i]*(1.0 + swidth*srandu(nwalkers))
-            full_guess[:,4+ngauss+i] = \
-                    counts*pars0[ngauss+i]*(1.0 + swidth*srandu(nwalkers))
-
-        return full_guess
-
-    def get_coellip_guess_prior(self, simple_pars):
-        """
-        random draw from g prior, but rest based on truth
-        """
-        import ngmix
-
-        #print("        drawing priors")
-
-        if self.fit_model=='coellip4':
-            ngauss=4
-        else:
-            raise ValueError("only support coellip4 now")
-
-        T = simple_pars[4]
-        counts = simple_pars[5]
-
-        nwalkers=self['nwalkers']
-
-        full_guess=zeros( (nwalkers, self.npars) )
-        full_guess[:,0] = 0.1*srandu(nwalkers)
-        full_guess[:,1] = 0.1*srandu(nwalkers)
-
-        full_guess[:,2],full_guess[:,3]=self.g_prior.sample2d(nwalkers)
-
-        pars0=array([0.01183116, 0.06115546,  0.3829298 ,  2.89446939,
-                     0.19880675,  0.18535747, 0.31701891,  0.29881687])
-
-        for i in xrange(ngauss):
-            full_guess[:,4+i] = T*pars0[i]*(1.0 + 0.01*srandu(nwalkers))
-            full_guess[:,4+ngauss+i] = \
-                    counts*pars0[ngauss+i]*(1.0 + 0.01*srandu(nwalkers))
-
-        return full_guess
-
 
 
     def run_simple_mcmc_fixed_fitter(self, imdict):
@@ -1210,78 +449,6 @@ class NGMixSim(dict):
  
         return fitter
 
-    def get_guess_from_pars_shapeonly(self, pars, n=1, width=None):
-        """
-        Get a guess centered on the truth
-
-        width is relative for T and counts
-        """
-
-        if width is None:
-            width = pars*0 + 0.01
-        else:
-            if len(width) != len(pars):
-                raise ValueError("width not same size as pars")
-
-        guess=numpy.zeros( (n, 2) )
-
-        guess_shape=self.get_shape_guess(pars[0],pars[1],n,width=width[2:2+2])
-        guess[:,0]=guess_shape[:,0]
-        guess[:,1]=guess_shape[:,1]
-        return guess
-
- 
-
-    def run_simple_mh_fitter(self, imdict):
-        """
-        Run metropolis hastings
-        """
-        import ngmix
-
-        # get guess and step size from lm
-        ntry=10
-        for i in xrange(ntry):
-            lm_fitter=self.fit_galaxy_lm(imdict)
-            res=lm_fitter.get_result()
-            if res['flags']==0:
-                break
-
-        if res['flags'] != 0:
-            raise TryAgainError("failed fit LM after %s tries" % ntry)
-
-        guess=res['pars']
-        step_sizes = 0.5*res['pars_err'].copy()
-        # soften step sizes, need to tune.
-        #step_sizes += array([0.001, 0.001, 0.005, 0.005, 0.1, 0.1])
-
-        fitter=ngmix.fitting.MHSimple(imdict['image'],
-                                      imdict['wt'],
-                                      self.jacobian,
-                                      self.fit_model,
-
-                                      cen_prior=self.cen_prior,
-                                      g_prior=self.g_prior,
-                                      T_prior=self.T_prior,
-                                      counts_prior=self.counts_prior,
-
-                                      g_prior_during=self['g_prior_during'],
-
-                                      shear_expand=self.shear_expand,
-
-                                      psf=self.psf_gmix_fit,
-
-                                      nstep=self['nstep'],
-                                      burnin=self['burnin'],
-                                      guess=guess,
-                                      step_sizes=step_sizes,
-                                      min_arate=self['min_arate'],
-                                      ntry=self['ntry'],
-
-                                      do_pqr=True,
-                                      do_lensfit=True)
-        fitter.go()
-        return fitter
-
 
     def get_guess_draw_priors(self, n=1):
         """
@@ -1289,76 +456,10 @@ class NGMixSim(dict):
 
         assume simple for now
         """
-        if self.fit_model == 'bdf':
-            guess=self.get_guess_draw_priors_bdf(n)
-        else:
-            guess=self.get_guess_draw_priors_simple(n)
+        guess=self.prior.sample(n)
 
         if n==1:
             guess=guess[0,:]
-
-        return guess
-
-
-    def get_guess_draw_priors_simple(self, n=1):
-        """
-        Get a guess drawn from the priors
-        """
-        import ngmix
-
-        if self.npars != 6:
-            raise ValueError("wrong npars for simple!")
-
-        guess=numpy.zeros( (n, self.npars) )
-
-        if self.cen_prior is not None:
-            guess[:,0],guess[:,1]=self.cen_prior.sample(n=n)
-        guess[:,2],guess[:,3]=self.g_prior.sample2d(n)
-
-        if self.T_prior is not None:
-            guess[:,4]=self.T_prior.sample(nrand=n)
-            guess[:,5]=self.counts_prior.sample(nrand=n)
-        else:
-            T_and_F = self.joint_TF_prior.sample(n)
-            guess[:,4:4+2] = T_and_F
-
-        return guess
-
-    def get_guess_draw_priors_bdf(self, n=1):
-        """
-        Get a guess drawn from the priors
-        """
-        import ngmix
-
-        if self.npars != 7:
-            raise ValueError("wrong npars for bdf!")
-
-        guess=numpy.zeros( (n, self.npars) )
-
-        guess[:,0],guess[:,1]=self.cen_prior.sample(n=n)
-        guess[:,2],guess[:,3]=self.g_prior.sample2d(n)
-        guess[:,4]=self.T_prior.sample(nrand=n)
-        
-        # sample from the bfrac distribution
-        counts=self.counts_prior.sample(nrand=n)
-        #bfracs = self.bfrac_prior.sample(n)
-
-        # uniform
-        # make sure there are some at high and low bfrac
-        bfracs = randu(n)
-        if n > 2:
-            bfracs=numpy.zeros(n)
-            nhalf=n/2
-            bfracs[0:nhalf] = 0.01*randu(nhalf)
-            bfracs[nhalf:] = 0.99+0.01*randu(nhalf)
-        else:
-            bfracs = randu(n)
-        dfracs = 1.0-bfracs
-
-        # bulge flux
-        guess[:,5] = bfracs*counts
-        # disk flux
-        guess[:,6] = dfracs*counts
 
         return guess
 
@@ -1393,67 +494,29 @@ class NGMixSim(dict):
 
     def get_guess_from_pars(self, pars, n=1, width=None):
         """
-        Get a guess centered on the truth
+        Get a guess centered on the input pars
         """
-        if self.fit_model=='bdf':
-            guess=self.get_guess_from_pars_bdf(pars,n=n,width=width)
+
+        if width is None:
+            width = pars*0 + 0.01
         else:
-            guess=self.get_guess_from_pars_simple(pars,n=n,width=width)
+            if len(width) != len(pars):
+                raise ValueError("width not same size as pars")
+
+        guess=numpy.zeros( (n, pars.size) )
+
+        guess[:,0] = width[0]*srandu(n)
+        guess[:,1] = width[1]*srandu(n)
+
+        guess_shape=self.get_shape_guess(pars[2],pars[3],n,width=width[2:2+2])
+        guess[:,2]=guess_shape[:,0]
+        guess[:,3]=guess_shape[:,1]
+
+        # add to log pars!
+        guess[:,4:] = pars[4:] + width[4:]*srandu(n))
 
         if n==1:
             guess=guess[0,:]
-
-        return guess
-
-    def get_guess_from_pars_bdf(self, pars, n=1, width=None):
-        """
-        Get a guess centered on the truth
-
-        width is relative for T and counts
-        """
-
-        if width is None:
-            width = pars*0 + 0.01
-        else:
-            if len(width) != len(pars):
-                raise ValueError("width not same size as pars")
-
-        guess=numpy.zeros( (n, pars.size) )
-
-        guess[:,0] = width[0]*srandu(n)
-        guess[:,1] = width[1]*srandu(n)
-        guess_shape=self.get_shape_guess(pars[2],pars[3],n,width=width[2:2+2])
-        guess[:,2]=guess_shape[:,0]
-        guess[:,3]=guess_shape[:,1]
-        guess[:,4] = self.get_positive_guess(pars[4],n,width=width[4])
-        guess[:,5] = self.get_positive_guess(pars[5],n,width=width[5])
-        guess[:,6] = self.get_positive_guess(pars[6],n,width=width[6])
-
-        return guess
-
-
-    def get_guess_from_pars_simple(self, pars, n=1, width=None):
-        """
-        Get a guess centered on the truth
-
-        width is relative for T and counts
-        """
-
-        if width is None:
-            width = pars*0 + 0.01
-        else:
-            if len(width) != len(pars):
-                raise ValueError("width not same size as pars")
-
-        guess=numpy.zeros( (n, pars.size) )
-
-        guess[:,0] = width[0]*srandu(n)
-        guess[:,1] = width[1]*srandu(n)
-        guess_shape=self.get_shape_guess(pars[2],pars[3],n,width=width[2:2+2])
-        guess[:,2]=guess_shape[:,0]
-        guess[:,3]=guess_shape[:,1]
-        guess[:,4] = self.get_positive_guess(pars[4],n,width=width[4])
-        guess[:,5] = self.get_positive_guess(pars[5],n,width=width[5])
 
         return guess
 
@@ -1483,25 +546,6 @@ class NGMixSim(dict):
             guess[i,1] = shape_new.g2
 
         return guess
-
-    def get_positive_guess(self, val, n, width=0.01):
-        """
-        Get guess, making sure positive
-        """
-        from ngmix.gexceptions import GMixRangeError
-
-        if val <= 0.0:
-            raise GMixRangeError("val <= 0: %s" % val)
-
-        vals=numpy.zeros(n)-9999.0
-        while True:
-            w,=numpy.where(vals <= 0)
-            if w.size == 0:
-                break
-            else:
-                vals[w] = val*(1.0 + width*srandu(w.size))
-
-        return vals
 
 
     def fit_galaxy_lm(self, imdict, guess=None):
@@ -1587,6 +631,7 @@ class NGMixSim(dict):
               self.simc['psf_T'],
               1.0]
 
+        # note not log pars
         self.psf_gmix_true=ngmix.gmix.GMixModel(pars, self.simc['psf_model'])
         
     def get_psf_image(self, dims_pix, cen_arcsec):
@@ -1600,7 +645,7 @@ class NGMixSim(dict):
                                                 nsub=self.nsub)
         return psf_image
 
-    def fit_psf(self, image):
+    def fit_psf(self, obs):
         """
         Fit the pixelized psf to a model
 
@@ -1608,15 +653,20 @@ class NGMixSim(dict):
 
         """
         import ngmix
+        from ngmix.observation import Observation
         from ngmix.gexceptions import GMixMaxIterEM
 
         print('    fitting psf')
-        imsky,sky=ngmix.em.prep_image(image)
 
-        em=ngmix.em.GMixEM(imsky,jacobian=self.jacobian)
+        psf_image=obs.psf_image
+        imsky,sky=ngmix.em.prep_image(psf_image)
 
-        tol=self.get('psf_tol',1.0e-5)
-        maxiter=self.get('psf_maxiter',1000)
+        psf_obs = Observation(imsky, jacobian=obs.jacobian)
+
+        em=ngmix.em.GMixEM(psf_obs)
+
+        tol=self.get('psf_tol',1.0e-6)
+        maxiter=self.get('psf_maxiter',30000)
 
         while True:
             guess=self.get_psf_guess()
@@ -1629,9 +679,12 @@ class NGMixSim(dict):
                 print(str(e))
                 print('re-trying')
 
-        self.psf_gmix_fit=em.get_gmix()
+        psf_gmix_fit=em.get_gmix()
+
         print('psf fit:')
-        print(self.psf_gmix_fit)
+        print(psf_gmix_fit)
+
+        return psf_gmix_fit
 
     def get_psf_guess(self):
         """
@@ -1680,6 +733,7 @@ class NGMixSim(dict):
             else: 
                 raise ValueError("support ngauss > 2")
             
+            # not log pars
             guess=ngmix.gmix.GMix(pars=pars)
 
         return guess
@@ -1784,7 +838,7 @@ class NGMixSim(dict):
         else:
 
             imdict=self.get_image_pair(random=False)
-            im=imdict['im1']['image0']
+            im=imdict['im1']['obs'].image
             skysig2 = (im**2).sum()/self.s2n_for_noise**2
             skysig = numpy.sqrt(skysig2)
 
@@ -1806,16 +860,28 @@ class NGMixSim(dict):
         """
         Get an image pair, with noise added
         """
+        from ngmix.observation import Observation
 
         imdict=self.get_image_pair()
 
-        im1_0 = imdict['im1']['image0']
-        im2_0 = imdict['im2']['image0']
+        obs1_0 = imdict['im1']['obs0']
+        obs2_0 = imdict['im2']['obs0']
+
+        im1_0 = obs1_0.image
+        im2_0 = obs2_0.image
         im1=self.add_noise(im1_0)
         im2=self.add_noise(im2_0)
 
-        imdict['im1']['image'] = im1
-        imdict['im2']['image'] = im2
+        wt=numpy.zeros(im1_0.shape) + self.ivar
+
+        obs1 = Observation(im1,
+                           weight=wt,
+                           psf_image=obs1_0.psf_image,
+                           jacobian=obs1_0.jacobian)
+        obs2 = Observation(im2,
+                           weight=wt,
+                           psf_image=obs2_0.psf_image,
+                           jacobian=obs2_0.jacobian)
 
         im1_s2n = self.get_model_s2n(im1_0)
         im2_s2n = self.get_model_s2n(im2_0)
@@ -1823,9 +889,6 @@ class NGMixSim(dict):
         imdict['im1']['s2n'] = im1_s2n
         imdict['im2']['s2n'] = im2_s2n
 
-        wt=numpy.zeros(imdict['im1']['image'].shape) + self.ivar
-        imdict['im1']['wt']=wt
-        imdict['im2']['wt']=wt
         return imdict
 
     def add_noise(self, im):
@@ -1844,21 +907,18 @@ class NGMixSim(dict):
 
         """
         import ngmix
+        from ngmix.observation import Observation
 
-        pars1, pars2, cen_offset_arcsec = self.get_pair_pars(random=random)
+        pars1, pars2 = self.get_pair_pars(random=random)
 
-        gm1_pre=ngmix.gmix.GMixModel(pars1, self.obj_model)
-        gm2_pre=ngmix.gmix.GMixModel(pars2, self.obj_model)
+        gm1_pre=ngmix.gmix.GMixModel(pars1, self.obj_model, logpars=True)
+        gm2_pre=ngmix.gmix.GMixModel(pars2, self.obj_model, logpars=True)
 
         gm1  = gm1_pre.convolve(self.psf_gmix_true)
         gm2  = gm2_pre.convolve(self.psf_gmix_true)
 
         T = gm1.get_T()
         dims_pix, cen0_pix = self.get_dims_cen(T)
-
-
-        gm1.set_cen(cen_offset_arcsec[0], cen_offset_arcsec[1])
-        gm2.set_cen(cen_offset_arcsec[0], cen_offset_arcsec[1])
 
         # conversion between pixels and sky in arcsec
         self.jacobian=ngmix.jacobian.Jacobian(cen0_pix[0],
@@ -1867,108 +927,72 @@ class NGMixSim(dict):
                                               0.0,
                                               0.0,
                                               self.pixel_scale)
-
-        psf_image=self.get_psf_image(dims_pix, cen_offset_arcsec)
+        psf_cen=pars1[0:0+2]
+        psf_image=self.get_psf_image(dims_pix, psf_cen)
 
         nsub = self.nsub
         im1=gm1.make_image(dims_pix, nsub=nsub, jacobian=self.jacobian)
         im2=gm2.make_image(dims_pix, nsub=nsub, jacobian=self.jacobian)
 
-
         pars_true1=array(pars1)
         pars_true2=array(pars2)
-        pars_true1[0:0+2] = cen_offset_arcsec
-        pars_true2[0:0+2] = cen_offset_arcsec
 
+        obs1 = Observation(im1, psf_image=psf_image, jacobian=self.jacobian)
+        obs2 = Observation(im2, psf_image=psf_image, jacobian=self.jacobian)
         
-        out={'psf':{'im':psf_image},
-             'im1':{'pars':pars_true1,'gm_pre':gm1_pre,'gm':gm1,'image0':im1},
-             'im2':{'pars':pars_true2,'gm_pre':gm2_pre,'gm':gm2,'image0':im2}}
+        out={'im1':{'pars':pars_true1,'gm_pre':gm1_pre,'gm':gm1,'obs0':obs1},
+             'im2':{'pars':pars_true2,'gm_pre':gm2_pre,'gm':gm2,'obs0':obs2}}
         return out
 
     def get_pair_pars(self, random=True):
         """
         Get pair parameters
 
-        if not random, then a particular position is chosen. 
+        if not random, then the mean pars are used, except for cen and g1,g2
+        which are zero
+
         """
         import ngmix
+        from numpy import pi
 
+        if self.fixed_pars:
+            raise RuntimeError("implement fixed in new system")
 
-        cen_offset_arcsec=array([0.0, 0.0])
         if random:
-            # offset in arcsec
+            pars1 = self.prior.sample()
 
-            g = self.g_prior.sample1d(1)
-            g=g[0]
-            rangle1 = randu()*2*numpy.pi
-            if self.ring:
-                rangle2 = rangle1 + numpy.pi/2.0
-            else:
-                rangle2 = randu()*2*numpy.pi
-            g1_1 = g*numpy.cos(2*rangle1)
-            g2_1 = g*numpy.sin(2*rangle1)
-            g1_2 = g*numpy.cos(2*rangle2)
-            g2_2 = g*numpy.sin(2*rangle2)
+            # use same everything but rotated 90 degrees
+            pars2=pars1.copy()
 
-            if self.fixed_pars:
-                T=self.simc['obj_T']
-                counts=self.simc['obj_counts']
-            else:
-                cen_offset_arcsec=array( self.cen_prior.sample() )
-                if self.joint_TF_prior is not None:
-                    p=self.joint_TF_prior.sample(1)
-                    T,counts = p[0,:]
-                else:
-                    T=self.T_prior.sample()
-                    counts=self.counts_prior.sample()
+            g1=pars1[2]
+            g2=pars1[3]
+        
+            shape2=ngmix.shape.Shape(g1,g2)
+            shape2.rotate(pi/2.0)
+
+            pars2[2]=shape2.g1
+            pars2[3]=shape2.g2
+
         else:
-            g1_1=0.0
-            g2_1=0.0
-            g1_2=0.0
-            g2_2=0.0
+            samples=self.prior.sample(10000)
+            pars1 = samples.mean(axis=0)
 
-            if self.fixed_pars:
-                T=self.simc['obj_T']
-                counts=self.simc['obj_counts']
-            else:
-                if self.joint_TF_prior is not None:
-                    T_near=self.joint_TF_prior.get_T_near()
-                    T_min=self.T_bounds[0]
-                    if T_near < T_min:
-                        T = T_min
-                        mess='T_near=%.2f too small, using bound: %.2f'
-                        print(mess % (T_near,T_min))
-                    else:
-                        T=T_near
+            pars1[0:0+4] = 0.0
+            pars2=pars1.copy()
 
-                    counts=self.joint_TF_prior.get_flux_mode()
-                else:
-                    T=self.T_prior.mean
-                    counts=self.counts_prior.mean
-
-        shape1=ngmix.shape.Shape(g1_1, g2_1)
-        shape2=ngmix.shape.Shape(g1_2, g2_2)
+        shape1=ngmix.shape.Shape(pars1[2],pars1[3])
+        shape2=ngmix.shape.Shape(pars2[2],pars2[3])
 
         shear=self.shear
         shape1.shear(shear[0], shear[1])
         shape2.shear(shear[0], shear[1])
 
-        # center is just placeholder for now
-        pars1=[0.0, 0.0, shape1.g1, shape1.g2, T]
-        pars2=[0.0, 0.0, shape2.g1, shape2.g2, T]
+        pars1[2]=shape1.g1
+        pars1[3]=shape1.g2
+        pars2[2]=shape2.g1
+        pars2[3]=shape2.g2
 
-        if self.obj_model=='bdf':
-            bfrac=self.bfrac_prior.sample()
-            counts_b=bfrac*counts
-            counts_d=(1.0-bfrac)*counts
-            pars1+=[counts_b, counts_d]
-            pars2+=[counts_b, counts_d]
-        else:
-            pars1+=[counts]
-            pars2+=[counts]
-
-        return pars1, pars2, cen_offset_arcsec
+        return pars1, pars2
 
     def get_dims_cen(self, T):
         """
@@ -2108,117 +1132,6 @@ class NGMixSim(dict):
                    ('nuse','i4')]
         self.data=numpy.zeros(self.npairs*2, dtype=dt)
 
-
-class NGMixSimJointBDF(NGMixSim):
-    """
-    fit bdf with joint prior
-    """
-    def __init__(self, sim_conf, run_conf, npairs, **keys):
-        s2n=-1
-        super(NGMixSimJointBDF,self).__init__(sim_conf,
-                                              run_conf,
-                                              s2n,
-                                              npairs,
-                                              **keys)
-
-    def fit_galaxy(self, imdict):
-        """
-        Fit BDF model with joint hybrid prior
-        """
-        from ngmix.fitting import MCMCBDFJoint, LOW_ARATE
-
-        nwalkers = self['nwalkers']
-
-        guess_type=self['guess_type']
-        assert guess_type=="draw_truth","guess type should be truth"
-
-        full_guess=self.get_guess(imdict, n=nwalkers)
-
-        fitter=MCMCBDFJoint(imdict['image'],
-                            imdict['wt'],
-                            self.jacobian,
-
-                            cen_prior=self.cen_prior,
-                            joint_prior=self.joint_prior,
-
-                            full_guess=full_guess,
-
-                            shear_expand=self.shear_expand,
-
-                            psf=self.psf_gmix_fit,
-                            nwalkers=nwalkers,
-                            nstep=self['nstep'],
-                            burnin=self['burnin'],
-                            mca_a=self['mca_a'],
-
-                            Tfracdiff_max=self['Tfracdiff_max'],
-                            #ntry=ntry,
-                            random_state=self.random_state,
-                            do_pqr=True)
-        fitter.go()
-        res=fitter.get_result()
-
-        if res['arate'] < self['min_arate']:
-            if self['keep_low_arate']:
-                fitter._result['flags'] =0
-            else:
-                print('        low arate:',res['arate'])
-                fitter._result['flags'] |= LOW_ARATE
-
-
-        return fitter
-
-    def get_pair_pars(self, **keys):
-        """
-        Get pair parameters
-        """
-        from numpy import pi
-        import ngmix
-
-        pars1=numpy.zeros(7)
-        pars2=numpy.zeros(7)
-
-        cen_offset_arcsec=array( self.cen_prior.sample() )
-
-        pars1[2:] = self.joint_prior.sample()
-        pars2=pars1.copy()
-        
-
-        shape1 = ngmix.shape.Shape(pars1[2], pars1[3])
-        shape2 = shape1.copy()
-        shape2.rotate(pi/2.0)
-
-        shear=self.shear
-        shape1.shear(shear[0], shear[1])
-        shape2.shear(shear[0], shear[1])
-
-        pars1[2], pars1[3] = shape1.g1, shape1.g2
-        pars2[2], pars2[3] = shape2.g1, shape2.g2
-
-        return pars1, pars2, cen_offset_arcsec
-
-    def set_priors(self):
-        """
-        Set all the priors
-        """
-
-        import ngmix
-
-        self.pixel_scale = self.simc.get('pixel_scale',1.0)
-
-        joint_prior_type = self.simc['joint_prior_type']
-        if 'great3' in joint_prior_type:
-            import great3
-            self.joint_prior = \
-                great3.joint_prior.make_joint_prior_bdf(type=joint_prior_type)
-        else:
-            raise ValueError("bad joint prior type: '%s'" % joint_prior_type)
-
-        cen_sigma_arcsec=self.simc['cen_sigma']
-        self.cen_prior=ngmix.priors.CenPrior(0.0,
-                                             0.0,
-                                             cen_sigma_arcsec,
-                                             cen_sigma_arcsec)
 
 
 

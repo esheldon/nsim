@@ -190,10 +190,10 @@ class NGMixSim(dict):
 
         expand_shear_true=self.get('expand_shear_true',None)
         if expand_shear_true:
-            self.shear_expand=self.shear
+            self.shear_expand=array(self.shear)
             print('nsim: expanding about shear:',self.shear_expand)
         else:
-            self.shear_expand=None
+            self.shear_expand=array([0.0,0.0])
 
     def get_data(self):
         """
@@ -372,11 +372,26 @@ class NGMixSim(dict):
 
         pos=fitter.run_mcmc(guess,self['burnin'])
         pos=fitter.run_mcmc(pos,self['nstep'])
-        fitter.calc_result()
- 
-        raise RuntimeError("do lensfit and pqr here")
-        #shear_expand=self.shear_expand
 
+        trials = fitter.get_trials()
+        g=trials[:,2:2+2]
+
+        # this is the full prior
+        g_prior=self.prior.g_prior
+        weights = g_prior.get_prob_array2d(g[:,0], g[:,1])
+
+        fitter.calc_result(weights=weights)
+
+        gsens = ngmix.lensfit.calc_sensitivity(g, g_prior)
+        print("gsens:",gsens)
+
+        P,Q,R = ngmix.pqr.calc_pqr(g, g_prior,
+                                   shear_expand=self.shear_expand)
+
+        print("P,Q,R:",P,Q,R)
+
+        stop
+        # need to set elements in the result....
         return fitter
 
 
@@ -427,6 +442,8 @@ class NGMixSim(dict):
         Get a guess centered on the input pars
         """
 
+        npars=pars.size
+
         if width is None:
             width = pars*0 + 0.01
         else:
@@ -442,8 +459,9 @@ class NGMixSim(dict):
         guess[:,2]=guess_shape[:,0]
         guess[:,3]=guess_shape[:,1]
 
-        # add to log pars!
-        guess[:,4:] = pars[4:] + width[4:]*srandu(n))
+        # we add to log pars!
+        for i in xrange(4,npars):
+            guess[:,i] = pars[i] + width[i]*srandu(n)
 
         if n==1:
             guess=guess[0,:]
@@ -696,7 +714,7 @@ class NGMixSim(dict):
             else:
                 raise ValueError("only g prior 'ba' for now")
 
-            g_prior_flat=ngmix.priors.Normal([0.0,0.0], 1.0)
+            g_prior_flat=ngmix.priors.Disk2D([0.0,0.0], 1.0)
 
             # T and scatter in linear space, convert to log
             T            = simc['obj_T_mean']
@@ -707,18 +725,21 @@ class NGMixSim(dict):
             logT_mean, logT_sigma=ngmix.priors.lognorm_convert(T,T_sigma)
             logcounts_mean, logcounts_sigma=ngmix.priors.lognorm_convert(counts,counts_sigma)
 
+            T_prior=ngmix.priors.Normal(logT_mean, logT_sigma)
+            counts_prior=ngmix.priors.Normal(logcounts_mean, logcounts_sigma)
+
             # for drawing parameters, and after exploration to grab g_prior and calculate
             # pqr etc.
             self.prior = PriorSimpleSep(cen_prior,
                                         g_prior,
                                         T_prior,
-                                        F_prior)
+                                        counts_prior)
 
             # for the exploration, for which we do not apply g prior during
             self.prior_gflat = PriorSimpleSep(cen_prior,
                                               g_prior_flat,
                                               T_prior,
-                                              F_prior)
+                                              counts_prior)
 
         else:
             raise ValueError("bad prior type: %s" % simc['prior_type'])
@@ -747,7 +768,7 @@ class NGMixSim(dict):
         else:
 
             imdict=self.get_image_pair(random=False)
-            im=imdict['im1']['obs'].image
+            im=imdict['im1']['obs0'].image
             skysig2 = (im**2).sum()/self.s2n_for_noise**2
             skysig = numpy.sqrt(skysig2)
 
@@ -791,6 +812,9 @@ class NGMixSim(dict):
                            weight=wt,
                            psf_image=obs2_0.psf_image,
                            jacobian=obs2_0.jacobian)
+
+        imdict['im1']['obs'] = obs1
+        imdict['im2']['obs'] = obs2
 
         im1_s2n = self.get_model_s2n(im1_0)
         im2_s2n = self.get_model_s2n(im2_0)

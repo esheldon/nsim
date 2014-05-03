@@ -14,11 +14,10 @@ mca_a:    2.0
 
 expand_shear_true: true
 
-# we normalize splits by split for is2n==0
-desired_err: 2.5e-05
-nsplit0: 90000
-
 #s2n_vals: [ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
-s2n_vals: [ 1000 ]
+s2n_vals: [ 100 ]
 
-sec_per_pair: 22.0
+desired_err: 5.0e-05
+desired_hours: 0.3
+sec_per_pair: 31.0
+npair_min: 1000

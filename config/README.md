@@ -1,5 +1,10 @@
 # vim: set filetype=markdown :
 
+- new Observation and log style
+    - sim-eg12
+    - run-eg12rtest1
+        - s/n=100
+
 - great3 priors
     - look good as long as I keep the g prior separate.  Calling
     this "hybrid"

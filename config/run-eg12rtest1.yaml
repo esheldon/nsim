@@ -8,7 +8,7 @@ guess_type: "draw_truth"
 psf_ngauss: 1
 
 nwalkers: 80
-burnin:   800
+burnin:   400
 nstep:    800
 mca_a:    2.0
 

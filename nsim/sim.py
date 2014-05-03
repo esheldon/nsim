@@ -261,7 +261,8 @@ class NGMixSim(dict):
         width,height=1100,1100
 
         tp=fitter.make_plots(title=self.fit_model,
-                             separate=self.separate)
+                             separate=self.separate,
+                             weights=self._weights)
         if isinstance(tp, tuple):
             if self.separate:
                 burnp, histp=tp
@@ -318,8 +319,6 @@ class NGMixSim(dict):
 
         return fitter
 
-
-
     def fit_galaxy_mcmc(self, imdict):
         """
         Fit the model to the galaxy
@@ -327,7 +326,47 @@ class NGMixSim(dict):
         import ngmix
 
         fitter=self.run_simple_mcmc_fitter(imdict)
+        self._add_mcmc_stats(fitter)
         return fitter
+
+    def _add_mcmc_stats(self, fitter):
+        """
+        Calculate some stats
+
+        The result dict internal to the fitter is modified to include
+        gsens and P,Q,R
+        """
+        import ngmix
+
+        trials = fitter.get_trials()
+        g=trials[:,2:2+2]
+
+        # this is the full prior
+        g_prior=self.prior.g_prior
+        weights = g_prior.get_prob_array2d(g[:,0], g[:,1])
+
+        # keep for later if we want to make plots
+        self._weights=weights
+
+        fitter.calc_result(weights=weights)
+
+        # we are going to mutate the result dict owned by the fitter
+        res=fitter.get_result()
+
+        ls=ngmix.lensfit.LensfitSensitivity(g, g_prior)
+        gsens = ls.get_gsens()
+        nuse = ls.get_nuse()
+
+        pqrobj=ngmix.pqr.PQR(g, g_prior,
+                             shear_expand=self.shear_expand)
+        P,Q,R = pqrobj.get_pqr()
+
+        # this nuse should be the same for both lensfit and pqr
+        res['nuse'] = nuse
+        res['gsens'] = gsens
+        res['P']=P
+        res['Q']=Q
+        res['R']=R
 
 
     def get_guess(self, imdict, n=1):
@@ -373,25 +412,6 @@ class NGMixSim(dict):
         pos=fitter.run_mcmc(guess,self['burnin'])
         pos=fitter.run_mcmc(pos,self['nstep'])
 
-        trials = fitter.get_trials()
-        g=trials[:,2:2+2]
-
-        # this is the full prior
-        g_prior=self.prior.g_prior
-        weights = g_prior.get_prob_array2d(g[:,0], g[:,1])
-
-        fitter.calc_result(weights=weights)
-
-        gsens = ngmix.lensfit.calc_sensitivity(g, g_prior)
-        print("gsens:",gsens)
-
-        P,Q,R = ngmix.pqr.calc_pqr(g, g_prior,
-                                   shear_expand=self.shear_expand)
-
-        print("P,Q,R:",P,Q,R)
-
-        stop
-        # need to set elements in the result....
         return fitter
 
 
@@ -1031,10 +1051,13 @@ class NGMixSim(dict):
         d['nuse'][i] = res['nuse']
 
         if 'P' in res:
+            d['g'][i,:] = res['g']
+            d['g_cov'][i,:,:] = res['g_cov']
+            d['gsens'][i,:] = res['gsens']
+
             d['P'][i] = res['P']
             d['Q'][i,:] = res['Q']
             d['R'][i,:,:] = res['R']
-            d['g'][i,:] = res['g']
         else:
             d['nfev'][i] = res['nfev']
 
@@ -1055,10 +1078,13 @@ class NGMixSim(dict):
         if 'lm' in self['fitter']:
             dt += [('nfev','i4')]
         else:
-            dt += [('P','f8'),
+            dt += [('g','f8',2),
+                   ('g_cov','f8',(2,2)),
+                   ('gsens','f8',2),
+
+                   ('P','f8'),
                    ('Q','f8',2),
                    ('R','f8',(2,2)),
-                   ('g','f8',2),
                    ('nuse','i4')]
         self.data=numpy.zeros(self.npairs*2, dtype=dt)
 

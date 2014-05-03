@@ -335,6 +335,8 @@ class NGMixSim(dict):
 
         The result dict internal to the fitter is modified to include
         gsens and P,Q,R
+
+        could we add this as a stand-alone function to ngmix.fitting?
         """
         import ngmix
 

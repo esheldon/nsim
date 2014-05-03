@@ -45,16 +45,16 @@ def get_dtype(fobj, model):
     dt += [('s2n_matched','f8'),
            ('nsum','i8'),
            ('g_sum','f8',2),
+           ('shear','f8',2),
            ('shear_cov','f8',(2,2)),
            ('shear_cov_inv_sum','f8',(2,2)),
            ('P_sum','f8'),
            ('Q_sum','f8',2),
-           ('Cinv_sum','f8',(2,2)),
-           ('shear','f8',2)]
+           ('Cinv_sum','f8',(2,2))]
 
 
-    if 'gsens' in data.dtype.names:
-        dt += [('gsens_sum','f8',2),
+    if 'g_sens' in data.dtype.names:
+        dt += [('g_sens_sum','f8',2),
                ('shear_lensfit','f8',2),
                ('shear_lensfit_cov','f8',(2,2)),
                ('shear_lensfit_cov_inv_sum','f8',(2,2)),
@@ -168,8 +168,8 @@ def add_more_sums(conf, data, d, w, g1i=2, g2i=3):
     else:
         d['g_sum'][0] += data['pars'][:,g1i:g1i+2].sum(axis=0)
 
-    if 'gsens' in names:
-        d['gsens_sum'] = data['gsens'].sum(axis=0)
+    if 'g_sens' in names:
+        d['g_sens_sum'] = data['g_sens'].sum(axis=0)
 
     if model in simple_models or model=='bdf':
         flux     = data['pars'][:,flux_i:].sum(axis=1)
@@ -239,21 +239,21 @@ def do_avg(conf, d):
 
     d['shear_cov'][0,:,:] = shear_cov
 
-    if 'gsens_sum' in d.dtype.names:
-        gmean = d['g_sum'][0]/d['nsum']
-        gsens = d['gsens_sum'][0]/d['nsum']
+    if 'g_sens_sum' in d.dtype.names:
+        g_mean = d['g_sum'][0]/d['nsum']
+        g_sens = d['g_sens_sum'][0]/d['nsum']
         
         shl_cov = shear_cov.copy()
-        shl_cov[0,0] /= (gsens[0]*gsens[0])
-        shl_cov[0,1] /= (gsens[0]*gsens[1])
-        shl_cov[1,0] /= (gsens[0]*gsens[1])
-        shl_cov[1,1] /= (gsens[1]*gsens[1])
+        shl_cov[0,0] /= (g_sens[0]*g_sens[0])
+        shl_cov[0,1] /= (g_sens[0]*g_sens[1])
+        shl_cov[1,0] /= (g_sens[0]*g_sens[1])
+        shl_cov[1,1] /= (g_sens[1]*g_sens[1])
         shl_cov_inv = numpy.linalg.inv(shl_cov)
 
-        shl =gmean/gsens
+        shl = g_mean/g_sens
         sherr=numpy.sqrt(shl_cov[0,0])
 
-        d['gsens'] = gsens
+        d['g_sens'] = g_sens
         d['shear_lensfit'] = shl
         d['shear_lensfit_cov'][0,:,:] = shl_cov
         d['shear_lensfit_cov_inv_sum'][0,:,:] = shl_cov_inv

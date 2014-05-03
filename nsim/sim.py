@@ -334,7 +334,7 @@ class NGMixSim(dict):
         Calculate some stats
 
         The result dict internal to the fitter is modified to include
-        gsens and P,Q,R
+        g_sens and P,Q,R
 
         could we add this as a stand-alone function to ngmix.fitting?
         """
@@ -356,7 +356,8 @@ class NGMixSim(dict):
         res=fitter.get_result()
 
         ls=ngmix.lensfit.LensfitSensitivity(g, g_prior)
-        gsens = ls.get_gsens()
+        g_sens = ls.get_g_sens()
+        g_mean = ls.get_g_mean()
         nuse = ls.get_nuse()
 
         pqrobj=ngmix.pqr.PQR(g, g_prior,
@@ -365,7 +366,7 @@ class NGMixSim(dict):
 
         # this nuse should be the same for both lensfit and pqr
         res['nuse'] = nuse
-        res['gsens'] = gsens
+        res['g_sens'] = g_sens
         res['P']=P
         res['Q']=Q
         res['R']=R
@@ -1055,7 +1056,7 @@ class NGMixSim(dict):
         if 'P' in res:
             d['g'][i,:] = res['g']
             d['g_cov'][i,:,:] = res['g_cov']
-            d['gsens'][i,:] = res['gsens']
+            d['g_sens'][i,:] = res['g_sens']
 
             d['P'][i] = res['P']
             d['Q'][i,:] = res['Q']
@@ -1082,7 +1083,7 @@ class NGMixSim(dict):
         else:
             dt += [('g','f8',2),
                    ('g_cov','f8',(2,2)),
-                   ('gsens','f8',2),
+                   ('g_sens','f8',2),
 
                    ('P','f8'),
                    ('Q','f8',2),

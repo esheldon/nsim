@@ -39,7 +39,7 @@ parser.add_option('--png',default=None,
 #                  help="labels for each run")
 
 parser.add_option('--method',default='ba',
-                  help="method to plot ('ba','gmean')")
+                  help="method to plot ('ba','gmean','lensfit')")
 
 parser.add_option('--add-run-label',action='store_true',
                   help="lable run as well")
@@ -52,26 +52,29 @@ parser.add_option('--noshow',action='store_true',
                   help="don't show on the screen")
 
 def get_names(method):
-    if method == 'BA':
+    if method == 'ba':
         s_name='shear'
         scov_name='shear_cov'
-    elif method=='GMEAN':
+    elif method=='gmean':
         s_name='g_sum'
         scov_name='shear_cov'
+    elif method=='lensfit':
+        s_name='shear_lensfit'
+        scov_name='shear_lensfit_cov'
     else:
         raise ValueError("bad method: '%s'" % method)
 
     return s_name, scov_name
 
 def get_method_name(method):
-    if method=='BA':
+    if method=='ba':
         return 'B&A'
     else:
         return method
 
 def plot_shear(plt, c, index, symbol, color, linestyle, options,
                with_points=True, with_curve=True,
-               method='BA',
+               method='ba',
                add_run_label=False):
 
     label = c['simc']['label']
@@ -218,7 +221,7 @@ def main():
         sys.exit(45)
 
     runs=args
-    method=options.method.upper()
+    method=options.method.lower()
     index=int( options.index )
 
     biggles.configure('default','fontsize_min',3)

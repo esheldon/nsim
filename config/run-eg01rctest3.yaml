@@ -1,0 +1,36 @@
+run: "run-eg01rctest3"
+sim: "sim-eg01"
+
+fitter: "mcmc"
+fit_model: "coellip4"
+guess_type: "draw_maxlike"
+g_prior_during: false
+
+priors_are_log: false
+
+psf_ngauss: 1
+
+nwalkers: 80
+burnin:   1600
+nstep:    800
+mca_a:    1.8
+
+min_arate: 0.10
+
+expand_shear_true: true
+
+#s2n_vals: [ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
+s2n_vals: [ 50 ]
+
+# we normalize splits by split for is2n==0
+desired_err: 3.0e-5
+desired_hours: 0.40
+sec_per_pair: 48.0
+npair_min: 1000
+
+# for the guess
+lm_pars:
+    maxfev: 300
+    ftol:   1.0e-6
+    xtol:   1.0e-6
+    epsfcn: 1.0e-6

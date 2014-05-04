@@ -169,7 +169,7 @@ def add_more_sums(conf, data, d, w, g1i=2, g2i=3):
         d['g_sum'][0] += data['pars'][:,g1i:g1i+2].sum(axis=0)
 
     if 'g_sens' in names:
-        d['g_sens_sum'] = data['g_sens'].sum(axis=0)
+        d['g_sens_sum'][0] += data['g_sens'].sum(axis=0)
 
     if model in simple_models or model=='bdf':
         flux     = data['pars'][:,flux_i:].sum(axis=1)

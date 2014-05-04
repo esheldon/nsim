@@ -18,6 +18,6 @@ expand_shear_true: true
 s2n_vals: [ 100 ]
 
 desired_err: 5.0e-05
-desired_hours: 0.3
+desired_hours: 0.1
 sec_per_pair: 31.0
 npair_min: 1000

@@ -1,0 +1,30 @@
+# just hammering number of burnin and steps
+run: "run-eg12rtest5"
+sim: "sim-eg12"
+
+fitter: "lm"
+fit_model: "exp"
+guess_type: "draw_priors"
+
+psf_ngauss: 1
+
+expand_shear_true: true
+
+s2n_vals: [ 100 ]
+
+desired_err: 2.5e-05
+desired_hours: 0.5
+sec_per_pair: 103.0
+npair_min: 4000
+
+# no prior on g during
+#prior_type_during: 'full'
+prior_type_during: 'gflat'
+
+lm_ntry: 10
+
+lm_pars:
+    maxfev: 300
+    ftol:   1.0e-6
+    xtol:   1.0e-6
+    epsfcn: 1.0e-6

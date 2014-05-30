@@ -1,0 +1,29 @@
+# just hammering number of burnin and steps
+run: "run-eg13rtest2"
+sim: "sim-eg13"
+
+fitter: "lm"
+fit_model: "exp"
+guess_type: "draw_priors"
+
+psf_ngauss: 1
+
+nwalkers: 80
+burnin:   400
+nstep:    800
+mca_a:    2.0
+
+expand_shear_true: true
+
+s2n_vals: [ 100 ]
+
+desired_err: 2.5e-05
+desired_hours: 0.5
+sec_per_pair: 103.0
+npair_min: 4000
+
+lm_pars:
+    maxfev: 300
+    ftol:   1.0e-6
+    xtol:   1.0e-6
+    epsfcn: 1.0e-6

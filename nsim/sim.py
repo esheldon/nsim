@@ -224,6 +224,7 @@ class NGMixSim(dict):
 
         imdicts = self.get_noisy_image_pair()
 
+        print(imdicts['im1']['obs'].image.shape)
 
         reslist=[]
         for key in ['im1','im2']:
@@ -231,9 +232,10 @@ class NGMixSim(dict):
             imd = imdicts[key]
 
             obs = imd['obs']
-            psf_gmix=self.fit_psf(obs)
 
-            obs.set_psf_gmix(psf_gmix)
+            # note obs.psf is another Observation.  the gmix for
+            # psf will be set
+            self.fit_psf(obs.psf)
 
             fitter=self.fit_galaxy(imd)
             res=fitter.get_result()
@@ -437,6 +439,7 @@ class NGMixSim(dict):
         width from the fit
 
         start lm near the truth
+
         """
         import ngmix
 
@@ -463,6 +466,8 @@ class NGMixSim(dict):
     def get_guess_from_pars(self, pars, n=1, width=None):
         """
         Get a guess centered on the input pars
+
+        pars are in log everywhere
         """
 
         npars=pars.size
@@ -524,30 +529,23 @@ class NGMixSim(dict):
         Fit the model to the galaxy
         """
         import ngmix
+        from ngmix.fitting import LMSimple
 
         if guess is None:
             guess=self.get_lm_guess(imdict)
 
-        im=imdict['image']
-        wt=imdict['wt']
-        psf=self.psf_gmix_fit
-        
-        counts_prior = self.counts_prior
+        obs=imdict['obs']
 
-        fitter=ngmix.fitting.LMSimple(im, wt, self.jacobian,
-                                      self.fit_model,
-                                      guess,
+        # no prior for tests
+        print("not using prior for now")
+        fitter=LMSimple(obs,
+                        self.fit_model,
 
-                                      lm_pars=self['lm_pars'],
+                        #prior=self.prior,
 
-                                      cen_prior=self.cen_prior,
-                                      g_prior=self.g_prior,
-                                      T_prior=self.T_prior,
-                                      counts_prior=counts_prior,
+                        lm_pars=self['lm_pars'])
 
-                                      psf=psf)
-
-        fitter.go()
+        fitter.run_lm(guess)
 
         return fitter
 
@@ -620,8 +618,7 @@ class NGMixSim(dict):
         """
         Fit the pixelized psf to a model
 
-        PSF
-
+        will set_gmix
         """
         import ngmix
         from ngmix.observation import Observation
@@ -629,12 +626,12 @@ class NGMixSim(dict):
 
         print('    fitting psf')
 
-        psf_image=obs.psf_image
-        imsky,sky=ngmix.em.prep_image(psf_image)
+        image=obs.image
+        imsky,sky=ngmix.em.prep_image(image)
 
-        psf_obs = Observation(imsky, jacobian=obs.jacobian)
+        sky_obs = Observation(imsky, jacobian=obs.jacobian)
 
-        em=ngmix.em.GMixEM(psf_obs)
+        em=ngmix.em.GMixEM(sky_obs)
 
         tol=self.get('psf_tol',1.0e-6)
         maxiter=self.get('psf_maxiter',30000)
@@ -655,7 +652,7 @@ class NGMixSim(dict):
         print('psf fit:')
         print(psf_gmix_fit)
 
-        return psf_gmix_fit
+        obs.set_gmix(psf_gmix_fit)
 
     def get_psf_guess(self):
         """
@@ -745,8 +742,8 @@ class NGMixSim(dict):
             counts       = simc['obj_counts_mean']
             counts_sigma = simc['obj_counts_sigma_frac']*counts
 
-            logT_mean, logT_sigma=ngmix.priors.lognorm_convert(T,T_sigma)
-            logcounts_mean, logcounts_sigma=ngmix.priors.lognorm_convert(counts,counts_sigma)
+            logT_mean, logT_sigma=ngmix.priors.lognorm_convert(T,T_sigma,base=10.0)
+            logcounts_mean, logcounts_sigma=ngmix.priors.lognorm_convert(counts,counts_sigma,base=10.0)
 
             T_prior=ngmix.priors.Normal(logT_mean, logT_sigma)
             counts_prior=ngmix.priors.Normal(logcounts_mean, logcounts_sigma)
@@ -829,11 +826,11 @@ class NGMixSim(dict):
 
         obs1 = Observation(im1,
                            weight=wt,
-                           psf_image=obs1_0.psf_image,
+                           psf=obs1_0.psf,
                            jacobian=obs1_0.jacobian)
         obs2 = Observation(im2,
                            weight=wt,
-                           psf_image=obs2_0.psf_image,
+                           psf=obs2_0.psf,
                            jacobian=obs2_0.jacobian)
 
         imdict['im1']['obs'] = obs1
@@ -865,6 +862,7 @@ class NGMixSim(dict):
         import ngmix
         from ngmix.observation import Observation
 
+        # pars are in log space
         pars1, pars2 = self.get_pair_pars(random=random)
 
         gm1_pre=ngmix.gmix.GMixModel(pars1, self.obj_model, logpars=True)
@@ -886,18 +884,17 @@ class NGMixSim(dict):
         psf_cen=pars1[0:0+2]
         psf_image=self.get_psf_image(dims_pix, psf_cen)
 
+        psf_obs = Observation(psf_image, jacobian=self.jacobian)
+
         nsub = self.nsub
         im1=gm1.make_image(dims_pix, nsub=nsub, jacobian=self.jacobian)
         im2=gm2.make_image(dims_pix, nsub=nsub, jacobian=self.jacobian)
 
-        pars_true1=array(pars1)
-        pars_true2=array(pars2)
-
-        obs1 = Observation(im1, psf_image=psf_image, jacobian=self.jacobian)
-        obs2 = Observation(im2, psf_image=psf_image, jacobian=self.jacobian)
+        obs1 = Observation(im1, psf=psf_obs, jacobian=self.jacobian)
+        obs2 = Observation(im2, psf=psf_obs, jacobian=self.jacobian)
         
-        out={'im1':{'pars':pars_true1,'gm_pre':gm1_pre,'gm':gm1,'obs0':obs1},
-             'im2':{'pars':pars_true2,'gm_pre':gm2_pre,'gm':gm2,'obs0':obs2}}
+        out={'im1':{'pars':pars1,'gm_pre':gm1_pre,'gm':gm1,'obs0':obs1},
+             'im2':{'pars':pars2,'gm_pre':gm2_pre,'gm':gm2,'obs0':obs2}}
         return out
 
     def get_pair_pars(self, random=True):
@@ -907,6 +904,7 @@ class NGMixSim(dict):
         if not random, then the mean pars are used, except for cen and g1,g2
         which are zero
 
+        Note the pars are in log space for T,F
         """
         import ngmix
         from numpy import pi

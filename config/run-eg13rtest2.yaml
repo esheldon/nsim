@@ -8,11 +8,6 @@ guess_type: "draw_priors"
 
 psf_ngauss: 1
 
-nwalkers: 80
-burnin:   400
-nstep:    800
-mca_a:    2.0
-
 expand_shear_true: true
 
 s2n_vals: [ 100 ]
@@ -21,6 +16,12 @@ desired_err: 2.5e-05
 desired_hours: 0.5
 sec_per_pair: 103.0
 npair_min: 4000
+
+# no prior on g during
+#prior_type_during: 'full'
+prior_type_during: 'gflat'
+
+lm_ntry: 10
 
 lm_pars:
     maxfev: 300

@@ -426,6 +426,7 @@ class NGMixSim(dict):
 
         assume simple for now
         """
+        print("drawing guess from priors")
         guess=self.prior.sample(n)
 
         if n==1:
@@ -531,22 +532,35 @@ class NGMixSim(dict):
         import ngmix
         from ngmix.fitting import LMSimple
 
-        if guess is None:
-            guess=self.get_lm_guess(imdict)
-
         obs=imdict['obs']
 
-        # no prior for tests
-        print("not using prior for now")
-        fitter=LMSimple(obs,
-                        self.fit_model,
+        ntry=self['lm_ntry']
 
-                        #prior=self.prior,
+        # no prior for now
+        if self['prior_type_during']=='full':
+            print("using full prior")
+            prior=self.prior
+        else:
+            print("using flat g prior")
+            prior=self.prior_gflat
 
-                        lm_pars=self['lm_pars'])
+        for i in xrange(ntry):
+            if guess is None or i > 0:
+                guess=self.get_lm_guess(imdict)
 
-        fitter.run_lm(guess)
+            fitter=LMSimple(obs,
+                            self.fit_model,
 
+                            prior=prior,
+
+                            lm_pars=self['lm_pars'])
+
+            fitter.run_lm(guess)
+            res=fitter.get_result()
+            if res['flags']==0:
+                break
+
+        res['ntry']=i+1
         return fitter
 
 
@@ -1046,21 +1060,24 @@ class NGMixSim(dict):
         d['pars'][i,:] = res['pars']
         d['pcov'][i,:,:] = res['pars_cov']
 
-        d['s2n_w'][i] = res['s2n_w']
-        d['arate'][i] = res['arate']
+        d['g'][i,:] = res['g']
+        d['g_cov'][i,:,:] = res['g_cov']
 
-        d['nuse'][i] = res['nuse']
+        d['s2n_w'][i] = res['s2n_w']
 
         if 'P' in res:
-            d['g'][i,:] = res['g']
-            d['g_cov'][i,:,:] = res['g_cov']
+            d['arate'][i] = res['arate']
             d['g_sens'][i,:] = res['g_sens']
 
             d['P'][i] = res['P']
             d['Q'][i,:] = res['Q']
             d['R'][i,:,:] = res['R']
+
+            d['nuse'][i] = res['nuse']
         else:
             d['nfev'][i] = res['nfev']
+            # set outside of fitter
+            d['ntry'][i] = res['ntry']
 
     def make_struct(self):
         """
@@ -1077,7 +1094,10 @@ class NGMixSim(dict):
             ('arate','f8')]
 
         if 'lm' in self['fitter']:
-            dt += [('nfev','i4')]
+            dt += [('nfev','i4'),
+                   ('ntry','i4'),
+                   ('g','f8',2),
+                   ('g_cov','f8',(2,2))]
         else:
             dt += [('g','f8',2),
                    ('g_cov','f8',(2,2)),
@@ -1623,7 +1643,7 @@ def write_fits(filename, data):
         fobj.write(data)
 
     if local_file==output_file:
-        return
+        return True
 
     # remove if it exists
     try:

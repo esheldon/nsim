@@ -537,12 +537,17 @@ class NGMixSim(dict):
         ntry=self['lm_ntry']
 
         # no prior for now
-        if self['prior_type_during']=='full':
+        ptd=self['prior_type_during']
+        if ptd=='full':
             print("using full prior")
             prior=self.prior
-        else:
+        elif ptd=='gflat':
             print("using flat g prior")
             prior=self.prior_gflat
+        elif ptd==None:
+            prior=None
+        else:
+            raise ValueError("bad prior type during: %s" % ptd)
 
         for i in xrange(ntry):
             if guess is None or i > 0:

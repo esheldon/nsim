@@ -20,6 +20,7 @@ npair_min: 4000
 # no prior on g during
 #prior_type_during: 'full'
 prior_type_during: 'gflat'
+#prior_type_during: null
 
 lm_ntry: 10
 

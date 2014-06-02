@@ -747,13 +747,16 @@ class NGMixSim(dict):
                                             cen_sigma_arcsec,
                                             cen_sigma_arcsec)
 
-            if simc['g_prior_type']=="ba":
+            gtype=simc['g_prior_type']
+            if gtype=="ba":
                 g_prior_sigma=simc['g_prior_sigma']
                 g_prior=ngmix.priors.GPriorBA(g_prior_sigma)
+            elif gtype=="cosmos":
+                g_prior=ngmix.priors.make_gprior_cosmos_sersic(type='erf')
             else:
                 raise ValueError("only g prior 'ba' for now")
 
-            g_prior_flat=ngmix.priors.Disk2D([0.0,0.0], 1.0)
+            g_prior_flat=ngmix.priors.ZDisk2D(1.0)
 
             # T and scatter in linear space, convert to log
             T            = simc['obj_T_mean']

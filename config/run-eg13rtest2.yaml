@@ -1,4 +1,4 @@
-# just hammering number of burnin and steps
+# eg13 is narrow distributions cosmos shapes
 run: "run-eg13rtest2"
 sim: "sim-eg13"
 

@@ -668,8 +668,8 @@ class NGMixSim(dict):
 
         psf_gmix_fit=em.get_gmix()
 
-        print('psf fit:')
-        print(psf_gmix_fit)
+        #print('psf fit:')
+        #print(psf_gmix_fit)
 
         obs.set_gmix(psf_gmix_fit)
 

@@ -404,7 +404,8 @@ class NGMixSim(dict):
                         self.fit_model,
                         step_sizes,
 
-                        prior=self.prior_gflat)
+                        prior=self.prior_gflat, 
+                        random_state=self.random_state)
 
         pos=fitter.run_mcmc(guess,self['burnin'])
         pos=fitter.run_mcmc(pos,self['nstep'])

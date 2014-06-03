@@ -1,5 +1,5 @@
 """
-Simulate images and fit them, currently MCMC only
+Simulate images and fit them.
 
 Currently importing ngmix locally because it is so slow; numba does not yet
 cache object files. Will make global import when caching is part of numba
@@ -8,42 +8,7 @@ additional dependence on
     emcee for MCMC fitting and
     fitsio if checkpointing
 
-example sim config file in yaml format
---------------------------------------
-name: "nsim-dg01"
-
-psf_model: "gauss"
-psf_T: 4.0
-psf_shape: [0.0, 0.0]
-
-obj_model: "dev"
-obj_T_mean: 16.0
-obj_T_sigma_frac: 0.3
-
-obj_counts_mean: 100.0
-obj_counts_sigma_frac: 0.3
-
-shear: [0.01,0.0]
-
-nsub: 16
-
-example run config file in yaml format
---------------------------------------
-run: "ngmix-dg01r33"
-sim: "nsim-dg01"
-
-fit_model: "dev"
-
-nwalkers: 40
-burnin:   400
-nstep:    200
-mca_a:    3.0
-
-# we normalize splits by split for is2n==0
-desired_err: 2.0e-05
-nsplit0: 60000
-
-s2n_vals: [ 15, 21, 30, 42, 60, 86, 122, 174, 247, 352, 500] 
+for example sim and run configs, see the config subdirectory
 
 """
 from __future__ import print_function
@@ -56,6 +21,7 @@ from numpy import array, zeros, log, log10, exp, sqrt
 from numpy.random import random as randu
 from numpy.random import randn
 
+import ngmix
 
 # region over which to render images and calculate likelihoods
 NSIGMA_RENDER=5.0
@@ -78,7 +44,6 @@ class NGMixSim(dict):
         Simulate and fit the requested number of pairs at
         the specified s/n
         """
-        import ngmix
 
         # seed a new MT random generator from devrand
         # and return the object
@@ -220,7 +185,6 @@ class NGMixSim(dict):
         """
         Create a simulated image pair and perform the fit
         """
-        import ngmix
 
         imdicts = self.get_noisy_image_pair()
 
@@ -344,7 +308,6 @@ class NGMixSim(dict):
 
         could we add this as a stand-alone function to ngmix.fitting?
         """
-        import ngmix
 
         trials = fitter.get_trials()
         g=trials[:,2:2+2]
@@ -402,7 +365,6 @@ class NGMixSim(dict):
         """
         simple gauss,exp,dev
         """
-        import ngmix
         from ngmix.fitting import MCMCSimple
 
         guess=self.get_guess(imdict, n=self['nwalkers'])
@@ -427,7 +389,6 @@ class NGMixSim(dict):
         """
         simple gauss,exp,dev
         """
-        import ngmix
         from ngmix.fitting import MHSimple
 
         mess="for mh guess should be maxlike"
@@ -470,11 +431,13 @@ class NGMixSim(dict):
         Get the maximum likelihood fit and draw from that using
         width from the fit
 
-        start lm from priors to make it a challenge
+        start lm from priors to make it a challenge.  always use full prior to
+        make sure we get a good estimate of the covariance matrix (without
+        priors the covar can blow up)
 
         """
-        import ngmix
 
+        print("drawing guess from maxlike")
         ntry=self['lm_ntry']
         for i in xrange(ntry):
 
@@ -538,7 +501,6 @@ class NGMixSim(dict):
         """
         Get guess, making sure in range
         """
-        import ngmix
         from ngmix.gexceptions import GMixRangeError
 
         guess=numpy.zeros( (n, 2) )
@@ -570,7 +532,6 @@ class NGMixSim(dict):
         getter
 
         """
-        import ngmix
         from ngmix.fitting import LMSimple
 
         obs=imdict['obs']
@@ -626,7 +587,6 @@ class NGMixSim(dict):
         """
         print some stats
         """
-        import ngmix
 
         if 'arate' in res:
             print('    arate:',res['arate'],'s2n_w:',
@@ -642,8 +602,6 @@ class NGMixSim(dict):
         """
         make the psf gaussian mixture model
         """
-        import ngmix
-
 
         if 'psf_fwhm' in self.simc:
             psf_sigma = self.simc['psf_fwhm']/2.3548200450309493
@@ -677,7 +635,6 @@ class NGMixSim(dict):
 
         will set_gmix
         """
-        import ngmix
         from ngmix.observation import Observation
         from ngmix.gexceptions import GMixMaxIterEM
 

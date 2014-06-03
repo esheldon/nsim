@@ -1,0 +1,36 @@
+# MH fitter
+run: "run-eg12rtest6"
+sim: "sim-eg12"
+
+fitter: "mh"
+fit_model: "exp"
+
+# this must be draw_maxlike
+guess_type: "draw_maxlike"
+
+psf_ngauss: 1
+
+burnin: 5000
+nstep: 5000
+
+expand_shear_true: true
+
+s2n_vals: [ 100 ]
+
+desired_err: 2.5e-05
+desired_hours: 0.5
+sec_per_pair: 103.0
+npair_min: 4000
+
+# no prior on g during
+#prior_type_during: 'full'
+prior_type_during: 'gflat'
+#prior_type_during: null
+
+lm_ntry: 10
+
+lm_pars:
+    maxfev: 300
+    ftol:   1.0e-6
+    xtol:   1.0e-6
+    epsfcn: 1.0e-6

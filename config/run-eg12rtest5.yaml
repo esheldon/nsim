@@ -1,4 +1,3 @@
-# just hammering number of burnin and steps
 run: "run-eg12rtest5"
 sim: "sim-eg12"
 

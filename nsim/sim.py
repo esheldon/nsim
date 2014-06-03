@@ -262,46 +262,39 @@ class NGMixSim(dict):
 
         width,height=1100,1100
 
-        tp=fitter.make_plots(title=self.fit_model,
-                             separate=self.separate,
-                             weights=self._weights)
-        if isinstance(tp, tuple):
-            if self.separate:
-                burnp, histp=tp
-                if isinstance(histp,tuple):
-                    tb=burnp
-                    th=histp
-                    burnp,histp=tb
-                    wburnp,whistp=th
+        pdict=fitter.make_plots(title=self.fit_model,
+                                separate=self.separate,
+                                weights=self._weights)
 
-                    whist_plot=self.plot_base+'-%06d-%s-whist.png' % (self.ipair,key)
-                    print(whist_plot)
-                    whistp.write_img(width,height,whist_plot)
+        if not self.separate:
 
-                burn_plot=self.plot_base+'-%06d-%s-burn.png' % (self.ipair,key)
-                hist_plot=self.plot_base+'-%06d-%s-hist.png' % (self.ipair,key)
+            trials_pname=self.plot_base+'-%06d-%s-trials.png' % (self.ipair,key)
+            print(trials_pname)
+            p=pdict['trials']
+            p.write_img(width,height,trials_pname)
 
-                print(burn_plot)
-                burnp.write_img(width,height,burn_plot)
-                print(hist_plot)
-                histp.write_img(width,height,hist_plot)
-
-
-            else:
-                p,wp=tp
-
-                trials_plot=self.plot_base+'-%06d-%s-trials.png' % (self.ipair,key)
-                trials_wplot=self.plot_base+'-%06d-%s-wtrials.png' % (self.ipair,key)
-
-                print(trials_plot)
-                p.write_img(width,height,trials_plot)
-                print(trials_wplot)
-                wp.write_img(width,height,trials_wplot)
-
+            if 'wtrials' in pdict:
+                wp=pdict['wtrials']
+                wtrials_pname=\
+                    self.plot_base+'-%06d-%s-wtrials.png' % (self.ipair,key)
+                print(wtrials_pname)
+                wp.write_img(width,height,wtrials_pname)
         else:
-            trials_plot=self.plot_base+'-%06d-%s-trials.png' % (self.ipair,key)
-            print(trials_plot)
-            tp.write_img(width,height,trials_plot)
+            burn_plt, hist_plt=pdict['trials']
+            burn_pname=self.plot_base+'-%06d-%s-burn.png' % (self.ipair,key)
+            hist_pname=self.plot_base+'-%06d-%s-hist.png' % (self.ipair,key)
+
+            print(burn_pname)
+            burn_plt.write_img(width,height,burn_pname)
+            print(hist_pname)
+            hist_plt.write_img(width,height,hist_pname)
+
+            if 'wtrials' in pdict:
+                wburn_plt, whist_plt=pdict['wtrials']
+                whist_pname=self.plot_base+'-%06d-%s-whist.png' % (self.ipair,key)
+
+                print(whist_pname)
+                whist_plt.write_img(width,height,whist_pname)
 
 
     def fit_galaxy(self, imdict):
@@ -313,8 +306,12 @@ class NGMixSim(dict):
         #if fitter_type == 'mcmc':
         if 'mcmc' in fitter_type:
             fitter = self.fit_galaxy_mcmc(imdict)
+        elif 'mh' in fitter_type:
+            fitter = self.fit_galaxy_mh(imdict)
         elif fitter_type == 'lm':
-            fitter = self.fit_galaxy_lm(imdict)
+            fitter = self.fit_galaxy_lm(imdict,
+                                        prior_type=self['prior_type_during'],
+                                        ntry=self['lm_ntry'])
 
         else:
             raise ValueError("bad fitter type: '%s'" % fitter_type)
@@ -325,11 +322,18 @@ class NGMixSim(dict):
         """
         Fit the model to the galaxy
         """
-        import ngmix
-
         fitter=self.run_simple_mcmc_fitter(imdict)
         self._add_mcmc_stats(fitter)
         return fitter
+
+    def fit_galaxy_mh(self, imdict):
+        """
+        Fit the model to the galaxy
+        """
+        fitter=self.run_simple_mh_fitter(imdict)
+        self._add_mcmc_stats(fitter)
+        return fitter
+
 
     def _add_mcmc_stats(self, fitter):
         """
@@ -387,7 +391,7 @@ class NGMixSim(dict):
         elif guess_type=='draw_priors':
             full_guess=self.get_guess_draw_priors(n=n)
         elif guess_type=='draw_maxlike':
-            full_guess=self.get_guess_draw_maxlike(imdict, n=n)
+            full_guess,perr=self.get_guess_draw_maxlike(imdict, n=n)
         else:
             raise ValueError("bad guess type: '%s'" % guess_type)
         
@@ -419,6 +423,33 @@ class NGMixSim(dict):
 
         return fitter
 
+    def run_simple_mh_fitter(self, imdict):
+        """
+        simple gauss,exp,dev
+        """
+        import ngmix
+        from ngmix.fitting import MHSimple
+
+        mess="for mh guess should be maxlike"
+        assert (self['guess_type']=="draw_maxlike"),mess
+
+        guess,perr=self.get_guess_draw_maxlike(imdict, n=1)
+
+        step_sizes = 0.5*perr
+
+        obs=imdict['obs']
+
+        fitter=MHSimple(obs,
+                        self.fit_model,
+                        step_sizes,
+
+                        prior=self.prior_gflat)
+
+        pos=fitter.run_mcmc(guess,self['burnin'])
+        pos=fitter.run_mcmc(pos,self['nstep'])
+
+        return fitter
+
 
     def get_guess_draw_priors(self, n=1):
         """
@@ -439,15 +470,20 @@ class NGMixSim(dict):
         Get the maximum likelihood fit and draw from that using
         width from the fit
 
-        start lm near the truth
+        start lm from priors to make it a challenge
 
         """
         import ngmix
 
-        ntry=10
+        ntry=self['lm_ntry']
         for i in xrange(ntry):
-            lm_guess=self.get_guess_from_pars(imdict['pars'], n=1)
-            fitter=self.fit_galaxy_lm(imdict, guess=lm_guess)
+
+            #lm_guess=self.get_guess_from_pars(imdict['pars'], n=1)
+            lm_guess=self.get_guess_draw_priors(n=1)
+            fitter=self.fit_galaxy_lm(imdict,
+                                      guess=lm_guess,
+                                      prior_type='full',
+                                      ntry=1)
             res=fitter.get_result()
             if res['flags']==0:
                 break
@@ -460,9 +496,10 @@ class NGMixSim(dict):
         ngmix.fitting.print_pars(pars, front='        lmpars: ')
         ngmix.fitting.print_pars(perr, front='        lmperr: ')
 
+        # now scatter it around a bit
         guess=self.get_guess_from_pars(pars, n=n, width=perr)
 
-        return guess
+        return guess, perr
 
     def get_guess_from_pars(self, pars, n=1, width=None):
         """
@@ -525,26 +562,27 @@ class NGMixSim(dict):
         return guess
 
 
-    def fit_galaxy_lm(self, imdict, guess=None):
+    def fit_galaxy_lm(self, imdict, prior_type='full', guess=None, ntry=1):
         """
         Fit the model to the galaxy
+
+        we send some keywords so behavior can be different if this is a guess
+        getter
+
         """
         import ngmix
         from ngmix.fitting import LMSimple
 
         obs=imdict['obs']
 
-        ntry=self['lm_ntry']
-
         # no prior for now
-        ptd=self['prior_type_during']
-        if ptd=='full':
-            print("using full prior")
+        if prior_type=='full':
+            print("using full prior for lm")
             prior=self.prior
-        elif ptd=='gflat':
-            print("using flat g prior")
+        elif prior_type=='gflat':
+            print("using flat g prior for lm")
             prior=self.prior_gflat
-        elif ptd==None:
+        elif prior_type==None:
             prior=None
         else:
             raise ValueError("bad prior type during: %s" % ptd)

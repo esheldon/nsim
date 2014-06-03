@@ -18,8 +18,8 @@ sec_per_pair: 103.0
 npair_min: 4000
 
 # no prior on g during
-#prior_type_during: 'full'
-prior_type_during: 'gflat'
+prior_type_during: 'full'
+#prior_type_during: 'gflat'
 
 lm_ntry: 10
 

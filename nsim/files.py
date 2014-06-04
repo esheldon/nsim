@@ -91,6 +91,25 @@ def get_condor_master_url(run):
     d=get_condor_dir(run)
     return path_join(d,'%s.sh' % run)
 
+def get_wq_dir(run):
+    dir=get_run_dir(run)
+    dir=path_join(dir, 'wq')
+    return dir
+
+def get_wq_job_url(run, filenum, missing=False):
+    d=get_wq_dir(run)
+
+    end = '-%04d' % filenum
+    if missing:
+        end='%s-missing' % end
+
+    fname='{run}{end}.yaml'.format(run=run,end=end)
+    return path_join(d,fname)
+
+def get_wq_master_url(run):
+    d=get_wq_dir(run)
+    return path_join(d,'%s.sh' % run)
+
 
 def get_output_dir(run, sub=None, fs=None):
     dir=get_run_dir(run, fs=fs)

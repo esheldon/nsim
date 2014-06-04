@@ -15,11 +15,13 @@ nstep: 5000
 
 expand_shear_true: true
 
-s2n_vals: [ 100 ]
+#s2n_vals: [ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
+s2n_vals: [ 20 ]
 
-desired_err: 2.5e-05
-desired_hours: 0.5
-sec_per_pair: 103.0
+desired_err: 1.0e-4
+#desired_hours: 0.5 # for condor
+desired_hours: 1.2 # for wq
+sec_per_pair: 5.0 # doubled
 npair_min: 4000
 
 # no prior on g during

@@ -1,5 +1,17 @@
 # vim: set filetype=markdown :
 
+- mh
+    - eg12r02,eg12r03,eg12rtest6
+        - working well except at s/n=10 for guess from maxlike (priors on all)
+          and burnin=5000,nstep=5000
+        - much faster obviously than the emcee
+        - if I increase steps after burnin an improvement is ambiguous: it
+          could effectively be acting like more burnin.
+        - if improvement with more burning can safely leave nstep alone
+        - if none it may be we can just increase the after burning steps
+        - first try increaseing burnin to 10000.
+    - eg12rtest7 10000,5000
+
 - new Observation and log style
     - sim-eg12
     - run-eg12rtest1

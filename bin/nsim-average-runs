@@ -36,7 +36,7 @@ def do_sums(data, data0):
 
     if 'g_sum' in data.dtype.names:
         data['g_sum'] += data0['g_sum']
-        data['gsens_sum'] += data0['gsens_sum']
+        data['g_sens_sum'] += data0['g_sens_sum']
         data['shear_lensfit_cov_inv_sum'] += data0['shear_lensfit_cov_inv_sum']
 
 

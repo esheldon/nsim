@@ -11,6 +11,13 @@
         - if none it may be we can just increase the after burning steps
         - first try increaseing burnin to 10000.
     - eg12rtest7 10000,5000
+        - no improvement
+    - eg12rtest8 5000,10000
+        - some improvement
+
+    - might have had bad step sizes at low s/n due to bug in how the prio
+        was used to set fdiff in lm
+        - eg12rtest9 is same pars as eg12rtest6, see if it improves.
 
 - new Observation and log style
     - sim-eg12

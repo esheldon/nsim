@@ -389,23 +389,38 @@ class NGMixSim(dict):
         """
         simple gauss,exp,dev
         """
-        from ngmix.fitting import MHSimple
+        from ngmix.fitting import MHSimple, MHTempSimple
 
         mess="for mh guess should be maxlike"
         assert (self['guess_type']=="draw_maxlike"),mess
 
         guess,perr=self.get_guess_draw_maxlike(imdict, n=1)
 
-        step_sizes = 0.5*perr
 
         obs=imdict['obs']
 
-        fitter=MHSimple(obs,
-                        self.fit_model,
-                        step_sizes,
+        temp=self.get('temp',None)
+        if temp is not None:
+            print("run_simple_mh_fitter: doing temperature:",temp)
+            # note modified step sizes for temperature
+            step_sizes = 0.5*perr*sqrt(temp)
+            fitter=MHTempSimple(obs,
+                                self.fit_model,
+                                step_sizes,
 
-                        prior=self.prior_gflat, 
-                        random_state=self.random_state)
+                                temp=temp,
+
+                                prior=self.prior_gflat, 
+                                random_state=self.random_state)
+
+        else:
+            step_sizes = 0.5*perr
+            fitter=MHSimple(obs,
+                            self.fit_model,
+                            step_sizes,
+
+                            prior=self.prior_gflat, 
+                            random_state=self.random_state)
 
         pos=fitter.run_mcmc(guess,self['burnin'])
         pos=fitter.run_mcmc(pos,self['nstep'])

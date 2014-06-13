@@ -1,5 +1,8 @@
-name: "sim-eg12"
+# for ngmix
+#     gaussian psf
+#     exponential galaxy
 
+name: "sim-eg12"
 
 psf_model: "gauss"
 psf_T: 4.0

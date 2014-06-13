@@ -18,6 +18,17 @@
     - might have had bad step sizes at low s/n due to bug in how the prio
         was used to set fdiff in lm
         - eg12rtest9 is same pars as eg12rtest6, see if it improves.
+            - yes!!
+
+        - still very small bias at s/n=10, ~8e-4 level
+            - try temp
+            - first s/n=100 with eg12rtest10
+
+            - eg12r05 looks pretty good, although really just same bias on the
+              positive side
+    - eg04r04 - temp=1.5, Tobj=4 (fwhm ratio 1.2)
+        - looks biased at s/n=10
+    - eg04r05 - Tobj=4 temp=2.0
 
 - new Observation and log style
     - sim-eg12

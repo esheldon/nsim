@@ -1,0 +1,40 @@
+# MH fitter with temperature
+run: "run-eg12r05"
+sim: "sim-eg12"
+
+fitter: "mh"
+fit_model: "exp"
+
+temp: 1.5
+
+# this must be draw_maxlike
+guess_type: "draw_maxlike"
+
+psf_ngauss: 1
+
+burnin: 5000
+nstep: 5000
+
+expand_shear_true: true
+
+s2n_vals: [ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
+
+desired_err: 2.5e-5
+desired_hours: 0.5 # for condor
+#desired_hours: 0.25 # for condor
+#desired_hours: 1.2 # for wq
+sec_per_pair: 5.0 # doubled
+npair_min: 4000
+
+# no prior on g during
+#prior_type_during: 'full'
+prior_type_during: 'gflat'
+#prior_type_during: null
+
+lm_ntry: 10
+
+lm_pars:
+    maxfev: 300
+    ftol:   1.0e-6
+    xtol:   1.0e-6
+    epsfcn: 1.0e-6

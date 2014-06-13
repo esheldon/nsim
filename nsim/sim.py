@@ -324,13 +324,20 @@ class NGMixSim(dict):
         # we are going to mutate the result dict owned by the fitter
         res=fitter.get_result()
 
-        ls=ngmix.lensfit.LensfitSensitivity(g, g_prior)
+        # can have extra weights if running at a temperature
+        temperature_weights = fitter.get_weights()
+        print("temperature_weights:",temperature_weights) 
+
+        ls=ngmix.lensfit.LensfitSensitivity(g, g_prior, weights=temperature_weights)
         g_sens = ls.get_g_sens()
         g_mean = ls.get_g_mean()
         nuse = ls.get_nuse()
 
         pqrobj=ngmix.pqr.PQR(g, g_prior,
+                             weights=temperature_weights,
                              shear_expand=self.shear_expand)
+
+
         P,Q,R = pqrobj.get_pqr()
 
         # this nuse should be the same for both lensfit and pqr

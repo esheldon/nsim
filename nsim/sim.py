@@ -273,9 +273,13 @@ class NGMixSim(dict):
         elif 'mh' in fitter_type:
             fitter = self.fit_galaxy_mh(imdict)
         elif fitter_type == 'lm':
+            #fitter = self.fit_galaxy_lm(imdict,
+            #                            prior_type=self['prior_type_during'],
+            #                            ntry=self['lm_ntry'])
             fitter = self.fit_galaxy_lm(imdict,
-                                        prior_type=self['prior_type_during'],
                                         ntry=self['lm_ntry'])
+
+
 
         else:
             raise ValueError("bad fitter type: '%s'" % fitter_type)
@@ -460,6 +464,7 @@ class NGMixSim(dict):
 
         """
 
+        raise RuntimeError("fix for guess")
         print("drawing guess from maxlike")
         ntry=self['lm_ntry']
         for i in xrange(ntry):
@@ -546,8 +551,36 @@ class NGMixSim(dict):
 
         return guess
 
+    def fit_galaxy_lm(self, imdict, ntry=1):
+        """
+        Fit the model to the galaxy
 
-    def fit_galaxy_lm(self, imdict, prior_type='full', guess=None, ntry=1):
+        we send some keywords so behavior can be different if this is a guess
+        getter
+
+        """
+        from ngmix.fitting import LMSimple
+
+        obs=imdict['obs']
+
+        for i in xrange(ntry):
+            guess=self.get_lm_guess(imdict)
+
+            fitter=LMSimple(obs,
+                            self.fit_model,
+                            lm_pars=self['lm_pars'])
+
+            fitter.run_lm(guess)
+            res=fitter.get_result()
+            if res['flags']==0:
+                break
+
+        res['ntry']=i+1
+        return fitter
+
+
+
+    def fit_galaxy_lm_old(self, imdict, prior_type='full', guess=None, ntry=1):
         """
         Fit the model to the galaxy
 
@@ -615,7 +648,7 @@ class NGMixSim(dict):
             print('    arate:',res['arate'],'s2n_w:',
                     res['s2n_w'],'nuse:',res['nuse'])
         elif 'nfev' in res:
-            print('    nfev:',res['nfev'],'s2n_w:',res['s2n_w'])
+            print('    try:',res['ntry'],'nfev:',res['nfev'],'s2n_w:',res['s2n_w'])
 
         ngmix.fitting.print_pars(res['pars_true'], front='    true: ')
         ngmix.fitting.print_pars(res['pars'],front='    pars: ')

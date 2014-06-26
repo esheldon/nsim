@@ -206,6 +206,8 @@ def get_max_weight(runs):
     max_weight=0.0
     for run in runs:
         d=nsim.files.read_averaged(run)
+        if 'Cinv_sum' not in d.dtype.descr:
+            return None
         wt = d['Cinv_sum'][:,0,0]/d['nsum']
         tmp=wt.max()
         if tmp > max_weight:

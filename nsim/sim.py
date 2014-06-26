@@ -87,6 +87,7 @@ class NGMixSim(dict):
             self.make_struct()
 
         self.set_prior()
+        self.set_dims_cen()
         self.make_psf()
 
         self.set_noise()
@@ -780,6 +781,18 @@ class NGMixSim(dict):
 
         return guess
 
+    def set_dims(self):
+        """
+        When using constant dims
+        """
+        T=self.simc['obj_T_mean']
+        samples = self.prior.sample(10000)
+        max_T = samples[:,4].max()
+
+        sigma_pix=numpy.sqrt(max_T/2.)/self.pixel_scale
+        self.dims_pix = array( [2.*sigma_pix*self.nsigma_render]*2 )
+        self.cen_pix = array( [(self.dims_pix[0]-1.)/2.]*2 )
+
     def set_prior(self):
         """
         Set all the priors
@@ -949,7 +962,8 @@ class NGMixSim(dict):
         gm2  = gm2_pre.convolve(self.psf_gmix_true)
 
         T = gm1.get_T()
-        dims_pix, cen0_pix = self.get_dims_cen(T)
+        #dims_pix, cen0_pix = self.get_dims_cen(T)
+        dims_pix, cen0_pix = self.get_dims_cen()
 
         # conversion between pixels and sky in arcsec
         self.jacobian=ngmix.jacobian.Jacobian(cen0_pix[0],
@@ -1022,17 +1036,25 @@ class NGMixSim(dict):
 
         return pars1, pars2
 
-    def get_dims_cen(self, T):
+    def get_dims_cen(self):
+        """
+        For fixed size boxes
+        """
+
+        return self.dims_pix.copy(), self.cen_pix.copy()
+
+    def get_dims_cen_old(self, T):
         """
         Based on T, get the required dimensions and a center
         """
 
         sigma_pix=numpy.sqrt(T/2.)/self.pixel_scale
-
         dims_pix = array( [2.*sigma_pix*self.nsigma_render]*2 )
+
         cen_pix = array( [(dims_pix[0]-1.)/2.]*2 )
 
         return dims_pix, cen_pix
+
 
     def setup_checkpoints(self, **keys):
         """

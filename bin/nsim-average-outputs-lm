@@ -1,0 +1,236 @@
+#!/usr/bin/env python
+"""
+    %prog run is2n
+"""
+from __future__ import print_function
+import sys
+import os
+import numpy
+from numpy import sqrt, array
+
+import fitsio
+import nsim
+
+import time
+
+from optparse import OptionParser
+parser=OptionParser(__doc__)
+
+parser.add_option('--skip',default=None,
+                  help="is2n elements to skip")
+
+parser.add_option('--progress',action='store_true',
+                  help="show progress during jackknifing")
+
+
+
+
+CHUNKSIZE=1000000
+
+simple_models=['exp','dev','gauss']
+
+def get_dtype(fobj, model):
+
+    data = fobj[1][0:10]
+
+    names=data.dtype.names
+
+    dt =data.dtype.descr
+    dt += [('s2n_matched','f8'),
+           ('nsum','i8'),
+           ('shear','f8',2),
+           ('shear_cov','f8',(2,2)),
+           ('shear_cov_inv_sum','f8',(2,2))]
+
+    if model in simple_models or model =='bdf':
+        dt += [('flux_sum','f8'),
+               ('flux_err2invsum','f8'),
+               ('flux_s2n_sum','f8'),
+               ('flux','f8'),
+               ('flux_err','f8'),
+               ('flux_s2n','f8'),
+
+               ('T_sum','f8'),
+               ('T_err2invsum','f8'),
+               ('T_s2n_sum','f8'),
+               ('T','f8'),
+               ('T_err','f8'),
+               ('T_s2n','f8')]
+
+    return dt
+
+def get_chunk_info(nrows):
+    nchunks=nrows//CHUNKSIZE
+
+    remain = nrows % CHUNKSIZE
+    if remain > 0:
+        nchunks += 1
+
+    return nchunks
+
+def get_shear_stats(conf, data, options):
+    import ngmix
+    import lensing
+
+
+    t0=time.time()
+    print('jackknifing')
+
+    npair=data.size/2
+    chunksize = npair/1000
+
+    if chunksize < 1:
+        chunksize=1
+    elif chunksize > 100:
+        chunksize=100
+    print('    jackknife chunksize:',chunksize)
+
+    shear, shear_cov = \
+            lensing.shear.shear_jackknife(data['g'],
+                                          progress=options.progress,
+                                          chunksize=chunksize,
+                                          eps=conf['eps'])
+
+    tm=time.time()-t0
+    print('time to jackknife:',tm/60.,'minutes')
+
+    shear_cov_inv = numpy.linalg.inv(shear_cov)
+
+    return shear, shear_cov, shear_cov_inv
+
+
+def add_more_sums(conf, data, d, w, g1i=2, g2i=3):
+
+    model=conf['fit_model']
+    T_i = g2i+1
+    flux_i = T_i+1
+
+    names=data.dtype.names
+
+    if model in simple_models or model=='bdf':
+        flux     = data['pars'][:,flux_i:].sum(axis=1)
+        flux_var = data['pcov'][:,flux_i:,flux_i:].sum(axis=1).sum(axis=1)
+
+        flux_err = sqrt(flux_var)
+
+        d['flux_sum'][0]        += flux.sum()
+
+        d['flux_err2invsum'][0] += (1.0/flux_var[w]).sum()
+
+        flux_s2n_vals = flux/flux_err
+        d['flux_s2n_sum'][0] += flux_s2n_vals.sum()
+
+        T=data['pars'][:,T_i]
+        T_var=data['pcov'][:,T_i,T_i]
+        T_err=sqrt(T_var)
+
+        # these are for getting the overall mean T not the mean
+        # s2n; that is below
+        d['T_sum'][0] += T.sum()
+        d['T_err2invsum'][0] += (1.0/T_var[w]).sum()
+
+        T_s2n_vals = T/T_err
+        d['T_s2n_sum'][0] += T_s2n_vals.sum()
+
+def do_avg(conf, data, d, options):
+
+    g1i=2
+    g2i=3
+
+    shear, shear_cov, shear_cov_inv, w = \
+            get_shear_stats(conf, data, options)
+
+    d['nsum'][0] += data.size
+    d['shear'][0] = shear
+    d['shear_cov'][0] = shear_cov
+    d['shear_cov_inv_sum'][0,:,:] += shear_cov_inv
+
+    add_more_sums(conf, data, d, w, g1i=g1i, g2i=g2i)
+
+    model=conf['fit_model']
+
+    shear_cov = numpy.linalg.inv(d['shear_cov_inv_sum'][0,:,:])
+
+
+    sherr=numpy.sqrt(shear_cov[0,0])
+    fracdiff=shear[0]/conf['simc']['shear'][0]-1.0
+    fracdiff_err=sherr/conf['simc']['shear'][0]
+    print('fracdiff:          % .2e +/- %.2e' % (fracdiff, fracdiff_err))
+
+    if model in simple_models or model=='bdf':
+        d['flux'] = d['flux_sum']/d['nsum']
+        d['flux_err'] = sqrt(1.0/d['flux_err2invsum'])
+        d['flux_s2n'] = d['flux_s2n_sum']/d['nsum']
+        d['T'] = d['T_sum']/d['nsum']
+        d['T_err'] = sqrt(1.0/d['T_err2invsum'])
+        d['T_s2n'] = d['T_s2n_sum']/d['nsum']
+
+def get_jackknife_eps(fname):
+    dirname=os.path.dirname(fname)
+    bname=os.path.basename(fname)
+
+    pdir = dirname.replace('outputs','plots')
+    if not os.path.exists(pdir):
+        os.makedirs(pdir)
+
+    jname=bname.replace('.fits','-jackknife.eps')
+
+    jname = os.path.join(pdir, jname)
+    return jname
+
+def do_avg_jackknife(conf, fobj, d, options):
+    # we can't do jackknifing by chunks
+
+    data = fobj[1][:]
+    conf['eps']=get_jackknife_eps(conf['fname'])
+    do_avg(conf, data, d, options)
+
+def get_averaged(conf, s2n_matched, options):
+
+    model=conf['fit_model']
+
+    print(conf['fname'])
+    with fitsio.FITS(conf['fname']) as fobj:
+
+        dt= get_dtype(fobj,model)
+
+        d=numpy.zeros(1, dtype=dt)
+        d['s2n_matched'] = s2n_matched
+
+        do_avg_jackknife(conf, fobj, d, options)
+
+    return d
+
+
+def main():
+    options,args = parser.parse_args(sys.argv[1:])
+
+    if len(args) < 2:
+        parser.print_help()
+        sys.exit(45)
+
+
+    run=args[0]
+    is2n=int(args[1])
+
+    if options.skip is None:
+        skip=[]
+    else:
+        skip = [int(v) for v in options.skip.split(',')]
+
+    c = nsim.files.read_config(run)
+    c['simc'] = nsim.files.read_config(c['sim'])
+
+    s2n_vals    = c['s2n_vals']
+
+    s2n_matched = s2n_vals[is2n]
+    c['fname']=nsim.files.get_output_url(run, 0, is2n)
+
+    output = get_averaged(c, s2n_matched, options)
+
+    out_fname=nsim.files.get_averaged_url(run, is2n=is2n)
+    print('writing:',out_fname)
+    fitsio.write(out_fname, output, clobber=True)
+
+
+main()

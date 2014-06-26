@@ -278,7 +278,10 @@ class NGMixSim(dict):
             #                            ntry=self['lm_ntry'])
             fitter = self.fit_galaxy_lm(imdict,
                                         ntry=self['lm_ntry'])
-
+            res=fitter.get_result()
+            g=sqrt(res['g'][0]**2 + res['g'][1]**2)
+            if g > 0.97:
+                raise TryAgainError("bad g")
 
 
         else:
@@ -566,6 +569,7 @@ class NGMixSim(dict):
         for i in xrange(ntry):
             guess=self.get_lm_guess(imdict)
 
+            # note no prior in this version
             fitter=LMSimple(obs,
                             self.fit_model,
                             lm_pars=self['lm_pars'])

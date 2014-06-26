@@ -40,7 +40,8 @@ def get_dtype(fobj, model):
            ('nsum','i8'),
            ('shear','f8',2),
            ('shear_cov','f8',(2,2)),
-           ('shear_cov_inv_sum','f8',(2,2))]
+           ('shear_cov_inv_sum','f8',(2,2)),
+           ('s2n_w_sum','f8')]
 
     if model in simple_models or model =='bdf':
         dt += [('flux_sum','f8'),
@@ -88,8 +89,7 @@ def get_shear_stats(conf, data, options):
     shear, shear_cov = \
             lensing.shear.shear_jackknife(data['g'],
                                           progress=options.progress,
-                                          chunksize=chunksize,
-                                          eps=conf['eps'])
+                                          chunksize=chunksize)
 
     tm=time.time()-t0
     print('time to jackknife:',tm/60.,'minutes')
@@ -99,7 +99,7 @@ def get_shear_stats(conf, data, options):
     return shear, shear_cov, shear_cov_inv
 
 
-def add_more_sums(conf, data, d, w, g1i=2, g2i=3):
+def add_more_sums(conf, data, d, g1i=2, g2i=3):
 
     model=conf['fit_model']
     T_i = g2i+1
@@ -115,7 +115,7 @@ def add_more_sums(conf, data, d, w, g1i=2, g2i=3):
 
         d['flux_sum'][0]        += flux.sum()
 
-        d['flux_err2invsum'][0] += (1.0/flux_var[w]).sum()
+        d['flux_err2invsum'][0] += (1.0/flux_var).sum()
 
         flux_s2n_vals = flux/flux_err
         d['flux_s2n_sum'][0] += flux_s2n_vals.sum()
@@ -127,7 +127,7 @@ def add_more_sums(conf, data, d, w, g1i=2, g2i=3):
         # these are for getting the overall mean T not the mean
         # s2n; that is below
         d['T_sum'][0] += T.sum()
-        d['T_err2invsum'][0] += (1.0/T_var[w]).sum()
+        d['T_err2invsum'][0] += (1.0/T_var).sum()
 
         T_s2n_vals = T/T_err
         d['T_s2n_sum'][0] += T_s2n_vals.sum()
@@ -137,15 +137,17 @@ def do_avg(conf, data, d, options):
     g1i=2
     g2i=3
 
-    shear, shear_cov, shear_cov_inv, w = \
+    shear, shear_cov, shear_cov_inv = \
             get_shear_stats(conf, data, options)
 
     d['nsum'][0] += data.size
+    d['s2n_w_sum'][0] += data['s2n_w'].sum()
+    d['s2n_w'][0] = d['s2n_w_sum'][0]/data.size
     d['shear'][0] = shear
     d['shear_cov'][0] = shear_cov
     d['shear_cov_inv_sum'][0,:,:] += shear_cov_inv
 
-    add_more_sums(conf, data, d, w, g1i=g1i, g2i=g2i)
+    add_more_sums(conf, data, d, g1i=g1i, g2i=g2i)
 
     model=conf['fit_model']
 
@@ -165,24 +167,9 @@ def do_avg(conf, data, d, options):
         d['T_err'] = sqrt(1.0/d['T_err2invsum'])
         d['T_s2n'] = d['T_s2n_sum']/d['nsum']
 
-def get_jackknife_eps(fname):
-    dirname=os.path.dirname(fname)
-    bname=os.path.basename(fname)
-
-    pdir = dirname.replace('outputs','plots')
-    if not os.path.exists(pdir):
-        os.makedirs(pdir)
-
-    jname=bname.replace('.fits','-jackknife.eps')
-
-    jname = os.path.join(pdir, jname)
-    return jname
 
 def do_avg_jackknife(conf, fobj, d, options):
-    # we can't do jackknifing by chunks
-
     data = fobj[1][:]
-    conf['eps']=get_jackknife_eps(conf['fname'])
     do_avg(conf, data, d, options)
 
 def get_averaged(conf, s2n_matched, options):

@@ -1,0 +1,28 @@
+# MH fitter with temperature
+run: "run-eg15rtest1"
+sim: "sim-eg15"
+
+fitter: "lm"
+fit_model: "exp"
+
+# this must be draw_maxlike
+guess_type: "draw_priors"
+
+psf_ngauss: 1
+
+expand_shear_true: true
+
+s2n_vals: [ 25 ]
+
+desired_err: 1.0e-5
+desired_hours: 0.25 # for condor
+sec_per_pair: 0.08 # doubled
+npair_min: 4000
+
+lm_ntry: 1000
+
+lm_pars:
+    maxfev: 300
+    ftol:   1.0e-6
+    xtol:   1.0e-6
+    epsfcn: 1.0e-6

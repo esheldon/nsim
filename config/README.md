@@ -1,5 +1,9 @@
 # vim: set filetype=markdown :
 
+- lm
+    - in tester in fitting.py I see no bias, what is different?
+        - I wasn't simulating with sub-pixel integration
+        - still doesn't explain difference between computers.
 - mh
     - eg12r02,eg12r03,eg12rtest6
         - working well except at s/n=10 for guess from maxlike (priors on all)
@@ -30,6 +34,8 @@
         - looks biased at s/n=10
     - eg04r05 - Tobj=4 temp=2.0
 
+fwhm=1.2
+    - sim-eg04
 - new Observation and log style
     - sim-eg12
     - run-eg12rtest1

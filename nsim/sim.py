@@ -280,9 +280,10 @@ class NGMixSim(dict):
             fitter = self.fit_galaxy_lm(imdict,
                                         ntry=self['lm_ntry'])
             res=fitter.get_result()
-            g=sqrt(res['g'][0]**2 + res['g'][1]**2)
-            if g > 0.97:
-                raise TryAgainError("bad g")
+            if res['flags']==0 and 'g' in res:
+                g=sqrt(res['g'][0]**2 + res['g'][1]**2)
+                if g > 0.97:
+                    raise TryAgainError("bad g")
 
 
         else:
@@ -781,17 +782,28 @@ class NGMixSim(dict):
 
         return guess
 
-    def set_dims(self):
+    def set_dims_cen(self):
         """
         When using constant dims
         """
-        T=self.simc['obj_T_mean']
-        samples = self.prior.sample(10000)
-        max_T = samples[:,4].max()
+        from math import ceil
 
-        sigma_pix=numpy.sqrt(max_T/2.)/self.pixel_scale
-        self.dims_pix = array( [2.*sigma_pix*self.nsigma_render]*2 )
+        samples = self.prior.sample(10000)
+        T = 10.0**samples[:,4]
+
+        Tstd = T.std()
+
+        Tmax = self.simc['obj_T_mean'] + 3.0*Tstd
+
+        sigma_pix=numpy.sqrt(Tmax/2.)/self.pixel_scale
+        dim=int(ceil(2.*sigma_pix*self.nsigma_render))
+        self.dims_pix = array( [dim,dim], dtype='i8')
+
+        #self.dims_pix = array([25,25])
         self.cen_pix = array( [(self.dims_pix[0]-1.)/2.]*2 )
+
+        print("dims:",self.dims_pix)
+        print("cen: ",self.cen_pix)
 
     def set_prior(self):
         """

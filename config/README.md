@@ -4,6 +4,35 @@
     - in tester in fitting.py I see no bias, what is different?
         - I wasn't simulating with sub-pixel integration
         - still doesn't explain difference between computers.
+        - ran with nsub=1 in nsim and still seeing same thing
+        - maybe fixed size box?
+
+    - run-eg14r02 regular lm cosmos g dist T=2*Tpsf
+        - bias not so bad, looks like im3shape
+
+    - run-eg04rtest3 metacal ba dist T=Tpsf s/n=23 (27)
+        - lots of negative bias, -0.027
+        - either becuase smaller, becuase g dist is ba, or a bug with metacal version
+        - the g_sens goes the wrong way! <g_sens> = 1.06!
+
+        - re-running with draw-priors guess
+            - same
+
+    - run-eg04rtest4 regular lm ba g dist T=Tpsf
+        - see if bug
+            - it is very similar
+
+    - run-eg15rtest1
+        - same as run-eg14r02 but T=Tpsf
+        - similar bias. So it is the size.
+
+    - run-eg16rtest1
+        - try nsub=1 : same
+
+        - trying to match exactly: constant box size 25, T=4, nsub=1,
+          shear=0.04, cen_sigma=0.5
+          - now -2% bias!
+
 - mh
     - eg12r02,eg12r03,eg12rtest6
         - working well except at s/n=10 for guess from maxlike (priors on all)

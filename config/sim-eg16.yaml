@@ -1,5 +1,4 @@
-# very narrow distributions in size and flux
-# cosmos shapes
+# nsub 1
 name: "sim-eg16"
 
 psf_model: "gauss"
@@ -16,7 +15,7 @@ cen_sigma: 0.5
 g_prior_type: "cosmos"
 
 # scatter in linear space: will be converted to log space
-obj_T_mean: 16.0
+obj_T_mean: 4.0
 obj_T_sigma_frac: 0.3
 
 # scatter in linear space: will be converted to log space
@@ -25,6 +24,8 @@ obj_counts_sigma_frac: 0.3
 
 shear: [0.04,0.0]
 
-nsub: 16
+nsub: 1
+
+box_size: 25
 
 label: '$exp$'

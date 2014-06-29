@@ -1,10 +1,51 @@
+"""
+Use the Width class to measure fwhm ratio vs T
+"""
 from sys import stdout
 import numpy
 
 # region over which to render images and calculate likelihoods
 from .sim import NSIGMA_RENDER
 
+def measure_image_width_interp(image, thresh, nsub, order, show=False):
+    """
+    e.g. 0.5 would be the FWHM
+
+    parameters
+    ----------
+    image: 2-d darray
+        The image to measure
+    thresh: 
+        threshold is, e.g. 0.5 to get a Full Width at Half max
+    nsub: int
+        Number of sub-pixel
+    order: order for interp
+        Usually 3
+
+    output
+    ------
+    width:
+    """
+    from numpy import array, sqrt, zeros, pi, where
+
+    nim0 = image.copy()
+    maxval=image.max()
+    nim0 *= (1./maxval)
+
+    nim = _make_interpolated_image(nim0, nsub, order, show=show)
+
+    w=where(nim > thresh)
+
+    area = w[0].size
+    width = 2*sqrt(area/pi)/nsub
+
+    return width
+
+
 class Width(object):
+    """
+    Class to measure the fwhm for obj and psf
+    """
     def __init__(self,
                  obj_model,
                  psf_model,
@@ -33,10 +74,15 @@ class Width(object):
     def get_T_ratio_from_width_ratio(self, width_ratio, thresh, show=True,
                                      ntest=10,nrand=100):
         """
+        parameters
+        ----------
+        width_ratio: float
+            fwhm_obj/fwhm_psf
+        thresh: float
+            0.5 for fwhm
+
         For the input psf T and set of convolved width ratio, determine
         the required object T values
-
-        thresh 0.5 for fwhm
         """
 
         minval,maxval=get_minmax_T_ratio(self.obj_model)
@@ -45,10 +91,11 @@ class Width(object):
         width_ratios = numpy.zeros(ntest)
 
         for i,Trat in enumerate(T_ratios):
-            if (i % 5) == 0:
-                stdout.write('\nTrat: %s\n' % Trat)
-            else:
-                stdout.write('.')
+            stdout.write('Trat: %s\n' % Trat)
+            #if (i % 5) == 0:
+            #    stdout.write('\nTrat: %s\n' % Trat)
+            #else:
+            #    stdout.write('.')
 
             test_T = Trat*self.psf_T
 
@@ -101,7 +148,7 @@ class Width(object):
         obj=obj0.convolve(psf)
 
         T = obj.get_T()
-        dims, cen=get_dims_cen(T,self.nsigma_render)
+        dims, cen=get_dims_cen(T+self.psf_T,self.nsigma_render)
 
         cen += 0.1*numpy.random.randn(2)
 
@@ -133,40 +180,6 @@ class Width(object):
             fwhm[i] = fwhmi
             psf_fwhm[i] = psf_fwhmi
         return fwhm, psf_fwhm
-
-def measure_image_width_interp(image, thresh, nsub, order, show=False):
-    """
-    e.g. 0.5 would be the FWHM
-
-    parameters
-    ----------
-    image: 2-d darray
-        The image to measure
-    thresh: 
-        threshold is, e.g. 0.5 to get a Full Width at Half max
-    nsub: int
-        Number of sub-pixel
-    order: order for interp
-        Usually 3
-
-    output
-    ------
-    width:
-    """
-    from numpy import array, sqrt, zeros, pi, where
-
-    nim0 = image.copy()
-    maxval=image.max()
-    nim0 *= (1./maxval)
-
-    nim = _make_interpolated_image(nim0, nsub, order, show=show)
-
-    w=where(nim > thresh)
-
-    area = w[0].size
-    width = 2*sqrt(area/pi)/nsub
-
-    return width
 
 
 def _make_interpolated_image(im, nsub, order, show=False):

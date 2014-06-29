@@ -55,6 +55,7 @@ def get_dtype(fobj, model):
 
     if 'g_sens' in data.dtype.names:
         dt += [('g_sens_sum','f8',2),
+               ('w_sum','f8',2),
                ('shear_lensfit','f8',2),
                ('shear_lensfit_cov','f8',(2,2)),
                ('shear_lensfit_cov_inv_sum','f8',(2,2)),

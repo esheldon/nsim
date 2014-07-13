@@ -2,22 +2,24 @@
 run: "run-eg14rtest1"
 sim: "sim-eg14"
 
-fitter: "lm"
+fitter: "lm-metacal"
 fit_model: "exp"
 
 # this must be draw_maxlike
 guess_type: "draw_priors"
 
+metacal_h: 0.02
+
 psf_ngauss: 1
 
 expand_shear_true: true
 
-s2n_vals: [ 25 ]
+s2n_vals: [ 23 ]
 
-desired_err: 1.0e-5
-desired_hours: 0.25 # for condor
-sec_per_pair: 0.08 # doubled
-npair_min: 4000
+desired_err: 2.5e-5
+desired_hours: 0.1 # for condor
+sec_per_pair: 0.3 # doubled
+npair_min: 40000
 
 lm_ntry: 1000
 
@@ -26,3 +28,5 @@ lm_pars:
     ftol:   1.0e-6
     xtol:   1.0e-6
     epsfcn: 1.0e-6
+
+verbose: False

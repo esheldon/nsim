@@ -38,6 +38,7 @@ class TryAgainError(Exception):
         Exception.__init__(self, message)
 
 
+
 class NGMixSim(dict):
     def __init__(self, sim_conf, run_conf, s2n, npairs, **keys):
         """
@@ -275,16 +276,10 @@ class NGMixSim(dict):
         elif 'mh' in fitter_type:
             fitter = self.fit_galaxy_mh(imdict)
         elif fitter_type == 'lm':
-            #fitter = self.fit_galaxy_lm(imdict,
-            #                            prior_type=self['prior_type_during'],
-            #                            ntry=self['lm_ntry'])
-            fitter = self.fit_galaxy_lm(imdict,
-                                        ntry=self['lm_ntry'])
+            fitter = self.fit_galaxy_lm(imdict, ntry=self['lm_ntry'])
             res=fitter.get_result()
             if res['flags']==0 and 'g' in res:
-                g=sqrt(res['g'][0]**2 + res['g'][1]**2)
-                if g > 0.97:
-                    raise TryAgainError("bad g")
+                check_g(res['g'])
 
         elif fitter_type=='lm-metacal':
             fitter=self.fit_galaxy_lm_metacal(imdict)
@@ -570,15 +565,14 @@ class NGMixSim(dict):
         from ngmix.fitting import LMSimple
 
         obs=imdict['obs']
+        fitter=LMSimple(obs,
+                        self.fit_model,
+                        prior=self.prior,
+                        lm_pars=self['lm_pars'])
 
         for i in xrange(ntry):
             if i > 0 or guess is None:
                 guess=self.get_lm_guess(imdict)
-
-            # note no prior in this version
-            fitter=LMSimple(obs,
-                            self.fit_model,
-                            lm_pars=self['lm_pars'])
 
             fitter.run_lm(guess)
             res=fitter.get_result()
@@ -623,11 +617,7 @@ class NGMixSim(dict):
 
     def fit_galaxy_lm_metacal(self, imdict):
         """
-        Fit the model to the galaxy
-
-        we send some keywords so behavior can be different if this is a guess
-        getter
-
+        Fit the model to the galaxy, and also calculate a sensitivity
         """
         from ngmix.fitting import LMSimple
 
@@ -644,19 +634,17 @@ class NGMixSim(dict):
         pars_meas=res['pars'].copy()
         imdict_lo, imdict_hi = self.get_metacal_imdicts(imdict['obs'], pars_meas)
 
-        #fitter_lo=self.fit_galaxy_lm(imdict_lo, ntry=ntry, guess=pars_meas)
-        #fitter_hi=self.fit_galaxy_lm(imdict_hi, ntry=ntry, guess=pars_meas)
         fitter_lo=self.fit_galaxy_lm(imdict_lo, ntry=ntry)
         fitter_hi=self.fit_galaxy_lm(imdict_hi, ntry=ntry)
+
+        res_lo=fitter_lo.get_result()
+        res_hi=fitter_hi.get_result()
 
         if res_lo['flags'] != 0 or res_hi['flags'] != 0:
             raise TryAgainError("bad metacal measurements")
 
-        res_lo=fitter_lo.get_result()
         check_g(res_lo['g'])
-        res_hi=fitter_hi.get_result()
         check_g(res_hi['g'])
-
 
         pars_lo=res_lo['pars']
         pars_hi=res_hi['pars']
@@ -1057,9 +1045,9 @@ class NGMixSim(dict):
         gm2  = gm2_pre.convolve(self.psf_gmix_true)
 
         T = gm1.get_T()
-        #dims_pix, cen0_pix = self.get_dims_cen_old(T)
-        #dims_pix, cen0_pix = self.get_dims_cen_old(T + self.simc['psf_T'])
-        dims_pix, cen0_pix = self.get_dims_cen()
+        #dims_pix, cen0_pix = self.get_dims_cen_pergal(T)
+        dims_pix, cen0_pix = self.get_dims_cen_pergal(T + self.simc['psf_T'])
+        #dims_pix, cen0_pix = self.get_dims_cen()
 
         # conversion between pixels and sky in arcsec
         self.jacobian=ngmix.jacobian.Jacobian(cen0_pix[0],
@@ -1139,9 +1127,11 @@ class NGMixSim(dict):
 
         return self.dims_pix.copy(), self.cen_pix.copy()
 
-    def get_dims_cen_old(self, T):
+    def get_dims_cen_pergal(self, T):
         """
         Based on T, get the required dimensions and a center
+
+        Should send T+Tpsf
         """
 
         sigma_pix=numpy.sqrt(T/2.)/self.pixel_scale
@@ -1262,9 +1252,9 @@ class NGMixSim(dict):
             # set outside of fitter
             d['ntry'][i] = res['ntry']
 
-    def make_struct(self):
+    def get_dtype(self):
         """
-        Make the output array
+        get the dtype for the output struct
         """
         npars=self.npars
 
@@ -1290,9 +1280,81 @@ class NGMixSim(dict):
                    ('Q','f8',2),
                    ('R','f8',(2,2)),
                    ('nuse','i4')]
+        return dt
+
+    def make_struct(self):
+        """
+        Make the output array
+        """
+
+        dt=self.get_dtype()
         self.data=numpy.zeros(self.npairs*2, dtype=dt)
 
 
+class NGMixSimPQRS(NGMixSim):
+    def _add_mcmc_stats(self, fitter):
+        """
+        Calculate some stats
+
+        The result dict internal to the fitter is modified to include
+        g_sens and P,Q,R
+
+        could we add this as a stand-alone function to ngmix.fitting?
+        """
+
+        super(NGMixSimPQRS,self)._add_mcmc_stats(fitter)
+
+        temperature_weights = fitter.get_weights()
+        mess="pqrs doesn't support temperature weights right now"
+        assert temperature_weights==None,mess
+
+        trials = fitter.get_trials()
+        g=trials[:,2:2+2]
+
+        # this is the full prior
+        g_prior=self.prior.g_prior
+        weights = g_prior.get_prob_array2d(g[:,0], g[:,1])
+
+        # keep for later if we want to make plots
+        self._weights=weights
+
+        fitter.calc_result(weights=weights)
+
+        # we are going to mutate the result dict owned by the fitter
+        res=fitter.get_result()
+
+        ls=ngmix.lensfit.LensfitSensitivity(g, g_prior)
+        g_sens = ls.get_g_sens()
+        g_mean = ls.get_g_mean()
+        nuse = ls.get_nuse()
+
+        pqrs_obj=ngmix.pqr.PQRS(g, g_prior)
+
+        P,Q,R,S = pqrobj.get_pqrs()
+
+        # this nuse should be the same for both lensfit and pqr
+        res['nuse'] = nuse
+        res['g_sens'] = g_sens
+        res['P']=P
+        res['Q']=Q
+        res['R']=R
+        res['S']=S
+
+    def copy_to_output(self, res, i):
+        """
+        Copy results into the output
+        """
+        super(NGMixSimPQRS,self).copy_to_output(res, i)
+        self.data['S'][i,:,:,:] = res['R']
+
+    def get_dtype(self):
+        """
+        Augment the dtype of paranet with S
+        """
+        dt=super(NGMixSimPQRS,self).get_dtype()
+        dt += [('S','f8',(2,2,2))]
+
+        return dt
 
 
 class NGMixSimJointSimpleLinPars(NGMixSim):
@@ -1888,9 +1950,10 @@ def get_random_bytes(nbytes):
 
     return thebytes
 
-def check_g(g):
+def check_g(g, maxval=0.97):
     gtot=sqrt(g[0]**2 + g[1]**2)
-    if gtot > 0.97:
+    if gtot > maxval:
+        print("bad g:",gtot)
         raise TryAgainError("bad g")
 
 def make_sheared_pars(pars, shear_g1, shear_g2):
@@ -1918,8 +1981,8 @@ def make_metacal_obs(pars, model, noise_image, obs, nsub):
 
     im += noise_image
 
-    obs=Observation(im, jacobian=obs.jacobian, weight=obs.weight, psf=obs.psf)
+    obs_new=Observation(im, jacobian=obs.jacobian, weight=obs.weight, psf=obs.psf)
 
-    return obs
+    return obs_new
 
 

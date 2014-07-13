@@ -26,5 +26,6 @@ obj_counts_sigma_frac: 0.3
 shear: [0.08,0.0]
 
 nsub: 16
+box_size: 32
 
 label: '$exp$'

@@ -102,7 +102,7 @@ def run_sim(sim_conf,run_conf,s2n,npairs,output_file,options):
                 make_plots=options.make_plots,
                 plot_base=plot_base)
     else:
-        if run_conf['fitter']=='pqrs':
+        if run_conf['fitter']=='pqrs-emcee':
             sim=nsim.sim.NGMixSimPQRS(sim_conf, run_conf, s2n, npairs,
                                       checkpoint_file=checkpoint_file,
                                       checkpoint_data=checkpoint_data,

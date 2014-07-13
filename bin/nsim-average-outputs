@@ -9,6 +9,8 @@ import numpy
 from numpy import sqrt, array
 
 import fitsio
+
+import ngmix
 import nsim
 
 import time
@@ -29,13 +31,18 @@ parser.add_option('--progress',action='store_true',
                   help="show progress during jackknifing")
 
 
+parser.add_option('--zero-run',default=None,
+                  help="zero run to use for W matrix")
+parser.add_option('--is-zero',action='store_true',
+                  help="this is a zero shear run for pqrs")
+
 
 
 CHUNKSIZE=1000000
 
 simple_models=['exp','dev','gauss']
 
-def get_dtype(fobj, model):
+def get_dtype(fobj, model, options):
 
     data = fobj[1][0:10]
 
@@ -52,6 +59,15 @@ def get_dtype(fobj, model):
            ('Q_sum','f8',2),
            ('Cinv_sum','f8',(2,2))]
 
+    if 'S' in data.dtype.names:
+        if options.is_zero:
+            # this is a zero-shear run
+            dt += [('Wsum','f8',(6,6))]
+        else:
+            mess="you must send a zero-run when doing pqrs shear"
+            assert options.zero_run is not None,mess
+            dt += [('Usum','f8',6),
+                   ('shear_pqrs','f8',2)]
 
     if 'g_sens' in data.dtype.names:
         dt += [('g_sens_sum','f8',2),
@@ -89,7 +105,6 @@ def get_chunk_info(nrows):
     return nchunks
 
 def get_shear_stats(conf, data, options, g1i=2, g2i=3):
-    import ngmix
 
     P_sum, Q_sum, Cinv_sum = ngmix.pqr.calc_pqr_sums(data['P'],
                                                      data['Q'],
@@ -154,6 +169,7 @@ def get_shear_stats(conf, data, options, g1i=2, g2i=3):
 
         shear_cov_inv = cov_inv.sum(axis=0)
 
+
     return P_sum, Q_sum, Cinv_sum, shear_cov_inv, w
 
 
@@ -197,6 +213,26 @@ def add_more_sums(conf, data, d, w, g1i=2, g2i=3):
         T_s2n_vals = T/T_err
         d['T_s2n_sum'][0] += T_s2n_vals.sum()
 
+def add_pqrs_stats(conf, data, d, options):
+    if options.is_zero:
+        d['Wsum'][0,:,:] = ngmix.pqr.make_Wsum(data['P'],
+                                               data['Q'],
+                                               data['S'])
+    else:
+        d['Usum'][0,:] = ngmix.pqr.make_Usum(data['P'],
+                                             data['Q'],
+                                             data['S'])
+
+        zd=conf['zero_data']
+        W = zd['Wsum'][0]/zd['nsum'][0]
+        Winv = numpy.linalg.inv(W)
+        U = d['Usum'][0]/d['nsum'][0]
+
+        sh=numpy.dot(Winv, U)
+
+        d['shear_pqrs'][0,:] = sh
+
+
 def do_sums(conf, data, d, options):
 
     g1i=2
@@ -210,6 +246,9 @@ def do_sums(conf, data, d, options):
     d['Q_sum'][0] += Q_sum
     d['Cinv_sum'][0] += Cinv_sum
     d['shear_cov_inv_sum'][0,:,:] += shear_cov_inv
+
+    if 'S' in data.dtype.names:
+        add_pqrs_stats(conf, data, d, options)
 
     add_more_sums(conf, data, d, w, g1i=g1i, g2i=g2i)
 
@@ -310,7 +349,7 @@ def get_averaged(conf, s2n_matched, options):
     print(conf['fname'])
     with fitsio.FITS(conf['fname']) as fobj:
 
-        dt= get_dtype(fobj,model)
+        dt= get_dtype(fobj,model,options)
 
         d=numpy.zeros(1, dtype=dt)
         d['s2n_matched'] = s2n_matched
@@ -348,6 +387,9 @@ def main():
 
     s2n_matched = s2n_vals[is2n]
     c['fname']=nsim.files.get_output_url(run, 0, is2n)
+
+    if options.zero_run is not None:
+        c['zero_data']=nsim.files.read_averaged(options.zero_run, is2n=is2n)
 
     output = get_averaged(c, s2n_matched, options)
 

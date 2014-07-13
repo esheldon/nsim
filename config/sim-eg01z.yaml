@@ -1,5 +1,5 @@
 # zero shear sim for W matrix
-name: "sim-eg01"
+name: "sim-eg01z"
 
 psf_model: "gauss"
 psf_T: 4.0
@@ -7,9 +7,12 @@ psf_shape: [0.0, 0.0]
 
 obj_model: "exp"
 
+prior_type: "separate"
+
 cen_sigma: 0.1
 
 g_prior_type: "ba"
+g_prior_sigma: 0.3
 
 obj_T_mean: 16.0
 obj_T_sigma_frac: 0.3

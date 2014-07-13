@@ -271,7 +271,7 @@ class NGMixSim(dict):
 
         fitter_type=self['fitter']
         #if fitter_type == 'mcmc':
-        if 'mcmc' in fitter_type:
+        if fitter_type in ['mcmc','pqrs-emcee']:
             fitter = self.fit_galaxy_mcmc(imdict)
         elif 'mh' in fitter_type:
             fitter = self.fit_galaxy_mh(imdict)
@@ -1330,7 +1330,7 @@ class NGMixSimPQRS(NGMixSim):
 
         pqrs_obj=ngmix.pqr.PQRS(g, g_prior)
 
-        P,Q,R,S = pqrobj.get_pqrs()
+        P,Q,R,S = pqrs_obj.get_pqrs()
 
         # this nuse should be the same for both lensfit and pqr
         res['nuse'] = nuse

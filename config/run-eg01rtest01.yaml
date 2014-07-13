@@ -1,0 +1,24 @@
+# mcmc with pqrs calculation
+run: "run-eg01rtest01"
+sim: "sim-eg01"
+
+fitter: "pqrs-emcee"
+fit_model: "exp"
+
+guess_type: "draw_truth"
+
+psf_ngauss: 1
+
+nwalkers: 80
+burnin:   400
+nstep:    800
+mca_a:    2.0
+
+s2n_vals: [ 1000 ]
+
+desired_err: 2.5e-5
+desired_hours: 0.5 # for condor
+sec_per_pair: 40.0 # doubled
+npair_min: 40000
+
+verbose: True

@@ -1243,8 +1243,8 @@ class NGMixSim(dict):
             d['arate'][i] = res['arate']
 
             d['P'][i] = res['P']
-            d['Q'][i,:] = res['Q']
-            d['R'][i,:,:] = res['R']
+            d['Q'][i,:] = res['Q'][:]
+            d['R'][i,:,:] = res['R'][:,:]
 
             d['nuse'][i] = res['nuse']
         else:
@@ -1345,7 +1345,7 @@ class NGMixSimPQRS(NGMixSim):
         Copy results into the output
         """
         super(NGMixSimPQRS,self).copy_to_output(res, i)
-        self.data['S'][i,:,:,:] = res['R']
+        self.data['S'][i,:,:,:] = res['S'][:,:,:]
 
     def get_dtype(self):
         """

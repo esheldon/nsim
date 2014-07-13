@@ -215,9 +215,13 @@ def add_more_sums(conf, data, d, w, g1i=2, g2i=3):
 
 def add_pqrs_stats(conf, data, d, options):
     if options.is_zero:
-        d['Wsum'][0,:,:] = ngmix.pqr.make_Wsum(data['P'],
-                                               data['Q'],
-                                               data['S'])
+        Wsum= ngmix.pqr.make_Wsum(data['P'],
+                                  data['Q'],
+                                  data['S'])
+
+        import images
+        images.imprint(Wsum,fmt='%15g')
+        d['Wsum'][0,:,:] = Wsum
     else:
         d['Usum'][0,:] = ngmix.pqr.make_Usum(data['P'],
                                              data['Q'],
@@ -225,6 +229,7 @@ def add_pqrs_stats(conf, data, d, options):
 
         zd=conf['zero_data']
         W = zd['Wsum'][0]/zd['nsum'][0]
+        print(W)
         Winv = numpy.linalg.inv(W)
         U = d['Usum'][0]/d['nsum'][0]
 

@@ -1,0 +1,24 @@
+# mcmc with pqrs calculation
+run: "run-eg01zrtest02"
+sim: "sim-eg01z"
+
+fitter: "pqrs-emcee"
+fit_model: "exp"
+
+guess_type: "draw_truth"
+
+psf_ngauss: 1
+
+nwalkers: 80
+burnin:   400
+nstep:    800
+mca_a:    2.0
+
+s2n_vals: [ 1000 ]
+
+desired_err: 1.0e-6
+desired_hours: 4.0
+sec_per_pair: 40.0 # doubled
+npair_min: 40000
+
+verbose: True

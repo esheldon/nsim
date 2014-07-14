@@ -99,7 +99,7 @@ def get_wq_dir(run):
 def get_wq_job_url(run, filenum, missing=False):
     d=get_wq_dir(run)
 
-    end = '-%04d' % filenum
+    end = '-%06d' % filenum
     if missing:
         end='%s-missing' % end
 

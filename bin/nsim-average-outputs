@@ -233,9 +233,9 @@ def add_pqrs_stats(conf, data, d, options):
         Winv = numpy.linalg.inv(W)
         U = d['Usum'][0]/d['nsum'][0]
 
-        sh=numpy.dot(Winv, U)
+        res=numpy.dot(Winv, U)
 
-        d['shear_pqrs'][0,:] = sh
+        d['shear_pqrs'][0,:] = res[0:0+2]
 
 
 def do_sums(conf, data, d, options):

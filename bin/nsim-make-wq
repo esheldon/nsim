@@ -160,11 +160,6 @@ def write_wq_files(c, master_script, equal_time=False, missing=False):
         time_hours = npair*seconds_per/3600.0
         print('    nsplit:',nsplit,'npair:',npair,'time (hours):',time_hours)
 
-        if time_hours > MAXTIME_HOURS:
-            raise ValueError("time is greater than %.2f "
-                             "hours: %d*%.2f/3600.0 = %s" % (MAXTIME_HOURS,npair,seconds_per,time_hours))
-
-
         for isplit in xrange(nsplit):
             npair_tot += npair
             output = nsim.files.get_output_url(run, 0, is2n, itrial=isplit)

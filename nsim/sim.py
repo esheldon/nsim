@@ -1302,8 +1302,6 @@ class NGMixSimPQRS(NGMixSim):
         could we add this as a stand-alone function to ngmix.fitting?
         """
 
-        super(NGMixSimPQRS,self)._add_mcmc_stats(fitter)
-
         temperature_weights = fitter.get_weights()
         mess="pqrs doesn't support temperature weights right now"
         assert temperature_weights==None,mess

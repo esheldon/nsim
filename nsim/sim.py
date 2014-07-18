@@ -1247,7 +1247,8 @@ class NGMixSim(dict):
             d['R'][i,:,:] = res['R'][:,:]
 
             d['nuse'][i] = res['nuse']
-        else:
+
+        if 'nfev' in res:
             d['nfev'][i] = res['nfev']
             # set outside of fitter
             d['ntry'][i] = res['ntry']
@@ -1291,7 +1292,7 @@ class NGMixSim(dict):
         self.data=numpy.zeros(self.npairs*2, dtype=dt)
 
 
-class NGMixSimPQRS(NGMixSim):
+class NGMixSimPQRSMCMC(NGMixSim):
     def _add_mcmc_stats(self, fitter):
         """
         Calculate some stats
@@ -1353,6 +1354,49 @@ class NGMixSimPQRS(NGMixSim):
         dt += [('S','f8',(2,2,2))]
 
         return dt
+
+class NGMixSimPQRSLM(NGMixSim):
+    def fit_galaxy(self, imdict):
+        fitter = super(NGMixSimPQRSLM,self).fit_galaxy_lm(imdict,
+                                                          ntry=self['lm_ntry'])
+
+        res=fitter.get_result()
+        if res['flags'] == 0:
+            g=res['pars'][2:2+2]
+
+            # this is the full prior
+            g_prior=self.prior.g_prior
+
+            pqrs_obj=ngmix.pqr.PQRS(g, g_prior)
+
+            P,Q,R,S = pqrs_obj.get_pqrs()
+
+            # this nuse should be the same for both lensfit and pqr
+            res['nuse'] = nuse
+            res['g_sens'] = g_sens
+            res['P']=P
+            res['Q']=Q
+            res['R']=R
+            res['S']=S
+
+        return fitter
+
+    def copy_to_output(self, res, i):
+        """
+        Copy results into the output
+        """
+        super(NGMixSimPQRS,self).copy_to_output(res, i)
+        self.data['S'][i,:,:,:] = res['S'][:,:,:]
+
+    def get_dtype(self):
+        """
+        Augment the dtype of paranet with S
+        """
+        dt=super(NGMixSimPQRS,self).get_dtype()
+        dt += [('S','f8',(2,2,2))]
+
+        return dt
+
 
 
 class NGMixSimJointSimpleLinPars(NGMixSim):

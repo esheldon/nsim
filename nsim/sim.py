@@ -1795,40 +1795,6 @@ def srandu(num=None):
     """
     return 2*(numpy.random.random(num)-0.5)
 
-
-def run_fmin(func, guess):
-    import scipy.optimize
-    (minvalx, fval, iterations, fcalls, warnflag) \
-            = scipy.optimize.fmin(func,
-                                  guess,
-                                  full_output=True, 
-                                  disp=False)
-    if warnflag != 0:
-        raise ValueError("failed to find min: warnflag %d" % warnflag)
-
-    res={'flags':warnflag,
-         'pars':minvalx,
-         'nfev':fcalls}
-    return res
-def run_fmin_powell(func, guess):
-    import scipy.optimize
-
-    (minvalx, fval, direc, iterations, fcalls, warnflag) \
-            = scipy.optimize.fmin_powell(func,
-                                         guess,
-                                         ftol=1.0e-6,
-                                         xtol=1.0e-6,
-                                         full_output=True, 
-                                         disp=False)
-    #if warnflag != 0:
-    #    raise ValueError("failed to find min: warnflag %d" % warnflag)
-
-    res={'flags':warnflag,
-         'pars':minvalx,
-         'fval':fval,
-         'nfev':fcalls}
-    return res
-
 def test_simple_sampler():
     import ngmix
     import mcmc

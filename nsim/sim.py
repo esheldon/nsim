@@ -145,6 +145,7 @@ class NGMixSim(dict):
             err="sim name in run config '%s' doesn't match sim name '%s'"
             raise ValueError(err % (run_conf['sim'],sim_conf['name']))
 
+        sim_conf['do_ring'] = sim_conf.get('do_ring',True)
         self.simc=sim_conf
         self.conf=run_conf
 
@@ -212,6 +213,9 @@ class NGMixSim(dict):
             res['s2n_true'] = imd['s2n']
             if self['verbose']:
                 self.print_res(res)
+
+            if 'maxlike' in self['guess_type']:
+                res['maxlike_res'] = self.maxlike_res
 
             reslist.append(res)
 
@@ -330,17 +334,13 @@ class NGMixSim(dict):
         # we are going to mutate the result dict owned by the fitter
         res=fitter.get_result()
 
-        # can have extra weights if running at a temperature
-        temperature_weights = fitter.get_weights()
-        print("temperature_weights:",temperature_weights) 
-
-        ls=ngmix.lensfit.LensfitSensitivity(g, g_prior, weights=temperature_weights)
+        ls=ngmix.lensfit.LensfitSensitivity(g, g_prior)
         g_sens = ls.get_g_sens()
         g_mean = ls.get_g_mean()
+
         nuse = ls.get_nuse()
 
         pqrobj=ngmix.pqr.PQR(g, g_prior,
-                             weights=temperature_weights,
                              shear_expand=self.shear_expand)
 
 
@@ -387,14 +387,14 @@ class NGMixSim(dict):
         fitter=MCMCSimple(obs,
                           self.fit_model,
 
-                          prior=self.prior_gflat, # no prior during
+                          prior=self.fit_prior_gflat, # no prior during
 
                           nwalkers=self['nwalkers'],
                           mca_a=self['mca_a'],
                           random_state=self.random_state)
 
         pos=fitter.run_mcmc(guess,self['burnin'])
-        pos=fitter.run_mcmc(pos,self['nstep'])
+        pos=fitter.run_mcmc(pos,self['nstep'], thin=self['thin'])
 
         return fitter
 
@@ -423,7 +423,7 @@ class NGMixSim(dict):
 
                                 temp=temp,
 
-                                prior=self.prior_gflat, 
+                                prior=self.fit_prior_gflat, 
                                 random_state=self.random_state)
 
         else:
@@ -432,7 +432,7 @@ class NGMixSim(dict):
                             self.fit_model,
                             step_sizes,
 
-                            prior=self.prior_gflat, 
+                            prior=self.fit_prior_gflat, 
                             random_state=self.random_state)
 
         pos=fitter.run_mcmc(guess,self['burnin'])
@@ -467,39 +467,42 @@ class NGMixSim(dict):
 
         """
 
-        raise RuntimeError("fix for guess")
         print("drawing guess from maxlike")
-        ntry=self['lm_ntry']
-        for i in xrange(ntry):
 
-            #lm_guess=self.get_guess_from_pars(imdict['pars'], n=1)
-            lm_guess=self.get_guess_draw_priors(n=1)
-            fitter=self.fit_galaxy_lm(imdict,
-                                      guess=lm_guess,
-                                      prior_type='full',
-                                      ntry=1)
-            res=fitter.get_result()
-            if res['flags']==0:
-                break
-
-        if res['flags'] != 0:
-            raise TryAgainError("failed fit LM after %s tries" % ntry)
+        max_guess=self.get_guess_draw_priors(n=1)
+        fitter=self.fit_galaxy_max(imdict, guess=max_guess)
+        res=fitter.get_result()
 
         pars=res['pars']
-        perr=res['pars_err']
-        ngmix.fitting.print_pars(pars, front='        lmpars: ')
-        ngmix.fitting.print_pars(perr, front='        lmperr: ')
+        perr=res.get('pars_err',None)
+
+        print("    nfev:",res['nfev'])
+        ngmix.fitting.print_pars(pars, front='    max pars: ')
+
+        if perr is not None:
+            ngmix.fitting.print_pars(perr, front='    max perr: ')
+
+            width = perr.copy()
+            width[0] = width[0].clip(min=0.001)
+            width[1] = width[1].clip(min=0.001)
+            width[2] = width[1].clip(min=0.001)
+            width[3] = width[1].clip(min=0.001)
+            width[4] = width[1].clip(min=0.01)
+            width[5] = width[1].clip(min=0.1)
+        else:
+            print("    no cov")
+            width=None
 
         # now scatter it around a bit
-        guess=self.get_guess_from_pars(pars, n=n, width=perr)
+        guess=self.get_guess_from_pars(pars, n=n, width=width)
+
+        self.maxlike_res=res
 
         return guess, perr
 
     def get_guess_from_pars(self, pars, n=1, width=None):
         """
         Get a guess centered on the input pars
-
-        pars are in log everywhere
         """
 
         npars=pars.size
@@ -519,9 +522,8 @@ class NGMixSim(dict):
         guess[:,2]=guess_shape[:,0]
         guess[:,3]=guess_shape[:,1]
 
-        # we add to log pars!
         for i in xrange(4,npars):
-            guess[:,i] = pars[i] + width[i]*srandu(n)
+            guess[:,i] = pars[i]*( 1.0 + width[i]*srandu(n) )
 
         if n==1:
             guess=guess[0,:]
@@ -554,6 +556,27 @@ class NGMixSim(dict):
 
         return guess
 
+
+    def fit_galaxy_max(self, imdict, guess=None):
+        """
+        Fit the model to the galaxy
+
+        we send some keywords so behavior can be different if this is a guess
+        getter
+
+        """
+        from ngmix.fitting import MaxSimple
+
+        obs=imdict['obs']
+        fitter=MaxSimple(obs, self.fit_model, prior=self.fit_prior_gflat)
+
+        fitter.run_max(guess, **self['nm_pars'])
+        res=fitter.get_result()
+        res['ntry']=1
+        return fitter
+
+
+
     def fit_galaxy_lm(self, imdict, ntry=1, guess=None):
         """
         Fit the model to the galaxy
@@ -567,7 +590,7 @@ class NGMixSim(dict):
         obs=imdict['obs']
         fitter=LMSimple(obs,
                         self.fit_model,
-                        prior=self.prior,
+                        prior=self.fit_prior_gflat,
                         lm_pars=self['lm_pars'])
 
         for i in xrange(ntry):
@@ -658,50 +681,6 @@ class NGMixSim(dict):
 
 
 
-    def fit_galaxy_lm_old(self, imdict, prior_type='full', guess=None, ntry=1):
-        """
-        Fit the model to the galaxy
-
-        we send some keywords so behavior can be different if this is a guess
-        getter
-
-        """
-        from ngmix.fitting import LMSimple
-
-        obs=imdict['obs']
-
-        # no prior for now
-        if prior_type=='full':
-            print("using full prior for lm")
-            prior=self.prior
-        elif prior_type=='gflat':
-            print("using flat g prior for lm")
-            prior=self.prior_gflat
-        elif prior_type==None:
-            prior=None
-        else:
-            raise ValueError("bad prior type during: %s" % ptd)
-
-        for i in xrange(ntry):
-            if guess is None or i > 0:
-                guess=self.get_lm_guess(imdict)
-
-            fitter=LMSimple(obs,
-                            self.fit_model,
-
-                            prior=prior,
-
-                            lm_pars=self['lm_pars'])
-
-            fitter.run_lm(guess)
-            res=fitter.get_result()
-            if res['flags']==0:
-                break
-
-        res['ntry']=i+1
-        return fitter
-
-
     def get_lm_guess(self, imdict):
         """
         Get a guess for the LM fitter
@@ -749,7 +728,6 @@ class NGMixSim(dict):
               self.simc['psf_T'],
               1.0]
 
-        # note not log pars
         self.psf_gmix_true=ngmix.gmix.GMixModel(pars, self.simc['psf_model'])
         
     def get_psf_image(self, dims_pix, cen_arcsec):
@@ -846,7 +824,6 @@ class NGMixSim(dict):
             else: 
                 raise ValueError("support ngauss > 2")
             
-            # not log pars
             guess=ngmix.gmix.GMix(pars=pars)
 
         return guess
@@ -861,7 +838,7 @@ class NGMixSim(dict):
             self.dims_pix=array( [self.simc['box_size']]*2, dtype='i4')
         else:
             samples = self.prior.sample(10000)
-            T = 10.0**samples[:,4]
+            T = samples[:,4]
 
             Tstd = T.std()
 
@@ -881,6 +858,7 @@ class NGMixSim(dict):
         Set all the priors
         """
         import ngmix
+        from ngmix.joint_prior import PriorSimpleSep
 
         self.pixel_scale = self.simc.get('pixel_scale',1.0)
 
@@ -889,53 +867,68 @@ class NGMixSim(dict):
 
         simc=self.simc
 
-        if simc['prior_type'] == "separate":
-            from ngmix.joint_prior import PriorSimpleSep
-            # prior separate for all pars
-            cen_sigma_arcsec=simc['cen_sigma']
-            cen_prior=ngmix.priors.CenPrior(0.0,
-                                            0.0,
-                                            cen_sigma_arcsec,
-                                            cen_sigma_arcsec)
+        # prior separate for all pars
+        cen_sigma_arcsec=simc['cen_sigma']
+        cen_prior=ngmix.priors.CenPrior(0.0,
+                                        0.0,
+                                        cen_sigma_arcsec,
+                                        cen_sigma_arcsec)
 
-            gtype=simc['g_prior_type']
-            if gtype=="ba":
-                g_prior_sigma=simc['g_prior_sigma']
-                g_prior=ngmix.priors.GPriorBA(g_prior_sigma)
-            elif gtype=="cosmos":
-                g_prior=ngmix.priors.make_gprior_cosmos_sersic(type='erf')
-            else:
-                raise ValueError("only g prior 'ba' for now")
-
-            g_prior_flat=ngmix.priors.ZDisk2D(1.0)
-
-            # T and scatter in linear space, convert to log
-            T            = simc['obj_T_mean']
-            T_sigma      = simc['obj_T_sigma_frac']*T
-            counts       = simc['obj_counts_mean']
-            counts_sigma = simc['obj_counts_sigma_frac']*counts
-
-            logT_mean, logT_sigma=ngmix.priors.lognorm_convert(T,T_sigma,base=10.0)
-            logcounts_mean, logcounts_sigma=ngmix.priors.lognorm_convert(counts,counts_sigma,base=10.0)
-
-            T_prior=ngmix.priors.Normal(logT_mean, logT_sigma)
-            counts_prior=ngmix.priors.Normal(logcounts_mean, logcounts_sigma)
-
-            # for drawing parameters, and after exploration to grab g_prior and calculate
-            # pqr etc.
-            self.prior = PriorSimpleSep(cen_prior,
-                                        g_prior,
-                                        T_prior,
-                                        counts_prior)
-
-            # for the exploration, for which we do not apply g prior during
-            self.prior_gflat = PriorSimpleSep(cen_prior,
-                                              g_prior_flat,
-                                              T_prior,
-                                              counts_prior)
-
+        gtype=simc['g_prior_type']
+        if gtype=="ba":
+            g_prior_sigma=simc['g_prior_sigma']
+            g_prior=ngmix.priors.GPriorBA(g_prior_sigma)
+        elif gtype=="cosmos":
+            g_prior=ngmix.priors.make_gprior_cosmos_sersic(type='erf')
         else:
-            raise ValueError("bad prior type: %s" % simc['prior_type'])
+            raise ValueError("only g prior 'ba' for now")
+
+        g_prior_flat=ngmix.priors.ZDisk2D(1.0)
+
+        # T and scatter in linear space, convert to log
+        T            = simc['obj_T_mean']
+        T_sigma      = simc['obj_T_sigma_frac']*T
+        counts       = simc['obj_counts_mean']
+        counts_sigma = simc['obj_counts_sigma_frac']*counts
+
+        #logT_mean, logT_sigma=ngmix.priors.lognorm_convert(T,T_sigma,base=10.0)
+        #logcounts_mean, logcounts_sigma=ngmix.priors.lognorm_convert(counts,counts_sigma,base=10.0)
+
+        #T_prior=ngmix.priors.Normal(logT_mean, logT_sigma)
+        #counts_prior=ngmix.priors.Normal(logcounts_mean, logcounts_sigma)
+        T_prior=ngmix.priors.LogNormal(T, T_sigma)
+        counts_prior=ngmix.priors.LogNormal(counts, counts_sigma)
+
+        # for drawing parameters, and after exploration to grab g_prior and calculate
+        # pqr etc.
+        self.prior = PriorSimpleSep(cen_prior,
+                                    g_prior,
+                                    T_prior,
+                                    counts_prior)
+
+
+        if 'fit_prior' in self:
+            print("using fit prior:",self['fit_prior'])
+            # use a different prior for fitting
+            if self['fit_prior'] == 'flat':
+                T_prior_pars = [-0.07, 0.03, 1.0e+06, 1.0e+05]
+                counts_prior_pars = [-1.0, 0.1, 1.0e+09, 0.25e+08]
+
+                fit_T_prior=ngmix.priors.TwoSidedErf(*T_prior_pars)
+                fit_counts_prior=ngmix.priors.TwoSidedErf(*counts_prior_pars)
+
+                self.fit_prior_gflat = PriorSimpleSep(cen_prior,
+                                                      g_prior_flat,
+                                                      fit_T_prior,
+                                                      fit_counts_prior)
+            else:
+                raise ValueError("unsupported fit prior: '%s'" % self['fit_prior'])
+        else:
+            # for the exploration, for which we do not apply g prior during
+            self.fit_prior_gflat = PriorSimpleSep(cen_prior,
+                                                  g_prior_flat,
+                                                  T_prior,
+                                                  counts_prior)
 
     
     def set_noise(self):
@@ -1035,19 +1028,18 @@ class NGMixSim(dict):
         import ngmix
         from ngmix.observation import Observation
 
-        # pars are in log space
         pars1, pars2 = self.get_pair_pars(random=random)
 
-        gm1_pre=ngmix.gmix.GMixModel(pars1, self.obj_model, logpars=True)
-        gm2_pre=ngmix.gmix.GMixModel(pars2, self.obj_model, logpars=True)
+        gm1_pre=ngmix.gmix.GMixModel(pars1, self.obj_model)
+        gm2_pre=ngmix.gmix.GMixModel(pars2, self.obj_model)
 
         gm1  = gm1_pre.convolve(self.psf_gmix_true)
         gm2  = gm2_pre.convolve(self.psf_gmix_true)
 
-        T = gm1.get_T()
-        #dims_pix, cen0_pix = self.get_dims_cen_pergal(T)
+        # in case not doing a ring
+        T = max(gm1.get_T(), gm2.get_T())
+
         dims_pix, cen0_pix = self.get_dims_cen_pergal(T + self.simc['psf_T'])
-        #dims_pix, cen0_pix = self.get_dims_cen()
 
         # conversion between pixels and sky in arcsec
         self.jacobian=ngmix.jacobian.Jacobian(cen0_pix[0],
@@ -1078,8 +1070,6 @@ class NGMixSim(dict):
 
         if not random, then the mean pars are used, except for cen and g1,g2
         which are zero
-
-        Note the pars are in log space for T,F
         """
         import ngmix
         from numpy import pi
@@ -1087,17 +1077,21 @@ class NGMixSim(dict):
         if random:
             pars1 = self.prior.sample()
 
-            # use same everything but rotated 90 degrees
-            pars2=pars1.copy()
+            if self.simc['do_ring']:
+                # use same everything but rotated 90 degrees
+                pars2=pars1.copy()
 
-            g1=pars1[2]
-            g2=pars1[3]
-        
-            shape2=ngmix.shape.Shape(g1,g2)
-            shape2.rotate(pi/2.0)
+                g1=pars1[2]
+                g2=pars1[3]
+            
+                shape2=ngmix.shape.Shape(g1,g2)
+                shape2.rotate(pi/2.0)
 
-            pars2[2]=shape2.g1
-            pars2[3]=shape2.g2
+                pars2[2]=shape2.g1
+                pars2[3]=shape2.g2
+            else:
+                # use different ellipticity
+                pars2 = self.prior.sample()
 
         else:
             samples=self.prior.sample(10000)
@@ -1253,6 +1247,12 @@ class NGMixSim(dict):
             # set outside of fitter
             d['ntry'][i] = res['ntry']
 
+        if 'maxlike' in self['guess_type']:
+            mres=res['maxlike_res']
+            d['pars_max'][i] = mres['pars']
+            if 'pars_cov' in mres:
+                d['pcov_max'][i] = mres['pars_cov']
+
     def get_dtype(self):
         """
         get the dtype for the output struct
@@ -1281,6 +1281,11 @@ class NGMixSim(dict):
                    ('Q','f8',2),
                    ('R','f8',(2,2)),
                    ('nuse','i4')]
+
+        if 'maxlike' in self['guess_type']:
+            dt += [('pars_max','f8',npars),
+                   ('pcov_max','f8',(npars,npars))]
+
         return dt
 
     def make_struct(self):
@@ -1290,6 +1295,9 @@ class NGMixSim(dict):
 
         dt=self.get_dtype()
         self.data=numpy.zeros(self.npairs*2, dtype=dt)
+
+        if 'maxlike' in self['guess_type']:
+            self.data['pcov_max'] = 9999.e9
 
 
 class NGMixSimPQRSMCMC(NGMixSim):
@@ -1562,11 +1570,9 @@ class NGMixSimJointSimpleHybrid(NGMixSim):
         g1a,g2a = self.joint_prior.g_prior.sample2d(1)
 
         sample=self.joint_prior.sample()
-        logT=sample[0]
-        logF=sample[1]
 
-        pars1[4] = 10.0**logT
-        pars1[5] = 10.0**logF
+        pars1[4] = sample[0]
+        pars1[5] = sample[1]
 
         shape1=ngmix.shape.Shape(g1a[0],g2a[0])
 
@@ -1583,8 +1589,6 @@ class NGMixSimJointSimpleHybrid(NGMixSim):
         pars2=pars1.copy()
         pars2[2] = shape2.g1
         pars2[3] = shape2.g2
-
-        print("log pars:",logT,logF)
 
         cen_offset_arcsec=array( self.cen_prior.sample() )
         return pars1, pars2, cen_offset_arcsec
@@ -1632,11 +1636,8 @@ class NGMixSimJointSimpleHybrid(NGMixSim):
         guess[:,2]=guess_shape[:,0]
         guess[:,3]=guess_shape[:,1]
 
-        logT=log10(pars[4])
-        logF=log10(pars[5])
-
-        guess[:,4] = logT*(1.0 + width[4]*srandu(n))
-        guess[:,5] = logF*(1.0 + width[5]*srandu(n))
+        guess[:,4] = pars[4]*(1.0 + width[4]*srandu(n))
+        guess[:,5] = pars[5]*(1.0 + width[5]*srandu(n))
 
 
         return guess

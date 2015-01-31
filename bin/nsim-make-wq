@@ -26,7 +26,7 @@ _wq_template="""
 command: |
 
     source $HOME/.bashrc
-    source $HOME/shell_scripts/nsim-prepare.sh
+    source $HOME/shell_scripts/nsim2-prepare.sh
 
     command=%(master_script)s
     s2n=%(s2n)s

@@ -1,7 +1,7 @@
 # for ngmix
 #     gaussian psf
 #     exponential galaxy
-# fwhm is 1.2 psf
+# fwhm observed is ~ 1.2 psf
 
 name: "sim-egcosmos01"
 

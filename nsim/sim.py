@@ -932,7 +932,7 @@ class NGMixSim(dict):
 
     
         gppars = self['g_prior_pars']
-        if gppars['type']=='BA':
+        if gppars['type']=='ba':
             self.g_prior = ngmix.priors.GPriorBA(gppars['sigma'])
         else:
             raise ValueError("implement other")

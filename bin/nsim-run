@@ -102,18 +102,17 @@ def run_sim(sim_conf,run_conf,s2n,npairs,output_file,options):
                 make_plots=options.make_plots,
                 plot_base=plot_base)
     else:
+        args=(sim_conf, run_conf, s2n, npairs)
+        kw=dict( checkpoint_file=checkpoint_file,
+                checkpoint_data=checkpoint_data,
+                make_plots=options.make_plots,
+                plot_base=plot_base)
         if run_conf['fitter']=='pqrs-emcee':
-            sim=nsim.sim.NGMixSimPQRSMCMC(sim_conf, run_conf, s2n, npairs,
-                                          checkpoint_file=checkpoint_file,
-                                          checkpoint_data=checkpoint_data,
-                                          make_plots=options.make_plots,
-                                          plot_base=plot_base)
+            sim=nsim.sim.NGMixSimPQRSMCMC(*args, **kw)
+        elif run_conf['fitter']=='covsample':
+            sim=nsim.sim.NGMixSimCovSample(*args, **kw)
         else:
-            sim=nsim.sim.NGMixSim(sim_conf, run_conf, s2n, npairs,
-                                  checkpoint_file=checkpoint_file,
-                                  checkpoint_data=checkpoint_data,
-                                  make_plots=options.make_plots,
-                                  plot_base=plot_base)
+            sim=nsim.sim.NGMixSim(*args, **kw)
 
     sim.run_sim()
 

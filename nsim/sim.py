@@ -323,7 +323,7 @@ class NGMixSim(dict):
         g=trials[:,2:2+2]
 
         # this is the full prior
-        g_prior=self.prior.g_prior
+        g_prior=self.g_prior
         weights = g_prior.get_prob_array2d(g[:,0], g[:,1])
 
         # keep for later if we want to make plots
@@ -380,21 +380,23 @@ class NGMixSim(dict):
         """
         from ngmix.fitting import MCMCSimple
 
-        guess=self.get_guess(imdict, n=self['nwalkers'])
+        epars = self['emcee_pars']
+
+        guess=self.get_guess(imdict, n=epars['nwalkers'])
 
         obs=imdict['obs']
 
         fitter=MCMCSimple(obs,
                           self.fit_model,
 
-                          prior=self.fit_prior_gflat, # no prior during
+                          prior=self.search_prior, # no prior during
 
-                          nwalkers=self['nwalkers'],
-                          mca_a=self['mca_a'],
+                          nwalkers=epars['nwalkers'],
+                          mca_a=epars['a'],
                           random_state=self.random_state)
 
-        pos=fitter.run_mcmc(guess,self['burnin'])
-        pos=fitter.run_mcmc(pos,self['nstep'], thin=self['thin'])
+        pos=fitter.run_mcmc(guess,epars['burnin'])
+        pos=fitter.run_mcmc(pos,epars['nstep'], thin=epars['thin'])
 
         return fitter
 
@@ -423,7 +425,7 @@ class NGMixSim(dict):
 
                                 temp=temp,
 
-                                prior=self.fit_prior_gflat, 
+                                prior=self.search_prior, 
                                 random_state=self.random_state)
 
         else:
@@ -432,7 +434,7 @@ class NGMixSim(dict):
                             self.fit_model,
                             step_sizes,
 
-                            prior=self.fit_prior_gflat, 
+                            prior=self.search_prior, 
                             random_state=self.random_state)
 
         pos=fitter.run_mcmc(guess,self['burnin'])
@@ -449,7 +451,7 @@ class NGMixSim(dict):
         """
         if self['verbose']:
             print("drawing guess from priors")
-        guess=self.prior.sample(n)
+        guess=self.pdf.sample(n)
 
         if n==1:
             guess=guess[0,:]
@@ -568,7 +570,7 @@ class NGMixSim(dict):
         from ngmix.fitting import MaxSimple
 
         obs=imdict['obs']
-        fitter=MaxSimple(obs, self.fit_model, prior=self.fit_prior_gflat)
+        fitter=MaxSimple(obs, self.fit_model, prior=self.search_prior)
 
         fitter.run_max(guess, **self['nm_pars'])
         res=fitter.get_result()
@@ -590,7 +592,7 @@ class NGMixSim(dict):
         obs=imdict['obs']
         fitter=LMSimple(obs,
                         self.fit_model,
-                        prior=self.fit_prior_gflat,
+                        prior=self.search_prior,
                         lm_pars=self['lm_pars'])
 
         for i in xrange(ntry):
@@ -837,7 +839,7 @@ class NGMixSim(dict):
         if 'box_size' in self.simc:
             self.dims_pix=array( [self.simc['box_size']]*2, dtype='i4')
         else:
-            samples = self.prior.sample(10000)
+            samples = self.pdf.sample(10000)
             T = samples[:,4]
 
             Tstd = T.std()
@@ -901,36 +903,40 @@ class NGMixSim(dict):
 
         # for drawing parameters, and after exploration to grab g_prior and calculate
         # pqr etc.
-        self.prior = PriorSimpleSep(cen_prior,
-                                    g_prior,
-                                    T_prior,
-                                    counts_prior)
+        self.pdf = PriorSimpleSep(cen_prior,
+                                  g_prior,
+                                  T_prior,
+                                  counts_prior)
 
 
-        if 'fit_prior' in self:
-            print("using fit prior:",self['fit_prior'])
-            # use a different prior for fitting
-            if self['fit_prior'] == 'flat':
-                T_prior_pars = [-0.07, 0.03, 1.0e+06, 1.0e+05]
-                counts_prior_pars = [-1.0, 0.1, 1.0e+09, 0.25e+08]
+        if 'search_prior' in self:
+            print("using input search prior")
+            spars=self['search_prior']
 
-                fit_T_prior=ngmix.priors.TwoSidedErf(*T_prior_pars)
-                fit_counts_prior=ngmix.priors.TwoSidedErf(*counts_prior_pars)
+            T_prior_pars = spars['T_prior_pars']
+            counts_prior_pars = spars['counts_prior_pars']
 
-                self.fit_prior_gflat = PriorSimpleSep(cen_prior,
-                                                      g_prior_flat,
-                                                      fit_T_prior,
-                                                      fit_counts_prior)
-            else:
-                raise ValueError("unsupported fit prior: '%s'" % self['fit_prior'])
+            fit_T_prior=ngmix.priors.TwoSidedErf(*T_prior_pars)
+            fit_counts_prior=ngmix.priors.TwoSidedErf(*counts_prior_pars)
+
+            self.search_prior = PriorSimpleSep(cen_prior,
+                                               g_prior_flat,
+                                               fit_T_prior,
+                                               fit_counts_prior)
         else:
             # for the exploration, for which we do not apply g prior during
-            self.fit_prior_gflat = PriorSimpleSep(cen_prior,
-                                                  g_prior_flat,
-                                                  T_prior,
-                                                  counts_prior)
+            self.search_prior = PriorSimpleSep(cen_prior,
+                                               g_prior_flat,
+                                               T_prior,
+                                               counts_prior)
 
     
+        gppars = self['g_prior_pars']
+        if gppars['type']=='BA':
+            self.g_prior = ngmix.priors.GPriorBA(gppars['sigma'])
+        else:
+            raise ValueError("implement other")
+
     def set_noise(self):
         """
         Find gaussian noise that when added to the image 
@@ -1075,7 +1081,7 @@ class NGMixSim(dict):
         from numpy import pi
 
         if random:
-            pars1 = self.prior.sample()
+            pars1 = self.pdf.sample()
 
             if self.simc['do_ring']:
                 # use same everything but rotated 90 degrees
@@ -1091,10 +1097,10 @@ class NGMixSim(dict):
                 pars2[3]=shape2.g2
             else:
                 # use different ellipticity
-                pars2 = self.prior.sample()
+                pars2 = self.pdf.sample()
 
         else:
-            samples=self.prior.sample(10000)
+            samples=self.pdf.sample(10000)
             pars1 = samples.mean(axis=0)
 
             pars1[0:0+4] = 0.0
@@ -1319,7 +1325,7 @@ class NGMixSimPQRSMCMC(NGMixSim):
         g=trials[:,2:2+2]
 
         # this is the full prior
-        g_prior=self.prior.g_prior
+        g_prior=self.g_prior
         weights = g_prior.get_prob_array2d(g[:,0], g[:,1])
 
         # keep for later if we want to make plots
@@ -1373,7 +1379,7 @@ class NGMixSimPQRSLM(NGMixSim):
             g=res['pars'][2:2+2]
 
             # this is the full prior
-            g_prior=self.prior.g_prior
+            g_prior=self.g_prior
 
             pqrs_obj=ngmix.pqr.PQRS(g, g_prior)
 

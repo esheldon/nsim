@@ -1,5 +1,5 @@
 # covariance sampler
-run: "run-eg01rtest04"
+run: "run-eg01covsamp01"
 sim: "sim-eg01"
 
 fitter: "covsample"

@@ -146,6 +146,9 @@ class NGMixSim(dict):
             raise ValueError(err % (run_conf['sim'],sim_conf['name']))
 
         sim_conf['do_ring'] = sim_conf.get('do_ring',True)
+        if not sim_conf['do_ring']:
+            print("    not doing ring")
+
         self.simc=sim_conf
         self.conf=run_conf
 
@@ -364,8 +367,8 @@ class NGMixSim(dict):
         if guess_type=='draw_truth':
             print('    * guessing randomized truth')
             full_guess=self.get_guess_from_pars(imdict['pars'], n=n)
-        elif guess_type=='draw_priors':
-            full_guess=self.get_guess_draw_priors(n=n)
+        elif guess_type=='draw_pdf':
+            full_guess=self.get_guess_draw_pdf(n=n)
         elif guess_type=='draw_maxlike':
             full_guess,perr=self.get_guess_draw_maxlike(imdict, n=n)
         else:
@@ -443,7 +446,7 @@ class NGMixSim(dict):
         return fitter
 
 
-    def get_guess_draw_priors(self, n=1):
+    def get_guess_draw_pdf(self, n=1):
         """
         Get a guess drawn from the priors
 
@@ -471,7 +474,7 @@ class NGMixSim(dict):
 
         print("drawing guess from maxlike")
 
-        max_guess=self.get_guess_draw_priors(n=1)
+        max_guess=self.get_guess_draw_pdf(n=1)
         fitter=self.fit_galaxy_max(imdict, guess=max_guess)
         res=fitter.get_result()
 
@@ -487,10 +490,10 @@ class NGMixSim(dict):
             width = perr.copy()
             width[0] = width[0].clip(min=0.001)
             width[1] = width[1].clip(min=0.001)
-            width[2] = width[1].clip(min=0.001)
-            width[3] = width[1].clip(min=0.001)
-            width[4] = width[1].clip(min=0.01)
-            width[5] = width[1].clip(min=0.1)
+            width[2] = width[2].clip(min=0.001)
+            width[3] = width[3].clip(min=0.001)
+            width[4] = width[4].clip(min=0.01)
+            width[5] = width[5].clip(min=0.1)
         else:
             print("    no cov")
             width=None
@@ -692,8 +695,8 @@ class NGMixSim(dict):
             guess=imdict['pars']
         elif guess_type=='truth_random':
             guess=self.get_guess_from_pars(imdict['pars'],n=1)
-        elif guess_type=='draw_priors':
-            guess=self.get_guess_draw_priors(n=1)
+        elif guess_type=='draw_pdf':
+            guess=self.get_guess_draw_pdf(n=1)
         else:
             raise ValueError("bad guess type: '%s'" % guess_type)
         return guess
@@ -1793,6 +1796,245 @@ class NGMixSimJointSimpleLogPars(NGMixSim):
                                              cen_sigma_arcsec,
                                              cen_sigma_arcsec)
 
+
+class NGMixSimCovSample(NGMixSim):
+    def fit_galaxy(self, imdict):
+        """
+        do max and sample truncated gausian in g1,g2 for
+        lensfit
+        """
+
+        spars=self['sample_pars']
+
+        max_guess=self.get_guess_draw_pdf(n=1)
+        fitter=self.fit_galaxy_max(imdict, guess=max_guess)
+        res=fitter.get_result()
+        self.maxlike_res=res
+
+        pars=res['pars']
+        perr=res.get('pars_err',None)
+        pcov=res.get('pars_cov',None)
+
+        print("    nfev:",res['nfev'])
+        ngmix.fitting.print_pars(pars, front='    max pars: ')
+
+        if res['flags'] != 0:
+            if perr is None:
+                print("    no cov")
+            else:
+                print("    did not converge")
+            raise TryAgainError("bad max fit")
+
+        ngmix.fitting.print_pars(perr, front='    max perr: ')
+
+        g = pars[2:2+2].copy()
+        gcov=pcov[2:2+2, 2:2+2].copy()
+
+        sampler=GCovSampler(g, gcov,
+                            min_err=spars['min_err'],
+                            max_err=spars['max_err'])
+        sampler.make_trials(n=spars['nsample'])
+
+        self._add_mcmc_stats(sampler)
+
+        return sampler
+
+    def _add_mcmc_stats(self, sampler):
+        """
+        Calculate some stats
+
+        The result dict internal to the sampler is modified to include
+        g_sens and P,Q,R
+        """
+
+        maxres = self.maxlike_res
+
+        # only g
+        g = sampler.get_trials()
+
+        # this is the full prior
+        g_prior=self.g_prior
+        weights = g_prior.get_prob_array2d(g[:,0], g[:,1])
+
+        # keep for later if we want to make plots
+        self._weights=weights
+
+        sampler.calc_result(weights=weights)
+
+        # we are going to mutate the result dict owned by the sampler
+        res=sampler.get_result()
+
+        # copy pars etc. from max like fit
+        res['pars'] = maxres['pars'].copy()
+        res['pars_cov'] = maxres['pars_cov'].copy()
+        res['pars_err'] = maxres['pars_err'].copy()
+        res['pars'][2:2+2] = res['g']
+        res['pars_err'][2:2+2] = res['g_err']
+        res['pars_cov'][2:2+2, 2:2+2] = res['g_cov']
+        res['s2n_w'] = maxres['s2n_w']
+
+        ls=ngmix.lensfit.LensfitSensitivity(g, g_prior)
+        g_sens = ls.get_g_sens()
+        g_mean = ls.get_g_mean()
+
+        nuse = ls.get_nuse()
+
+        pqrobj=ngmix.pqr.PQR(g, g_prior,
+                             shear_expand=self.shear_expand)
+
+
+        P,Q,R = pqrobj.get_pqr()
+
+        # this nuse should be the same for both lensfit and pqr
+        res['nuse'] = nuse
+        res['g_sens'] = g_sens
+        res['P']=P
+        res['Q']=Q
+        res['R']=R
+        
+
+class GCovSampler(object):
+    def __init__(self, g, gcov, min_err=0.0, max_err=numpy.inf):
+        """
+        min_err=0.001 for s/n=1000 T=4*Tpsf
+        max_err=0.5 for small T s/n ~5
+        """
+        self.g=array(g)
+        self.gcov=array(gcov)
+
+        self.min_err=min_err
+        self.max_err=max_err
+
+        self._clip_cov()
+
+    def make_trials(self, n=None):
+        """
+        run sample and set the trials attribute
+        """
+        self.trials = self.sample(n)
+
+    def get_result(self):
+        """
+        get the result dict
+        """
+        return self._result
+
+    def calc_result(self, weights=None):
+        """
+        Calculate the mcmc stats and the "best fit" stats
+        """
+        from numpy import diag
+
+        g,g_cov = self.get_stats(weights=weights)
+        g_err=sqrt(diag(g_cov))
+        res={'flags':0,
+             'g':g,
+             'g_cov':g_cov,
+             'g_err':g_err,
+             'tau':0.0,
+             'arate':1.0}
+
+        self._result=res
+ 
+    def get_stats(self, weights=None):
+        """
+        get expectation values and covariance for
+        g from the trials
+        """
+        from ngmix import stats
+        trials=self.get_trials()
+
+        g, gcov = stats.calc_mcmc_stats(trials, weights=weights)
+
+        return g, gcov
+ 
+    def get_trials(self):
+        """
+        return a ref to the trials
+        """
+        return self.trials
+
+    def sample(self, nrand=None):
+        """
+        Get nrand random deviates from the distribution
+        """
+
+        if nrand is None:
+            is_scalar=True
+            nrand=1
+        else:
+            is_scalar=False
+
+        gvals = numpy.zeros( (nrand,2) )
+
+        ngood=0
+        nleft=nrand
+        while ngood < nrand:
+            
+            samples = self._sample_raw(nleft)
+
+            gtot = samples[:,0]**2 + samples[:,1]**2
+
+            w,=numpy.where(gtot < 1.0)
+            if w.size > 0:
+                gvals[ngood:ngood+w.size, :] = samples[w,:]
+                ngood += w.size
+                nleft -= w.size
+ 
+        if is_scalar:
+            gvals = gvals[0,:]
+
+        return gvals
+
+
+    def _sample_raw(self, n):
+        """
+        sample from the cov, no truncation
+        """
+        from numpy.random import multivariate_normal
+
+        vals=multivariate_normal(self.g, self.gcov, n)
+        return vals
+
+
+    def _clip_cov(self):
+        """
+        clip the steps to a desired range.  Can work with
+        either diagonals or cov
+        """
+        from numpy import sqrt, diag
+
+        cov=self.gcov
+
+        # correlation matrix
+        dsigma = sqrt(diag(cov))
+        corr = cov.copy()
+        for i in xrange(cov.shape[0]):
+            for j in xrange(cov.shape[1]):
+                corr[i,j] /= dsigma[i]
+                corr[i,j] /= dsigma[j]
+        
+        dsigma.clip(min=self.min_err,
+                    max=self.max_err,
+                    out=dsigma)
+
+        # remake the covariance matrix
+        for i in xrange(corr.shape[0]):
+            for j in xrange(corr.shape[1]):
+                corr[i,j] *= dsigma[i]
+                corr[i,j] *= dsigma[j]
+
+        cov = corr.copy()
+
+        # make sure the matrix is well behavied            
+        if numpy.all(numpy.isfinite(cov)):
+            eigvals=numpy.linalg.eigvals(cov)
+            if numpy.any(eigvals <= 0):
+                raise TryAgainError("bad cov")
+            
+        ngmix.fitting.print_pars(sqrt(diag(cov)), front="    using err:")
+
+        self.gcov = cov
 
 
 def srandu(num=None):

@@ -214,7 +214,7 @@ class ToySim(object):
 
     def _get_glike(self, g1, g2):
         import ngmix
-        glike = ngmix.priors.TruncatedGauss2D(g1,
+        glike = ngmix.priors.TruncatedSimpleGauss2D(g1,
                                               g2,
                                               self.err_sigma,
                                               self.err_sigma,
@@ -354,11 +354,11 @@ def quick(shear, err_sigma, ngal, ntrials):
         shape=ngmix.shape.Shape(g1[0],g2[0])
         shape.shear( shear[0], shear[1] )
 
-        errdist=ngmix.priors.TruncatedGauss2D(shape.g1,shape.g2,
+        errdist=ngmix.priors.TruncatedSimpleGauss2D(shape.g1,shape.g2,
                                               err_sigma, err_sigma,
                                               1.0)
         g1p,g2p=errdist.sample()
-        glike=ngmix.priors.TruncatedGauss2D(g1p,g2p,
+        glike=ngmix.priors.TruncatedSimpleGauss2D(g1p,g2p,
                                             err_sigma, err_sigma,
                                             1.0)
 

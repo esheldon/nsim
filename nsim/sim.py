@@ -495,8 +495,6 @@ class NGMixSim(dict):
         print("    nfev:",res['nfev'])
         ngmix.fitting.print_pars(pars, front='    max pars: ')
 
-        #guess=self.get_guess_from_pars(pars, n=n)
-
         if perr is not None:
             ngmix.fitting.print_pars(perr, front='    max perr: ')
 
@@ -523,7 +521,7 @@ class NGMixSim(dict):
 
         return guess, perr
 
-    def get_guess_from_pars(self, pars, n=1, width=None):
+    def get_guess_from_pars(self, pars, n=None, width=None):
         """
         Get a guess centered on the input pars
 
@@ -531,6 +529,11 @@ class NGMixSim(dict):
         width is fractional for T and flux
         """
 
+        if n is None:
+            is_scalar=True
+            n=1
+        else:
+            is_scalar=False
         npars=pars.size
 
         if width is None:
@@ -541,8 +544,8 @@ class NGMixSim(dict):
 
         guess=numpy.zeros( (n, pars.size) )
 
-        guess[:,0] = width[0]*srandu(n)
-        guess[:,1] = width[1]*srandu(n)
+        guess[:,0] = pars[0] + width[0]*srandu(n)
+        guess[:,1] = pars[1] + width[1]*srandu(n)
 
         guess_shape=self.get_shape_guess(pars[2],pars[3],n,width=width[2:2+2])
         guess[:,2]=guess_shape[:,0]
@@ -551,7 +554,7 @@ class NGMixSim(dict):
         for i in xrange(4,npars):
             guess[:,i] = pars[i]*( 1.0 + width[i]*srandu(n) )
 
-        if n==1:
+        if is_scalar:
             guess=guess[0,:]
 
         return guess
@@ -751,7 +754,7 @@ class NGMixSim(dict):
         if guess_type=='truth':
             guess=imdict['pars']
         elif guess_type=='truth_random':
-            guess=self.get_guess_from_pars(imdict['pars'],n=1)
+            guess=self.get_guess_from_pars(imdict['pars'])
         elif guess_type=='draw_pdf':
             guess=self.get_guess_draw_pdf(n=1)
         else:
@@ -1868,16 +1871,39 @@ class NGMixSimCovSample(NGMixSim):
 
         spars=self['sample_pars']
 
-        max_guess=self.get_guess_draw_pdf(n=1)
-        fitter=self.fit_galaxy_max(imdict, guess=max_guess)
-        res=fitter.get_result()
-        self.maxlike_res=res
+        g, gcov = self.get_cov_from_max(imdict)
+
+        sampler=GCovSampler(g, gcov,
+                            min_err=spars['min_err'],
+                            max_err=spars['max_err'])
+        sampler.make_trials(n=spars['nsample'])
+
+        self._add_mcmc_stats(sampler)
+
+        return sampler
+
+    def get_cov_from_max(self, imdict):
+        """
+        get the covariance matrix based on a max like fit
+
+        raises if not found
+        """
+
+        spars=self['sample_pars']
+        for itry in xrange(1,spars['max_tries']+1):
+            #max_guess=self.get_guess_draw_pdf(n=1)
+            max_guess=self.get_guess_from_pars(imdict['pars'])
+            fitter=self.fit_galaxy_max(imdict, guess=max_guess)
+
+            res=fitter.get_result()
+            if res['flags']==0:
+                break
 
         pars=res['pars']
         perr=res.get('pars_err',None)
         pcov=res.get('pars_cov',None)
 
-        print("    nfev:",res['nfev'])
+        print("    tries:",itry,"nfev:",res['nfev'])
         ngmix.fitting.print_pars(pars, front='    max pars: ')
 
         if res['flags'] != 0:
@@ -1889,17 +1915,12 @@ class NGMixSimCovSample(NGMixSim):
 
         ngmix.fitting.print_pars(perr, front='    max perr: ')
 
-        g = pars[2:2+2].copy()
-        gcov=pcov[2:2+2, 2:2+2].copy()
+        self.maxlike_res=res
 
-        sampler=GCovSampler(g, gcov,
-                            min_err=spars['min_err'],
-                            max_err=spars['max_err'])
-        sampler.make_trials(n=spars['nsample'])
+        g    = pars[2:2+2].copy()
+        gcov = pcov[2:2+2, 2:2+2].copy()
 
-        self._add_mcmc_stats(sampler)
-
-        return sampler
+        return g, gcov
 
     def _add_mcmc_stats(self, sampler):
         """

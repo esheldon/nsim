@@ -1,67 +1,12 @@
 # vim: set filetype=markdown :
 
-- lm
-    - in tester in fitting.py I see no bias, what is different?
-        - I wasn't simulating with sub-pixel integration
-        - still doesn't explain difference between computers.
-        - ran with nsub=1 in nsim and still seeing same thing
-        - maybe fixed size box?
-
-    - run-eg14r02 regular lm cosmos g dist T=2*Tpsf
-        - bias not so bad, looks like im3shape
-
-    - run-eg04rtest3 metacal ba dist T=Tpsf s/n=23 (27)
-        - lots of negative bias, -0.027
-        - either becuase smaller, becuase g dist is ba, or a bug with metacal version
-        - the g_sens goes the wrong way! <g_sens> = 1.06!
-
-        - re-running with draw-priors guess
-            - same
-
-    - run-eg04rtest4 regular lm ba g dist T=Tpsf
-        - see if bug
-            - it is very similar
-
-    - run-eg15rtest1
-        - same as run-eg14r02 but T=Tpsf
-        - similar bias. So it is the size.
-
-    - run-eg16rtest1
-        - try nsub=1 : same
-
-        - trying to match exactly: constant box size 25, T=4, nsub=1,
-          shear=0.04, cen_sigma=0.5
-          - now -2% bias!
-
-- mh
-    - eg12r02,eg12r03,eg12rtest6
-        - working well except at s/n=10 for guess from maxlike (priors on all)
-          and burnin=5000,nstep=5000
-        - much faster obviously than the emcee
-        - if I increase steps after burnin an improvement is ambiguous: it
-          could effectively be acting like more burnin.
-        - if improvement with more burning can safely leave nstep alone
-        - if none it may be we can just increase the after burning steps
-        - first try increaseing burnin to 10000.
-    - eg12rtest7 10000,5000
-        - no improvement
-    - eg12rtest8 5000,10000
-        - some improvement
-
-    - might have had bad step sizes at low s/n due to bug in how the prio
-        was used to set fdiff in lm
-        - eg12rtest9 is same pars as eg12rtest6, see if it improves.
-            - yes!!
-
-        - still very small bias at s/n=10, ~8e-4 level
-            - try temp
-            - first s/n=100 with eg12rtest10
-
-            - eg12r05 looks pretty good, although really just same bias on the
-              positive side
-    - eg04r04 - temp=1.5, Tobj=4 (fwhm ratio 1.2)
-        - looks biased at s/n=10
-    - eg04r05 - Tobj=4 temp=2.0
+test s/n=1000 for 
+    - BA pdf and BA prior
+        + eg04rtest07
+    - cosmos pdf and BA prior
+        * egcosmos01rtest02
+    - cosmos pdf and cosmos prior (seems to have instability)
+        * egcosmos01rtest03
 
 fwhm=1.2
     - sim-eg04

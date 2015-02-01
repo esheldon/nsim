@@ -17,17 +17,18 @@ import time
 import pprint
 
 import numpy
-from numpy import array, zeros, log, log10, exp, sqrt
+from numpy import array, zeros, log, log10, exp, sqrt, diag
 from numpy.random import random as randu
 from numpy.random import randn
 
 import ngmix
+from ngmix.gexceptions import GMixRangeError
 
 # region over which to render images and calculate likelihoods
 NSIGMA_RENDER=5.0
 
 # minutes
-DEFAULT_CHECKPOINTS=[30,60,90,110]
+DEFAULT_CHECKPOINTS=[1,30,60,90,110]
 #DEFAULT_CHECKPOINTS=[30,90]
 #DEFAULT_CHECKPOINTS=[0,100]
 
@@ -401,6 +402,14 @@ class NGMixSim(dict):
         pos=fitter.run_mcmc(guess,epars['burnin'])
         pos=fitter.run_mcmc(pos,epars['nstep'], thin=epars['thin'])
 
+        if 'min_arate' in epars:
+            arate=fitter.get_arate()
+            if arate < epars['min_arate']:
+                print("        low arate",arate,"running some more")
+                pos=fitter.run_mcmc(pos,epars['burnin']*2)
+                pos=fitter.run_mcmc(pos,epars['nstep'], thin=epars['thin'])
+
+
         return fitter
 
     def run_simple_mh_fitter(self, imdict):
@@ -476,7 +485,9 @@ class NGMixSim(dict):
 
         max_guess=self.get_guess_draw_pdf(n=1)
         fitter=self.fit_galaxy_max(imdict, guess=max_guess)
+
         res=fitter.get_result()
+        self.maxlike_res=res
 
         pars=res['pars']
         perr=res.get('pars_err',None)
@@ -484,30 +495,40 @@ class NGMixSim(dict):
         print("    nfev:",res['nfev'])
         ngmix.fitting.print_pars(pars, front='    max pars: ')
 
+        #guess=self.get_guess_from_pars(pars, n=n)
+
         if perr is not None:
             ngmix.fitting.print_pars(perr, front='    max perr: ')
 
+            # try diagonal for now
+
             width = perr.copy()
-            width[0] = width[0].clip(min=0.001)
-            width[1] = width[1].clip(min=0.001)
-            width[2] = width[2].clip(min=0.001)
-            width[3] = width[3].clip(min=0.001)
-            width[4] = width[4].clip(min=0.01)
-            width[5] = width[5].clip(min=0.1)
+            width[0] = width[0].clip(min=0.001,max=1.0)
+            width[1] = width[1].clip(min=0.001,max=1.0)
+            width[2] = width[2].clip(min=0.001,max=0.5)
+            width[3] = width[3].clip(min=0.001,max=0.5)
+            width[4] = width[4].clip(min=0.01,max=100.0)
+            width[5] = width[5].clip(min=0.1,max=100.0)
+
+            tcov = diag(width**2)
+            guess=self.get_guess_from_cov(pars,
+                                          tcov,
+                                          self.search_prior,
+                                          nrand=n)
         else:
             print("    no cov")
-            width=None
+            # now scatter it around a bit
+            guess=self.get_guess_from_pars(pars, n=n)
 
-        # now scatter it around a bit
-        guess=self.get_guess_from_pars(pars, n=n, width=width)
-
-        self.maxlike_res=res
 
         return guess, perr
 
     def get_guess_from_pars(self, pars, n=1, width=None):
         """
         Get a guess centered on the input pars
+
+        uniform sampling
+        width is fractional for T and flux
         """
 
         npars=pars.size
@@ -535,11 +556,47 @@ class NGMixSim(dict):
 
         return guess
 
-    def get_shape_guess(self, g1, g2, n, width=[0.01,0.01]):
+    def get_guess_from_cov(self, pars, cov, prior, nrand=None):
+        """
+        Get a guess centered on the input pars
+
+        you should clip yourself
+        """
+        from numpy.random import multivariate_normal
+        
+        if nrand is None:
+            nrand=1
+            is_scalar=True
+        else:
+            is_scalar=False
+
+        guess=numpy.zeros( (nrand, pars.size) )
+
+        for i in xrange(nrand):
+
+            while True:
+                try:
+                    rpars=multivariate_normal(pars, cov)
+                    lnp = prior.get_lnprob_scalar(rpars)
+                    break
+                except GMixRangeError:
+                    pass
+
+            guess[i,:] = rpars
+
+        if is_scalar:
+            guess=guess[0,:]
+
+        return guess
+
+
+    def get_shape_guess(self, g1, g2, n, width=[0.01,0.01], rsampler=None):
         """
         Get guess, making sure in range
         """
-        from ngmix.gexceptions import GMixRangeError
+
+        if rsampler is None:
+            rsampler=srandu
 
         guess=numpy.zeros( (n, 2) )
         shape=ngmix.Shape(g1, g2)
@@ -548,8 +605,8 @@ class NGMixSim(dict):
 
             while True:
                 try:
-                    g1_offset = width[0]*srandu()
-                    g2_offset = width[1]*srandu()
+                    g1_offset = width[0]*rsampler()
+                    g2_offset = width[1]*rsampler()
                     shape_new=shape.copy()
                     shape_new.shear(g1_offset, g2_offset)
                     break
@@ -707,8 +764,9 @@ class NGMixSim(dict):
         """
 
         if 'arate' in res:
-            print('    arate:',res['arate'],'s2n_w:',
-                    res['s2n_w'],'nuse:',res['nuse'])
+            mess="    arate: %.2f tau: %.1f s2n_w: %.1f nuse: %d"
+            mess=mess % (res['arate'],res['tau'],res['s2n_w'],res['nuse'])
+            print(mess)
         elif 'nfev' in res:
             print('    try:',res['ntry'],'nfev:',res['nfev'],'s2n_w:',res['s2n_w'])
 
@@ -937,6 +995,8 @@ class NGMixSim(dict):
         gppars = self['g_prior_pars']
         if gppars['type']=='ba':
             self.g_prior = ngmix.priors.GPriorBA(gppars['sigma'])
+        elif gppars['type']=='cosmos':
+            self.g_prior=ngmix.priors.make_gprior_cosmos_sersic(type='erf')
         else:
             raise ValueError("implement other")
 
@@ -1244,6 +1304,7 @@ class NGMixSim(dict):
 
         if 'P' in res:
             d['arate'][i] = res['arate']
+            d['tau'][i] = res['tau']
 
             d['P'][i] = res['P']
             d['Q'][i,:] = res['Q'][:]
@@ -1276,7 +1337,9 @@ class NGMixSim(dict):
             ('g','f8',2),
             ('g_cov','f8',(2,2)),
             ('s2n_w','f8'),
-            ('arate','f8')]
+            ('arate','f8'),
+            ('tau','f8'),
+           ]
 
         fitter=self['fitter']
         if 'lm' in fitter:
@@ -1731,7 +1794,6 @@ class NGMixSimJointSimpleLogPars(NGMixSim):
         from numpy import pi
         import ngmix
         from ngmix.shape import eta1eta2_to_g1g2
-        from ngmix.gexceptions import GMixRangeError
 
         # centers zero
         pars1=numpy.zeros(6)

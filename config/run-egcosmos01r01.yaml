@@ -36,6 +36,11 @@ nm_pars:
     xtol: 1.0e-3
     ftol: 1.0e-3
 
+# min to use when averaging, would depend on number of pars
+#avg_min_arate: 0.48
+#avg_min_arate: 0.50
+avg_min_arate: 0.49
+
 s2n_vals: [ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
 
 #desired_err: 2.5e-5

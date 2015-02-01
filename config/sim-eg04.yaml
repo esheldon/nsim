@@ -1,6 +1,7 @@
 # for ngmix
 #     gaussian psf
 #     exponential galaxy
+# total fwhm=1.2*psf
 
 name: "sim-eg04"
 

@@ -19,6 +19,8 @@ g_prior_pars:
 psf_ngauss: 1
 
 sample_pars:
+    # number of tries for max fitter
+    max_tries:    4
     min_err: 0.001
     max_err: 0.5
     nsample: 4000

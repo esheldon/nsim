@@ -106,7 +106,6 @@ def get_chunk_info(nrows):
 def get_lensfit_stats(conf, data, options):
 
     t0=time.time()
-    print('jackknifing lensfit')
 
     npair=data.size/2
     chunksize = npair/1000
@@ -116,7 +115,7 @@ def get_lensfit_stats(conf, data, options):
     elif chunksize > 100:
         chunksize=100
 
-    print('    jackknife chunksize:',chunksize)
+    print('    jackknife lensfit chunksize:',chunksize)
 
     shear, shear_cov, g_sum, gsens_sum = \
             ngmix.lensfit.lensfit_jackknife(data['g'], data['g_sens'],
@@ -125,7 +124,6 @@ def get_lensfit_stats(conf, data, options):
                                             get_sums=True)
 
     tm=time.time()-t0
-    print('    time to jackknife:',tm/60.,'minutes')
 
     return shear, shear_cov, g_sum, gsens_sum
 
@@ -139,7 +137,6 @@ def get_shear_stats(conf, data, options):
 
     if options.jackknife:
         t0=time.time()
-        print('jackknifing')
 
         npair=data.size/2
         chunksize = npair/1000
@@ -152,7 +149,7 @@ def get_shear_stats(conf, data, options):
             chunksize=1
         elif chunksize > 100:
             chunksize=100
-        print('    jackknife chunksize:',chunksize)
+        print('    jackknife pqr chunksize:',chunksize)
 
         shear, shear_cov = \
                 ngmix.pqr.pqr_jackknife(data['P'],data['Q'],data['R'],
@@ -161,7 +158,6 @@ def get_shear_stats(conf, data, options):
                                         eps=conf['eps'])
 
         tm=time.time()-t0
-        print('time to jackknife:',tm/60.,'minutes')
 
         shear_cov_inv = numpy.linalg.inv(shear_cov)
         w=numpy.arange(data.size)
@@ -386,13 +382,24 @@ def select(conf, data):
             data=data[w]
     '''
 
+    logic = numpy.ones(data.size, dtype=bool)
+    dologic=False
     if 'avg_min_arate' in conf:
+        print("    selecting arate >",conf['avg_min_arate'])
+        logic = logic & (data['arate'] > conf['avg_min_arate'])
+        docut=True
+
+    if 'avg_min_Ts2n' in conf:
+        Ts2n = data['pars'][:,4]/sqrt( data['pcov'][:,4,4] )
+        print("    selecting Ts2n >",conf['avg_min_Ts2n'])
+        logic = logic & (Ts2n > conf['avg_min_Ts2n'])
+        docut=True
+
+    if docut:
         no_ring=conf['simc'].get('no_ring',False)
-        min_arate=conf['avg_min_arate']
-        print("    selecting arate >",min_arate)
 
         if no_ring:
-            w,=numpy.where(data['arate'] > min_arate)
+            w,=numpy.where(logic)
         else:
             print("        pairing for ring")
 
@@ -400,8 +407,9 @@ def select(conf, data):
             wodd,  = numpy.where( (ii % 2) != 0)
             weven, = numpy.where( (ii % 2) == 0)
 
-            wboth, = numpy.where(  (data['arate'][wodd] > min_arate)
-                                 & (data['arate'][weven] > min_arate) )
+            #wboth, = numpy.where(  (data['arate'][wodd] > min_arate)
+            #                     & (data['arate'][weven] > min_arate) )
+            wboth, = numpy.where(  logic[wodd] & logic[weven] )
 
             w=numpy.concatenate( (wodd[wboth], weven[wboth] ) )
         

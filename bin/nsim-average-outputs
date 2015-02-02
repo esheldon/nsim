@@ -403,6 +403,9 @@ def select(conf, data):
         else:
             print("        pairing for ring")
 
+            w=nsim.util.ring_select(logic)
+
+            '''
             ii = numpy.arange(data.size)
             wodd,  = numpy.where( (ii % 2) != 0)
             weven, = numpy.where( (ii % 2) == 0)
@@ -412,6 +415,7 @@ def select(conf, data):
             wboth, = numpy.where(  logic[wodd] & logic[weven] )
 
             w=numpy.concatenate( (wodd[wboth], weven[wboth] ) )
+            '''
         
         print("        keeping %d/%d" % (w.size,data.size))
         data=data[w]

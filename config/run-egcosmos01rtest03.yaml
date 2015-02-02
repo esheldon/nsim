@@ -1,4 +1,4 @@
-run: "run-egcosmos01rtest02"
+run: "run-egcosmos01rtest03"
 
 # fwhm=1.2psf
 sim: "sim-egcosmos01"
@@ -8,14 +8,16 @@ fit_model: "exp"
 
 guess_type: "draw_maxlike"
 
-# will be flat on g and use default cen prior
+g_prior_during: True
+
 search_prior:
     T_prior_pars: [-0.07, 0.03, 1.0e+06, 1.0e+05]
     counts_prior_pars: [-1.0, 0.1, 1.0e+09, 0.25e+08]
 
 # note different prior!
 g_prior_pars:
-    type: "cosmos"
+    type: "ba"
+    sigma: 0.3
 
 psf_ngauss: 1
 

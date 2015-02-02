@@ -328,7 +328,13 @@ class NGMixSim(dict):
 
         # this is the full prior
         g_prior=self.g_prior
-        weights = g_prior.get_prob_array2d(g[:,0], g[:,1])
+
+        if self.g_prior_during:
+            weights = None
+            remove_prior=True
+        else:
+            weights = g_prior.get_prob_array2d(g[:,0], g[:,1])
+            remove_prior=False
 
         # keep for later if we want to make plots
         self._weights=weights
@@ -338,14 +344,16 @@ class NGMixSim(dict):
         # we are going to mutate the result dict owned by the fitter
         res=fitter.get_result()
 
-        ls=ngmix.lensfit.LensfitSensitivity(g, g_prior)
+        ls=ngmix.lensfit.LensfitSensitivity(g, g_prior,
+                                            remove_prior=remove_prior)
         g_sens = ls.get_g_sens()
         g_mean = ls.get_g_mean()
 
         nuse = ls.get_nuse()
 
         pqrobj=ngmix.pqr.PQR(g, g_prior,
-                             shear_expand=self.shear_expand)
+                             shear_expand=self.shear_expand,
+                             remove_prior=remove_prior)
 
 
         P,Q,R = pqrobj.get_pqr()
@@ -973,7 +981,22 @@ class NGMixSim(dict):
                                   counts_prior)
 
 
+        gppars = self['g_prior_pars']
+        if gppars['type']=='ba':
+            self.g_prior = ngmix.priors.GPriorBA(gppars['sigma'])
+        elif gppars['type']=='cosmos':
+            self.g_prior=ngmix.priors.make_gprior_cosmos_sersic(type='erf')
+        else:
+            raise ValueError("implement other")
+
+        self.g_prior_during = self.get('g_prior_during',False)
+        if self.g_prior_during:
+            sg_prior = self.g_prior
+        else:
+            sg_prior = g_prior_flat
+
         if 'search_prior' in self:
+
             print("using input search prior")
             spars=self['search_prior']
 
@@ -983,26 +1006,19 @@ class NGMixSim(dict):
             fit_T_prior=ngmix.priors.TwoSidedErf(*T_prior_pars)
             fit_counts_prior=ngmix.priors.TwoSidedErf(*counts_prior_pars)
 
+
             self.search_prior = PriorSimpleSep(cen_prior,
-                                               g_prior_flat,
+                                               sg_prior,
                                                fit_T_prior,
                                                fit_counts_prior)
         else:
             # for the exploration, for which we do not apply g prior during
             self.search_prior = PriorSimpleSep(cen_prior,
-                                               g_prior_flat,
+                                               sg_prior,
                                                T_prior,
                                                counts_prior)
 
     
-        gppars = self['g_prior_pars']
-        if gppars['type']=='ba':
-            self.g_prior = ngmix.priors.GPriorBA(gppars['sigma'])
-        elif gppars['type']=='cosmos':
-            self.g_prior=ngmix.priors.make_gprior_cosmos_sersic(type='erf')
-        else:
-            raise ValueError("implement other")
-
     def set_noise(self):
         """
         Find gaussian noise that when added to the image 

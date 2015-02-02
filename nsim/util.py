@@ -1,3 +1,6 @@
+from __future__ import print_function
+import numpy
+
 def ring_select(logic):
     ii = numpy.arange(logic.size)
     wodd,  = numpy.where( (ii % 2) != 0)

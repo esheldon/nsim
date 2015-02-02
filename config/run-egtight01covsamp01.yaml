@@ -7,6 +7,8 @@ fit_model: "exp"
 
 guess_type: "draw_maxlike"
 
+g_prior_during: True
+
 # will be flat on g and use default cen prior
 search_prior:
     T_prior_pars: [-0.07, 0.03, 1.0e+06, 1.0e+05]
@@ -16,14 +18,16 @@ g_prior_pars:
     type: "ba"
     sigma: 0.3
 
+expand_shear_true: True
+
 psf_ngauss: 1
 
 sample_pars:
     # number of tries for max fitter
     max_tries:    4
     min_err: 0.001
-    max_err: 0.5
-    nsample: 4000
+    max_err: 10.0
+    nsample: 10000
 
 nm_pars:
     method: 'Nelder-Mead'

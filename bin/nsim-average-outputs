@@ -383,7 +383,7 @@ def select(conf, data):
     '''
 
     logic = numpy.ones(data.size, dtype=bool)
-    dologic=False
+    docut=False
     if 'avg_min_arate' in conf:
         print("    selecting arate >",conf['avg_min_arate'])
         logic = logic & (data['arate'] > conf['avg_min_arate'])

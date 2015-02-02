@@ -17,7 +17,6 @@ prior_type: "separate"
 cen_sigma: 0.1
 
 g_prior_type: "cosmos"
-g_prior_sigma: 0.3
 
 # scatter in linear space: will be converted to log space
 obj_T_mean: 4.0

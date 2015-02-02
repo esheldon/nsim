@@ -492,7 +492,7 @@ class NGMixSim(dict):
         print("drawing guess from maxlike")
 
         max_guess=self.get_guess_draw_pdf(n=1)
-        fitter=self.fit_galaxy_max(imdict, guess=max_guess)
+        fitter=self.fit_galaxy_max(imdict, max_guess)
 
         res=fitter.get_result()
         self.maxlike_res=res
@@ -630,7 +630,7 @@ class NGMixSim(dict):
         return guess
 
 
-    def fit_galaxy_max(self, imdict, guess=None):
+    def fit_galaxy_max(self, imdict, guess):
         """
         Fit the model to the galaxy
 
@@ -1909,7 +1909,8 @@ class NGMixSimCovSample(NGMixSim):
         for itry in xrange(1,spars['max_tries']+1):
             #max_guess=self.get_guess_draw_pdf(n=1)
             max_guess=self.get_guess_from_pars(imdict['pars'])
-            fitter=self.fit_galaxy_max(imdict, guess=max_guess)
+            #fitter=self.fit_galaxy_max(imdict, max_guess)
+            fitter=self.fit_galaxy_lm(imdict, max_guess)
 
             res=fitter.get_result()
             if res['flags']==0:
@@ -1938,6 +1939,26 @@ class NGMixSimCovSample(NGMixSim):
 
         return g, gcov
 
+    def fit_galaxy_lm(self, imdict, guess):
+        """
+        Fit the model to the galaxy
+
+        we send some keywords so behavior can be different if this is a guess
+        getter
+
+        """
+        from ngmix.fitting import LMSimple
+
+        obs=imdict['obs']
+        fitter=LMSimple(obs,
+                        self.fit_model,
+                        prior=self.search_prior,
+                        lm_pars=self['lm_pars'])
+
+        fitter.run_lm(guess)
+        return fitter
+
+
     def _add_mcmc_stats(self, sampler):
         """
         Calculate some stats
@@ -1953,7 +1974,13 @@ class NGMixSimCovSample(NGMixSim):
 
         # this is the full prior
         g_prior=self.g_prior
-        weights = g_prior.get_prob_array2d(g[:,0], g[:,1])
+
+        if self.g_prior_during:
+            weights = None
+            remove_prior=True
+        else:
+            weights = g_prior.get_prob_array2d(g[:,0], g[:,1])
+            remove_prior=False
 
         # keep for later if we want to make plots
         self._weights=weights
@@ -1972,14 +1999,16 @@ class NGMixSimCovSample(NGMixSim):
         res['pars_cov'][2:2+2, 2:2+2] = res['g_cov']
         res['s2n_w'] = maxres['s2n_w']
 
-        ls=ngmix.lensfit.LensfitSensitivity(g, g_prior)
+        ls=ngmix.lensfit.LensfitSensitivity(g, g_prior,
+                                            remove_prior=remove_prior)
         g_sens = ls.get_g_sens()
         g_mean = ls.get_g_mean()
 
         nuse = ls.get_nuse()
 
         pqrobj=ngmix.pqr.PQR(g, g_prior,
-                             shear_expand=self.shear_expand)
+                             shear_expand=self.shear_expand,
+                             remove_prior=remove_prior)
 
 
         P,Q,R = pqrobj.get_pqr()

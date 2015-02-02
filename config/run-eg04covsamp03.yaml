@@ -1,6 +1,8 @@
-# covariance sampler
-run: "run-egtight01covsamp01"
-sim: "sim-egtight01"
+# covariance samplerO
+# prior during
+# used lm
+run: "run-eg04covsamp03"
+sim: "sim-eg04"
 
 fitter: "covsample"
 fit_model: "exp"
@@ -9,7 +11,6 @@ guess_type: "draw_maxlike"
 
 g_prior_during: True
 
-# will be flat on g and use default cen prior
 search_prior:
     T_prior_pars: [-0.07, 0.03, 1.0e+06, 1.0e+05]
     counts_prior_pars: [-1.0, 0.1, 1.0e+09, 0.25e+08]
@@ -35,6 +36,12 @@ nm_pars:
     maxfev: 4000
     xtol: 1.0e-3
     ftol: 1.0e-3
+
+lm_pars:
+    maxfev: 4000
+    ftol:   1.0e-6
+    xtol:   1.0e-6
+    epsfcn: 1.0e-6
 
 s2n_vals: [ 100 ]
 

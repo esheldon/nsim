@@ -2039,7 +2039,7 @@ class GCovSampler(object):
         """
         run sample and set the trials attribute
         """
-        self.trials = self.sample(n)
+        self._trials = self.sample(n)
 
     def get_result(self):
         """
@@ -2080,7 +2080,29 @@ class GCovSampler(object):
         """
         return a ref to the trials
         """
-        return self.trials
+        return self._trials
+
+    def get_prob(self, g):
+        """
+        get probability for input points
+
+        depends on scipy
+        """
+        if not hasattr(self, '_pdf'):
+            self._set_pdf()
+
+        return self._pdf.pdf(g)
+
+    def get_lnprob(self, g):
+        """
+        get log probability for input points
+
+        depends on scipy
+        """
+        if not hasattr(self, '_pdf'):
+            self._set_pdf()
+
+        return self._pdf.logpdf(g)
 
     def sample(self, nrand=None):
         """
@@ -2124,6 +2146,12 @@ class GCovSampler(object):
         vals=multivariate_normal(self.g, self.gcov, n)
         return vals
 
+    def _set_pdf(self):
+        """
+        don't do automatically, since depends on scipy
+        """
+        from scipy.stats import multivariate_normal 
+        self._pdf = multivariate_normal(mean=self.g, cov=self.gcov)
 
     def _clip_cov(self):
         """
@@ -2163,6 +2191,194 @@ class GCovSampler(object):
         ngmix.fitting.print_pars(sqrt(diag(cov)), front="    using err:")
 
         self.gcov = cov
+
+class GCovSamplerFull(object):
+    def __init__(self, pars, cov, min_err=0.0, max_err=numpy.inf):
+        """
+        min_err=0.001 for s/n=1000 T=4*Tpsf
+        max_err=0.5 for small T s/n ~5
+        """
+        self._pars=array(pars)
+        self._cov=array(cov)
+
+        self._npars = self._pars.size
+
+        self._g1i=2
+        self._g2i=3
+
+        if min_err is None:
+            min_err = pars*0
+        if max_err is None:
+            max_err = pars*0 + numpy.inf
+
+        assert min_err.size==self._pars.size,"min_err must be same size as pars"
+        assert max_err.size==self._pars.size,"max_err must be same size as pars"
+
+        self._min_err=min_err
+        self._max_err=max_err
+
+        self._clip_cov()
+
+    def make_trials(self, n=None):
+        """
+        run sample and set the trials attribute
+        """
+        self._trials = self.sample(n)
+
+    def get_result(self):
+        """
+        get the result dict
+        """
+        return self._result
+
+    def calc_result(self, weights=None):
+        """
+        Calculate the mcmc stats and the "best fit" stats
+        """
+        from numpy import diag
+
+        pars,pars_cov = self.get_stats(weights=weights)
+        pars_err=sqrt(diag(pars_cov))
+        res={'flags':0,
+             'pars':pars,
+             'pars_cov':pars_cov,
+             'pars_err':pars_err,
+             'tau':0.0,
+             'arate':1.0}
+
+        self._result=res
+ 
+    def get_stats(self, weights=None):
+        """
+        get expectation values and covariance for
+        g from the trials
+        """
+        from ngmix import stats
+        trials=self.get_trials()
+
+        pars, pars_cov = stats.calc_mcmc_stats(trials, weights=weights)
+
+        return pars, pars_cov
+ 
+    def get_trials(self):
+        """
+        return a ref to the trials
+        """
+        return self._trials
+
+    def get_prob(self, pars):
+        """
+        get probability for input points
+
+        depends on scipy
+        """
+        if not hasattr(self, '_pdf'):
+            self._set_pdf()
+
+        return self._pdf.pdf(pars)
+
+    def get_lnprob(self, pars):
+        """
+        get log probability for input points
+
+        depends on scipy
+        """
+        if not hasattr(self, '_pdf'):
+            self._set_pdf()
+
+        return self._pdf.logpdf(pars)
+
+    def sample(self, nrand=None):
+        """
+        Get nrand random deviates from the distribution
+        """
+
+        if nrand is None:
+            is_scalar=True
+            nrand=1
+        else:
+            is_scalar=False
+
+        vals = numpy.zeros( (nrand,self._npars) )
+
+        ngood=0
+        nleft=nrand
+        while ngood < nrand:
+            
+            samples = self._sample_raw(nleft)
+
+            gtot = samples[:,self._g1i]**2 + samples[:,self._g2i]**2
+
+            w,=numpy.where(gtot < 1.0)
+            if w.size > 0:
+                vals[ngood:ngood+w.size, :] = samples[w,:]
+                ngood += w.size
+                nleft -= w.size
+ 
+        if is_scalar:
+            vals = vals[0,:]
+
+        return vals
+
+
+    def _sample_raw(self, n):
+        """
+        sample from the cov, no truncation
+        """
+        from numpy.random import multivariate_normal
+
+        vals=multivariate_normal(self._pars, self._cov, n)
+        return vals
+
+    def _set_pdf(self):
+        """
+        don't do automatically, since depends on scipy
+        """
+        from scipy.stats import multivariate_normal 
+        self._pdf = multivariate_normal(mean=self._pars, cov=self._cov)
+
+    def _clip_cov(self):
+        """
+        clip the steps to a desired range.  Can work with
+        either diagonals or cov
+        """
+        from numpy import sqrt, diag
+
+        cov=self._cov
+
+        # correlation matrix
+        dsigma = sqrt(diag(cov))
+        corr = cov.copy()
+        for i in xrange(cov.shape[0]):
+            for j in xrange(cov.shape[1]):
+                corr[i,j] /= dsigma[i]
+                corr[i,j] /= dsigma[j]
+        
+        w,=numpy.where(dsigma < self._min_err)
+        if w.size > 0:
+            dsigma[w] = self._min_err[w]
+        w,=numpy.where(dsigma > self._max_err)
+        if w.size > 0:
+            dsigma[w] = self._max_err[w]
+
+        # remake the covariance matrix
+        for i in xrange(corr.shape[0]):
+            for j in xrange(corr.shape[1]):
+                corr[i,j] *= dsigma[i]
+                corr[i,j] *= dsigma[j]
+
+        cov = corr.copy()
+
+        # make sure the matrix is well behavied            
+        if numpy.all(numpy.isfinite(cov)):
+            eigvals=numpy.linalg.eigvals(cov)
+            if numpy.any(eigvals <= 0):
+                raise TryAgainError("bad cov")
+            
+        ngmix.fitting.print_pars(sqrt(diag(cov)), front="    using err:")
+
+        self._cov = cov
+
 
 
 def srandu(num=None):

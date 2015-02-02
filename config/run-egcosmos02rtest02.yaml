@@ -35,8 +35,8 @@ nm_pars:
     xtol: 1.0e-3
     ftol: 1.0e-3
 
-#avg_min_arate: 0.49
-#avg_min_Ts2n: 4.0
+avg_min_arate: 0.49
+avg_min_Ts2n: 4.0
 
 s2n_vals: [ 25 ]
 

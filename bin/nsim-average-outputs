@@ -388,12 +388,14 @@ def select(conf, data):
 
     if 'avg_min_Ts2n' in conf:
         if conf['use_logpars']:
+            print("       Ts2n for logpars")
             Ts2n = 1.0/sqrt( data['pcov'][:,4,4] )
         else:
             Ts2n = data['pars'][:,4]/sqrt( data['pcov'][:,4,4] )
 
         print("    selecting Ts2n >",conf['avg_min_Ts2n'])
         logic = logic & (Ts2n > conf['avg_min_Ts2n'])
+        #logic = logic & (Ts2n > conf['avg_min_Ts2n']) & (Ts2n < 15)
         docut=True
 
     if 'avg_min_neff' in conf:

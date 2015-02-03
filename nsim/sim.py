@@ -2028,8 +2028,8 @@ class NGMixSimISample(NGMixSim):
     def __init__(self, *args, **kw):
         super(NGMixSimISample,self).__init__(*args, **kw)
         
-        mess="g prior must be during"
-        assert self.g_prior_during==True,mess
+        #mess="g prior must be during"
+        #assert self.g_prior_during==True,mess
 
         ipars=self['isample_pars']
         ipars['min_err'] = array(ipars['min_err'])
@@ -2163,39 +2163,42 @@ class NGMixSimISample(NGMixSim):
         g_sens and P,Q,R
         """
 
-        maxres = self.maxlike_res
+        # this is the full prior
+        g_prior=self.g_prior
 
         iweights = sampler.get_iweights()
         samples = sampler.get_samples()
-        gvals=samples[:,2:2+2]
+        g_vals=samples[:,2:2+2]
 
         if self.g_prior_during:
-            sampler.calc_result()
+            weights=None
             remove_prior=True
         else:
-            weights = g_prior.get_prob_array2d(g[:,0], g[:,1])
-            sampler.calc_result(weights=weights)
+            print("    prior was not during")
+            weights = g_prior.get_prob_array2d(g_vals[:,0], g_vals[:,1])
             remove_prior=False
+
+        sampler.calc_result(weights=weights)
 
         # keep for later if we want to make plots
         self._weights=iweights
 
-        # this is the full prior
-        g_prior=self.g_prior
 
         # we are going to mutate the result dict owned by the sampler
         res=sampler.get_result()
+
+        maxres = self.maxlike_res
         res['s2n_w'] = maxres['s2n_w']
 
-        ls=ngmix.lensfit.LensfitSensitivity(gvals,
+        ls=ngmix.lensfit.LensfitSensitivity(g_vals,
                                             g_prior,
                                             weights=iweights,
                                             remove_prior=remove_prior)
         g_sens = ls.get_g_sens()
         g_mean = ls.get_g_mean()
 
-        print("res g mean:",res['g'])
-        print("lf g mean: ",g_mean)
+        #print("res g mean:",res['g'])
+        #print("lf g mean: ",g_mean)
 
         res['g_sens'] = g_sens
         res['nuse'] = ls.get_nuse()

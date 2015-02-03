@@ -2040,7 +2040,7 @@ class NGMixSimISample(NGMixSim):
         do max and sample truncated gausian in g1,g2 for
         lensfit
         """
-        from ngmix.fitting import GCovSampler
+        from ngmix.fitting import GCovSampler, GCovSamplerT
 
         ipars=self['isample_pars']
 
@@ -2048,10 +2048,17 @@ class NGMixSimISample(NGMixSim):
         res=fitter.get_result()
 
         icov = res['pars_cov']*ipars['ifactor']**2
-        sampler=GCovSampler(res['pars'],
-                            icov,
-                            min_err=ipars['min_err'],
-                            max_err=ipars['max_err'])
+        if ipars['sampler']=='T':
+            sampler=GCovSamplerT(res['pars'],
+                                 icov,
+                                 ipars['df'],
+                                 min_err=ipars['min_err'],
+                                 max_err=ipars['max_err'])
+        else:
+            sampler=GCovSampler(res['pars'],
+                                icov,
+                                min_err=ipars['min_err'],
+                                max_err=ipars['max_err'])
 
         sampler.make_samples(ipars['nsample'])
         sampler.set_iweights(fitter.calc_lnprob)

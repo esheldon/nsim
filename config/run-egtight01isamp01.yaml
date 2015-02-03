@@ -1,0 +1,61 @@
+# isampler
+# prior during
+# lm
+run: "run-egtight01isamp01"
+sim: "sim-egtight01"
+
+fitter: "isample"
+fit_model: "exp"
+
+guess_type: "draw_maxlike"
+
+g_prior_during: True
+
+
+#    T_prior_pars: [-0.07, 0.03, 1.0e+06, 1.0e+05]
+#    counts_prior_pars: [-1.0, 0.1, 1.0e+09, 0.25e+08]
+search_prior:
+    T_prior_pars: [-0.5, 0.1, 6.0, 0.1]
+    counts_prior_pars: [-0.5, 0.1, 9.0, 0.1]
+
+g_prior_pars:
+    type: "ba"
+    sigma: 0.3
+
+expand_shear_true: True
+
+psf_ngauss: 1
+
+isample_pars:
+    nsample: 2000
+    ifactor: 1.414
+    min_err: 0.001
+    max_err: 10.0
+    min_err: [1.0e-4,1.0e-4,1.0e-3,1.0e-3,1.0e-4,1.0e-4]
+    max_err: [1.0,1.0,5.0,5.0,1.0,1.0]
+
+    # number of tries for max fitter
+    max_tries: 4
+
+nm_pars:
+    method: 'Nelder-Mead'
+    maxiter: 4000
+    maxfev: 4000
+    xtol: 1.0e-3
+    ftol: 1.0e-3
+
+lm_pars:
+    maxfev: 4000
+    ftol:   1.0e-6
+    xtol:   1.0e-6
+    epsfcn: 1.0e-6
+
+s2n_vals: [ 100 ]
+
+#desired_err: 2.5e-5
+desired_err: 5.0e-5
+desired_hours: 0.5 # for condor
+sec_per_pair: 10.0 # doubled
+npair_min: 40000
+
+verbose: True

@@ -50,7 +50,7 @@ lm_pars:
     xtol:   1.0e-6
     epsfcn: 1.0e-6
 
-avg_min_neff: 450
+avg_min_fracuse: 0.23
 
 s2n_vals: [ 100 ]
 

@@ -410,6 +410,12 @@ def select(conf, data):
         logic = logic & (data['neff'] > conf['avg_min_neff'])
         docut=True
 
+    if 'avg_min_fracuse' in conf:
+        print("    selecting fracuse >",conf['avg_min_fracuse'])
+        logic = logic & (data['fracuse'] > conf['avg_min_fracuse'])
+        docut=True
+
+
 
     if docut:
         no_ring=conf['simc'].get('no_ring',False)
@@ -420,18 +426,6 @@ def select(conf, data):
             print("        pairing for ring")
 
             w=nsim.util.ring_select(logic)
-
-            '''
-            ii = numpy.arange(data.size)
-            wodd,  = numpy.where( (ii % 2) != 0)
-            weven, = numpy.where( (ii % 2) == 0)
-
-            #wboth, = numpy.where(  (data['arate'][wodd] > min_arate)
-            #                     & (data['arate'][weven] > min_arate) )
-            wboth, = numpy.where(  logic[wodd] & logic[weven] )
-
-            w=numpy.concatenate( (wodd[wboth], weven[wboth] ) )
-            '''
         
         print("        keeping %d/%d" % (w.size,data.size))
         data=data[w]

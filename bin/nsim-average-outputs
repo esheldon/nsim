@@ -396,10 +396,20 @@ def select(conf, data):
         docut=True
 
     if 'avg_min_Ts2n' in conf:
-        Ts2n = data['pars'][:,4]/sqrt( data['pcov'][:,4,4] )
+        if conf['use_logpars']:
+            Ts2n = 1.0/sqrt( data['pcov'][:,4,4] )
+        else:
+            Ts2n = data['pars'][:,4]/sqrt( data['pcov'][:,4,4] )
+
         print("    selecting Ts2n >",conf['avg_min_Ts2n'])
         logic = logic & (Ts2n > conf['avg_min_Ts2n'])
         docut=True
+
+    if 'avg_min_neff' in conf:
+        print("    selecting neff >",conf['avg_min_neff'])
+        logic = logic & (data['neff'] > conf['avg_min_neff'])
+        docut=True
+
 
     if docut:
         no_ring=conf['simc'].get('no_ring',False)

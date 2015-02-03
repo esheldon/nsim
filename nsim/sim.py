@@ -784,9 +784,9 @@ class NGMixSim(dict):
         elif 'nfev' in res:
             print('    try:',res['ntry'],'nfev:',res['nfev'],'s2n_w:',res['s2n_w'])
 
-        ngmix.fitting.print_pars(res['pars_true'], front='    true: ')
         ngmix.fitting.print_pars(res['pars'],front='    pars: ')
         ngmix.fitting.print_pars(res['pars_err'],front='    perr: ')
+        ngmix.fitting.print_pars(res['pars_true'], front='    true: ')
 
     def make_psf(self):
         """
@@ -2077,12 +2077,18 @@ class NGMixSimISample(NGMixSim):
         """
 
         ipars=self['isample_pars']
+
+        if ipars['max_fitter']=="nm":
+            fitmethod=self.fit_galaxy_nm
+        else:
+            fitmethod=self.fit_galaxy_lm
+
         for itry in xrange(1,ipars['max_tries']+1):
             max_guess=self.get_guess_from_pars(imdict['pars'])
 
             max_guess[4:4+2] = log(max_guess[4:4+2])
 
-            fitter=self.fit_galaxy_lm(imdict, max_guess)
+            fitter=fitmethod(imdict, max_guess)
 
             res=fitter.get_result()
             if res['flags']==0:
@@ -2109,6 +2115,25 @@ class NGMixSimISample(NGMixSim):
         self.maxlike_res=res
 
         return fitter
+
+    def fit_galaxy_nm(self, imdict, guess):
+        """
+        Fit the model to the galaxy
+
+        we send some keywords so behavior can be different if this is a guess
+        getter
+
+        """
+        from ngmix.fitting import MaxSimple
+
+        obs=imdict['obs']
+        fitter=MaxSimple(obs, self.fit_model,
+                         prior=self.search_prior,
+                         use_logpars=True)
+
+        fitter.run_max(guess, **self['nm_pars'])
+        return fitter
+
 
     def fit_galaxy_lm(self, imdict, guess):
         """
@@ -2191,9 +2216,9 @@ class NGMixSimISample(NGMixSim):
             mess = mess % (res['s2n_w'],res['ntry'],res['nfev'])
         print(mess)
 
-        ngmix.fitting.print_pars(res['pars_true'], front='    true: ')
-        ngmix.fitting.print_pars(res['pars'],front='    pars: ')
-        ngmix.fitting.print_pars(res['pars_err'],front='    perr: ')
+        ngmix.fitting.print_pars(res['pars'],      front='        pars: ')
+        ngmix.fitting.print_pars(res['pars_err'],  front='        perr: ')
+        ngmix.fitting.print_pars(res['pars_true'], front='        true: ')
 
 
     def copy_to_output(self, res, i):

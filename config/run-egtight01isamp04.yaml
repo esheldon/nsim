@@ -36,6 +36,7 @@ isample_pars:
     max_err: [1.0,1.0,5.0,5.0,1.0,1.0]
 
     # number of tries for max fitter
+    max_fitter: "lm"
     max_tries: 4
 
 nm_pars:

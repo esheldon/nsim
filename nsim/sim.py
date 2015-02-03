@@ -2062,7 +2062,6 @@ class NGMixSimISample(NGMixSim):
 
         sampler.make_samples(ipars['nsample'])
         sampler.set_iweights(fitter.calc_lnprob)
-        sampler.calc_result()
 
         self._add_mcmc_stats(sampler)
         self._sampler=sampler
@@ -2170,6 +2169,14 @@ class NGMixSimISample(NGMixSim):
         samples = sampler.get_samples()
         gvals=samples[:,2:2+2]
 
+        if self.g_prior_during:
+            sampler.calc_result()
+            remove_prior=True
+        else:
+            weights = g_prior.get_prob_array2d(g[:,0], g[:,1])
+            sampler.calc_result(weights=weights)
+            remove_prior=False
+
         # keep for later if we want to make plots
         self._weights=iweights
 
@@ -2183,9 +2190,12 @@ class NGMixSimISample(NGMixSim):
         ls=ngmix.lensfit.LensfitSensitivity(gvals,
                                             g_prior,
                                             weights=iweights,
-                                            remove_prior=True)
+                                            remove_prior=remove_prior)
         g_sens = ls.get_g_sens()
         g_mean = ls.get_g_mean()
+
+        print("res g mean:",res['g'])
+        print("lf g mean: ",g_mean)
 
         res['g_sens'] = g_sens
         res['nuse'] = ls.get_nuse()

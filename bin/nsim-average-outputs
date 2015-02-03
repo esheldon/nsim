@@ -36,6 +36,9 @@ parser.add_option('--zero-run',default=None,
 parser.add_option('--is-zero',action='store_true',
                   help="this is a zero shear run for pqrs")
 
+parser.add_option('--skip-pqr',action='store_true',
+                  help="don't do pqr")
+
 
 
 CHUNKSIZE=1000000
@@ -252,32 +255,34 @@ def add_pqrs_stats(conf, data, d, options):
 
 
 def do_sums(conf, data, d, options):
+    d['nsum'][0] += data.size
 
-    P_sum, Q_sum, Cinv_sum, shear_cov_inv, w = \
-            get_shear_stats(conf, data, options)
+    if not options.skip_pqr:
+        P_sum, Q_sum, Cinv_sum, shear_cov_inv, w = \
+                get_shear_stats(conf, data, options)
+
+
+        d['P_sum'][0] += P_sum
+        d['Q_sum'][0] += Q_sum
+        d['Cinv_sum'][0] += Cinv_sum
+
+        if 'S' in data.dtype.names:
+            add_pqrs_stats(conf, data, d, options)
+
+        d['shear_cov_inv_sum'][0] += shear_cov_inv
+    else:
+        w=numpy.arange(data.size)
 
     sh_lf, shcov_lf, g_sum, gsens_sum = get_lensfit_stats(conf, data, options)
-
-    d['nsum'][0] += data.size
-    d['P_sum'][0] += P_sum
-    d['Q_sum'][0] += Q_sum
-    d['Cinv_sum'][0] += Cinv_sum
-
-
-    d['shear_cov_inv_sum'][0] += shear_cov_inv
-
     d['g_sum'][0] += g_sum
     d['g_sens_sum'][0] += gsens_sum
 
     shcov_lf_inv = numpy.linalg.inv(shcov_lf)
     d['shear_lensfit_cov_inv_sum'][0] += shcov_lf_inv
 
-    if 'S' in data.dtype.names:
-        add_pqrs_stats(conf, data, d, options)
-
     add_more_sums(conf, data, d, w,)
 
-def do_avg(conf, d):
+def do_avg(conf, d, options):
 
     shtrue=conf['simc']['shear'][0]
 
@@ -285,30 +290,31 @@ def do_avg(conf, d):
 
     d['s2n_w'][0] = d['s2n_w_sum'][0]/d['nsum'][0]
 
-    #
-    # pqr
-    #
-    shear_cov = numpy.linalg.inv(d['shear_cov_inv_sum'][0,:,:])
+    if not options.skip_pqr:
+        #
+        # pqr
+        #
+        shear_cov = numpy.linalg.inv(d['shear_cov_inv_sum'][0,:,:])
 
-    C = numpy.linalg.inv(d['Cinv_sum'][0,:,:])
-    Q_sum = d['Q_sum'][0,:]
-    shear = numpy.dot(C,Q_sum)
+        C = numpy.linalg.inv(d['Cinv_sum'][0,:,:])
+        Q_sum = d['Q_sum'][0,:]
+        shear = numpy.dot(C,Q_sum)
 
 
-    # did we expand around the true shear?
-    expand_shear=conf.get('expand_shear_true',False)
-    if expand_shear:
-        true_shear = numpy.array( conf['simc']['shear'] )
-        print('adding expand shear:',true_shear)
-        shear += true_shear
+        # did we expand around the true shear?
+        expand_shear=conf.get('expand_shear_true',False)
+        if expand_shear:
+            true_shear = numpy.array( conf['simc']['shear'] )
+            print('adding expand shear:',true_shear)
+            shear += true_shear
 
-    d['shear'][0] = shear
-    d['shear_cov'][0,:,:] = shear_cov
+        d['shear'][0] = shear
+        d['shear_cov'][0,:,:] = shear_cov
 
-    sherr=numpy.sqrt(shear_cov[0,0])
-    fracdiff=shear[0]/shtrue-1.0
-    fracdiff_err=sherr/shtrue
-    print('fracdiff(pqr):     %.2e +/- %.2e' % (fracdiff, fracdiff_err))
+        sherr=numpy.sqrt(shear_cov[0,0])
+        fracdiff=shear[0]/shtrue-1.0
+        fracdiff_err=sherr/shtrue
+        print('fracdiff(pqr):     %.2g +/- %.2g' % (fracdiff, fracdiff_err))
 
     #
     # lensfit
@@ -325,7 +331,7 @@ def do_avg(conf, d):
     fracdiff=shlf[0]/shtrue-1.0
     fracdiff_err=sherrlf/shtrue
 
-    print('fracdiff(lensfit): %.2e +/- %.2e' % (fracdiff, fracdiff_err))
+    print('fracdiff(lensfit): %.2g +/- %.2g' % (fracdiff, fracdiff_err))
 
     if model in simple_models or model=='bdf':
         d['flux'] = d['flux_sum']/d['nsum']
@@ -439,7 +445,7 @@ def get_averaged(conf, s2n_matched, options):
         else:
             do_sums_bychunk(conf, fobj, d, options)
 
-    do_avg(conf, d)
+    do_avg(conf, d, options)
 
     return d
 

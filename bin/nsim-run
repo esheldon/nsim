@@ -111,6 +111,8 @@ def run_sim(sim_conf,run_conf,s2n,npairs,output_file,options):
             sim=nsim.sim.NGMixSimPQRSMCMC(*args, **kw)
         elif run_conf['fitter']=='covsample':
             sim=nsim.sim.NGMixSimCovSample(*args, **kw)
+        elif run_conf['fitter']=='isample':
+            sim=nsim.sim.NGMixSimISample(*args, **kw)
         else:
             sim=nsim.sim.NGMixSim(*args, **kw)
 

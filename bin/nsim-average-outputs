@@ -378,15 +378,6 @@ def do_sums_bychunk(conf, fobj, d, options):
         do_sums(conf, data, d, options)
 
 def select(conf, data):
-    '''
-    if 'emcee_pars' in conf:
-        epars=conf['emcee_pars']
-        if 'min_arate' in epars:
-            print("    selecting arate >",epars['min_arate'])
-            w,=numpy.where(data['arate'] > epars['min_arate'])
-            print("    keeping %d/%d" % (w.size,data.size))
-            data=data[w]
-    '''
 
     logic = numpy.ones(data.size, dtype=bool)
     docut=False

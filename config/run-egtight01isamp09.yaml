@@ -1,0 +1,69 @@
+# isampler
+# prior not during
+# 4000
+# lm
+# same as isamp08 but more samples
+
+run: "run-egtight01isamp09"
+sim: "sim-egtight01"
+
+fitter: "isample"
+use_logpars: True # implied by isample actually
+fit_model: "exp"
+
+guess_type: "draw_maxlike"
+
+g_prior_during: False
+
+
+#    T_prior_pars: [-0.07, 0.03, 1.0e+06, 1.0e+05]
+#    counts_prior_pars: [-1.0, 0.1, 1.0e+09, 0.25e+08]
+search_prior:
+    T_prior_pars: [-0.5, 0.1, 6.0, 0.1]
+    counts_prior_pars: [-0.5, 0.1, 9.0, 0.1]
+
+g_prior_pars:
+    type: "ba"
+    sigma: 0.3
+
+expand_shear_true: True
+
+psf_ngauss: 1
+
+isample_pars:
+    sampler: "T"
+    nsample: 4000
+    ifactor: 1.414
+    df: 2.1
+    min_err: [1.0e-4,1.0e-4,1.0e-3,1.0e-3,1.0e-4,1.0e-4]
+    max_err: [1.0,1.0,5.0,5.0,1.0,1.0]
+
+    max_fitter: "lm"
+    max_tries: 4
+
+nm_pars:
+    method: 'Nelder-Mead'
+    maxiter: 4000
+    maxfev: 4000
+    xtol: 1.0e-5
+    ftol: 1.0e-5
+
+lm_pars:
+    maxfev: 4000
+    ftol:   1.0e-6
+    xtol:   1.0e-6
+    epsfcn: 1.0e-6
+
+#avg_min_fracuse: 0.10
+#avg_min_fracuse: 0.05
+avg_min_neff: 100
+avg_min_Ts2n: 4.0
+
+s2n_vals: [ 50 ]
+
+desired_err: 5.0e-5
+desired_hours: 0.50
+sec_per_pair: 0.8
+npair_min: 40000
+
+verbose: True

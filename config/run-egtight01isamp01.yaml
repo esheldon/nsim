@@ -27,10 +27,8 @@ expand_shear_true: True
 psf_ngauss: 1
 
 isample_pars:
-    nsample: 2000
+    nsample: 10000
     ifactor: 1.414
-    min_err: 0.001
-    max_err: 10.0
     min_err: [1.0e-4,1.0e-4,1.0e-3,1.0e-3,1.0e-4,1.0e-4]
     max_err: [1.0,1.0,5.0,5.0,1.0,1.0]
 
@@ -50,12 +48,11 @@ lm_pars:
     xtol:   1.0e-6
     epsfcn: 1.0e-6
 
-s2n_vals: [ 100 ]
+s2n_vals: [ 50 ]
 
-#desired_err: 2.5e-5
-desired_err: 5.0e-5
+desired_err: 9.0e-5
 desired_hours: 0.5 # for condor
-sec_per_pair: 10.0 # doubled
+sec_per_pair: 2.0 # doubled
 npair_min: 40000
 
 verbose: True

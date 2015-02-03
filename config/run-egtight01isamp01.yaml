@@ -27,6 +27,7 @@ expand_shear_true: True
 psf_ngauss: 1
 
 isample_pars:
+    sampler: "gauss"
     nsample: 10000
     ifactor: 1.414
     min_err: [1.0e-4,1.0e-4,1.0e-3,1.0e-3,1.0e-4,1.0e-4]

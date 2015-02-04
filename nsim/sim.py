@@ -143,7 +143,7 @@ class NGMixSim(dict):
         Check and set the configurations
         """
 
-        run_conf['logpars']=run_conf.get('logpars',False)
+        run_conf['use_logpars']=run_conf.get('use_logpars',False)
 
         if sim_conf['name'] != run_conf['sim']:
             err="sim name in run config '%s' doesn't match sim name '%s'"
@@ -946,21 +946,21 @@ class NGMixSim(dict):
 
         # prior separate for all pars
         cen_sigma_arcsec=simc['cen_sigma']
-        cen_prior=ngmix.priors.CenPrior(0.0,
-                                        0.0,
-                                        cen_sigma_arcsec,
-                                        cen_sigma_arcsec)
+        cen_pdf=ngmix.priors.CenPrior(0.0,
+                                      0.0,
+                                      cen_sigma_arcsec,
+                                      cen_sigma_arcsec)
 
         gtype=simc['g_prior_type']
         if gtype=="ba":
-            g_prior_sigma=simc['g_prior_sigma']
-            g_prior=ngmix.priors.GPriorBA(g_prior_sigma)
+            g_pdf_sigma=simc['g_prior_sigma']
+            g_pdf=ngmix.priors.GPriorBA(g_pdf_sigma)
         elif gtype=="cosmos":
-            g_prior=ngmix.priors.make_gprior_cosmos_sersic(type='erf')
+            g_pdf=ngmix.priors.make_gprior_cosmos_sersic(type='erf')
         else:
             raise ValueError("only g prior 'ba' for now")
 
-        g_prior_flat=ngmix.priors.ZDisk2D(1.0)
+        g_pdf_flat=ngmix.priors.ZDisk2D(1.0)
 
         # T and scatter in linear space
         T            = simc['obj_T_mean']
@@ -968,20 +968,16 @@ class NGMixSim(dict):
         counts       = simc['obj_counts_mean']
         counts_sigma = simc['obj_counts_sigma_frac']*counts
 
-        #logT_mean, logT_sigma=ngmix.priors.lognorm_convert(T,T_sigma,base=10.0)
-        #logcounts_mean, logcounts_sigma=ngmix.priors.lognorm_convert(counts,counts_sigma,base=10.0)
 
-        #T_prior=ngmix.priors.Normal(logT_mean, logT_sigma)
-        #counts_prior=ngmix.priors.Normal(logcounts_mean, logcounts_sigma)
-        T_prior=ngmix.priors.LogNormal(T, T_sigma)
-        counts_prior=ngmix.priors.LogNormal(counts, counts_sigma)
+        T_pdf=ngmix.priors.LogNormal(T, T_sigma)
+        counts_pdf=ngmix.priors.LogNormal(counts, counts_sigma)
 
-        # for drawing parameters, and after exploration to grab g_prior and calculate
+        # for drawing parameters, and after exploration to grab g_pdf and calculate
         # pqr etc.
-        self.pdf = PriorSimpleSep(cen_prior,
-                                  g_prior,
-                                  T_prior,
-                                  counts_prior)
+        self.pdf = PriorSimpleSep(cen_pdf,
+                                  g_pdf,
+                                  T_pdf,
+                                  counts_pdf)
 
 
         gppars = self['g_prior_pars']
@@ -994,32 +990,40 @@ class NGMixSim(dict):
 
         self.g_prior_during = self.get('g_prior_during',False)
         if self.g_prior_during:
-            sg_prior = self.g_prior
+            fit_g_prior = self.g_prior
         else:
-            sg_prior = g_prior_flat
+            fit_g_prior = g_prior_flat
 
-        if 'search_prior' in self:
+        print("using input search prior")
+        spars=self['search_prior']
 
-            print("using input search prior")
-            spars=self['search_prior']
-
+        if 'T_prior_pars' in spars:
             T_prior_pars = spars['T_prior_pars']
-            counts_prior_pars = spars['counts_prior_pars']
-
             fit_T_prior=ngmix.priors.TwoSidedErf(*T_prior_pars)
-            fit_counts_prior=ngmix.priors.TwoSidedErf(*counts_prior_pars)
-
-
-            self.search_prior = PriorSimpleSep(cen_prior,
-                                               sg_prior,
-                                               fit_T_prior,
-                                               fit_counts_prior)
         else:
-            # for the exploration, for which we do not apply g prior during
-            self.search_prior = PriorSimpleSep(cen_prior,
-                                               sg_prior,
-                                               T_prior,
-                                               counts_prior)
+            print("using true T pdf for prior")
+            if self['use_logpars']:
+                logT_mean, logT_sigma=ngmix.priors.lognorm_convert(T,T_sigma)
+                fit_T_prior = ngmix.priors.Normal(logT_mean, logT_sigma)
+            else:
+                fit_T_prior = T_pdf
+
+        if 'counts_prior_pars' in spars:
+            counts_prior_pars = spars['counts_prior_pars']
+            fit_counts_prior=ngmix.priors.TwoSidedErf(*counts_prior_pars)
+        else:
+            print("using true counts pdf for prior")
+            if self['use_logpars']:
+                logc_mean, logc_sigma=ngmix.priors.lognorm_convert(counts,
+                                                                   counts_sigma)
+                fit_counts_prior = ngmix.priors.Normal(logc_mean, logc_sigma)
+            else:
+                fit_counts_prior = counts_pdf
+
+        self.search_prior = PriorSimpleSep(cen_pdf,
+                                           fit_g_prior,
+                                           fit_T_prior,
+                                           fit_counts_prior)
 
     
     def set_noise(self):

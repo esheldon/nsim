@@ -39,6 +39,9 @@ parser.add_option('--is-zero',action='store_true',
 parser.add_option('--skip-pqr',action='store_true',
                   help="don't do pqr")
 
+parser.add_option('--show',action='store_true',
+                  help="show some plots")
+
 
 
 CHUNKSIZE=1000000
@@ -115,8 +118,8 @@ def get_lensfit_stats(conf, data, options):
 
     if chunksize < 1:
         chunksize=1
-    elif chunksize > 100:
-        chunksize=100
+    #elif chunksize > 100:
+    #    chunksize=100
 
     print('    jackknife lensfit chunksize:',chunksize)
 
@@ -124,7 +127,8 @@ def get_lensfit_stats(conf, data, options):
             ngmix.lensfit.lensfit_jackknife(data['g'], data['g_sens'],
                                             progress=options.progress,
                                             chunksize=chunksize,
-                                            get_sums=True)
+                                            get_sums=True,
+                                            show=options.show)
 
     tm=time.time()-t0
 
@@ -420,7 +424,8 @@ def select(conf, data):
 
             w=nsim.util.ring_select(logic)
         
-        print("        keeping %d/%d" % (w.size,data.size))
+        frac=float(w.size)/data.size
+        print("        keeping %d/%d  %.3f" % (w.size,data.size,frac))
         data=data[w]
 
     return data

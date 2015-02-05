@@ -6,7 +6,7 @@ from __future__ import print_function
 import sys
 import os
 import numpy
-from numpy import sqrt, array, diag
+from numpy import sqrt, array, diag, ones, zeros
 
 import fitsio
 
@@ -25,6 +25,8 @@ parser.add_option('--pqr-cov',action='store_true',
 
 parser.add_option('--jackknife',action='store_true',
                   help="use jackknife errors")
+parser.add_option('--weights',action='store_true',
+                  help="use inverse variance weighting")
 parser.add_option('--chunksize',default=1,
                   help="jackknife chunk size, number of pairs")
 parser.add_option('--progress',action='store_true',
@@ -56,7 +58,7 @@ def get_dtype(fobj, model, options):
 
     dt =data.dtype.descr
     dt += [('s2n_matched','f8'),
-           ('nsum','i8'),
+           ('wsum','f8'),
            ('s2n_w_sum','f8'),
            ('g_sum','f8',2),
            ('g_sens_sum','f8',2),
@@ -82,22 +84,6 @@ def get_dtype(fobj, model, options):
            ('shear_lensfit_cov_inv_sum','f8',(2,2)),
           ]
 
-
-    if model in simple_models or model =='bdf':
-        dt += [('flux_sum','f8'),
-               ('flux_err2invsum','f8'),
-               ('flux_s2n_sum','f8'),
-               ('flux','f8'),
-               ('flux_err','f8'),
-               ('flux_s2n','f8'),
-
-               ('T_sum','f8'),
-               ('T_err2invsum','f8'),
-               ('T_s2n_sum','f8'),
-               ('T','f8'),
-               ('T_err','f8'),
-               ('T_s2n','f8')]
-
     return dt
 
 def get_chunk_info(nrows):
@@ -109,7 +95,7 @@ def get_chunk_info(nrows):
 
     return nchunks
 
-def get_lensfit_stats(conf, data, options):
+def get_lensfit_stats(conf, data, weights, options):
 
     t0=time.time()
 
@@ -125,6 +111,7 @@ def get_lensfit_stats(conf, data, options):
 
     shear, shear_cov, g_sum, gsens_sum = \
             ngmix.lensfit.lensfit_jackknife(data['g'], data['g_sens'],
+                                            weights=weights,
                                             progress=options.progress,
                                             chunksize=chunksize,
                                             get_sums=True,
@@ -189,7 +176,7 @@ def get_shear_stats(conf, data, options):
         cov_inv[:,1,0] = - cov[:,1,0]
 
         w,=numpy.where( det > 0 )
-        idet = numpy.zeros(det.size)
+        idet = zeros(det.size)
         idet[w] = 1.0/det[w]
         cov_inv[:,0,0] *= idet
         cov_inv[:,0,1] *= idet
@@ -202,36 +189,7 @@ def get_shear_stats(conf, data, options):
     return P_sum, Q_sum, Cinv_sum, shear_cov_inv, w
 
 
-def add_more_sums(conf, data, d, w):
 
-    model=conf['fit_model']
-
-    d['s2n_w_sum'][0] += data['s2n_w'].sum()
-
-    if model in simple_models or model=='bdf':
-        flux     = data['pars'][:,5:].sum(axis=1)
-        flux_var = data['pcov'][:,5:,5:].sum(axis=1).sum(axis=1)
-
-        flux_err = sqrt(flux_var)
-
-        d['flux_sum'][0]        += flux.sum()
-
-        d['flux_err2invsum'][0] += (1.0/flux_var[w]).sum()
-
-        flux_s2n_vals = flux/flux_err
-        d['flux_s2n_sum'][0] += flux_s2n_vals.sum()
-
-        T=data['pars'][:,4]
-        T_var=data['pcov'][:,5,5]
-        T_err=sqrt(T_var)
-
-        # these are for getting the overall mean T not the mean
-        # s2n; that is below
-        d['T_sum'][0] += T.sum()
-        d['T_err2invsum'][0] += (1.0/T_var[w]).sum()
-
-        T_s2n_vals = T/T_err
-        d['T_s2n_sum'][0] += T_s2n_vals.sum()
 
 def add_pqrs_stats(conf, data, d, options):
     if options.is_zero:
@@ -248,19 +206,29 @@ def add_pqrs_stats(conf, data, d, options):
                                              data['S'])
 
         zd=conf['zero_data']
-        W = zd['Wsum'][0]/zd['nsum'][0]
+        W = zd['Wsum'][0]/zd['wsum'][0]
         print(W)
         Winv = numpy.linalg.inv(W)
-        U = d['Usum'][0]/d['nsum'][0]
+        U = d['Usum'][0]/d['wsum'][0]
 
         res=numpy.dot(Winv, U)
 
         d['shear_pqrs'][0,:] = res[0:0+2]
 
+def get_weights(data):
+    wts = 1.0/(2*0.16**2 + data['g_cov'][:,0,0] + 2*data['g_cov'][:,0,1] + data['g_cov'][:,1,1])
+    return wts
 
 def do_sums(conf, data, d, options):
-    d['nsum'][0] += data.size
+    if options.weights:
+        weights = get_weights(data)
+    else:
+        weights = ones(data.size)
 
+    wsum = weights.sum()
+    d['wsum'][0] += wsum
+
+    # no weights for pqr
     if not options.skip_pqr:
         P_sum, Q_sum, Cinv_sum, shear_cov_inv, w = \
                 get_shear_stats(conf, data, options)
@@ -274,17 +242,15 @@ def do_sums(conf, data, d, options):
             add_pqrs_stats(conf, data, d, options)
 
         d['shear_cov_inv_sum'][0] += shear_cov_inv
-    else:
-        w=numpy.arange(data.size)
 
-    sh_lf, shcov_lf, g_sum, gsens_sum = get_lensfit_stats(conf, data, options)
+    sh_lf, shcov_lf, g_sum, gsens_sum = get_lensfit_stats(conf, data, weights, options)
     d['g_sum'][0] += g_sum
     d['g_sens_sum'][0] += gsens_sum
 
     shcov_lf_inv = numpy.linalg.inv(shcov_lf)
     d['shear_lensfit_cov_inv_sum'][0] += shcov_lf_inv
 
-    add_more_sums(conf, data, d, w,)
+    d['s2n_w_sum'][0] += (data['s2n_w']*weights).sum()
 
 def do_avg(conf, d, options):
 
@@ -292,7 +258,7 @@ def do_avg(conf, d, options):
 
     model=conf['fit_model']
 
-    d['s2n_w'][0] = d['s2n_w_sum'][0]/d['nsum'][0]
+    d['s2n_w'][0] = d['s2n_w_sum'][0]/d['wsum'][0]
 
     if not options.skip_pqr:
         #
@@ -326,7 +292,7 @@ def do_avg(conf, d, options):
 
     shlf = d['g_sum'][0]/d['g_sens_sum'][0]
 
-    d['g_sens'] = d['g_sens_sum'][0]/d['nsum'][0]
+    d['g_sens'] = d['g_sens_sum'][0]/d['wsum'][0]
     d['shear_lensfit'][0] = shlf
     d['shear_lensfit_cov'][0] = numpy.linalg.inv(d['shear_lensfit_cov_inv_sum'][0])
 
@@ -336,14 +302,6 @@ def do_avg(conf, d, options):
     fracdiff_err=sherrlf/shtrue
 
     print('fracdiff(lensfit): %.2g +/- %.2g' % (fracdiff, fracdiff_err))
-
-    if model in simple_models or model=='bdf':
-        d['flux'] = d['flux_sum']/d['nsum']
-        d['flux_err'] = sqrt(1.0/d['flux_err2invsum'])
-        d['flux_s2n'] = d['flux_s2n_sum']/d['nsum']
-        d['T'] = d['T_sum']/d['nsum']
-        d['T_err'] = sqrt(1.0/d['T_err2invsum'])
-        d['T_s2n'] = d['T_s2n_sum']/d['nsum']
 
 def get_jackknife_eps(fname):
     dirname=os.path.dirname(fname)
@@ -383,7 +341,7 @@ def do_sums_bychunk(conf, fobj, d, options):
 
 def select(conf, data):
 
-    logic = numpy.ones(data.size, dtype=bool)
+    logic = ones(data.size, dtype=bool)
     docut=False
     if 'avg_min_arate' in conf:
         print("    selecting arate >",conf['avg_min_arate'])
@@ -412,7 +370,20 @@ def select(conf, data):
         logic = logic & (data['fracuse'] > conf['avg_min_fracuse'])
         docut=True
 
-
+    if 'avg_max_g' in conf:
+        print("    selecting g <",conf['avg_max_g'])
+        gmax=sqrt(data['pars_max'][:,2]**2 + data['pars_max'][:,3]**2)
+        logic = logic & (gmax < conf['avg_max_g'])
+        docut=True
+    '''
+    if 'avg_max_g' in conf:
+        print("    selecting g <",conf['avg_max_g'])
+        gmax=sqrt(data['pars_max'][:,2]**2 + data['pars_max'][:,3]**2)
+        logic = (logic
+                 & (numpy.abs(data['pars_max'][:,2]) < conf['avg_max_g'])
+                 & (numpy.abs(data['pars_max'][:,3]) < conf['avg_max_g']) )
+        docut=True
+    '''
 
     if docut:
         no_ring=conf['simc'].get('no_ring',False)
@@ -439,7 +410,7 @@ def get_averaged(conf, s2n_matched, options):
 
         dt= get_dtype(fobj,model,options)
 
-        d=numpy.zeros(1, dtype=dt)
+        d=zeros(1, dtype=dt)
         d['s2n_matched'] = s2n_matched
 
         if options.jackknife:

@@ -1,3 +1,4 @@
+# s/n=100
 # same as isamp04 but using nm as max fitter
 # isampler
 # prior during
@@ -52,7 +53,8 @@ lm_pars:
     xtol:   1.0e-6
     epsfcn: 1.0e-6
 
-avg_min_fracuse: 0.23
+#avg_max_g: 0.55
+#avg_min_fracuse: 0.23
 #avg_min_Ts2n: 4.0
 
 s2n_vals: [ 100 ]

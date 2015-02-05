@@ -11,7 +11,7 @@ obj_model: "exp"
 # separate priors in all parameters
 prior_type: "separate"
 
-cen_sigma: 0.1
+cen_sigma: 0.001
 
 g_prior_type: "ba"
 g_prior_sigma: 0.3
@@ -27,5 +27,3 @@ obj_counts_sigma_frac: 0.01
 shear: [0.08,0.0]
 
 nsub: 16
-
-label: '$exp fwhm/fwhm_{psf}=1.2$'

@@ -992,35 +992,47 @@ class NGMixSim(dict):
         if self.g_prior_during:
             fit_g_prior = self.g_prior
         else:
-            fit_g_prior = g_prior_flat
+            fit_g_prior = g_pdf_flat
 
         print("using input search prior")
         spars=self['search_prior']
 
-        if 'T_prior_pars' in spars:
-            T_prior_pars = spars['T_prior_pars']
-            fit_T_prior=ngmix.priors.TwoSidedErf(*T_prior_pars)
-        else:
+        if spars['T_prior_type']=="truth":
             print("using true T pdf for prior")
             if self['use_logpars']:
+                print("    converting to log")
                 logT_mean, logT_sigma=ngmix.priors.lognorm_convert(T,T_sigma)
                 fit_T_prior = ngmix.priors.Normal(logT_mean, logT_sigma)
             else:
                 fit_T_prior = T_pdf
-
-        if 'counts_prior_pars' in spars:
-            counts_prior_pars = spars['counts_prior_pars']
-            fit_counts_prior=ngmix.priors.TwoSidedErf(*counts_prior_pars)
         else:
+            T_prior_pars = spars['T_prior_pars']
+            fit_T_prior=ngmix.priors.TwoSidedErf(*T_prior_pars)
+
+        if spars['counts_prior_type']=="truth":
             print("using true counts pdf for prior")
             if self['use_logpars']:
+                print("    converting to log")
                 logc_mean, logc_sigma=ngmix.priors.lognorm_convert(counts,
                                                                    counts_sigma)
                 fit_counts_prior = ngmix.priors.Normal(logc_mean, logc_sigma)
             else:
                 fit_counts_prior = counts_pdf
+        else:
+            counts_prior_pars = spars['counts_prior_pars']
+            fit_counts_prior=ngmix.priors.TwoSidedErf(*counts_prior_pars)
 
-        self.search_prior = PriorSimpleSep(cen_pdf,
+        if spars['cen_prior_type']=="truth":
+            fit_cen_prior=cen_pdf
+        else:
+            fit_cen_sigma_arcsec=spars['cen_sigma']
+            fit_cen_prior=ngmix.priors.CenPrior(0.0,
+                                                0.0,
+                                                fit_cen_sigma_arcsec,
+                                                fit_cen_sigma_arcsec)
+
+
+        self.search_prior = PriorSimpleSep(fit_cen_prior,
                                            fit_g_prior,
                                            fit_T_prior,
                                            fit_counts_prior)
@@ -1143,6 +1155,13 @@ class NGMixSim(dict):
                                               0.0,
                                               0.0,
                                               self.pixel_scale)
+        self.jacobian=ngmix.jacobian.Jacobian(cen0_pix[0],
+                                              cen0_pix[1],
+                                              self.pixel_scale,
+                                              0.0,
+                                              0.0,
+                                              self.pixel_scale)
+
         psf_cen=pars1[0:0+2].copy()
         psf_image=self.get_psf_image(dims_pix, psf_cen)
 
@@ -2044,31 +2063,44 @@ class NGMixSimISample(NGMixSim):
         do max and sample truncated gausian in g1,g2 for
         lensfit
         """
-        from ngmix.fitting import GCovSampler, GCovSamplerT
 
         ipars=self['isample_pars']
 
         fitter = self.run_max_fitter(imdict)
-        res=fitter.get_result()
 
-        icov = res['pars_cov']*ipars['ifactor']**2
-        if ipars['sampler']=='T':
-            sampler=GCovSamplerT(res['pars'],
-                                 icov,
-                                 ipars['df'],
-                                 min_err=ipars['min_err'],
-                                 max_err=ipars['max_err'])
-        else:
-            sampler=GCovSampler(res['pars'],
-                                icov,
-                                min_err=ipars['min_err'],
-                                max_err=ipars['max_err'])
+        sampler=self._make_sampler(fitter)
 
         sampler.make_samples(ipars['nsample'])
         sampler.set_iweights(fitter.calc_lnprob)
 
         self._add_mcmc_stats(sampler)
         self._sampler=sampler
+
+        return sampler
+
+    def _make_sampler(self, fitter):
+        from ngmix.fitting import GCovSampler, GCovSamplerT
+        from numpy.linalg import LinAlgError
+
+        ipars=self['isample_pars']
+
+        res=fitter.get_result()
+        icov = res['pars_cov']*ipars['ifactor']**2
+
+        try:
+            if ipars['sampler']=='T':
+                sampler=GCovSamplerT(res['pars'],
+                                     icov,
+                                     ipars['df'],
+                                     min_err=ipars['min_err'],
+                                     max_err=ipars['max_err'])
+            else:
+                sampler=GCovSampler(res['pars'],
+                                    icov,
+                                    min_err=ipars['min_err'],
+                                    max_err=ipars['max_err'])
+        except LinAlgError:
+            raise TryAgainError("bad cov")
 
         return sampler
 
@@ -2369,7 +2401,7 @@ def write_fits(filename, data):
 
     # try a few times
     print("moving to:",output_file)
-    cmd='mv -v %s %s' % (local_file, output_file)
+    cmd='mv %s %s' % (local_file, output_file)
     for i in xrange(5):
         stat=os.system(cmd)
         if stat==0:

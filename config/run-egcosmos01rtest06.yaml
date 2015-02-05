@@ -1,0 +1,56 @@
+# same as 04 but no prior during
+run: "run-egcosmos01rtest06"
+
+# fwhm=1.2psf
+sim: "sim-egcosmos01"
+
+fitter: "mcmc"
+fit_model: "exp"
+
+guess_type: "draw_maxlike"
+
+use_logpars: False
+
+g_prior_during: False
+expand_shear_true: True
+
+search_prior:
+    T_prior_pars: [-0.07, 0.03, 1.0e+06, 1.0e+05]
+    counts_prior_pars: [-1.0, 0.1, 1.0e+09, 0.25e+08]
+
+# note different prior!
+g_prior_pars:
+    type: "ba"
+    sigma: 0.3
+
+psf_ngauss: 1
+
+emcee_pars:
+    nwalkers: 20
+    burnin:   800
+    nstep:    400
+    a:        2.0
+    thin:     2
+
+nm_pars:
+    method: 'Nelder-Mead'
+    maxiter: 4000
+    maxfev: 4000
+    xtol: 1.0e-3
+    ftol: 1.0e-3
+
+avg_min_arate: 0.49
+#avg_min_arate: 0.515
+avg_min_Ts2n: 4.0
+
+s2n_vals: [ 50 ]
+
+desired_err: 1.0e-4
+
+# for wq
+desired_hours: 1.0
+sec_per_pair: 6.0
+
+npair_min: 40000
+
+verbose: True

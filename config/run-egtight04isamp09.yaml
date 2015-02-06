@@ -1,0 +1,70 @@
+# using super tight dist for all true parameters
+# isampler
+# true priors on all parameters during
+
+run: "run-egtight04isamp09"
+sim: "sim-egtight04"
+
+fitter: "isample"
+use_logpars: True # implied by isample actually
+fit_model: "exp"
+
+guess_type: "draw_maxlike"
+
+g_prior_during: True
+
+use_log_priors: True
+
+search_prior:
+    cen_prior_type: "truth"
+    T_prior_type: "truth"
+    counts_prior_type: "truth"
+
+g_prior_pars:
+    type: "ba"
+    sigma: 0.3
+
+expand_shear_true: True
+
+psf_ngauss: 1
+
+isample_pars:
+    sampler: "T"
+    nsample: 2000
+    ifactor: 1.414
+    df: 2.1
+    min_err: [1.0e-4,1.0e-4,1.0e-3,1.0e-3,1.0e-4,1.0e-4]
+    max_err: [1.0,1.0,5.0,5.0,1.0,1.0]
+
+    # number of tries for max fitter
+    max_fitter: "nm"
+    max_tries: 4
+
+nm_pars:
+    method: 'Nelder-Mead'
+    maxiter: 4000
+    maxfev: 4000
+    xtol: 1.0e-5
+    ftol: 1.0e-5
+
+lm_pars:
+    maxfev: 4000
+    ftol:   1.0e-6
+    xtol:   1.0e-6
+    epsfcn: 1.0e-6
+
+#avg_max_g: 0.50
+#avg_max_g: 0.55
+#avg_min_fracuse: 0.16
+#avg_min_Ts2n: 4.0
+#avg_min_neff: 330.0
+
+s2n_vals: [ 25 ]
+
+desired_err: 5.0e-5
+#desired_hours: 1.5
+desired_hours: 0.2
+sec_per_pair: 0.60
+npair_min: 40000
+
+verbose: True

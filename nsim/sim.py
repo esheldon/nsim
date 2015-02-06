@@ -17,7 +17,7 @@ import time
 import pprint
 
 import numpy
-from numpy import array, zeros, log, log10, exp, sqrt, diag
+from numpy import array, zeros, ones, log, log10, exp, sqrt, diag
 from numpy.random import random as randu
 from numpy.random import randn
 
@@ -408,7 +408,8 @@ class NGMixSim(dict):
 
                           nwalkers=epars['nwalkers'],
                           mca_a=epars['a'],
-                          random_state=self.random_state)
+                          random_state=self.random_state,
+                          use_logpars=self['use_logpars'])
 
         pos=fitter.run_mcmc(guess,epars['burnin'])
         pos=fitter.run_mcmc(pos,epars['nstep'], thin=epars['thin'])
@@ -447,6 +448,7 @@ class NGMixSim(dict):
                                 step_sizes,
 
                                 temp=temp,
+                                use_logpars=self['use_logpars'],
 
                                 prior=self.search_prior, 
                                 random_state=self.random_state)
@@ -644,8 +646,8 @@ class NGMixSim(dict):
         from ngmix.fitting import MaxSimple
 
         obs=imdict['obs']
-        fitter=MaxSimple(obs, self.fit_model, prior=self.search_prior)
-
+        fitter=MaxSimple(obs, self.fit_model, prior=self.search_prior,
+                         use_logpars=self['use_logpars'])
         fitter.run_max(guess, **self['nm_pars'])
         res=fitter.get_result()
         res['ntry']=1
@@ -667,7 +669,8 @@ class NGMixSim(dict):
         fitter=LMSimple(obs,
                         self.fit_model,
                         prior=self.search_prior,
-                        lm_pars=self['lm_pars'])
+                        lm_pars=self['lm_pars'],
+                        use_logpars=self['use_logpars'])
 
         for i in xrange(ntry):
             if i > 0 or guess is None:
@@ -1561,6 +1564,7 @@ class NGMixSimJointSimpleLinPars(NGMixSim):
                                       mca_a=self['mca_a'],
 
                                       prior_during=self['prior_during'],
+                                      use_logpars=self['use_logpars'],
 
                                       random_state=self.random_state,
                                       do_pqr=True)
@@ -1663,6 +1667,8 @@ class NGMixSimJointSimpleHybrid(NGMixSim):
                                      nstep=self['nstep'],
                                      burnin=self['burnin'],
                                      mca_a=self['mca_a'],
+
+                                     use_logpars=self['use_logpars'],
 
                                      prior_during=self['prior_during'],
 
@@ -1788,6 +1794,8 @@ class NGMixSimJointSimpleLogPars(NGMixSim):
                                joint_prior=self.joint_prior,
 
                                full_guess=full_guess,
+
+                               use_logpars=self['use_logpars'],
 
                                shear_expand=self.shear_expand,
 
@@ -2067,11 +2075,20 @@ class NGMixSimISample(NGMixSim):
         ipars=self['isample_pars']
 
         fitter = self.run_max_fitter(imdict)
+        if 'truth' in self['guess_type']:
+            print("    setting pars to truth for center of isample")
+            res=fitter.get_result()
+            res['pars_meas'] = res['pars'].copy()
+            res['pars'][2:2+2] = imdict['pars'][2:2+2].copy()
 
         sampler=self._make_sampler(fitter)
 
         sampler.make_samples(ipars['nsample'])
-        sampler.set_iweights(fitter.calc_lnprob)
+
+        if 'truth' in self['guess_type']:
+            sampler._iweights = ones(ipars['nsample'])
+        else:
+            sampler.set_iweights(fitter.calc_lnprob)
 
         self._add_mcmc_stats(sampler)
         self._sampler=sampler

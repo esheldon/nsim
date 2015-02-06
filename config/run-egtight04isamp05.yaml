@@ -58,8 +58,8 @@ lm_pars:
 
 #avg_max_g: 0.50
 #avg_max_g: 0.55
-avg_min_fracuse: 0.16
-avg_min_Ts2n: 4.0
+#avg_min_fracuse: 0.16
+#avg_min_Ts2n: 4.0
 #avg_min_neff: 330.0
 
 s2n_vals: [ 25 ]

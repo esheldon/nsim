@@ -24,7 +24,10 @@ egtight01isamp18 | fixed flat priors |  no g prior during | nm         | 2000  |
 egtight04isamp01 | flat/weak priors  | no g prior during   | nm        | 2000 |  2.1 | 0.016 +/- 0.00071    | no better!
 egtight04isamp02 | true TF priors    | no g prior during   | nm        | 2000 |  2.1 | 0.0059 +/- 0.0007    | note noise error is much larger than the cen distribution
 egtight04isamp03 | true TF priors    | g prior during      | nm        | 2000 |  2.1 | 0.0072 +/- 0.00068   |
-egtight04isamp04 | flat/weak priors  | g prior during      | nm        | 2000 |  2.1 | 0.016 +/- 0.00071    |
+egtight04isamp04 | flat/weak priors  | g prior during      | nm        | 2000 |  2.1 |   |
+
+s/n=25
+egtight04isamp05 | flat/weak priors  | g prior during      | nm        | 2000 |  2.1 |   |
 
 ellip errors at s/n=50 are ~0.06, so I would expect the bias to be a factor of 2
 

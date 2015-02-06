@@ -215,13 +215,41 @@ def add_pqrs_stats(conf, data, d, options):
 
         d['shear_pqrs'][0,:] = res[0:0+2]
 
-def get_weights(data):
-    wts = 1.0/(2*0.16**2 + data['g_cov'][:,0,0] + 2*data['g_cov'][:,0,1] + data['g_cov'][:,1,1])
+def get_weights(data,conf):
+
+    #do_ring=conf['simc'].get('do_ring',True)
+    #if do_ring:
+    #    SN2=0.001
+    #else:
+    #    SN2=0.16**2
+    SN2=0.16**2
+
+    denom = (
+             2*SN2
+             + data['g_cov'][:,0,0]
+             + 2*data['g_cov'][:,0,1]
+             + data['g_cov'][:,1,1]
+            ) 
+
+    """
+    denom = (
+             2*0.16**2
+             + data['pcov_max'][:,2,2]
+             + 2*data['pcov_max'][:,2,3]
+             + data['pcov_max'][:,3,3]
+            ) 
+    """
+    wts = 1.0/denom
+    #wts = 1.0/data['pcov'][:,4,4]
+
+    wts *= (1.0/wts.max())
+    wfrac=wts.sum()/wts.size
+    print("    weighted frac: %.3g" % wfrac)
     return wts
 
 def do_sums(conf, data, d, options):
     if options.weights:
-        weights = get_weights(data)
+        weights = get_weights(data, conf)
     else:
         weights = ones(data.size)
 
@@ -375,15 +403,15 @@ def select(conf, data):
         gmax=sqrt(data['pars_max'][:,2]**2 + data['pars_max'][:,3]**2)
         logic = logic & (gmax < conf['avg_max_g'])
         docut=True
-    '''
-    if 'avg_max_g' in conf:
-        print("    selecting g <",conf['avg_max_g'])
-        gmax=sqrt(data['pars_max'][:,2]**2 + data['pars_max'][:,3]**2)
-        logic = (logic
-                 & (numpy.abs(data['pars_max'][:,2]) < conf['avg_max_g'])
-                 & (numpy.abs(data['pars_max'][:,3]) < conf['avg_max_g']) )
+
+    if 'avg_max_gerr' in conf:
+        print("    selecting maxlike g err <",conf['avg_max_gerr'])
+        logic = (
+                 logic
+                 & (sqrt(data['pcov_max'][:,2,2]) < conf['avg_max_gerr'])
+                 & (sqrt(data['pcov_max'][:,3,3]) < conf['avg_max_gerr']) 
+                )
         docut=True
-    '''
 
     if docut:
         no_ring=conf['simc'].get('no_ring',False)
@@ -439,18 +467,18 @@ def main():
     else:
         skip = [int(v) for v in options.skip.split(',')]
 
-    c = nsim.files.read_config(run)
-    c['simc'] = nsim.files.read_config(c['sim'])
+    conf = nsim.files.read_config(run)
+    conf['simc'] = nsim.files.read_config(conf['sim'])
 
-    s2n_vals    = c['s2n_vals']
+    s2n_vals    = conf['s2n_vals']
 
     s2n_matched = s2n_vals[is2n]
-    c['fname']=nsim.files.get_output_url(run, 0, is2n)
+    conf['fname']=nsim.files.get_output_url(run, 0, is2n)
 
     if options.zero_run is not None:
-        c['zero_data']=nsim.files.read_averaged(options.zero_run, is2n=is2n)
+        conf['zero_data']=nsim.files.read_averaged(options.zero_run, is2n=is2n)
 
-    output = get_averaged(c, s2n_matched, options)
+    output = get_averaged(conf, s2n_matched, options)
 
     out_fname=nsim.files.get_averaged_url(run, is2n=is2n)
     print('writing:',out_fname)

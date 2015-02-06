@@ -56,7 +56,7 @@ lm_pars:
 #avg_max_g: 0.50
 #avg_max_g: 0.55
 #avg_min_fracuse: 0.09
-avg_min_fracuse: 0.12
+#avg_min_fracuse: 0.20
 #avg_min_Ts2n: 4.0
 #avg_min_neff: 330.0
 

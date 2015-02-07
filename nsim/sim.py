@@ -2181,7 +2181,7 @@ class NGMixSimISample(NGMixSim):
         obs=imdict['obs']
         fitter=MaxSimple(obs, self.fit_model,
                          prior=self.search_prior,
-                         use_logpars=True)
+                         use_logpars=self['use_logpars'])
 
         fitter.run_max(guess, **self['nm_pars'])
         return fitter
@@ -2200,7 +2200,7 @@ class NGMixSimISample(NGMixSim):
         obs=imdict['obs']
         fitter=LMSimple(obs,
                         self.fit_model,
-                        use_logpars=True,
+                        use_logpars=self['use_logpars'],
                         prior=self.search_prior,
                         lm_pars=self['lm_pars'])
 

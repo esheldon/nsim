@@ -16,7 +16,7 @@ guess_type: "draw_maxlike"
 
 g_prior_during: False
 
-use_log_priors: True
+use_logpars: True
 
 search_prior:
     cen_sigma: 1.0

@@ -48,6 +48,21 @@ eg04isamp03  12 s/n bins
 eg01isamp01  12 s/n bins
 
 
+# todo
+
+- run egcosmos and BA prior
+- Figure out more realistic T and F distributioins for sim.  Might be
+  able to get away with lognormal with very large variance and
+  where the *peak* is at say T=4 and F=whatever.  but the sim
+  would have to be updated for that, since it assumes the mean
+  for s/n
+- test with linear F (probably fine)
+- test with linear T (might suck)
+- get isamp working for B&A: weights
+- run on great-des
+- run on testbed
+
+
 test s/n=1000 for 
     - BA pdf and BA prior
         + eg04rtest07

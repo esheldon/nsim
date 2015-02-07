@@ -31,4 +31,4 @@ shear: [0.08,0.0]
 
 nsub: 16
 
-label: '$exp fwhm/fwhm_{psf}=1.2$'
+label: '$exp <fwhm/fwhm_{psf}>=1.2$'

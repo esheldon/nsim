@@ -97,7 +97,7 @@ def plot_shear(plt, c, index, symbol, color, linestyle, options,
     s2n_vals = data[options.s2n_field]
 
     if options.xrange is None:
-        xrng=[0.75*s2n_vals.min(), 1.25*s2n_vals.max()]
+        xrng=[0.5*s2n_vals.min(), 2.0*s2n_vals.max()]
     else:
         xrng=options.xrange.split(',')
         xrng=[float(xr) for xr in xrng]
@@ -327,9 +327,9 @@ def main():
     elif options.plot_type=='weights':
         ypos=0.5
 
-    key=biggles.PlotKey(0.9,ypos,cobj,halign='right',fontsize=1)
-    plt.add(key)
     plt.xrange=xrng
+    key=biggles.PlotKey(0.1,ypos,cobj,halign='left',fontsize=0.5)
+    plt.add(key)
 
     if options.xticks is not None:
         xticks=options.xticks.split(',')

@@ -41,7 +41,11 @@ egtight04isamp05 | flat/weak priors  | g prior during      | nm        | 2000 | 
 egtight04isamp09 | true TF priors    | g prior during      | nm        | 2000 |  2.1 | 0.013 +/- 0.00074  | with weights -0.00052 +/- 0.00073
 
 broad
-* eg04isamp02    | true TF priors    | g prior during      | nm        | 2000 |  2.1 | 
+eg04isamp02      | true TF priors    | g prior during      | nm        | 2000 |  2.1 | 0.013 +/- 0.00079  | with weights 0.0053 +/- 0.00076
+
+eg04isamp03  12 s/n bins
+
+eg01isamp01  12 s/n bins
 
 
 test s/n=1000 for 

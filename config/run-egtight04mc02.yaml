@@ -1,0 +1,60 @@
+run: "run-egtight04mc02"
+sim: "sim-egtight04"
+
+fitter: "mcmc"
+use_logpars: True
+fit_model: "exp"
+
+guess_type: "draw_maxlike"
+
+g_prior_during: True
+
+use_logpars: False
+
+search_prior:
+    cen_prior_type: "DoubleGauss"
+    cen_sigma: 10.0
+    T_prior_type: "TwoSidedErf"
+    T_prior_pars: [-0.07, 0.03, 100.0, 1.0]
+    counts_prior_type: "TwoSidedErf"
+    counts_prior_pars: [-1.0, 0.1, 1000.0, 10.0]
+
+
+g_prior_pars:
+    type: "ba"
+    sigma: 0.3
+
+expand_shear_true: True
+
+psf_ngauss: 1
+
+emcee_pars:
+    nwalkers: 80
+    burnin:   800
+    nstep:    400
+    a:        2.0
+    thin:     2
+
+nm_pars:
+    method: 'Nelder-Mead'
+    maxiter: 4000
+    maxfev: 4000
+    xtol: 1.0e-5
+    ftol: 1.0e-5
+
+#avg_max_g: 0.50
+#avg_max_g: 0.55
+#avg_min_fracuse: 0.09
+#avg_min_fracuse: 0.20
+#avg_min_Ts2n: 4.0
+#avg_min_neff: 330.0
+
+s2n_vals: [ 50 ]
+
+desired_err: 5.0e-5
+#desired_hours: 2.00
+desired_hours: 0.2
+sec_per_pair: 5.0
+npair_min: 40000
+
+verbose: True

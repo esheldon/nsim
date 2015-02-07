@@ -369,24 +369,30 @@ class NGMixSim(dict):
         res['R']=R
 
 
-    def get_guess(self, imdict, n=1):
+    def get_guess(self, imdict, n=1, guess_type=None):
         """
-        Get a full guess, nwalkers x npars
+        Get a guess
         """
 
-        guess_type=self['guess_type']
+        if guess_type is None:
+            guess_type=self['guess_type']
 
         if guess_type=='draw_truth':
             print('    * guessing randomized truth')
-            full_guess=self.get_guess_from_pars(imdict['pars'], n=n)
+            guess=self.get_guess_from_pars(imdict['pars'], n=n)
         elif guess_type=='draw_pdf':
-            full_guess=self.get_guess_draw_pdf(n=n)
+            guess=self.get_guess_draw_pdf(n=n)
         elif guess_type=='draw_maxlike':
-            full_guess,perr=self.get_guess_draw_maxlike(imdict, n=n)
+            guess,perr=self.get_guess_draw_maxlike(imdict, n=n)
         else:
             raise ValueError("bad guess type: '%s'" % guess_type)
         
-        return full_guess
+        if self['use_logpars'] and guess_type in ['draw_truth','draw_pdf']:
+            if len(guess.shape)==1:
+                guess[4:] = log(guess[4:])
+            else:
+                guess[:, 4:] = log(guess[:, 4:])
+        return guess
 
 
     def run_simple_mcmc_fitter(self, imdict):
@@ -433,7 +439,7 @@ class NGMixSim(dict):
         mess="for mh guess should be maxlike"
         assert (self['guess_type']=="draw_maxlike"),mess
 
-        guess,perr=self.get_guess_draw_maxlike(imdict, n=1)
+        guess,perr=self.get_guess(imdict, n=1, guess_type='draw_maxlike')
 
 
         obs=imdict['obs']
@@ -478,6 +484,7 @@ class NGMixSim(dict):
             print("drawing guess from priors")
         guess=self.pdf.sample(n)
 
+
         if n==1:
             guess=guess[0,:]
 
@@ -496,7 +503,8 @@ class NGMixSim(dict):
 
         print("drawing guess from maxlike")
 
-        max_guess=self.get_guess_draw_pdf(n=1)
+        max_guess=self.get_guess(imdict, n=1, guess_type='draw_pdf')
+
         fitter=self.fit_galaxy_max(imdict, max_guess)
 
         res=fitter.get_result()
@@ -529,6 +537,7 @@ class NGMixSim(dict):
         else:
             print("    no cov")
             # now scatter it around a bit
+            # if logpars these are also logpars
             guess=self.get_guess_from_pars(pars, n=n)
 
 
@@ -536,7 +545,7 @@ class NGMixSim(dict):
 
     def get_guess_from_pars(self, pars, n=None, width=None):
         """
-        Get a guess centered on the input pars
+        Get a guess centered on the input linear pars
 
         uniform sampling
         width is fractional for T and flux
@@ -1021,6 +1030,7 @@ class NGMixSim(dict):
                 fit_counts_prior = ngmix.priors.Normal(logc_mean, logc_sigma)
             else:
                 fit_counts_prior = counts_pdf
+            #fit_counts_prior = counts_pdf
         else:
             counts_prior_pars = spars['counts_prior_pars']
             fit_counts_prior=ngmix.priors.TwoSidedErf(*counts_prior_pars)
@@ -1942,7 +1952,7 @@ class NGMixSimCovSample(NGMixSim):
         spars=self['sample_pars']
         for itry in xrange(1,spars['max_tries']+1):
             #max_guess=self.get_guess_draw_pdf(n=1)
-            max_guess=self.get_guess_from_pars(imdict['pars'])
+            max_guess=self.get_guess(imdict, guess_type='draw_truth')
             #fitter=self.fit_galaxy_max(imdict, max_guess)
             fitter=self.fit_galaxy_lm(imdict, max_guess)
 
@@ -2136,9 +2146,10 @@ class NGMixSimISample(NGMixSim):
             fitmethod=self.fit_galaxy_lm
 
         for itry in xrange(1,ipars['max_tries']+1):
-            max_guess=self.get_guess_from_pars(imdict['pars'])
+            max_guess=self.get_guess(imdict, guess_type='draw_truth')
 
-            max_guess[4:4+2] = log(max_guess[4:4+2])
+            max_guess[4:] = log(max_guess[4:])
+            #max_guess[4] = log(max_guess[4])
 
             fitter=fitmethod(imdict, max_guess)
 
@@ -2225,17 +2236,18 @@ class NGMixSimISample(NGMixSim):
 
         if self.g_prior_during:
             weights=None
+            weights_tot = iweights
             remove_prior=True
         else:
             print("    prior was not during")
             weights = g_prior.get_prob_array2d(g_vals[:,0], g_vals[:,1])
+            weights_tot = iweights*weights
             remove_prior=False
 
         sampler.calc_result(weights=weights)
 
         # keep for later if we want to make plots
-        self._weights=iweights
-
+        self._weights=weights_tot
 
         # we are going to mutate the result dict owned by the sampler
         res=sampler.get_result()

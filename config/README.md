@@ -62,6 +62,12 @@ eg01isamp01  12 s/n bins
 - run on great-des
 - run on testbed
 
+# trying log T only
+    - changes in _gmix.c
+    - in set_prior
+    - in the guess for maxlike for isample
+    * note I think the guessers were not doing log for feeding
+        into maxlike for emcee....
 
 test s/n=1000 for 
     - BA pdf and BA prior

@@ -50,17 +50,19 @@ eg01isamp01  12 s/n bins
 
 # todo
 
-- run egcosmos and BA prior
-- Figure out more realistic T and F distributioins for sim.  Might be
+* run egcosmos and BA prior
+* Figure out more realistic T and F distributioins for sim.  Might be
   able to get away with lognormal with very large variance and
   where the *peak* is at say T=4 and F=whatever.  but the sim
   would have to be updated for that, since it assumes the mean
   for s/n
-- test with linear F (probably fine)
-- test with linear T (might suck)
-- get isamp working for B&A: weights
-- run on great-des
-- run on testbed
+* might want to do an intial max fit in linear space: if T is <= 0
+    then don't continue.  Or at least save that for later.
+- test with linear F: sucks
+- test with linear T: sucks
+* get isamp working for B&A: weights
+* run on great-des
+* run on testbed
 
 # trying log T only
     - changes in _gmix.c

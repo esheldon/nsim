@@ -43,10 +43,16 @@ egtight04isamp09 | true TF priors    | g prior during      | nm        | 2000 | 
 broad
 eg04isamp02      | true TF priors    | g prior during      | nm        | 2000 |  2.1 | 0.013 +/- 0.00079  | with weights 0.0053 +/- 0.00076
 
-eg04isamp03  12 s/n bins
+eg04isamp03  | 12 s/n bins, ifactor=1.414, lm, all true priors       | 1.5% bias at s/n=10
+eg01isamp01  | 12 s/n bins, ifactor=1.414, lm, all true priors       | looks good
+eg01isamp03  | 12 s/n bins, ifactor=1.0,   lm, flat on flux          | looks like crap
+eg01isamp04  | 12 s/n bins, ifactor=1.414, lm, flat on flux          | looks a little better
+eg01isamp05  | 12 s/n bins, ifactor=1.414, lm fix cov, true priors   | looks good
+eg01isamp06  | 12 s/n bins, ifactor=1.0,   lm fix cov, true priors   |
 
-eg01isamp01  12 s/n bins
+Need prior on flux as well.... wow
 
+would these still be crap for emcee?  I think so...
 
 # todo
 

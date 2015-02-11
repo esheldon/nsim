@@ -691,6 +691,18 @@ class NGMixSim(dict):
                 break
 
         res['ntry']=i+1
+
+
+        if res['flags']==0:
+            print("        replacing cov")
+            # try to replace the covariance
+            h=1.0e-3
+            m=5.0
+            fitter.calc_cov(h, m)
+            if res['flags'] != 0:
+                print("        replacement failed")
+                res['flags']=0
+
         return fitter
 
     def get_metacal_imdicts(self, obs_orig, pars_meas):
@@ -2216,6 +2228,18 @@ class NGMixSimISample(NGMixSim):
                         lm_pars=self['lm_pars'])
 
         fitter.run_lm(guess)
+
+        res=fitter.get_result()
+        if res['flags']==0:
+            print("        replacing cov")
+            # try to replace the covariance
+            h=1.0e-3
+            m=5.0
+            fitter.calc_cov(h, m)
+            if res['flags'] != 0:
+                print("        replacement failed")
+                res['flags']=0
+
         return fitter
 
 

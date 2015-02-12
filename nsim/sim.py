@@ -2081,8 +2081,7 @@ class NGMixSimISample(NGMixSim):
     def __init__(self, *args, **kw):
         super(NGMixSimISample,self).__init__(*args, **kw)
         
-        #mess="g prior must be during"
-        #assert self.g_prior_during==True,mess
+        assert self.g_prior_during==True,"g prior during is required"
 
         ipars=self['isample_pars']
         ipars['min_err'] = array(ipars['min_err'])
@@ -2094,23 +2093,25 @@ class NGMixSimISample(NGMixSim):
         lensfit
         """
 
+
         ipars=self['isample_pars']
 
-        fitter = self.run_max_fitter(imdict)
-        if 'truth' in self['guess_type']:
-            print("    setting pars to truth for center of isample")
-            res=fitter.get_result()
-            res['pars_meas'] = res['pars'].copy()
-            res['pars'][2:2+2] = imdict['pars'][2:2+2].copy()
+        max_fitter = self.run_max_fitter(imdict)
 
-        sampler=self._make_sampler(fitter)
+        use_fitter = max_fitter
+        niter=len(ipars['nsample'])
+        for i,nsample in enumerate(ipars['nsample']):
 
-        sampler.make_samples(ipars['nsample'])
+            sampler=self._make_sampler(use_fitter)
+            sampler.make_samples(nsample)
 
-        if 'truth' in self['guess_type']:
-            sampler._iweights = ones(ipars['nsample'])
-        else:
-            sampler.set_iweights(fitter.calc_lnprob)
+            sampler.set_iweights(max_fitter.calc_lnprob)
+            sampler.calc_result()
+
+            tres=sampler.get_result()
+
+            print("    eff iter %d: %.2f" % (i,tres['efficiency']))
+            use_fitter = sampler
 
         self._add_mcmc_stats(sampler)
         self._sampler=sampler
@@ -2249,6 +2250,8 @@ class NGMixSimISample(NGMixSim):
 
         The result dict internal to the sampler is modified to include
         g_sens and P,Q,R
+
+        call calc_result before calling this method
         """
 
         # this is the full prior
@@ -2258,20 +2261,10 @@ class NGMixSimISample(NGMixSim):
         samples = sampler.get_samples()
         g_vals=samples[:,2:2+2]
 
-        if self.g_prior_during:
-            weights=None
-            weights_tot = iweights
-            remove_prior=True
-        else:
-            print("    prior was not during")
-            weights = g_prior.get_prob_array2d(g_vals[:,0], g_vals[:,1])
-            weights_tot = iweights*weights
-            remove_prior=False
-
-        sampler.calc_result(weights=weights)
+        remove_prior=True
 
         # keep for later if we want to make plots
-        self._weights=weights_tot
+        self._weights=iweights
 
         # we are going to mutate the result dict owned by the sampler
         res=sampler.get_result()
@@ -2285,9 +2278,6 @@ class NGMixSimISample(NGMixSim):
                                             remove_prior=remove_prior)
         g_sens = ls.get_g_sens()
         g_mean = ls.get_g_mean()
-
-        #print("res g mean:",res['g'])
-        #print("lf g mean: ",g_mean)
 
         res['g_sens'] = g_sens
         res['nuse'] = ls.get_nuse()
@@ -2311,8 +2301,8 @@ class NGMixSimISample(NGMixSim):
         """
 
         if 'neff' in res:
-            mess="    s2n_w: %.1f  neff: %.1f  fracuse: %.2f"
-            mess=mess % (res['s2n_w'],res['neff'],res['fracuse'])
+            mess="    s2n_w: %.1f  neff: %.1f  efficiency: %.2f"
+            mess=mess % (res['s2n_w'],res['neff'],res['efficiency'])
         elif 'nfev' in res:
             mess="    s2n_w: %.1f  ntry: %d  nfev: %d"
             mess = mess % (res['s2n_w'],res['ntry'],res['nfev'])
@@ -2328,12 +2318,12 @@ class NGMixSimISample(NGMixSim):
         d=self.data
 
         d['neff'][i] = res['neff']
-        d['fracuse'][i] = res['fracuse']
+        d['efficiency'][i] = res['efficiency']
 
     def get_dtype(self):
         dt=super(NGMixSimISample,self).get_dtype()
-        dt += [('neff','f8'),
-               ('fracuse','f8')]
+        dt += [('neff','f4'),
+               ('efficiency','f4')]
         return dt
 
 def srandu(num=None):

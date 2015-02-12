@@ -48,8 +48,13 @@ eg01isamp01  | 12 s/n bins, ifactor=1.414, df=2.1, lm, all true priors       | l
 eg01isamp03  | 12 s/n bins, ifactor=1.000, df=2.1, lm, flat on flux          | looks like crap
 eg01isamp04  | 12 s/n bins, ifactor=1.414, df=2.1, lm, flat on flux          | looks a little better (note weights do not help)
 eg01isamp05  | 12 s/n bins, ifactor=1.414, df=2.1, lm fix cov, true priors   | looks good
-*eg01isamp06 | 12 s/n bins, ifactor=1.000, df=2.1, lm fix cov, true priors   |
-*eg01isamp07 | 12 s/n bins, ifactor=1.000, df=1.0, lm fix cov, true priors   | lowers fracuse
+eg01isamp06  | 12 s/n bins, ifactor=1.000, df=2.1, lm fix cov, true priors   | increases efficiency, bias about same
+eg01isamp07  | 12 s/n bins, ifactor=1.000, df=1.0, lm fix cov, true priors   | lowers fracuse (argh, meant for flat test) maybe a bit worse?
+
+s/n=50
+eg01isamp08  | s/n=50, ifactor=1.000, df=2.1, lm fix cov, true priors, *iter* | no eff. improvement for sim
+eg04isamp04  | s/n=50, ifactor=1.000, df=2.1, lm fix cov, true priors, *iter* | no eff. improvement for sim
+
 
 Need prior on flux as well.... wow
 

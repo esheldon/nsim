@@ -55,9 +55,11 @@ s/n=50
 eg01isamp08  | s/n=50, ifactor=1.000, df=2.1, lm fix cov, true priors, *iter* | no eff. improvement for sim
 eg04isamp04  | s/n=50, ifactor=1.000, df=2.1, lm fix cov, true priors, *iter* | no eff. improvement for sim
 
-
-Need prior on flux as well.... wow
-
+low nsample
+eg01isamp09  | nsample 500 | looks fine!
+eg04isamp05  | nsample 500, ifactor=1      | looks different from eg04isamp03, is it samples or ifactor?
+                                           | also used nm, larger err max for isamp03
+eg04isamp06  | nsample 500, ifactor=1.414  |
 
 # todo
 

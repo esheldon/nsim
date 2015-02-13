@@ -226,7 +226,7 @@ def main():
     method=options.method.lower()
     index=int( options.index )
 
-    biggles.configure('default','fontsize_min',3)
+    biggles.configure('default','fontsize_min',2.5)
     biggles.configure('_HalfAxis','ticks_size',2)
     biggles.configure('_HalfAxis','subticks_size',1)
 

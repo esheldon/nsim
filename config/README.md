@@ -56,10 +56,12 @@ eg01isamp08  | s/n=50, ifactor=1.000, df=2.1, lm fix cov, true priors, *iter* | 
 eg04isamp04  | s/n=50, ifactor=1.000, df=2.1, lm fix cov, true priors, *iter* | no eff. improvement for sim
 
 low nsample
-eg01isamp09  | nsample 500 | looks fine!
+eg01isamp09  | nsample 500                 | looks fine!
 eg04isamp05  | nsample 500, ifactor=1      | looks different from eg04isamp03, is it samples or ifactor?
-                                           | also used nm, larger err max for isamp03
-eg04isamp06  | nsample 500, ifactor=1.414  |
+             |                             | also used nm, larger err max for isamp03
+eg04isamp06  | nsample 500, ifactor=1.414  | kind of in between
+
+eg01isamp11  | 12 s/n bins, ifactor=1.000, df=2.1, lm fix cov, true priors   | recovering from bug
 
 # todo
 

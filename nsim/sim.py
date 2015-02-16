@@ -28,7 +28,7 @@ from ngmix.gexceptions import GMixRangeError
 NSIGMA_RENDER=5.0
 
 # minutes
-DEFAULT_CHECKPOINTS=[1,30,60,90,110]
+DEFAULT_CHECKPOINTS=[30,60,90,110]
 #DEFAULT_CHECKPOINTS=[30,90]
 #DEFAULT_CHECKPOINTS=[0,100]
 
@@ -2118,132 +2118,6 @@ class NGMixSimISample(NGMixSim):
 
         return sampler
 
-    def _make_sampler(self, fitter):
-        from ngmix.fitting import GCovSampler, GCovSamplerT
-        from numpy.linalg import LinAlgError
-
-        ipars=self['isample_pars']
-
-        res=fitter.get_result()
-        icov = res['pars_cov']*ipars['ifactor']**2
-
-        try:
-            if ipars['sampler']=='T':
-                sampler=GCovSamplerT(res['pars'],
-                                     icov,
-                                     ipars['df'],
-                                     min_err=ipars['min_err'],
-                                     max_err=ipars['max_err'])
-            else:
-                sampler=GCovSampler(res['pars'],
-                                    icov,
-                                    min_err=ipars['min_err'],
-                                    max_err=ipars['max_err'])
-        except LinAlgError:
-            raise TryAgainError("bad cov")
-
-        return sampler
-
-    def run_max_fitter(self, imdict):
-        """
-        get the covariance matrix based on a max like fit
-
-        raises if not found
-        """
-
-        ipars=self['isample_pars']
-
-        if ipars['max_fitter']=="nm":
-            fitmethod=self.fit_galaxy_nm
-        else:
-            fitmethod=self.fit_galaxy_lm
-
-        for itry in xrange(1,ipars['max_tries']+1):
-            max_guess=self.get_guess(imdict, guess_type='draw_truth')
-
-            max_guess[4:] = log(max_guess[4:])
-            #max_guess[4] = log(max_guess[4])
-
-            fitter=fitmethod(imdict, max_guess)
-
-            res=fitter.get_result()
-            if res['flags']==0:
-                break
-
-        pars=res['pars']
-        perr=res.get('pars_err',None)
-        pars_cov=res.get('pars_cov',None)
-
-        mess="    tries: %d  nfev: %d"
-        mess=mess % (itry,res['nfev'])
-        print(mess)
-        ngmix.fitting.print_pars(pars, front='    max pars: ')
-
-        if res['flags'] != 0:
-            if perr is None:
-                print("    no cov")
-            else:
-                print("    did not converge")
-            raise TryAgainError("bad max fit")
-
-        ngmix.fitting.print_pars(perr, front='    max perr: ')
-
-        self.maxlike_res=res
-
-        return fitter
-
-    def fit_galaxy_nm(self, imdict, guess):
-        """
-        Fit the model to the galaxy
-
-        we send some keywords so behavior can be different if this is a guess
-        getter
-
-        """
-        from ngmix.fitting import MaxSimple
-
-        obs=imdict['obs']
-        fitter=MaxSimple(obs, self.fit_model,
-                         prior=self.search_prior,
-                         use_logpars=self['use_logpars'])
-
-        fitter.run_max(guess, **self['nm_pars'])
-        return fitter
-
-
-    def fit_galaxy_lm(self, imdict, guess):
-        """
-        Fit the model to the galaxy
-
-        we send some keywords so behavior can be different if this is a guess
-        getter
-
-        """
-        from ngmix.fitting import LMSimple
-
-        obs=imdict['obs']
-        fitter=LMSimple(obs,
-                        self.fit_model,
-                        use_logpars=self['use_logpars'],
-                        prior=self.search_prior,
-                        lm_pars=self['lm_pars'])
-
-        fitter.run_lm(guess)
-
-        res=fitter.get_result()
-        if res['flags']==0:
-            print("        replacing cov")
-            # try to replace the covariance
-            h=1.0e-3
-            m=5.0
-            fitter.calc_cov(h, m)
-            if res['flags'] != 0:
-                print("        replacement failed")
-                res['flags']=0
-
-        return fitter
-
-
     def _add_mcmc_stats(self, sampler):
         """
         Calculate some stats
@@ -2295,6 +2169,131 @@ class NGMixSimISample(NGMixSim):
         res['R']=R
         '''
         
+
+    def _make_sampler(self, fitter):
+        from ngmix.fitting import GCovSampler, GCovSamplerT
+        from numpy.linalg import LinAlgError
+
+        ipars=self['isample_pars']
+
+        res=fitter.get_result()
+        icov = res['pars_cov']*ipars['ifactor']**2
+
+        try:
+            if ipars['sampler']=='T':
+                sampler=GCovSamplerT(res['pars'],
+                                     icov,
+                                     ipars['df'],
+                                     min_err=ipars['min_err'],
+                                     max_err=ipars['max_err'])
+            else:
+                sampler=GCovSampler(res['pars'],
+                                    icov,
+                                    min_err=ipars['min_err'],
+                                    max_err=ipars['max_err'])
+        except LinAlgError:
+            raise TryAgainError("bad cov")
+
+        return sampler
+
+    def run_max_fitter(self, imdict):
+        """
+        get the covariance matrix based on a max like fit
+
+        raises if not found
+        """
+
+        ipars=self['isample_pars']
+
+        if ipars['max_fitter']=="nm":
+            fitmethod=self.fit_galaxy_nm
+        else:
+            fitmethod=self.fit_galaxy_lm
+
+        for itry in xrange(1,ipars['max_tries']+1):
+            max_guess=self.get_guess(imdict, guess_type='draw_truth')
+
+            max_guess[4:] = log(max_guess[4:])
+
+            fitter=fitmethod(imdict, max_guess)
+
+            res=fitter.get_result()
+            if res['flags']==0:
+                break
+
+        pars=res['pars']
+        perr=res.get('pars_err',None)
+        pars_cov=res.get('pars_cov',None)
+
+        mess="    tries: %d  nfev: %d"
+        mess=mess % (itry,res['nfev'])
+        print(mess)
+        ngmix.fitting.print_pars(pars, front='    max pars: ')
+
+        if res['flags'] != 0:
+            if perr is None:
+                print("    no cov")
+            else:
+                print("    did not converge")
+            raise TryAgainError("bad max fit")
+
+        ngmix.fitting.print_pars(perr, front='    max perr: ')
+
+        self.maxlike_res=res
+
+        return fitter
+
+    def fit_galaxy_nm(self, imdict, guess):
+        """
+        Fit the model to the galaxy
+
+        we send some keywords so behavior can be different if this is a guess
+        getter
+
+        """
+        from ngmix.fitting import MaxSimple
+
+        obs=imdict['obs']
+        fitter=MaxSimple(obs, self.fit_model,
+                         prior=self.search_prior,
+                         use_logpars=self['use_logpars'])
+
+        fitter.run_max(guess, **self['nm_pars'])
+        return fitter
+
+    def fit_galaxy_lm(self, imdict, guess):
+        """
+        Fit the model to the galaxy
+
+        we send some keywords so behavior can be different if this is a guess
+        getter
+
+        """
+        from ngmix.fitting import LMSimple
+
+        obs=imdict['obs']
+        fitter=LMSimple(obs,
+                        self.fit_model,
+                        use_logpars=self['use_logpars'],
+                        prior=self.search_prior,
+                        lm_pars=self['lm_pars'])
+
+        fitter.run_lm(guess)
+
+        res=fitter.get_result()
+        if res['flags']==0:
+            print("        replacing cov")
+            # try to replace the covariance
+            h=1.0e-3
+            m=5.0
+            fitter.calc_cov(h, m)
+            if res['flags'] != 0:
+                print("        replacement failed")
+                res['flags']=0
+
+        return fitter
+
+
     def print_res(self,res):
         """
         print some stats

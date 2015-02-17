@@ -2081,7 +2081,7 @@ class NGMixSimISample(NGMixSim):
     def __init__(self, *args, **kw):
         super(NGMixSimISample,self).__init__(*args, **kw)
         
-        assert self.g_prior_during==True,"g prior during is required"
+        #assert self.g_prior_during==True,"g prior during is required"
 
         ipars=self['isample_pars']
         ipars['min_err'] = array(ipars['min_err'])
@@ -2106,7 +2106,12 @@ class NGMixSimISample(NGMixSim):
             sampler.make_samples(nsample)
 
             sampler.set_iweights(max_fitter.calc_lnprob)
-            sampler.calc_result()
+            if self.g_prior_during:
+                weights=None
+            else:
+                samples=sampler.get_samples()
+                weights=self.g_prior.get_prob_array2d(samples[:,2],samples[:,3])
+            sampler.calc_result(weights=weights)
 
             tres=sampler.get_result()
 
@@ -2135,7 +2140,10 @@ class NGMixSimISample(NGMixSim):
         samples = sampler.get_samples()
         g_vals=samples[:,2:2+2]
 
-        remove_prior=True
+        if self.g_prior_during:
+            remove_prior=True
+        else:
+            remove_prior=False
 
         # keep for later if we want to make plots
         self._weights=iweights
@@ -2153,6 +2161,8 @@ class NGMixSimISample(NGMixSim):
         g_sens = ls.get_g_sens()
         g_mean = ls.get_g_mean()
 
+        #print("        res g:",res['g'])
+        #print("        lf g: ",g_mean)
         res['g_sens'] = g_sens
         res['nuse'] = ls.get_nuse()
 

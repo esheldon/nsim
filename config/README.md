@@ -63,6 +63,8 @@ eg04isamp06  | nsample 500, ifactor=1.414  | kind of in between
 
 eg01isamp11  | 12 s/n bins, ifactor=1.000, df=2.1, lm fix cov, true priors   | recovering from bug
 
+eg04isampt   | s/n=50, ifactor=1.414, df=2.1, iter 500,2000, true priors, prior *not during* | looks about as expected
+
 # todo
 
 * run egcosmos and BA prior

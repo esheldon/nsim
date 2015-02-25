@@ -69,10 +69,10 @@ class NGMixSim(dict):
         self.s2n=s2n
         self.npairs=npairs
 
-        self.obj_model=self.simc['obj_model']
+        self.create_model_set()
+
         self.fit_model=self['fit_model']
 
-        self.true_npars = ngmix.gmix.get_model_npars(self.obj_model)
 
         if self.fit_model is not None:
             self.npars=ngmix.gmix.get_model_npars(self.fit_model)
@@ -96,6 +96,23 @@ class NGMixSim(dict):
         if self['verbose']:
             pprint.pprint(self)
             pprint.pprint(self.simc)
+
+    def create_model_set(self):
+        """
+        crae
+        """
+        from .sample import DiscreteSampler
+
+        obj_model=self.simc['obj_model']
+        if isinstance(obj_model,dict):
+            sample_dict = obj_model
+        else:
+            sample_dict={obj_model: 100}
+
+        self.model_sampler = DiscreteSampler(sample_dict)
+
+        tmod = sample_dict.keys()[0]
+        self.true_npars = ngmix.gmix.get_model_npars(tmod)
 
     def run_sim(self):
         """
@@ -1149,6 +1166,12 @@ class NGMixSim(dict):
 
         return im + self.skysig*randn(im.size).reshape(im.shape)
 
+    def choose_model(self):
+        """
+        choose a model with the appropriate frequency
+        """
+        pass
+
     def get_image_pair(self, random=True):
         """
         get a model image
@@ -1162,8 +1185,11 @@ class NGMixSim(dict):
 
         pars1, pars2 = self.get_pair_pars(random=random)
 
-        gm1_pre=ngmix.gmix.GMixModel(pars1, self.obj_model)
-        gm2_pre=ngmix.gmix.GMixModel(pars2, self.obj_model)
+        obj_model = self.model_sampler()
+        self.current_model_true = obj_model
+        print("sim model:",obj_model)
+        gm1_pre=ngmix.gmix.GMixModel(pars1, obj_model)
+        gm2_pre=ngmix.gmix.GMixModel(pars2, obj_model)
 
         gm1  = gm1_pre.convolve(self.psf_gmix_true)
         gm2  = gm2_pre.convolve(self.psf_gmix_true)
@@ -1358,6 +1384,9 @@ class NGMixSim(dict):
         d=self.data
         d['processed'][i] = 1
 
+        d['model_true'][i] = self.current_model_true
+
+
         d['s2n_true'][i] = res['s2n_true']
         d['pars_true'][i,:] = res['pars_true']
 
@@ -1389,9 +1418,12 @@ class NGMixSim(dict):
 
         if 'maxlike' in self['guess_type']:
             mres=res['maxlike_res']
-            d['pars_max'][i] = mres['pars']
+            d['max_pars'][i] = mres['pars']
+            if 'chi2per' in mres:
+                d['max_chi2per'][i] = mres['chi2per']
+
             if 'pars_cov' in mres:
-                d['pcov_max'][i] = mres['pars_cov']
+                d['max_pcov'][i] = mres['pars_cov']
 
     def get_dtype(self):
         """
@@ -1400,6 +1432,7 @@ class NGMixSim(dict):
         npars=self.npars
 
         dt=[('processed','i2'),
+            ('model_true','S3'),
             ('s2n_true','f8'),
             ('pars_true','f8',self.true_npars),
             ('pars','f8',npars),
@@ -1425,8 +1458,9 @@ class NGMixSim(dict):
                    ('nuse','i4')]
 
         if 'maxlike' in self['guess_type']:
-            dt += [('pars_max','f8',npars),
-                   ('pcov_max','f8',(npars,npars))]
+            dt += [('max_pars','f8',npars),
+                   ('max_pcov','f8',(npars,npars)),
+                   ('max_chi2per','f4')]
 
         return dt
 
@@ -1439,7 +1473,7 @@ class NGMixSim(dict):
         self.data=numpy.zeros(self.npairs*2, dtype=dt)
 
         if 'maxlike' in self['guess_type']:
-            self.data['pcov_max'] = 9999.e9
+            self.data['max_pcov'] = 9999.e9
 
 
 class NGMixSimPQRSMCMC(NGMixSim):

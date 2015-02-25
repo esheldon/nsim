@@ -2,7 +2,6 @@ from __future__ import print_function
 import numpy
 
 def ring_select(logic):
-    ii = numpy.arange(logic.size)
 
     weven = numpy.arange(0,logic.size,2)
     wodd  = numpy.arange(1,logic.size,2)

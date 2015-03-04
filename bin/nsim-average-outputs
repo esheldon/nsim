@@ -109,12 +109,19 @@ def get_lensfit_stats(conf, data, weights, options):
 
     print('    jackknife lensfit chunksize:',chunksize)
 
+    no_ring=conf['simc'].get('no_ring',False)
+    if no_ring:
+        do_ring=False
+    else:
+        do_ring=True
+
     shear, shear_cov, g_sum, gsens_sum = \
             ngmix.lensfit.lensfit_jackknife(data['g'], data['g_sens'],
                                             weights=weights,
                                             progress=options.progress,
                                             chunksize=chunksize,
                                             get_sums=True,
+                                            do_ring=do_ring,
                                             show=options.show)
 
     tm=time.time()-t0
@@ -215,20 +222,27 @@ def add_pqrs_stats(conf, data, d, options):
 
         d['shear_pqrs'][0,:] = res[0:0+2]
 
-def get_weights(data,conf,type='gamma'):
+def get_weights(data,conf,type='noise'):
     """
     Using Ts2n weights seems to  help when there is a mixture
     of exp and dev, essentially downweighting dev
     """
-    SN2=0.16**2
 
-    if type=='gamma':
+    if type=='noise':
+        #no_ring=conf['simc'].get('no_ring',False)
+        #if no_ring:
+        #    SN=0.16
+        #else:
+        #    SN=0.0001
+        SN=0.16
+
+        print("using SN:",SN)
         denom = (
-            2*SN2
+            2*SN**2
             + data['g_cov'][:,0,0]
             + 2*data['g_cov'][:,0,1]
             + data['g_cov'][:,1,1]
-        ) 
+        )
         wts = 1.0/denom
 
     elif type=='Ts2n':
@@ -241,7 +255,7 @@ def get_weights(data,conf,type='gamma'):
 
     elif type=='hybrid':
         # on s/n=50 seems to work about the same as Ts2n
-        wts = get_weights(data,conf,type='gamma')
+        wts = get_weights(data,conf,type='noise')
         wts *= Ts2n**2
 
     elif type=='efficiency':

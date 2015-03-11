@@ -466,8 +466,9 @@ def get_npair_nsplit(c, is2n, npair_min=None):
         npair_tot = get_npair_by_noise(s2n, c['desired_err'],c['run'], sigratio)
 
     npair_shapenoise = 0
-    ring=c.get('ring',True)
-    if not ring:
+    do_ring=simc.get('do_ring',True)
+    if not do_ring:
+        print("not doing ring")
         # add in shape noise term for non-ring test
         # err = 0.16/sqrt(ngal)
         ngal = (0.16/c['desired_err'])**2

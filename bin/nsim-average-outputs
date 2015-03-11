@@ -109,11 +109,7 @@ def get_lensfit_stats(conf, data, weights, options):
 
     print('    jackknife lensfit chunksize:',chunksize)
 
-    no_ring=conf['simc'].get('no_ring',False)
-    if no_ring:
-        do_ring=False
-    else:
-        do_ring=True
+    do_ring=conf['simc'].get('do_ring',True)
 
     shear, shear_cov, g_sum, gsens_sum = \
             ngmix.lensfit.lensfit_jackknife(data['g'], data['g_sens'],
@@ -437,14 +433,14 @@ def select(conf, data):
         docut=True
 
     if docut:
-        no_ring=conf['simc'].get('no_ring',False)
+        do_ring=conf['simc'].get('do_ring',True)
 
-        if no_ring:
-            w,=numpy.where(logic)
-        else:
+        if do_ring:
             print("        pairing for ring")
 
             w=nsim.util.ring_select(logic)
+        else:
+            w,=numpy.where(logic)
         
         frac=float(w.size)/data.size
         print("        keeping %d/%d  %.3f" % (w.size,data.size,frac))

@@ -65,6 +65,14 @@ eg01isamp11  | 12 s/n bins, ifactor=1.000, df=2.1, lm fix cov, true priors   | r
 
 eg04isampt   | s/n=50, ifactor=1.414, df=2.1, iter 500,2000, true priors, prior *not during* | looks about as expected
 
+
+exp + dev
+---------
+sim-egdg01
+
+egdg01isamp01 | 12 s/n bins, "true priors" but only fitting exp
+
+
 # todo
 
 * run egcosmos and BA prior

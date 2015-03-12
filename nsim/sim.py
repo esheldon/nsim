@@ -121,7 +121,9 @@ class NGMixSim(dict):
 
         self.start_timer()
 
-        i=0
+        self.index = 0
+        i=self.index
+
         npairs=self.npairs
         for ipair in xrange(npairs):
             if self['verbose'] or ( (ipair % 100) == 0):
@@ -2012,6 +2014,8 @@ class NGMixSimISample(NGMixSim):
         self._add_mcmc_stats(sampler)
         self._sampler=sampler
 
+        res=sampler.get_result()
+        res['maxlike_res']=max_fitter.get_result()
         return sampler
 
     def _add_mcmc_stats(self, sampler):
@@ -2270,6 +2274,9 @@ class NGMixSimISampleComposite(NGMixSimISample):
                 print("    did not converge")
             raise TryAgainError("bad max fit")
 
+        res['fracdev'] = fres['fracdev']
+        res['fracdev_err'] = fres['fracdev_err']
+
         ngmix.fitting.print_pars(perr, front='    max perr: ')
 
         self.maxlike_res=res
@@ -2349,6 +2356,21 @@ class NGMixSimISampleComposite(NGMixSimISample):
                 res['flags']=0
 
         return fitter
+
+    def get_dtype(self):
+        dt=super(NGMixSimISampleComposite,self).get_dtype()
+        dt += [('fracdev','f4'),
+               ('fracdev_err','f4')]
+        return dt
+
+    def copy_to_output(self, res, i):
+        super(NGMixSimISampleComposite,self).copy_to_output(res, i)
+        d=self.data
+
+        mres=res['maxlike_res']
+        d['fracdev'][i]     = mres['fracdev']
+        d['fracdev_err'][i] = mres['fracdev_err']
+
 
 
 def srandu(num=None):

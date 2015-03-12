@@ -112,7 +112,10 @@ def run_sim(sim_conf,run_conf,s2n,npairs,output_file,options):
         elif run_conf['fitter']=='covsample':
             sim=nsim.sim.NGMixSimCovSample(*args, **kw)
         elif run_conf['fitter']=='isample':
-            sim=nsim.sim.NGMixSimISample(*args, **kw)
+            if run_conf['fit_model']=='composite':
+                sim=nsim.sim.NGMixSimISampleComposite(*args, **kw)
+            else:
+                sim=nsim.sim.NGMixSimISample(*args, **kw)
         else:
             sim=nsim.sim.NGMixSim(*args, **kw)
 

@@ -77,7 +77,11 @@ def plot_shear(plt, c, index, symbol, color, linestyle, options,
                method='ba',
                add_run_label=False):
 
-    label = c['simc']['label']
+    if 'label' in c:
+        label = c['label']
+    else:
+        label = c['simc']['label']
+
     if add_run_label:
         label='%s %s' % (c['run'].replace('run-',''), label )
     shear_true=c['simc']['shear'][index]

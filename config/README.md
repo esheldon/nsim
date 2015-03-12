@@ -70,7 +70,9 @@ exp + dev
 ---------
 sim-egdg01
 
-egdg01isamp01 | 12 s/n bins, "true priors" but only fitting exp
+egdg01isamp01 | 12 s/n bins, "true priors" but only fitting exp | significant bias
+egdg01isamp02 | 12 s/n bins, "true priors" fitting composite model | much better, just fine for s/n > 20
+
 
 
 # todo

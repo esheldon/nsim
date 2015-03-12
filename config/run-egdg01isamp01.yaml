@@ -57,3 +57,4 @@ npair_min: 40000
 verbose: True
 
 #avg_min_Ts2n: 4
+label: 'exp'

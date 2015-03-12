@@ -2229,8 +2229,11 @@ class NGMixSimISampleComposite(NGMixSimISample):
         raises if not found
         """
         from ngmix.fitting import FracdevFitter
+        
+        mess="model must be 'c' for composite, got '%s'" % model
+        assert model=='composite',mess
 
-        assert model=='c',"model must be 'c' for composite, got '%s'" % model
+        ipars=self['isample_pars']
 
         exp_fitter = super(NGMixSimISampleComposite,self).run_max_fitter(imdict, 'exp')
         dev_fitter = super(NGMixSimISampleComposite,self).run_max_fitter(imdict, 'dev')
@@ -2289,12 +2292,13 @@ class NGMixSimISampleComposite(NGMixSimISample):
         return TdByTe
 
     def run_fracdev(self, imdict, exp_fitter, dev_fitter):
-
+        from ngmix.fitting import FracdevFitter
         ipars=self['isample_pars']
 
         epars=exp_fitter.get_result()['pars']
         dpars=dev_fitter.get_result()['pars']
 
+        obs=imdict['obs']
         ffitter = FracdevFitter(obs, epars, dpars,
                                 use_logpars=self['use_logpars'],
                                 method=ipars['max_fitter'])
@@ -2321,7 +2325,7 @@ class NGMixSimISampleComposite(NGMixSimISample):
         getter
 
         """
-        from ngmix.fitting import LMSimple
+        from ngmix.fitting import LMComposite
 
         obs=imdict['obs']
         fitter=LMComposite(obs,

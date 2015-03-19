@@ -1,0 +1,55 @@
+# using BA as prior instead of cosmos
+
+run: "run-egcosmos03r01"
+sim: "sim-egcosmos03"
+
+fitter: "isample"
+use_logpars: True # implied by isample actually
+fit_model: "exp"
+
+guess_type: "draw_maxlike"
+
+g_prior_during: True
+
+use_logpars: True
+
+search_prior:
+    cen_prior_type: "truth"
+    T_prior_type: "truth"
+    counts_prior_type: "truth"
+
+# note using wrong prior!
+g_prior_pars:
+    type: "ba"
+    sigma: 0.3
+
+expand_shear_true: True
+
+psf_ngauss: 1
+
+isample_pars:
+    sampler: "T"
+    nsample: [2000]
+    ifactor: 1.0
+    df: 2.1
+
+    min_err: [1.0e-4,1.0e-4,1.0e-3,1.0e-3,1.0e-4,1.0e-4]
+    max_err: [1.0,1.0,1.0,1.0,1.0,1.0]
+
+    # number of tries for max fitter
+    max_fitter: "lm"
+    max_tries: 4
+
+lm_pars:
+    maxfev: 4000
+    ftol:   1.0e-5
+    xtol:   1.0e-5
+
+s2n_vals: [ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
+
+desired_err: 5.0e-5
+desired_hours: 1.0
+sec_per_pair: 0.63
+npair_min: 40000
+
+verbose: True

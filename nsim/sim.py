@@ -1015,8 +1015,8 @@ class NGMixSim(dict):
         T_pdf=ngmix.priors.LogNormal(T, T_sigma)
         counts_pdf=ngmix.priors.LogNormal(counts, counts_sigma)
 
-        # for drawing parameters, and after exploration to grab g_pdf and calculate
-        # pqr etc.
+        # for drawing parameters, and after exploration to grab g_pdf and
+        # calculate pqr etc.
         self.pdf = PriorSimpleSep(cen_pdf,
                                   g_pdf,
                                   T_pdf,

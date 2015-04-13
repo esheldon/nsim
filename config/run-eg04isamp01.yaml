@@ -51,6 +51,7 @@ lm_pars:
     xtol:   1.0e-6
     epsfcn: 1.0e-6
 
+#avg_min_s2n: 50
 #avg_max_g: 0.50
 #avg_max_g: 0.55
 #avg_min_fracuse: 0.16

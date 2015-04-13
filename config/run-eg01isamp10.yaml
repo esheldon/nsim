@@ -1,6 +1,5 @@
 # only 500 samples
 #   - true priors on all parameters during
-#     except flux, which is uninformative
 
 run: "run-eg01isamp10"
 sim: "sim-eg01"

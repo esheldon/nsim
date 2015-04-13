@@ -6,7 +6,7 @@ from __future__ import print_function
 import sys
 import os
 import numpy
-from numpy import sqrt, array, diag, ones, zeros
+from numpy import sqrt, array, diag, ones, zeros, where
 
 import fitsio
 
@@ -407,6 +407,17 @@ def select(conf, data):
         logic = logic & (Ts2n > conf['avg_min_Ts2n'])
         #logic = logic & (Ts2n > conf['avg_min_Ts2n']) & (Ts2n < 15)
         docut=True
+
+    if 'avg_min_s2n' in conf:
+        s2n = data['s2n_w']
+        s2n_min = conf['avg_min_s2n']
+        elogic = (s2n > s2n_min)
+        w,=where(elogic)
+        if w.size != data.size:
+            print("    kept %d/%d for s/n > %.1f" % (w.size,data.size,s2n_min))
+        logic = logic & elogic
+        docut=True
+
 
     if 'avg_min_neff' in conf:
         print("    selecting neff >",conf['avg_min_neff'])

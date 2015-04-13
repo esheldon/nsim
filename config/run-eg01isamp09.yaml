@@ -40,6 +40,8 @@ isample_pars:
     max_fitter: "lm"
     max_tries: 4
 
+#avg_min_s2n: 60.0
+
 lm_pars:
     maxfev: 4000
 

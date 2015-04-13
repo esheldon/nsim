@@ -42,7 +42,7 @@ lm_pars:
 s2n_vals: [ 5000 ]
 
 desired_err: 5.0e-5
-desired_hours: 0.25
+desired_hours: 1.0
 sec_per_pair: 0.45
 npair_min: 40000
 

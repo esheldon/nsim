@@ -111,6 +111,29 @@ def get_wq_master_url(run):
     return path_join(d,'%s.sh' % run)
 
 
+def get_lsf_dir(run):
+    dir=get_run_dir(run)
+    dir=path_join(dir, 'lsf')
+    return dir
+
+def get_lsf_job_url(run, filenum, missing=False):
+    d=get_lsf_dir(run)
+
+    end = '-%06d' % filenum
+    if missing:
+        end='%s-missing' % end
+
+    fname='{run}{end}.lsf'.format(run=run,end=end)
+    return path_join(d,fname)
+
+def get_lsf_master_url(run):
+    d=get_lsf_dir(run)
+    return path_join(d,'%s.sh' % run)
+
+
+
+
+
 def get_output_dir(run, sub=None, fs=None):
     dir=get_run_dir(run, fs=fs)
     dir=path_join(dir, 'outputs')

@@ -243,6 +243,7 @@ class NGMixSim(dict):
             if 'maxlike' in self['guess_type']:
                 res['maxlike_res'] = self.maxlike_res
 
+            self.fit_psf_flux(obs, res)
             reslist.append(res)
 
             if self.make_plots:
@@ -259,10 +260,18 @@ class NGMixSim(dict):
 
         width,height=1100,1100
 
-        pdict=fitter.make_plots(title=self.fit_model,
+        pdict=fitter.make_plots(do_residual=True,
+                                title=self.fit_model,
                                 separate=self.separate,
                                 weights=self._weights)
 
+        if hasattr(self,'max_fitter'):
+            resid_pname=self.plot_base+'-%06d-%s-gal-resid.png' % (self.ipair,key)
+            print(resid_pname)
+            rplt=self.max_fitter.plot_residuals()
+            #pdict['resid'].write_img(width,height,resid_pname)
+            rplt[0][0].write_img(width,height,resid_pname)
+        
         if not self.separate:
 
             trials_pname=self.plot_base+'-%06d-%s-trials.png' % (self.ipair,key)
@@ -948,6 +957,40 @@ class NGMixSim(dict):
 
         return guess
 
+    def fit_psf_flux(self, obs, res):
+        """
+        use psf as a template, measure flux (linear)
+        """
+
+        if True:
+            cen=res['pars'][0:2]
+            fitter=ngmix.fitting.TemplateFluxFitter(obs, do_psf=True, cen=cen)
+        elif False:
+            fitter=ngmix.fitting.TemplateFluxFitter(obs, do_psf=True)
+        else:
+            pars=res['pars'].copy()
+            pars[4] = exp(pars[4])
+            pars[5] = exp(pars[5])
+            gm0=ngmix.GMixModel(res['pars'], self['fit_model'])
+            gm=gm0.convolve(obs.psf.gmix)
+            obs.set_gmix(gm)
+
+            fitter=ngmix.fitting.TemplateFluxFitter(obs)
+
+        fitter.go()
+
+        pres=fitter.get_result()
+
+
+        res['psf_flux'] = pres['flux']
+        res['psf_flux_err'] = pres['flux_err']
+        res['psf_flux_s2n'] = pres['flux']/pres['flux_err']
+
+        print("    psf flux: %.3f +/- %.3f" % (pres['flux'],pres['flux_err']))
+
+
+
+
     def set_dims_cen(self):
         """
         When using constant dims
@@ -1208,12 +1251,6 @@ class NGMixSim(dict):
                                               0.0,
                                               0.0,
                                               self.pixel_scale)
-        self.jacobian=ngmix.jacobian.Jacobian(cen0_pix[0],
-                                              cen0_pix[1],
-                                              self.pixel_scale,
-                                              0.0,
-                                              0.0,
-                                              self.pixel_scale)
 
         psf_cen=pars1[0:0+2].copy()
         psf_image=self.get_psf_image(dims_pix, psf_cen)
@@ -1395,6 +1432,10 @@ class NGMixSim(dict):
         d['pars'][i,:] = res['pars']
         d['pcov'][i,:,:] = res['pars_cov']
 
+        d['psf_flux'][i] = res['psf_flux']
+        d['psf_flux_err'][i] = res['psf_flux_err']
+        d['psf_flux_s2n'][i] = res['psf_flux_s2n']
+
         d['g'][i,:] = res['g']
         d['g_cov'][i,:,:] = res['g_cov']
 
@@ -1441,6 +1482,9 @@ class NGMixSim(dict):
             ('pcov','f8',(npars,npars)),
             ('g','f8',2),
             ('g_cov','f8',(2,2)),
+            ('psf_flux','f8'),
+            ('psf_flux_err','f8'),
+            ('psf_flux_s2n','f8'),
             ('s2n_w','f8'),
             ('arate','f8'),
             ('tau','f8'),
@@ -1990,6 +2034,7 @@ class NGMixSimISample(NGMixSim):
         ipars=self['isample_pars']
 
         max_fitter = self.run_max_fitter(imdict, self.fit_model)
+        self.max_fitter=max_fitter
 
         use_fitter = max_fitter
         niter=len(ipars['nsample'])

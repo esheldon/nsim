@@ -22,8 +22,9 @@ parser.add_option('--allow-mismatch',action='store_true',
                   help="allow mismatch in counts")
 
 def get_tmp_file(fname):
+    tmpdir=os.environ['TMPDIR']
     bname=os.path.basename(fname)
-    return os.path.join('/tmp', bname) 
+    return os.path.join(tmpdir, bname) 
 
 def combine_trials(run, is2n, allow_missing=False, allow_mismatch=False):
     fs=nsim.files.get_default_fs()

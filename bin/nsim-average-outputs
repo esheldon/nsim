@@ -418,6 +418,17 @@ def select(conf, data):
         logic = logic & elogic
         docut=True
 
+    if 'avg_min_psf_flux_s2n' in conf:
+        s2n = data['psf_flux_s2n']
+        s2n_min = conf['avg_min_psf_flux_s2n']
+        elogic = (s2n > s2n_min)
+        w,=where(elogic)
+        if w.size != data.size:
+            print("    kept %d/%d for psf s/n > %.1f" % (w.size,data.size,s2n_min))
+        logic = logic & elogic
+        docut=True
+
+
     if 'avg_min_Fs2n' in conf:
         if conf['use_logpars']:
             print("       Fs2n for logpars")
@@ -435,6 +446,15 @@ def select(conf, data):
         print("    selecting flux >",conf['avg_min_flux'])
         logic = logic & (flux > conf['avg_min_flux'])
         docut=True
+
+    if 'avg_min_T' in conf:
+        flux = data['pars'][:,4]
+        minval = conf['avg_min_T']
+
+        print("    selecting T >",minval)
+        logic = logic & (flux > minval)
+        docut=True
+
 
     if 'avg_min_neff' in conf:
         print("    selecting neff >",conf['avg_min_neff'])

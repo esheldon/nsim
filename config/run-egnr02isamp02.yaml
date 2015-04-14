@@ -61,4 +61,12 @@ verbose: True
 # log flux percentiles 
 # [10,     20,     30,    50]
 # [4.183,  4.315,  4.408,  4.56
-#avg_min_flux: 4.408
+#avg_min_flux: 4.56
+
+#avg_min_psf_flux_s2n: 88.37
+
+# 50%
+#avg_min_Ts2n: 807.13
+
+# 50%
+#avg_min_T: 1.34

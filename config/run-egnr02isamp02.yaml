@@ -65,8 +65,9 @@ verbose: True
 
 #avg_min_psf_flux_s2n: 88.37
 
-# 50%
+# percentiles
+# [10,     20,     30,    50]
+# 548.05,  625.70,  688.19,  807.13
 #avg_min_Ts2n: 807.13
 
-# 50%
 #avg_min_T: 1.34

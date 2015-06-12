@@ -2014,6 +2014,7 @@ class NGMixSimJointSimpleLogPars(NGMixSim):
                                              cen_sigma_arcsec)
 
 
+
 class NGMixSimISample(NGMixSim):
     def __init__(self, *args, **kw):
         super(NGMixSimISample,self).__init__(*args, **kw)
@@ -2268,6 +2269,70 @@ class NGMixSimISample(NGMixSim):
         dt += [('neff','f4'),
                ('efficiency','f4')]
         return dt
+
+class NGMixSimISampleP(NGMixSimISample):
+    def __init__(self, *args, **kw):
+        super(NGMixSimISampleP,self).__init__(*args, **kw)
+
+    def set_config(self, sim_conf, run_conf):
+        super(NGMixSimISampleP,self).set_config(sim_conf, run_conf)
+        # should make this more adaptable rather
+        # than fixed grid
+        gc = self.conf['shear_grid']
+
+        self.shear_grid = numpy.linspace(gc['shear_min'],
+                                         gc['shear_max'],
+                                         gc['npoints'])
+
+
+    def _add_mcmc_stats(self, sampler):
+        """
+        measure prob of shear on a grid
+
+        implementing equations 17-18 from B&A 2014
+        """
+        super(NGMixSimISampleP,self)._add_mcmc_stats(sampler)
+
+        samples = sampler.get_samples()
+        g1=samples[:,2]
+        g2=samples[:,3]
+
+        g_prior=self.g_prior
+
+        if self.g_prior_during:
+            prior_vals = g_prior.get_prob_array2d(g1,g2)
+            w,=numpy.where(prior_vals > 0)
+            if w.size == 0:
+                raise TryAgainError("no prior vals > 0")
+
+        lnp = self.shear_grid*0 - 9.999e9
+
+        # assuming shear2 is zero
+        s2=0.0
+        for i,s1 in enumerate(self.shear_grid):
+            pjvals = g_prior.get_pj(g1, g2, s1, s2)
+            if self.g_prior_during:
+                pjvals = pjvals[w]/prior_vals[w]
+
+                p = pjvals.sum()
+                if p > 0:
+                    lnp[i] = numpy.log(p)
+            
+        res=sampler.get_result()
+        res['lnp_shear'] = lnp
+
+    def copy_to_output(self, res, i):
+        super(NGMixSimISampleP,self).copy_to_output(res, i)
+
+        d=self.data
+        d['lnp_shear'][i,:] = res['lnp_shear']
+
+    def get_dtype(self):
+        dt=super(NGMixSimISampleP,self).get_dtype()
+        ngrid = self.shear_grid.size
+        dt += [('lnp_shear','f8',ngrid)]
+        return dt
+
 
 
 class NGMixSimISampleComposite(NGMixSimISample):

@@ -116,6 +116,8 @@ def run_sim(sim_conf,run_conf,s2n,npairs,output_file,options):
                 sim=nsim.sim.NGMixSimISampleComposite(*args, **kw)
             else:
                 sim=nsim.sim.NGMixSimISample(*args, **kw)
+        elif run_conf['fitter']=='isample-p':
+            sim=nsim.sim.NGMixSimISampleP(*args, **kw)
         else:
             sim=nsim.sim.NGMixSim(*args, **kw)
 

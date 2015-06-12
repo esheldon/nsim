@@ -276,6 +276,11 @@ def do_sums(conf, data, d, options):
     wsum = weights.sum()
     d['wsum'][0] += wsum
 
+    # width of this will be too large when using
+    # a ring test, need to jackknife
+    if 'lnp_shear' in data.dtype.names:
+        d['lnp_shear'][0] += data['lnp_shear'].sum(axis=0)
+
     # no weights for pqr
     if not options.skip_pqr:
         P_sum, Q_sum, Cinv_sum, shear_cov_inv, w = \

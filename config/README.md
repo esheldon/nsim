@@ -66,15 +66,23 @@ eg01isamp11  | 12 s/n bins, ifactor=1.000, df=2.1, lm fix cov, true priors   | r
 
 eg04isampt   | s/n=50, ifactor=1.414, df=2.1, iter 500,2000, true priors, prior *not during* | looks about as expected
 
+new sampling on grid of p
+-------------------------
+eg01isampp01 | nsample 500 | 
+
+#
 # no ring
-egnr02isamp01  | s/n=50, ifactor=1.000, df=2.1, lm fix cov, true priors, *iter* | no eff. improvement for sim
+#
+
+egnr02isamp01  | s/n=50, ifactor=1.000, df=2.1, lm fix cov, true priors | testing s/n bias
+egnr02isamp02  | s/n=50, ifactor=1.000, df=2.1, lm fix cov, true priors | added saving round
 
 exp + dev
 ---------
 sim-egdg01
 
 egdg01isamp01 | 12 s/n bins, "true priors" but only fitting exp | significant bias
-egdg01isamp02 | 12 s/n bins, "true priors" fitting composite model | much better, just fine for s/n > 20
+egdg01isamp02 | 12 s/n bins, "true priors" fitting composite model | save psf s/n
 
 
 GPriorMErf sim

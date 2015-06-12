@@ -493,9 +493,8 @@ def get_npair_nsplit(c, is2n, npair_min=None):
     if not do_ring:
         print("not doing ring")
         # add in shape noise term for non-ring test
-        # err = 0.16/sqrt(ngal)
-        ngal = (0.16/c['desired_err'])**2
-        npair_shapenoise = int(ngal/2.)
+        ngal = (0.22/c['desired_err'])**2
+        npair_shapenoise = int(ngal)
 
     npair_tot += npair_shapenoise
 

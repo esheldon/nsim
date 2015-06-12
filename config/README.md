@@ -69,6 +69,8 @@ eg04isampt   | s/n=50, ifactor=1.414, df=2.1, iter 500,2000, true priors, prior 
 new sampling on grid of p
 -------------------------
 eg01isampp01 | nsample 500 | 
+egnr01isampp01 | s/n=1000 no ring, nsample 500 | agrees with lensfit
+egnr01isampp02 | s/n=50 no ring, nsample 500 | 
 
 #
 # no ring

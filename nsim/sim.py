@@ -2270,19 +2270,17 @@ class NGMixSimISample(NGMixSim):
                ('efficiency','f4')]
         return dt
 
+
 class NGMixSimISampleP(NGMixSimISample):
     def __init__(self, *args, **kw):
         super(NGMixSimISampleP,self).__init__(*args, **kw)
 
     def set_config(self, sim_conf, run_conf):
+        from .util import get_shear_grid
         super(NGMixSimISampleP,self).set_config(sim_conf, run_conf)
-        # should make this more adaptable rather
-        # than fixed grid
-        gc = self.conf['shear_grid']
 
-        self.shear_grid = numpy.linspace(gc['shear_min'],
-                                         gc['shear_max'],
-                                         gc['npoints'])
+        self.shear_grid = get_shear_grid(self.simc, self.conf)
+        print("shear grid:",self.shear_grid)
 
 
     def _add_mcmc_stats(self, sampler):
@@ -2315,7 +2313,9 @@ class NGMixSimISampleP(NGMixSimISample):
         # assuming shear2 is zero
         s2=0.0
         for i,s1 in enumerate(self.shear_grid):
+
             pjvals = g_prior.get_pj(g1, g2, s1, s2)
+
             if self.g_prior_during:
                 pjvals = pjvals[w]/prior_vals[w]
 

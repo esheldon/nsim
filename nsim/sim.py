@@ -2293,7 +2293,9 @@ class NGMixSimISampleP(NGMixSimISample):
         """
         super(NGMixSimISampleP,self)._add_mcmc_stats(sampler)
 
+        iweights = sampler.get_iweights()
         samples = sampler.get_samples()
+
         g1=samples[:,2]
         g2=samples[:,3]
 
@@ -2304,6 +2306,9 @@ class NGMixSimISampleP(NGMixSimISample):
             w,=numpy.where(prior_vals > 0)
             if w.size == 0:
                 raise TryAgainError("no prior vals > 0")
+            iwsum = iweights[w].sum()
+        else:
+            iwsum = iweights.sum()
 
         lnp = self.shear_grid*0 - 9.999e9
 
@@ -2314,9 +2319,9 @@ class NGMixSimISampleP(NGMixSimISample):
             if self.g_prior_during:
                 pjvals = pjvals[w]/prior_vals[w]
 
-                p = pjvals.sum()
-                if p > 0:
-                    lnp[i] = numpy.log(p)
+            p = (iweights[w]*pjvals).sum()/iwsum
+            if p > 0:
+                lnp[i] = numpy.log(p)
             
         res=sampler.get_result()
         res['lnp_shear'] = lnp

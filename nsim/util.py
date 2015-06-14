@@ -38,10 +38,13 @@ class lnp_fitter(object):
     def get_result(self):
         return self._result
 
-    def go(self):
+    def go(self, guess=None):
         import scipy.optimize
         import ngmix
-        guess=self._get_guess()
+
+        if guess is None:
+            guess=self._get_guess()
+
         n_prior_pars=0
 
         res=ngmix.fitting.run_leastsq(self._errfunc,

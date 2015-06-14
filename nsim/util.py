@@ -51,9 +51,39 @@ class lnp_fitter(object):
 
         self._result=res
 
-    def _errfunc(self, pars):
-        model = pars[0] + (self.svals - pars[1])**2/2.0/pars[2]**2
+    def doplot(self, show=False):
+        import biggles
 
+        plt=biggles.FramedPlot()
+        plt.aspect_ratio=1
+        plt.xlabel='shear'
+        plt.ylabel='-ln(prob)'
+
+        pts=biggles.Points(self.svals, self.mlnp, type='filled circle')
+
+        pars=self._result['pars']
+        model=self.get_model(pars)
+
+        c=biggles.Curve(self.svals, model, color='blue')
+
+        pts.label='data'
+        c.label='model'
+
+        key=biggles.PlotKey(0.9, 0.9, [pts,c],
+                            halign='right')
+
+        plt.add(pts, c, key)
+
+        if show:
+            plt.show()
+        return plt
+
+    def get_model(self, pars):
+        model = pars[0] + (self.svals - pars[1])**2/2.0/pars[2]**2
+        return model
+
+    def _errfunc(self, pars):
+        model = self.get_model(pars)
         return model-self.mlnp
 
     def _set_guesses(self):
@@ -82,6 +112,5 @@ def fit_lnp_shear(simconf, runconf, lnp_shear):
     fitter=lnp_fitter(s, lnp_shear)
     fitter.go()
 
-    res=fitter.get_result()
-    return res['pars'][1], res['pars'][2]
+    return fitter
 

@@ -39,7 +39,7 @@ parser.add_option('--png',default=None,
 #                  help="labels for each run")
 
 parser.add_option('--method',default='ba',
-                  help="method to plot ('ba','gmean','lensfit')")
+                  help="method to plot ('ba','gmean','lensfit','shearp')")
 
 parser.add_option('--add-run-label',action='store_true',
                   help="lable run as well")
@@ -61,6 +61,9 @@ def get_names(method):
     elif method=='lensfit':
         s_name='shear_lensfit'
         scov_name='shear_lensfit_cov'
+    elif method=='shearp':
+        s_name='shearp'
+        scov_name='shearp_err'
     else:
         raise ValueError("bad method: '%s'" % method)
 
@@ -91,12 +94,17 @@ def plot_shear(plt, c, index, symbol, color, linestyle, options,
     data=fitsio.read(url)
 
     s_name,scov_name=get_names(method)
-    if s_name=='g_sum':
-        shear=data['g_sum'][:,index]/data['nsum']
-    else:
-        shear=data[s_name][:,index]
-    err=sqrt(data[scov_name][:,index,index])
 
+    if scov_name=='shearp_err':
+        shear=data[s_name]
+        err=data[scov_name]
+    else:
+
+        if s_name=='g_sum':
+            shear=data['g_sum'][:,index]/data['nsum']
+        else:
+            shear=data[s_name][:,index]
+        err=sqrt(data[scov_name][:,index,index])
 
     s2n_vals = data[options.s2n_field]
 

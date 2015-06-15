@@ -338,7 +338,7 @@ def do_sums(conf, data, d, options):
 def do_avg(conf, d, options):
 
     if 'lnp_shear' in d.dtype.names:
-        fit_shearp(conf, d)
+        fit_shearp(conf, d, show=options.show)
 
     shtrue=conf['simc']['shear'][0]
 

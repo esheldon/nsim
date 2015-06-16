@@ -71,6 +71,10 @@ new sampling on grid of p
 eg01isampp01 | nsample 500 | 
 egnr01isampp01 | s/n=1000 no ring, nsample 500 | agrees with lensfit
 egnr01isampp02 | s/n=50 no ring, nsample 500 | 
+egnr01isampp03 | 12 s/n values, 500 |
+
+egnr02isampp01 | 12 s/n values, 2000 |
+egnr02isampp02 | 2-d grid, s/n=1000 |
 
 #
 # no ring

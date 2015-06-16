@@ -2279,9 +2279,7 @@ class NGMixSimISampleP(NGMixSimISample):
         from .util import get_shear_grid
         super(NGMixSimISampleP,self).set_config(sim_conf, run_conf)
 
-        self.shear_grid = get_shear_grid(self.simc, self.conf)
-        print("shear grid:",self.shear_grid)
-
+        self.s1grid,self.s2grid = get_shear_grid(self.simc, self.conf)
 
     def _add_mcmc_stats(self, sampler):
         """
@@ -2308,21 +2306,20 @@ class NGMixSimISampleP(NGMixSimISample):
         else:
             iwsum = iweights.sum()
 
-        lnp = self.shear_grid*0 - 9.999e9
+        lnp = numpy.zeros(self.conf['shear_grid']['dims']) - 9.999e9
 
-        # assuming shear2 is zero
-        s2=0.0
-        for i,s1 in enumerate(self.shear_grid):
+        for i1,s1 in enumerate(self.s1grid):
+            for i2,s2 in enumerate(self.s2grid):
 
-            pjvals = g_prior.get_pj(g1, g2, s1, s2)
+                pjvals = g_prior.get_pj(g1, g2, s1, s2)
 
-            if self.g_prior_during:
-                pjvals = pjvals[w]/prior_vals[w]
+                if self.g_prior_during:
+                    pjvals = pjvals[w]/prior_vals[w]
 
-            p = (iweights[w]*pjvals).sum()/iwsum
-            if p > 0:
-                lnp[i] = numpy.log(p)
-            
+                p = (iweights[w]*pjvals).sum()/iwsum
+                if p > 0:
+                    lnp[i1,i2] = numpy.log(p)
+                
         res=sampler.get_result()
         res['lnp_shear'] = lnp
 
@@ -2330,12 +2327,12 @@ class NGMixSimISampleP(NGMixSimISample):
         super(NGMixSimISampleP,self).copy_to_output(res, i)
 
         d=self.data
-        d['lnp_shear'][i,:] = res['lnp_shear']
+        d['lnp_shear'][i,:,:] = res['lnp_shear']
 
     def get_dtype(self):
         dt=super(NGMixSimISampleP,self).get_dtype()
-        ngrid = self.shear_grid.size
-        dt += [('lnp_shear','f8',ngrid)]
+        dims = self.conf['shear_grid']['dims']
+        dt += [('lnp_shear','f8',dims)]
         return dt
 
 

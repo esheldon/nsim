@@ -442,8 +442,8 @@ def do_sums_bychunk(conf, fobj, d, options):
 
         do_sums(conf, data, d, options)
 
-        if i==0:
-            break
+        #if i==0:
+        #    break
 
 def select(conf, data):
 

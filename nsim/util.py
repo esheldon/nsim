@@ -56,7 +56,6 @@ def get_shear_grid(simconf, runconf, get_mesh=False):
 
 class lnp_fitter2d(object):
     def __init__(self, s1vals, s2vals, lnp):
-        import images
         self.s1vals = s1vals
         self.s2vals = s2vals
         self.lnp = lnp
@@ -73,8 +72,6 @@ class lnp_fitter2d(object):
                                      0.0,
                                      self.scale2)
 
-
-        images.multiview(self.p)
 
         self._set_guesses()
 

@@ -49,11 +49,11 @@ lm_pars:
 s2n_vals: [ 50 ]
 
 shear_grid:
-    nsigma: 3.0
-    dims: [10,10]
+    nsigma: 4.0
+    dims: [20,20]
 
 desired_err: 5.0e-5
-desired_hours: 0.5
+desired_hours: 1.0
 # actually more like 0.6 on the faster machines
 sec_per_pair: 0.40
 npair_min: 40000

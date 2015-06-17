@@ -14,6 +14,7 @@ import ngmix
 import nsim
 
 import time
+from pprint import pprint
 
 from optparse import OptionParser
 parser=OptionParser(__doc__)
@@ -86,12 +87,13 @@ def get_dtype(fobj, model, options):
 
     if 'lnp_shear' in names:
         # assuming shear is in shear1 only right now
-        sh = data['lnp_shear'].shape
+        sh = data['lnp_shear'][0].shape
         dt += [('shear1_grid','f8',sh[0]),
                ('shear2_grid','f8',sh[1]),
                ('shearp','f8',2), 
                ('shearp_err','f8',2),
                ('shearp_cov','f8',(2,2))]
+    pprint(dt)
     return dt
 
 def get_chunk_info(nrows):

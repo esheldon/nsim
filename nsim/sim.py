@@ -58,7 +58,7 @@ class NGMixSim(dict):
         self.update(keys)
         self['verbose']=self.get('verbose',True)
 
-        self.shear=self.simc['shear']
+        self._set_shear()
         self.nsub=self.simc['nsub']
         self.nsigma_render=self.simc.get('nsigma_render',NSIGMA_RENDER)
 
@@ -96,6 +96,33 @@ class NGMixSim(dict):
         if self['verbose']:
             pprint.pprint(self)
             pprint.pprint(self.simc)
+
+    def _set_shear(self):
+        if isinstance(self.simc['shear'], dict):
+            shc=self.simc['shear']
+            if shc['type']=='normal':
+                self._shear_dist=ngmix.priors.RoundGauss2D(shc['mean'][0],
+                                                           shc['mean'][1],
+                                                           shc['sigma'][0],
+                                                           shc['sigma'][1])
+            else:
+                raise ValueError("only lognormal for now")
+            self['shear_is_constant'] = False
+        else:
+            self._shear_true=self.simc['shear']
+            self['shear_is_constant'] = True
+
+    def get_shear(self):
+        """
+        if shear is constant, return that, otherwise sample it
+        """
+        if self['shear_is_constant']:
+            shear = self._shear_true
+        else:
+            shear = self._shear_dist.sample()
+
+        return shear
+
 
     def create_model_set(self):
         """
@@ -181,9 +208,9 @@ class NGMixSim(dict):
         about
         """
 
-        expand_shear_true=self.get('expand_shear_true',None)
+        expand_shear_true=self.get('expand_shear_true',False)
         if expand_shear_true:
-            self.shear_expand=array(self.shear)
+            self.shear_expand=array(self.simc['shear'])
             print('nsim: expanding about shear:',self.shear_expand)
         else:
             self.shear_expand=array([0.0,0.0])
@@ -236,6 +263,7 @@ class NGMixSim(dict):
                 raise TryAgainError("failed at %s flags %s" % (key,res['flags']))
 
             res['pars_true'] = imd['pars']
+            #res['pars_noshear'] = imd['pars_noshear']
             res['s2n_true'] = imd['s2n']
             if self['verbose']:
                 self.print_res(res)
@@ -1043,6 +1071,10 @@ class NGMixSim(dict):
             g_pdf=ngmix.priors.GPriorBA(g_pdf_sigma)
         elif gtype=="cosmos":
             g_pdf=ngmix.priors.make_gprior_cosmos_sersic(type='erf')
+        elif gtype=='great-des':
+            g_pdf= ngmix.priors.GPriorGreatDES(pars=simc['g_prior_pars'],
+                                               gmax=1.0)
+
         else:
             raise ValueError("only g prior 'ba' for now")
 
@@ -1071,6 +1103,10 @@ class NGMixSim(dict):
             self.g_prior = ngmix.priors.GPriorBA(gppars['sigma'])
         elif gppars['type']=='cosmos':
             self.g_prior=ngmix.priors.make_gprior_cosmos_sersic(type='erf')
+        elif gppars['type']=='great-des':
+            self.g_prior = ngmix.priors.GPriorGreatDES(pars=gppars['pars'],
+                                                       gmax=1.0)
+
         else:
             raise ValueError("implement other")
 
@@ -1228,7 +1264,7 @@ class NGMixSim(dict):
         import ngmix
         from ngmix.observation import Observation
 
-        pars1, pars2 = self.get_pair_pars(random=random)
+        pars1, pars2, p1_noshear, p2_noshear = self.get_pair_pars(random=random)
 
         obj_model = self.model_sampler()
         self.current_model_true = obj_model
@@ -1264,8 +1300,12 @@ class NGMixSim(dict):
         obs1 = Observation(im1, psf=psf_obs, jacobian=self.jacobian)
         obs2 = Observation(im2, psf=psf_obs, jacobian=self.jacobian)
         
-        out={'im1':{'pars':pars1,'gm_pre':gm1_pre,'gm':gm1,'obs0':obs1},
-             'im2':{'pars':pars2,'gm_pre':gm2_pre,'gm':gm2,'obs0':obs2}}
+        out={'im1':{'pars':pars1,
+                    'pars_noshear':p1_noshear,
+                    'gm_pre':gm1_pre,'gm':gm1,'obs0':obs1},
+             'im2':{'pars':pars2,
+                    'pars_noshear':p2_noshear,
+                    'gm_pre':gm2_pre,'gm':gm2,'obs0':obs2}}
         return out
 
     def get_pair_pars(self, random=True):
@@ -1304,10 +1344,14 @@ class NGMixSim(dict):
             pars1[0:0+4] = 0.0
             pars2=pars1.copy()
 
+        pars1_noshear=pars1.copy()
+        pars2_noshear=pars2.copy()
+
         shape1=ngmix.shape.Shape(pars1[2],pars1[3])
         shape2=ngmix.shape.Shape(pars2[2],pars2[3])
 
-        shear=self.shear
+        shear=self.get_shear()
+        #print("    shear:",shear)
         shape1.shear(shear[0], shear[1])
         shape2.shear(shear[0], shear[1])
 
@@ -1316,7 +1360,7 @@ class NGMixSim(dict):
         pars2[2]=shape2.g1
         pars2[3]=shape2.g2
 
-        return pars1, pars2
+        return pars1, pars2, pars1_noshear, pars2_noshear
 
     def get_dims_cen(self):
         """
@@ -1428,6 +1472,7 @@ class NGMixSim(dict):
 
         d['s2n_true'][i] = res['s2n_true']
         d['pars_true'][i,:] = res['pars_true']
+        #d['pars_noshear'][i,:] = res['pars_noshear']
 
         d['pars'][i,:] = res['pars']
         d['pcov'][i,:,:] = res['pars_cov']
@@ -1444,10 +1489,11 @@ class NGMixSim(dict):
         if 'g_sens' in res:
             d['g_sens'][i,:] = res['g_sens']
 
-        if 'P' in res:
+        if 'arate' in res:
             d['arate'][i] = res['arate']
             d['tau'][i] = res['tau']
 
+        if 'P' in res:
             d['P'][i] = res['P']
             d['Q'][i,:] = res['Q'][:]
             d['R'][i,:,:] = res['R'][:,:]
@@ -1478,6 +1524,7 @@ class NGMixSim(dict):
             ('model_true','S3'),
             ('s2n_true','f8'),
             ('pars_true','f8',self.true_npars),
+            #('pars_noshear','f8',self.true_npars),
             ('pars','f8',npars),
             ('pcov','f8',(npars,npars)),
             ('g','f8',2),
@@ -1697,7 +1744,7 @@ class NGMixSimJointSimpleLinPars(NGMixSim):
         shape2=shape1.copy()
         shape2.rotate(pi/2.0)
 
-        shear=self.shear
+        shear=self.get_shear()
         shape1.shear(shear[0], shear[1])
         shape2.shear(shear[0], shear[1])
 
@@ -1804,7 +1851,8 @@ class NGMixSimJointSimpleHybrid(NGMixSim):
         shape2=shape1.copy()
         shape2.rotate(pi/2.0)
 
-        shear=self.shear
+        shear=self.get_shear()
+
         shape1.shear(shear[0], shear[1])
         shape2.shear(shear[0], shear[1])
 
@@ -1983,7 +2031,7 @@ class NGMixSimJointSimpleLogPars(NGMixSim):
         shape2 = shape1.copy()
         shape2.rotate(pi/2.0)
 
-        shear=self.shear
+        shear=self.get_shear()
         shape1.shear(shear[0], shear[1])
         shape2.shear(shear[0], shear[1])
 
@@ -2108,9 +2156,9 @@ class NGMixSimISample(NGMixSim):
         res['nuse'] = ls.get_nuse()
 
         # not able to use extra weights yet
-        '''
-        pqrobj=ngmix.pqr.PQR(g, g_prior,
+        pqrobj=ngmix.pqr.PQR(g_vals, g_prior,
                              shear_expand=self.shear_expand,
+                             weights=iweights,
                              remove_prior=remove_prior)
 
 
@@ -2118,7 +2166,6 @@ class NGMixSimISample(NGMixSim):
         res['P']=P
         res['Q']=Q
         res['R']=R
-        '''
         
 
     def _make_sampler(self, fitter):

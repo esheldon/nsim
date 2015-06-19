@@ -20,6 +20,8 @@ parser.add_option('--missing',action='store_true',
 
 parser.add_option('-q','--queue',default='long',
                   help='lsf queue, default %default')
+parser.add_option('-w','--walltime',default='08:00',
+                  help='lsf queue, default %default')
 
 
 
@@ -32,7 +34,7 @@ _lsf_template="""#!/bin/bash
 #BSUB -J %(job_name)s
 #BSUB -n 1
 #BSUB -oo ./%(job_name)s.oe
-#BSUB -W 08:00
+#BSUB -W %(walltime)s
 #BSUB -R "linux64 && rhel60 && scratch > 2"
 
 echo "working on host: $(hostname)"
@@ -192,6 +194,7 @@ def write_lsf_files(c, master_script, equal_time=False, missing=False):
                 job_name='%s-%03d-%05d' % (overall_name,is2n,isplit)
                 qdata=_lsf_template % dict(master_script=master_script,
                                            queue=c['queue'],
+                                           walltime=c['walltime'],
                                            s2n=s2n,
                                            npair=npair,
                                            output=output,
@@ -228,6 +231,7 @@ def main():
     c['version'] = options.version
     c['command'] = get_command()
     c['queue'] = options.queue
+    c['walltime'] = options.walltime
 
     make_some_dirs(run)
     master_script=write_master(c)

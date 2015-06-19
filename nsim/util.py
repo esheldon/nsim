@@ -33,7 +33,11 @@ def get_shear_grid(simconf, runconf, get_mesh=False):
     gc = runconf['shear_grid']
 
     desired_err=runconf['desired_err']
-    true_shear = simconf['shear']
+    if isinstance(simconf['shear'], dict):
+        true_shear=simconf['shear']['mean']
+    else:
+        true_shear=simconf['shear']
+
     nsigma = gc['nsigma']
 
     sh1min = true_shear[0] - nsigma*desired_err
@@ -293,4 +297,13 @@ def fit_lnp_shear1d(simconf, runconf, lnp_shear):
 
     return fitter
 
+def get_true_shear(conf):
+    """
+    if shear is constant, return that, otherwise sample it
+    """
+    if isinstance(conf['shear'], dict):
+        shear=conf['shear']['mean']
+    else:
+        shear=conf['shear']
 
+    return shear

@@ -343,7 +343,9 @@ class NGMixSim(dict):
         elif 'mh' in fitter_type:
             fitter = self.fit_galaxy_mh(imdict)
         elif fitter_type == 'lm':
-            fitter = self.fit_galaxy_lm(imdict, ntry=self['lm_ntry'])
+            ntry=self['lm_ntry']
+            fitter = self.fit_galaxy_lm(imdict,
+                                        ntry=ntry)
             res=fitter.get_result()
             if res['flags']==0 and 'g' in res:
                 check_g(res['g'])
@@ -1112,8 +1114,10 @@ class NGMixSim(dict):
 
         self.g_prior_during = self.get('g_prior_during',False)
         if self.g_prior_during:
+            print("    Using full g prior for fits")
             fit_g_prior = self.g_prior
         else:
+            print("    Using flat g prior for fits")
             fit_g_prior = g_pdf_flat
 
         print("using input search prior")

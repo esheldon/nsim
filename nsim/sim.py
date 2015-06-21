@@ -812,7 +812,9 @@ class NGMixSim(dict):
         # might raise exception
         check_g(res['g'])
 
-        pars_meas=res['pars'].copy()
+        pars_meas0=res['pars'].copy()
+        # to maybe convert log to linear
+        pars_meas=fitter.get_band_pars(pars_meas0, 0)
         imdict_lo, imdict_hi = self.get_metacal_imdicts(imdict['obs'], pars_meas)
 
         fitter_lo=self.fit_galaxy_lm(imdict_lo, ntry=ntry)
@@ -833,6 +835,8 @@ class NGMixSim(dict):
         # assuming same for now
         h=self['metacal_h']
         g_sens = array( [(pars_hi[2]-pars_lo[2])/(2.*h)]*2 )
+
+        print("        sensitivity: %g %g" % (g_sens[0],g_sens[1]))
         res['g_sens'] = g_sens
 
         return fitter
@@ -2728,7 +2732,7 @@ def make_metacal_obs(pars, model, noise_image, obs, nsub):
     from ngmix import Observation
 
     # inferred pre-psf object
-    gm0=ngmix.GMixModel(pars, model, logpars=True)
+    gm0=ngmix.GMixModel(pars, model)
 
     # observed psf
     gm=gm0.convolve(obs.psf.gmix)

@@ -25,8 +25,8 @@ MAXTIME_HOURS=3.0
 _wq_template="""
 command: |
 
-    source $HOME/.bashrc
-    source $HOME/shell_scripts/nsim2-prepare.sh
+    #source $HOME/.bashrc
+    . $HOME/shell_scripts/nsim2-prepare.sh
 
     command=%(master_script)s
     s2n=%(s2n)s

@@ -1,0 +1,44 @@
+# using pqr for isamp
+run: "run-eg04mcal01"
+sim: "sim-eg04"
+
+fitter: "lm-metacal"
+use_logpars: True
+fit_model: "exp"
+
+guess_type: "draw_pdf"
+
+g_prior_during: True
+
+use_logpars: True
+
+search_prior:
+    cen_prior_type: "truth"
+    T_prior_type: "truth"
+    counts_prior_type: "truth"
+
+g_prior_pars:
+    type: "ba"
+    sigma: 0.3
+
+psf_ngauss: 1
+
+metacal_h: 0.02
+
+lm_ntry: 5
+lm_pars:
+    maxfev: 4000
+    #ftol:   1.0e-6
+    #xtol:   1.0e-6
+    #epsfcn: 1.0e-6
+
+#s2n_vals: [ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
+s2n_vals: [ 25 ]
+
+desired_err: 5.0e-5
+desired_hours: 0.5
+# actually more like 0.6 on the faster machines
+sec_per_pair: 0.63
+npair_min: 40000
+
+verbose: True

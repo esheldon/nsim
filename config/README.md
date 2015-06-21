@@ -689,7 +689,11 @@ older stuff
         - tried noise type "diff", difference of image and model.
             - total crap
         - noise type "random"
-
+    - config/run-eg04rtest3.yaml
+    - config/run-eg14rtest1.yaml
+        - cosmos shapes
+    - config/run-eg16rtest1.yaml
+        -  nsub 1, why?
 
 
 # old shapesim stuff

@@ -1,5 +1,5 @@
 # using pqr for isamp
-run: "run-eg04mcal01"
+run: "run-eg04mcal02"
 sim: "sim-eg04"
 
 fitter: "lm-metacal"
@@ -25,7 +25,8 @@ psf_ngauss: 1
 
 metacal_pars:
     step: 0.02
-    pars2use: 'fit'
+    # cheating
+    pars2use: 'true'
 
 lm_ntry: 5
 lm_pars:

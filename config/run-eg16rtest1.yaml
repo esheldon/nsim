@@ -8,7 +8,7 @@ fit_model: "exp"
 # this must be draw_maxlike
 guess_type: "draw_priors"
 
-metacal_h: 0.02
+metacal_h: 0.01
 
 psf_ngauss: 1
 

@@ -763,29 +763,44 @@ class NGMixSim(dict):
 
         return fitter
 
-    def get_metacal_imdicts(self, obs_orig, pars_meas):
-        h=self['metacal_h']
+    def get_metacal_imdicts(self, imdict, fitter):
+        mpars=self['metacal_pars']
+
+
+        h=mpars['step']
+        pars2use=mpars['pars2use']
+
+        obs_orig=imdict['obs']
+        if pars2use=='fit':
+            psf=obs_orig.psf.gmix
+            pars=fitter.get_result()['pars']
+        else:
+            print("using true psf and true pars")
+            psf=self.psf_gmix_true
+            pars=imdict['pars']
 
         # only doing shear in g1 direction since that is what
         # we usually have for sims. Can adapt later to real data
-        pars_lo=make_sheared_pars(pars_meas, -h, 0.0)
-        pars_hi=make_sheared_pars(pars_meas, +h, 0.0)
+        pars_lo=make_sheared_pars(pars, -h, 0.0)
+        pars_hi=make_sheared_pars(pars, +h, 0.0)
 
         im=obs_orig.image
         noise_image = self.skysig*randn(im.size)
         noise_image = noise_image.reshape(im.shape)
 
         nsub=self.nsub
-        obs_lo = make_metacal_obs(pars_lo, 
+        obs_lo = make_metacal_obs(psf,
+                                  pars_lo, 
                                   self.fit_model,
                                   noise_image,
                                   obs_orig,
                                   nsub)
 
-        #noise_image = self.skysig*randn(im.size)
-        #noise_image = noise_image.reshape(im.shape)
+        noise_image = self.skysig*randn(im.size)
+        noise_image = noise_image.reshape(im.shape)
 
-        obs_hi = make_metacal_obs(pars_hi, 
+        obs_hi = make_metacal_obs(psf,
+                                  pars_hi, 
                                   self.fit_model,
                                   noise_image,
                                   obs_orig,
@@ -802,6 +817,8 @@ class NGMixSim(dict):
         """
         from ngmix.fitting import LMSimple
 
+        mpars=self['metacal_pars']
+
         ntry=self['lm_ntry']
         fitter=self.fit_galaxy_lm(imdict, ntry=ntry)
 
@@ -812,10 +829,8 @@ class NGMixSim(dict):
         # might raise exception
         check_g(res['g'])
 
-        pars_meas0=res['pars'].copy()
-        # to maybe convert log to linear
-        pars_meas=fitter.get_band_pars(pars_meas0, 0)
-        imdict_lo, imdict_hi = self.get_metacal_imdicts(imdict['obs'], pars_meas)
+        imdict_lo, imdict_hi = self.get_metacal_imdicts(imdict['obs'],
+                                                        pars2use)
 
         fitter_lo=self.fit_galaxy_lm(imdict_lo, ntry=ntry)
         fitter_hi=self.fit_galaxy_lm(imdict_hi, ntry=ntry)
@@ -833,7 +848,7 @@ class NGMixSim(dict):
         pars_hi=res_hi['pars']
 
         # assuming same for now
-        h=self['metacal_h']
+        h=self['metacal_pars']['step']
         g_sens = array( [(pars_hi[2]-pars_lo[2])/(2.*h)]*2 )
 
         print("        sensitivity: %g %g" % (g_sens[0],g_sens[1]))
@@ -2728,16 +2743,15 @@ def make_sheared_pars(pars, shear_g1, shear_g2):
 
     return shpars
 
-def make_metacal_obs(pars, model, noise_image, obs, nsub):
+def make_metacal_obs(psf, pars, model, noise_image, obs, nsub):
     from ngmix import Observation
 
-    # inferred pre-psf object
     gm0=ngmix.GMixModel(pars, model)
+    gm=gm0.convolve(psf)
 
-    # observed psf
-    gm=gm0.convolve(obs.psf.gmix)
-
-    im = gm.make_image(noise_image.shape, jacobian=obs.jacobian, nsub=nsub)
+    im = gm.make_image(obs.image.shape,
+                       jacobian=obs.jacobian,
+                       nsub=nsub)
 
     im += noise_image
 

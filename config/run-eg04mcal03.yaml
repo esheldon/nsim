@@ -1,12 +1,15 @@
 # using pqr for isamp
-run: "run-eg04mcal02"
+run: "run-eg04mcal03"
 sim: "sim-eg04"
 
 fitter: "lm-metacal"
+use_logpars: True
 fit_model: "exp"
 
 guess_type: "draw_pdf"
+
 g_prior_during: True
+
 use_logpars: True
 
 search_prior:
@@ -33,7 +36,7 @@ lm_pars:
     #epsfcn: 1.0e-6
 
 #s2n_vals: [ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
-s2n_vals: [ 25 ]
+s2n_vals: [ 10 ]
 
 desired_err: 5.0e-5
 desired_hours: 0.5

@@ -22,7 +22,10 @@ from numpy.random import random as randu
 from numpy.random import randn
 
 import ngmix
+from ngmix.fitting import print_pars
 from ngmix.gexceptions import GMixRangeError
+from ngmix.observation import Observation
+from ngmix.gexceptions import GMixMaxIterEM
 
 # region over which to render images and calculate likelihoods
 NSIGMA_RENDER=5.0
@@ -351,7 +354,11 @@ class NGMixSim(dict):
                 check_g(res['g'])
 
         elif fitter_type=='lm-metacal':
-            fitter=self.fit_galaxy_lm_metacal(imdict)
+            fitter=self.fit_galaxy_metacal(imdict, method='lm')
+        elif fitter_type=='nm-metacal':
+            fitter=self.fit_galaxy_metacal(imdict,method='nm')
+        elif fitter_type=='em-metacal':
+            fitter=self.fit_galaxy_metacal(imdict,method='em')
         else:
             raise ValueError("bad fitter type: '%s'" % fitter_type)
 
@@ -572,10 +579,10 @@ class NGMixSim(dict):
         perr=res.get('pars_err',None)
 
         print("    nfev:",res['nfev'])
-        ngmix.fitting.print_pars(pars, front='    max pars: ')
+        print_pars(pars, front='    max pars: ')
 
         if perr is not None:
-            ngmix.fitting.print_pars(perr, front='    max perr: ')
+            print_pars(perr, front='    max perr: ')
 
             # try diagonal for now
 
@@ -750,6 +757,8 @@ class NGMixSim(dict):
 
         res['ntry']=i+1
 
+        #if 'pars' in res:
+        #    print_pars(res['pars'], front='      metacal: ')
 
         if res['flags']==0:
             print("        replacing cov")
@@ -763,55 +772,104 @@ class NGMixSim(dict):
 
         return fitter
 
-    def get_metacal_imdicts(self, imdict, fitter):
-        mpars=self['metacal_pars']
+
+    def fit_galaxy_nm(self, imdict, ntry=1, guess=None):
+        """
+        Fit the model to the galaxy
+
+        we send some keywords so behavior can be different if this is a guess
+        getter
+
+        """
+        from ngmix.fitting import MaxSimple
+
+        nm_pars=self['nm_pars']
+
+        obs=imdict['obs']
+        fitter=MaxSimple(obs, self.fit_model,
+                         method='nm',
+                         prior=self.search_prior,
+                         use_logpars=self['use_logpars'])
+
+        for i in xrange(ntry):
+            if i > 0 or guess is None:
+                guess=self.get_lm_guess(imdict)
+
+            fitter.go(guess, **nm_pars)
+            res=fitter.get_result()
+            if res['flags']==0:
+                break
+
+        if 'pars' in res:
+            print_pars(res['pars'], front='      metacal: ')
+        res['ntry']=i+1
+        return fitter
+
+    def fit_galaxy_em(self, imdict, ntry=1):
+        """
+        Fit the model to the galaxy
+
+        we send some keywords so behavior can be different if this is a guess
+        getter
+
+        """
+        from ngmix.em import GMixEM, prep_image
+
+        obs=imdict['obs']
+
+        image=obs.image
+        imsky,sky=prep_image(image)
+
+        sky_obs = Observation(imsky, jacobian=obs.jacobian)
+
+        fitter=GMixEM(sky_obs)
+
+        tol=1.0e-6
+        maxiter=30000
+
+        for i in xrange(ntry):
+            guess=self.get_psf_guess()
+            try:
+                fitter.go(guess, sky, tol=tol,maxiter=maxiter)
+                break
+            except GMixMaxIterEM as e:
+                print(str(e))
+                print('re-trying em gal')
+
+        res=fitter.get_result()
+        if res['flags'] != 0:
+            raise TryAgainError("em gal failed")
 
 
-        h=mpars['step']
-        pars2use=mpars['pars2use']
+        gm=fitter.get_gmix()
+        pars=gm.get_full_pars()
 
-        obs_orig=imdict['obs']
-        if pars2use=='fit':
-            psf=obs_orig.psf.gmix
-            pars=fitter.get_result()['pars']
-        else:
-            print("using true psf and true pars")
-            psf=self.psf_gmix_true
-            pars=imdict['pars']
+        T=pars[3]+pars[5]
+        e1 = (pars[5]-pars[3])/T
+        e2 = 2*pars[4]/T
+        g1,g2=e1,e2
+        #try:
+        #    g1,g2=ngmix.shape.e1e2_to_g1g2(e1,e2)
+        #except GMixRangeError:
+        #    raise TryAgainError("bad e1,e2")
 
-        # only doing shear in g1 direction since that is what
-        # we usually have for sims. Can adapt later to real data
-        pars_lo=make_sheared_pars(pars, -h, 0.0)
-        pars_hi=make_sheared_pars(pars, +h, 0.0)
+        tpars=array([pars[1],pars[2],
+                     e1,e2,
+                     T,
+                     1.0])
 
-        im=obs_orig.image
-        noise_image = self.skysig*randn(im.size)
-        noise_image = noise_image.reshape(im.shape)
+        res['g']=array([g1,g2])
+        res['g_cov']=diag([9999.0,9999.0])
+        res['pars']=tpars
+        res['pars_err']=pars*0 + 9999.0
+        res['pars_cov']=diag(pars*0 + 9999)
+        res['s2n_w']=-9999.0
+        res['nfev']=res['numiter']
+        res['ntry']=i+1
 
-        nsub=self.nsub
-        obs_lo = make_metacal_obs(psf,
-                                  pars_lo, 
-                                  self.fit_model,
-                                  noise_image,
-                                  obs_orig,
-                                  nsub)
+        return fitter
 
-        noise_image = self.skysig*randn(im.size)
-        noise_image = noise_image.reshape(im.shape)
-
-        obs_hi = make_metacal_obs(psf,
-                                  pars_hi, 
-                                  self.fit_model,
-                                  noise_image,
-                                  obs_orig,
-                                  nsub)
-
-        imdict_lo = {'obs':obs_lo}
-        imdict_hi = {'obs':obs_hi}
-
-        return imdict_lo, imdict_hi
-
-    def fit_galaxy_lm_metacal(self, imdict):
+    def fit_galaxy_metacal(self, imdict, method='lm'):
         """
         Fit the model to the galaxy, and also calculate a sensitivity
         """
@@ -820,7 +878,14 @@ class NGMixSim(dict):
         mpars=self['metacal_pars']
 
         ntry=self['lm_ntry']
-        fitter=self.fit_galaxy_lm(imdict, ntry=ntry)
+        if method=='lm':
+            fmethod=self.fit_galaxy_lm
+        elif method=='em':
+            fmethod=self.fit_galaxy_em
+        else:
+            fmethod=self.fit_galaxy_nm
+
+        fitter=fmethod(imdict, ntry=ntry)
 
         res=fitter.get_result()
         if res['flags'] != 0:
@@ -829,11 +894,10 @@ class NGMixSim(dict):
         # might raise exception
         check_g(res['g'])
 
-        imdict_lo, imdict_hi = self.get_metacal_imdicts(imdict['obs'],
-                                                        pars2use)
+        imdict_lo, imdict_hi = self.get_metacal_imdicts(imdict, fitter)
 
-        fitter_lo=self.fit_galaxy_lm(imdict_lo, ntry=ntry)
-        fitter_hi=self.fit_galaxy_lm(imdict_hi, ntry=ntry)
+        fitter_lo=fmethod(imdict_lo, ntry=ntry)
+        fitter_hi=fmethod(imdict_hi, ntry=ntry)
 
         res_lo=fitter_lo.get_result()
         res_hi=fitter_hi.get_result()
@@ -856,6 +920,63 @@ class NGMixSim(dict):
 
         return fitter
 
+    def get_metacal_imdicts(self, imdict, fitter):
+
+        mpars=self['metacal_pars']
+        h=mpars['step']
+        pars2use=mpars['pars2use']
+
+        obs_orig=imdict['obs']
+
+        psf_gmix, pars, model, nsub=self.get_metacal_input(imdict,fitter,pars2use)
+
+        # only doing shear in g1 direction since that is what
+        # we usually have for sims. Can adapt later to real data
+        pars_lo=make_sheared_pars(pars, -h, 0.0)
+        pars_hi=make_sheared_pars(pars, +h, 0.0)
+
+        noise_image = imdict['nim']
+        #im=obs_orig.image
+        #noise_image = self.skysig*randn(im.size)
+        #noise_image = noise_image.reshape(im.shape)
+
+        obs_lo = make_metacal_obs(psf_gmix,
+                                  pars_lo, 
+                                  model,
+                                  noise_image,
+                                  obs_orig,
+                                  nsub)
+
+        obs_hi = make_metacal_obs(psf_gmix,
+                                  pars_hi, 
+                                  model,
+                                  noise_image,
+                                  obs_orig,
+                                  nsub)
+
+        imdict_lo = {'obs':obs_lo,'pars':pars_lo}
+        imdict_hi = {'obs':obs_hi,'pars':pars_hi}
+
+        return imdict_lo, imdict_hi
+
+    def get_metacal_input(self, imdict, fitter, pars2use):
+
+        if pars2use=='fit':
+            # render a sheared version of our fit, note nsub=1
+            psf=imdict['obs'].psf.gmix.copy()
+            pars=fitter.get_result()['pars'].copy()
+            model=self.fit_model
+            nsub=1
+        else:
+            # Use the original model but sheared differently.
+            # closer to what Eric suggests with data manipulations
+
+            psf=self.psf_gmix_true.copy()
+            pars=imdict['pars'].copy()
+            model=self.simc['obj_model']
+            nsub=self.nsub
+
+        return psf, pars, model, nsub
 
 
     def get_lm_guess(self, imdict):
@@ -885,9 +1006,9 @@ class NGMixSim(dict):
         elif 'nfev' in res:
             print('    try:',res['ntry'],'nfev:',res['nfev'],'s2n_w:',res['s2n_w'])
 
-        ngmix.fitting.print_pars(res['pars'],front='    pars: ')
-        ngmix.fitting.print_pars(res['pars_err'],front='    perr: ')
-        ngmix.fitting.print_pars(res['pars_true'], front='    true: ')
+        print_pars(res['pars'],front='    pars: ')
+        print_pars(res['pars_err'],front='    perr: ')
+        print_pars(res['pars_true'], front='    true: ')
 
     def make_psf(self):
         """
@@ -925,8 +1046,6 @@ class NGMixSim(dict):
 
         will set_gmix
         """
-        from ngmix.observation import Observation
-        from ngmix.gexceptions import GMixMaxIterEM
 
         image=obs.image
         imsky,sky=ngmix.em.prep_image(image)
@@ -1215,7 +1334,7 @@ class NGMixSim(dict):
             self.skysig=skysig
             self.ivar=1.0/skysig**2
 
-            imn=self.add_noise(im)
+            imn, noise_im =self.add_noise(im)
             s2n_numer = (imn*im*self.ivar).sum()
             s2n_denom = numpy.sqrt( (im**2*self.ivar).sum() )
             s2n_check = s2n_numer/s2n_denom
@@ -1238,8 +1357,8 @@ class NGMixSim(dict):
 
         im1_0 = obs1_0.image
         im2_0 = obs2_0.image
-        im1=self.add_noise(im1_0)
-        im2=self.add_noise(im2_0)
+        im1,nim1=self.add_noise(im1_0)
+        im2,nim2=self.add_noise(im2_0)
 
         wt=numpy.zeros(im1_0.shape) + self.ivar
 
@@ -1254,6 +1373,8 @@ class NGMixSim(dict):
 
         imdict['im1']['obs'] = obs1
         imdict['im2']['obs'] = obs2
+        imdict['im1']['nim'] = nim1
+        imdict['im2']['nim'] = nim2
 
         im1_s2n = self.get_model_s2n(im1_0)
         im2_s2n = self.get_model_s2n(im2_0)
@@ -1267,8 +1388,8 @@ class NGMixSim(dict):
         """
         Add gaussian random noise
         """
-
-        return im + self.skysig*randn(im.size).reshape(im.shape)
+        nim = self.skysig*randn(im.size).reshape(im.shape)
+        return im + nim, nim
 
     def choose_model(self):
         """
@@ -1325,10 +1446,14 @@ class NGMixSim(dict):
         
         out={'im1':{'pars':pars1,
                     'pars_noshear':p1_noshear,
-                    'gm_pre':gm1_pre,'gm':gm1,'obs0':obs1},
+                    'gm_pre':gm1_pre,
+                    'gm':gm1,
+                    'obs0':obs1},
              'im2':{'pars':pars2,
                     'pars_noshear':p2_noshear,
-                    'gm_pre':gm2_pre,'gm':gm2,'obs0':obs2}}
+                    'gm_pre':gm2_pre,
+                    'gm':gm2,
+                    'obs0':obs2}}
         return out
 
     def get_pair_pars(self, random=True):
@@ -1561,7 +1686,7 @@ class NGMixSim(dict):
            ]
 
         fitter=self['fitter']
-        if 'lm' in fitter:
+        if 'lm' in fitter or 'nm' in fitter or 'em' in fitter:
             dt += [('nfev','i4'),
                    ('ntry','i4')]
             if 'metacal' in fitter:
@@ -2243,7 +2368,7 @@ class NGMixSimISample(NGMixSim):
         mess="    tries: %d  nfev: %d"
         mess=mess % (itry,res['nfev'])
         print(mess)
-        ngmix.fitting.print_pars(pars, front='    max pars: ')
+        print_pars(pars, front='    max pars: ')
 
         if res['flags'] != 0:
             if perr is None:
@@ -2252,7 +2377,7 @@ class NGMixSimISample(NGMixSim):
                 print("    did not converge")
             raise TryAgainError("bad max fit")
 
-        ngmix.fitting.print_pars(perr, front='    max perr: ')
+        print_pars(perr, front='    max perr: ')
 
         self.maxlike_res=res
 
@@ -2322,9 +2447,9 @@ class NGMixSimISample(NGMixSim):
             mess = mess % (res['s2n_w'],res['ntry'],res['nfev'])
         print(mess)
 
-        ngmix.fitting.print_pars(res['pars'],      front='        pars: ')
-        ngmix.fitting.print_pars(res['pars_err'],  front='        perr: ')
-        ngmix.fitting.print_pars(res['pars_true'], front='        true: ')
+        print_pars(res['pars'],      front='        pars: ')
+        print_pars(res['pars_err'],  front='        perr: ')
+        print_pars(res['pars_true'], front='        true: ')
 
 
     def copy_to_output(self, res, i):
@@ -2447,7 +2572,7 @@ class NGMixSimISampleComposite(NGMixSimISample):
         mess="    tries: %d  nfev: %d"
         mess=mess % (itry,res['nfev'])
         print(mess)
-        ngmix.fitting.print_pars(pars, front='    max pars: ')
+        print_pars(pars, front='    max pars: ')
 
         if res['flags'] != 0:
             if perr is None:
@@ -2459,7 +2584,7 @@ class NGMixSimISampleComposite(NGMixSimISample):
         res['fracdev'] = fres['fracdev']
         res['fracdev_err'] = fres['fracdev_err']
 
-        ngmix.fitting.print_pars(perr, front='    max perr: ')
+        print_pars(perr, front='    max perr: ')
 
         self.maxlike_res=res
 
@@ -2743,11 +2868,13 @@ def make_sheared_pars(pars, shear_g1, shear_g2):
 
     return shpars
 
-def make_metacal_obs(psf, pars, model, noise_image, obs, nsub):
+def make_metacal_obs(psf_gmix, pars, model, noise_image, obs, nsub):
+    """
+    """
     from ngmix import Observation
 
     gm0=ngmix.GMixModel(pars, model)
-    gm=gm0.convolve(psf)
+    gm=gm0.convolve(psf_gmix)
 
     im = gm.make_image(obs.image.shape,
                        jacobian=obs.jacobian,

@@ -41,6 +41,7 @@ def combine_trials(run, is2n, allow_missing=False, allow_mismatch=False):
 
     with fitsio.FITS(tmpfile,mode="rw",clobber=True) as output:
 
+        first=True
         for isplit in xrange(nsplit):
             f=nsim.files.get_output_url(run, 0, is2n, itrial=isplit, fs=fs)
             if allow_missing and not os.path.exists(f):
@@ -58,8 +59,9 @@ def combine_trials(run, is2n, allow_missing=False, allow_mismatch=False):
             #    t=eu.numpy_util.add_fields(t, [('processed','i2')])
             #    t['processed']=1
 
-            if isplit == 0:
+            if first:
                 output.write(t)
+                first=False
             else:
                 output[-1].append(t)
 

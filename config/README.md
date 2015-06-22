@@ -695,6 +695,30 @@ older stuff
     - config/run-eg16rtest1.yaml
         -  nsub 1, why?
 
+    - config/run-eg04mcal01
+        - using true pars and nsub=16
+        - s/n=1000
+        - 0.66% error
+        - trying again with different lm pars
+            ftol: 1.0e-6
+            xtol: 1.0e-3
+            maxfev: 4000
+        - Same
+        - try no prior during
+            - same
+        - try guessing truth, random truth
+            - same
+        - try using fit instead of truth for metacal.  Just curious
+            - blew up!  why?
+        - run something stupid like em with no deconvolution?
+
+    - config/run-eg04mcal02
+        - s/n=25
+        - using true pars and nsub=16
+            - 1% error
+    - issue: on real data we only have the pixelized psf so how
+        does eric deal with that for convolution?
+
 
 # old shapesim stuff
 - nsim-eg01

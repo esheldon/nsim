@@ -1,9 +1,15 @@
-# using pqr for isamp
-run: "run-eg04mcal01"
-sim: "sim-eg04"
+# EM with no psf correction!
+# only works at all because we are not doing real metacal
+# which requires a reconvolve with a new psf so the 
+# method must provide pre-psf parameters
+#
+# This run has fairly large errors since we have
+# to use low shear.  Can run a larger sim later.
+#
+run: "run-eg17mcal04"
+sim: "sim-eg17"
 
 #fitter: "lm-metacal"
-#fitter: "nm-metacal"
 fitter: "em-metacal"
 fit_model: "exp"
 
@@ -35,21 +41,14 @@ lm_pars:
 #    ftol: 1.0e-6
 #    xtol: 1.0e-3
 #    maxfev: 4000
-nm_ntry: 5
-nm_pars:
-    maxiter: 4000
-    maxfev: 4000
-    ftol: 1.0e-3
-    xtol: 1.0e-3
 
-#
-#s2n_vals: [ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
-s2n_vals: [ 1000 ]
+s2n_vals: [ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
 
-desired_err: 5.0e-5
-desired_hours: 0.1
-# actually more like 0.6 on the faster machines
-sec_per_pair: 0.63
+# I actually got 6.3e-6 for requested 5.0e-6
+# so this should get fractional error 0.002
+desired_err: 1.6e-05
+desired_hours: 1.0
+sec_per_pair: 0.05
 npair_min: 40000
 
 verbose: True

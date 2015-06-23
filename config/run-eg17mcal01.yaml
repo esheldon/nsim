@@ -3,7 +3,6 @@ run: "run-eg17mcal01"
 sim: "sim-eg17"
 
 fitter: "lm-metacal"
-#fitter: "nm-metacal"
 fit_model: "exp"
 
 #guess_type: "draw_pdf"

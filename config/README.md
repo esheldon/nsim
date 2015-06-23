@@ -719,7 +719,7 @@ older stuff
     - issue: on real data we only have the pixelized psf so how
         does eric deal with that for convolution?
 
-    - ANZE points out this is estimator breaking down at high shear
+    - Anze points out this is estimator may be breaking down at high shear
     - sim-eg17
         - shear 0.01
         - big run: run-eg17mcal04.  frac error 0.002-0.004

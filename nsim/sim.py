@@ -935,10 +935,13 @@ class NGMixSim(dict):
         pars_lo=make_sheared_pars(pars, -h, 0.0)
         pars_hi=make_sheared_pars(pars, +h, 0.0)
 
-        noise_image = imdict['nim']
-        #im=obs_orig.image
-        #noise_image = self.skysig*randn(im.size)
-        #noise_image = noise_image.reshape(im.shape)
+        im=obs_orig.image
+
+        noise2use=mpars['noise2use']
+        if noise2use=='same':
+            noise_image = imdict['nim']
+        elif noise2use in ['same-sim','independent']:
+            noise_image = self.skysig*randn(im.size).reshape(im.shape)
 
         obs_lo = make_metacal_obs(psf_gmix,
                                   pars_lo, 
@@ -946,6 +949,9 @@ class NGMixSim(dict):
                                   noise_image,
                                   obs_orig,
                                   nsub)
+
+        if noise2use=='independent':
+            noise_image = self.skysig*randn(im.size).reshape(im.shape)
 
         obs_hi = make_metacal_obs(psf_gmix,
                                   pars_hi, 

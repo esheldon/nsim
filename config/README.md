@@ -724,6 +724,45 @@ older stuff
         - shear 0.01
         - big run: run-eg17mcal04.  frac error 0.002-0.004
 
+REAL METACAL
+--------------
+
+sim-eg17
+===========
+
+- run-eg17mcal04
+    - s/n=100
+    - works well
+
+sim-dg06
+===========
+
+- run-dg06mcal01
+    - s/n=100
+    - fit dev
+    - works
+
+- run-dg06mcal02
+    - s/n=100
+    - fit gauss
+    - ~1.4% bias
+    - putting sensitivity range [0.0, 2.0] results
+        in 0.0047 +/- 0.0058
+    - adding weights with SN=0.22 0.0092 +/- 0.0059
+    - both 0.003 +/- 0.0057
+
+- run-dg06mcal03
+    - s/n=100
+    - fit exp
+    - straight
+        0.0067 +/- 0.0027
+    - weights SN=0.22
+        0.0054 +/- 0.0027
+    - sens [0.0, 2.0] and weights
+        0.0022 +/- 0.0027
+
+
+
 # old shapesim stuff
 - nsim-eg01
     - exp, sigma ratio 2 (T ratio 4)

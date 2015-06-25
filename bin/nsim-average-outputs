@@ -98,7 +98,6 @@ def get_dtype(fobj, model, options):
                ('shearp','f8',2), 
                ('shearp_err','f8',2),
                ('shearp_cov','f8',(2,2))]
-    pprint(dt)
     return dt
 
 def get_chunk_info(nrows):
@@ -245,7 +244,7 @@ def get_weights(data,conf,type='noise'):
         #    SN=0.16
         #else:
         #    SN=0.0001
-        SN=0.16
+        SN=0.22
 
         print("using SN:",SN)
         denom = (
@@ -460,6 +459,13 @@ def select(conf, data):
     if 'avg_min_arate' in conf:
         print("    selecting arate >",conf['avg_min_arate'])
         logic = logic & (data['arate'] > conf['avg_min_arate'])
+        docut=True
+
+    if 'avg_sens_range' in conf:
+        sr=tuple(conf['avg_sens_range'])
+        print("    selecting sens [%g,%g]" % sr)
+        sens=data['g_sens'][:,0]
+        logic = logic & (sens > sr[0]) & (sens < sr[1])
         docut=True
 
     if 'avg_min_Ts2n' in conf:

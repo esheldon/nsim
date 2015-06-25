@@ -1,4 +1,4 @@
-# using pqr for isamp
+# using old ideal metacal
 run: "run-eg04mcal02"
 sim: "sim-eg04"
 

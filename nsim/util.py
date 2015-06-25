@@ -1,4 +1,5 @@
 from __future__ import print_function
+import os
 import numpy
 from numpy import exp, zeros, sqrt
 import ngmix
@@ -307,3 +308,50 @@ def get_true_shear(conf):
         shear=conf['shear']
 
     return shear
+
+
+def write_fits(filename, data):
+    """
+    Assume condor where cwd is scratch dir
+
+    Write to cwd assuming scratch the move the file.
+
+    The move may fail; it is retried a few times.
+    """
+    import fitsio
+    import time
+
+    output_file=os.path.abspath(filename)
+
+    local_file=os.path.abspath( os.path.basename(output_file) )
+    print("writing local file:",local_file)
+
+    with fitsio.FITS(local_file,'rw',clobber=True) as fobj:
+        fobj.write(data)
+
+    if local_file==output_file:
+        return True
+
+    # remove if it exists
+    try:
+        os.remove(output_file)
+    except:
+        pass
+
+    # try a few times
+    print("moving to:",output_file)
+    cmd='mv %s %s' % (local_file, output_file)
+    for i in xrange(5):
+        stat=os.system(cmd)
+        if stat==0:
+            print('success')
+            success=True
+            break
+        else:
+            print('error moving file, trying again')
+            time.sleep(5)
+            success=False
+
+    return success
+
+

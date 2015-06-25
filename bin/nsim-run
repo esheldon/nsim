@@ -78,7 +78,44 @@ def profile_sim_pycallgraph(sim_conf,run_conf,s2n,npairs,output_file,options):
         run_sim(sim_conf,run_conf,s2n,npairs,output_file,options)
 
 
-def run_sim(sim_conf,run_conf,s2n,npairs,output_file,options):
+def run_sim(sim_conf,
+            run_conf,
+            s2n,
+            npairs,
+            output_file,
+            options):
+    sim=nsim.sim.NGMixSim(sim_conf, s2n)
+
+    checkpoint_file, checkpoint_data=get_checkpoint_data(output_file)
+    plot_base=output_file.replace('.fits','')
+
+    kw=dict(checkpoint_file=checkpoint_file,
+            checkpoint_data=checkpoint_data,
+            make_plots=options.make_plots,
+            plot_base=plot_base)
+
+    ftype=run_conf['fitter']
+    if ftype=='max':
+        fitter=nsim.fitters.MaxFitter(sim, run_conf, npairs, **kw)
+    elif ftype=='metacal-max':
+        fitter=nsim.fitters.MaxMetacalFitter(sim, run_conf, npairs, **kw)
+    else:
+        raise RuntimeError("bad fitter: '%s'" % ftype)
+
+    fitter.go()
+
+    data=fitter.get_data()
+
+    success=nsim.util.write_fits(output_file, data)
+
+    if success:
+        cleanup_checkpoint(checkpoint_file)
+    else:
+        print('not removing checkpoint due to write failure')
+
+
+
+def run_sim_old(sim_conf,run_conf,s2n,npairs,output_file,options):
     """
     Run the sim and deal with checkpointing
 
@@ -88,38 +125,24 @@ def run_sim(sim_conf,run_conf,s2n,npairs,output_file,options):
     checkpoint_file, checkpoint_data=get_checkpoint_data(output_file)
     plot_base=output_file.replace('.fits','')
 
-    if 'joint_prior_type' in sim_conf:
-        raise RuntimeError("get this on the new system")
-        jptype=sim_conf['joint_prior_type']
-        if 'bdf' in jptype:
-            cls=nsim.sim.NGMixSimJointBDF
-        elif 'exp-hybrid' in jptype:
-            cls=nsim.sim.NGMixSimJointSimpleHybrid
-
-        sim=cls(sim_conf, run_conf, npairs,
-                checkpoint_file=checkpoint_file,
-                checkpoint_data=checkpoint_data,
-                make_plots=options.make_plots,
-                plot_base=plot_base)
-    else:
-        args=(sim_conf, run_conf, s2n, npairs)
-        kw=dict( checkpoint_file=checkpoint_file,
-                checkpoint_data=checkpoint_data,
-                make_plots=options.make_plots,
-                plot_base=plot_base)
-        if run_conf['fitter']=='pqrs-emcee':
-            sim=nsim.sim.NGMixSimPQRSMCMC(*args, **kw)
-        elif run_conf['fitter']=='covsample':
-            sim=nsim.sim.NGMixSimCovSample(*args, **kw)
-        elif run_conf['fitter']=='isample':
-            if run_conf['fit_model']=='composite':
-                sim=nsim.sim.NGMixSimISampleComposite(*args, **kw)
-            else:
-                sim=nsim.sim.NGMixSimISample(*args, **kw)
-        elif run_conf['fitter']=='isample-p':
-            sim=nsim.sim.NGMixSimISampleP(*args, **kw)
+    args=(sim_conf, run_conf, s2n, npairs)
+    kw=dict(checkpoint_file=checkpoint_file,
+            checkpoint_data=checkpoint_data,
+            make_plots=options.make_plots,
+            plot_base=plot_base)
+    if run_conf['fitter']=='pqrs-emcee':
+        sim=nsim.sim.NGMixSimPQRSMCMC(*args, **kw)
+    elif run_conf['fitter']=='covsample':
+        sim=nsim.sim.NGMixSimCovSample(*args, **kw)
+    elif run_conf['fitter']=='isample':
+        if run_conf['fit_model']=='composite':
+            sim=nsim.sim.NGMixSimISampleComposite(*args, **kw)
         else:
-            sim=nsim.sim.NGMixSim(*args, **kw)
+            sim=nsim.sim.NGMixSimISample(*args, **kw)
+    elif run_conf['fitter']=='isample-p':
+        sim=nsim.sim.NGMixSimISampleP(*args, **kw)
+    else:
+        sim=nsim.sim.NGMixSim(*args, **kw)
 
     sim.run_sim()
 

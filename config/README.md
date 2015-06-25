@@ -761,6 +761,28 @@ sim-dg06
     - sens [0.0, 2.0] and weights
         0.0022 +/- 0.0027
 
+- run-dg06mcal04
+    - s/n=50
+    - fit exp
+    - straight
+        0.027 +/- 0.0022
+    - weights SN=0.22
+        0.0054 +/- 0.0027
+    - sens [-0.5, 2.0]
+        0.019 +/- 0.0022
+    - sens [-0.25, 2.0] and weights
+        0.996 kept
+        0.0044 +/- 0.0021
+    - sens [-0.15, 2.0] and weights
+        0.993 kept
+        -0.0061 +/- 0.0022
+        
+
+    - sens [0.0, 2.0] and weights
+        0.95 kept
+        -0.032 +/- 0.0021
+     - sens [0.0, 2.0] no weights same
+    
 
 
 # old shapesim stuff

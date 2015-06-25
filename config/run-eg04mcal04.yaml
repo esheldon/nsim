@@ -52,4 +52,4 @@ npair_min: 40000
 # cuts to make when averaging
 #
 
-avg_sens_range: [0.0, 2.0]
+#avg_sens_range: [0.0, 2.0]

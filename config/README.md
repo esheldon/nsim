@@ -818,14 +818,34 @@ sim-dg06
     - sensitivity peaks at abot 0.8!
 
 - run-dg06mcalt01
-    - using full rendering of models
     - test run with exp fit
+    - s/n=100
+    - using full rendering of models
     - straight
         0.0047 +/- 0.0027
     - weighted
         0.0033 +/- 0.0027
+- run-dg06mcalt02
+    - fit exp
+    - s/n=50
+    - using full rendering of models
 
 - problems with dev
+    * my previous sims indicated need exact same noise for this to work well
+        - try whitening
+
+    * maybe it is the size of the stamp, or
+        boundary issues in the sim?
+        - psf stamp is very large
+        - maybe try trimming the stamp or psf?
+
+        - maybe it is the rendering clipping at 5 sigma?
+            - doing a run with full rendering; slower by factor of 2!
+
+    * maybe lm fitter not giving stable result or failing in a biased way?
+        - remove loosened pars?
+        - of course pure em fit failed too.
+
     - psf might be no longer a good fit to 1 gauss
         - no, see dg06mcal06
 
@@ -839,15 +859,6 @@ sim-dg06
     - try more stable fitting, e.g. em
         - not great, even at s/n=1000
         - bias -0.035
-    - try whitening
-    - maybe it is the size of the stamp, or
-        boundary issues in the sim?
-        - psf stamp is very large
-        - maybe try trimming the stamp or psf?
-
-        - maybe it is the rendering clipping at 5 sigma?
-            - doing a run with full rendering; slower by factor of 2!
-
 
 # old shapesim stuff
 - nsim-eg01

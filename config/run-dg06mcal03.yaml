@@ -42,7 +42,7 @@ metacal_pars:
 s2n_vals: [ 100 ]
 
 desired_err: 2.5e-5
-desired_hours: 0.4
+desired_hours: 0.25
 sec_per_pair: 0.27
 npair_min: 40000
 

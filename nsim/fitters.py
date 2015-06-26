@@ -89,7 +89,6 @@ class FitterBase(dict):
         """
         Create a simulated image pair and perform the fit
         """
-
         imdicts = self.sim.get_image_pair()
 
         print(imdicts['im1']['obs'].image.shape)
@@ -525,17 +524,19 @@ class MaxMetacalFitter(MaxFitter):
         mpars=self['metacal_pars']
 
         obs=imdict['obs']
-        fitter, psf_flux_res = self._do_one_fit(obs)
+        _, fitter, psf_flux_res = self._do_one_fit(obs)
         res=fitter.get_result()
 
-        g, g_sens = self._get_sensitivity(obs)
+        #pars, g_sens = self._get_sensitivity(obs)
+        pars, g_sens = self._get_sensitivity_avg(obs)
 
-        res['g'] = g
+        res['pars'] = pars
+        res['g'] = pars[2:2+2].copy()
         res['g_sens'] = g_sens
 
         return fitter, psf_flux_res
 
-    def _do_one_fit(self, obs):
+    def _do_one_fit(self, obs, guess=None, ntry=None):
         boot=ngmix.Bootstrapper(obs, use_logpars=self['use_logpars'])
 
         Tguess=self.sim['psf_T']
@@ -546,10 +547,13 @@ class MaxMetacalFitter(MaxFitter):
             raise TryAgainError("failed to fit psf")
 
         mconf=self['max_pars']
+        if ntry is None:
+            ntry=mconf['ntry']
         try:
             boot.fit_max(self['fit_model'],
                          mconf['pars'],
                          prior=self.prior,
+                         guess=guess,
                          ntry=mconf['ntry'])
 
             if mconf['pars']['method']=='lm':
@@ -560,29 +564,83 @@ class MaxMetacalFitter(MaxFitter):
         fitter=boot.get_max_fitter() 
         psf_flux_res = boot.get_psf_flux_result()
 
-        return fitter, psf_flux_res
+        return boot, fitter, psf_flux_res
+
+    def _get_sensitivity_avg(self, obs):
+        mpars=self['metacal_pars']
+
+        R_obs_1m, R_obs_1p = self._get_metacal_obslist(obs)
+
+        _, fitter_1m, _ = self._do_one_fit(R_obs_1m)
+        _, fitter_1p, _ = self._do_one_fit(R_obs_1p)
+
+        pars_1m=fitter_1m.get_result()['pars']
+        pars_1p=fitter_1p.get_result()['pars']
+        g_1m=pars_1m[2:2+2]
+        g_1p=pars_1p[2:2+2]
+
+        step=mpars['step']
+        g_sens1 = (g_1p[0] - g_1m[0])/(2*step)
+
+        g_sens = array( [g_sens1]*2 )
+        pars = 0.5*(pars_1m + pars_1p)
+
+        return pars, g_sens
+
 
     def _get_sensitivity(self, obs):
         mpars=self['metacal_pars']
 
-        R_obs_1m, R_obs_1p, R_obs_noshear = self._get_metacal_obslist(obs)
+        R_obs_1m, R_obs_1p, R_obs_noshear = self._get_metacal_obslist(obs,
+                                                                      get_noshear=True)
 
-        fitter_1m, _ = self._do_one_fit(R_obs_1m)
-        fitter_1p, _ = self._do_one_fit(R_obs_1p)
-        fitter_noshear, _ = self._do_one_fit(R_obs_noshear)
+        boot, fitter_noshear, _ = self._do_one_fit(R_obs_noshear)
+        pars_noshear=fitter_noshear.get_result()['pars'].copy()
+
+
+        _, fitter_1m, _ = self._do_one_fit(R_obs_1m,
+                                           guess=pars_noshear, ntry=1)
+        _, fitter_1p, _ = self._do_one_fit(R_obs_1p,
+                                           guess=pars_noshear, ntry=1)
 
         g_1m=fitter_1m.get_result()['pars'][2:2+2]
         g_1p=fitter_1p.get_result()['pars'][2:2+2]
-        g_noshear=fitter_noshear.get_result()['pars'][2:2+2]
+
+        step=mpars['step']
+        g_sens1 = (g_1p[0] - g_1m[0])/(2*step)
+
+        g_mean = 0.5*(g_1m + g_1p)
+        c = g_mean-pars_noshear[2:2+2]
+
+        print("    c: %g, %g" % tuple(c))
+
+        g_sens = array( [g_sens1]*2 )
+
+        return pars_noshear, g_sens
+
+    def _get_sensitivity_old(self, obs):
+        mpars=self['metacal_pars']
+
+        R_obs_1m, R_obs_1p, R_obs_noshear = self._get_metacal_obslist(obs,
+                                                                      get_noshear=True)
+
+        _, fitter_1m, _ = self._do_one_fit(R_obs_1m)
+        _, fitter_1p, _ = self._do_one_fit(R_obs_1p)
+        _, fitter_noshear, _ = self._do_one_fit(R_obs_noshear)
+
+        g_1m=fitter_1m.get_result()['pars'][2:2+2]
+        g_1p=fitter_1p.get_result()['pars'][2:2+2]
+        pars_noshear=fitter_noshear.get_result()['pars'].copy()
 
         step=mpars['step']
         g_sens1 = (g_1p[0] - g_1m[0])/(2*step)
 
         g_sens = array( [g_sens1]*2 )
 
-        return g_noshear, g_sens
+        return pars_noshear, g_sens
 
-    def _get_metacal_obslist(self, obs):
+
+    def _get_metacal_obslist(self, obs, get_noshear=False):
         from ngmix.metacal import Metacal
         from ngmix.shape import Shape
 
@@ -596,10 +654,13 @@ class MaxMetacalFitter(MaxFitter):
         #sh2m=Shape( 0.00, -sval )
         #sh2p=Shape( 0.00,  sval )
 
-        R_obs1m, R_obs_noshear = mc.get_obs_galshear(sh1m, get_unsheared=True)
         R_obs1p = mc.get_obs_galshear(sh1p)
-
-        return R_obs1m, R_obs1p, R_obs_noshear 
+        if get_noshear:
+            R_obs1m, R_obs_noshear = mc.get_obs_galshear(sh1m, get_unsheared=True)
+            return R_obs1m, R_obs1p, R_obs_noshear 
+        else:
+            R_obs1m = mc.get_obs_galshear(sh1m)
+            return R_obs1m, R_obs1p
 
     def _print_res(self,res):
         """
@@ -626,3 +687,125 @@ class MaxMetacalFitter(MaxFitter):
 
         d=self.data
         d['g_sens'][i] = res['g_sens']
+
+
+class EMMetacalFitter(MaxMetacalFitter):
+
+    def _do_one_fit(self, obs, guess=None, ntry=None):
+        from ngmix.em import GMixEM, prep_image
+        from ngmix.bootstrap import EMRunner
+
+        boot=None
+        psf_flux_res={'psf_flux':-9999.0,
+                      'psf_flux_err':9999.0}
+
+        if guess is not None:
+            fitter,ok = self._do_one_fit_with_guess(obs, guess)
+            if ok:
+                return boot, fitter, psf_flux_res
+
+        emconf = self['em_pars']
+        ngauss = emconf['ngauss']
+
+        if ntry is None:
+            ntry = emconf['ntry']
+ 
+        Tguess=self._get_Tguess(ngauss)
+        empars = emconf['pars']
+        runner=EMRunner(obs, Tguess, ngauss, empars)
+
+        runner.go(ntry=ntry)
+
+        fitter=runner.get_fitter()
+        res=fitter.get_result()
+        if res['flags'] != 0:
+            raise TryAgainError("em gal failed")
+
+        self._convert2pars(fitter)
+
+        return boot, fitter, psf_flux_res
+
+    def _do_one_fit_with_guess(self, obs, guess):
+        from ngmix.em import GMixEM, prep_image
+
+        image=obs.image
+        imsky,sky=prep_image(image)
+
+        sky_obs = Observation(imsky, jacobian=obs.jacobian)
+
+        fitter=GMixEM(sky_obs)
+
+        empars=self['em_pars']['pars']
+        tol=empars['tol']
+        maxiter=empars['maxiter']
+ 
+        fitter.go(guess, sky,
+                  tol=empars['tol'],
+                  maxiter=empars['maxiter'])
+
+        res=fitter.get_result()
+        res['ntry'] = 1
+        if res['flags']==0:
+            self._convert2pars(fitter)
+            ok=True
+        else:
+            ok=False
+
+        return fitter, ok
+
+    def _convert2pars(self, fitter):
+        """
+        convert em gauss to pars
+        """
+        gm=fitter.get_gmix()
+        pars=gm.get_full_pars()
+
+        T=pars[3]+pars[5]
+        e1 = (pars[5]-pars[3])/T
+        e2 = 2*pars[4]/T
+        g1,g2=e1,e2
+        #try:
+        #    g1,g2=ngmix.shape.e1e2_to_g1g2(e1,e2)
+        #except GMixRangeError:
+        #    raise TryAgainError("bad e1,e2")
+
+        tpars=array([pars[1],pars[2], g1, g2, T, 1.0])
+
+        res=fitter.get_result()
+        res['g']=array([g1,g2])
+        res['g_cov']=diag([9999.0,9999.0])
+        res['pars']=tpars
+        res['pars_err']=pars*0 + 9999.0
+        res['pars_cov']=diag(pars*0 + 9999)
+        res['s2n_w']=-9999.0
+        res['nfev']=res['numiter']
+
+    def _get_Tguess(self, ngauss):
+        """
+        Get the starting guess.
+        """
+        from .sim import srandu
+
+        pt=self.sim.psf_gmix_true
+        ngauss_true=len(pt)
+        if ngauss is None or ngauss==ngauss_true:
+            # we can just use the "truth" as a guess
+            Tguess=pt.get_T()*(1.0 + 0.1*srandu())
+        else:
+            # more generic guess
+            Tguess = pt.get_T()
+
+            if ngauss==2:
+                p1 = 0.6*(1.0 + 0.05*srandu() )
+                p2 = 0.4*(1.0 + 0.05*srandu() )
+                T1 = T*0.4*(1.0 + 0.1*srandu() )
+                T2 = T*0.6*(1.0 + 0.1*srandu() )
+
+                Tguess = (p1*T1 +p2*T2)/(p1+p2)
+
+            else: 
+                raise ValueError("support ngauss > 2")
+            
+        return Tguess
+
+

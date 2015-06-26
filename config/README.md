@@ -740,7 +740,10 @@ sim-dg06
 - run-dg06mcal01
     - s/n=100
     - fit dev
-    - works
+    - straight
+        -0.0046 +/- 0.0051
+    - weights
+        -0.0037 +/- 0.0051
 
 - run-dg06mcal02
     - s/n=100
@@ -777,12 +780,33 @@ sim-dg06
         0.993 kept
         -0.0061 +/- 0.0022
         
-
     - sens [0.0, 2.0] and weights
         0.95 kept
         -0.032 +/- 0.0021
-     - sens [0.0, 2.0] no weights same
-    
+    - sens [0.0, 2.0] no weights
+        same
+
+- run-dg06mcal06
+    - exp
+    - very high s/n 10000
+    - straight average
+        9.2e-05 +/- 0.00014
+    - sensitivity peaks at abot 0.8!
+
+- psf might be no longer a good fit to 1 gauss
+    - no, see dg06mcal06
+
+- try guessing fits from noshear fit
+    - the 50 might be narrower, but hard to tell. probably
+        not
+- try averaging fits to get g
+- try bigger step
+    - quick try at 0.02 looked same for s2n=10
+- try more stable fitting, e.g. em
+    - not great, even at s/n=1000
+    - bias -0.035
+- try whitening
+
 
 
 # old shapesim stuff

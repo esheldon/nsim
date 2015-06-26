@@ -748,6 +748,10 @@ sim-eg17
     - straight
         -0.0013 +/- 0.0031
 
+- run-eg17mcal10
+    - gauss fit
+    - s/n=25
+
 sim-dg06
 ===========
 

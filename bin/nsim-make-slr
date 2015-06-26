@@ -16,7 +16,7 @@ parser=OptionParser(__doc__)
 parser.add_option('--missing',action='store_true',
                   help='write slr job files for the missing files')
 
-parser.add_option('-w','--walltime',default='08:00',
+parser.add_option('-w','--walltime',default='04:00:00',
                   help='walltime for job, default %default')
 
 

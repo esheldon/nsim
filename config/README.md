@@ -759,6 +759,12 @@ sim-eg17
     - weights
         0.031 +/- 0.0031
 
+- run-eg17mcalt02
+    - exp fit
+    - full rendering
+    - s/n=25
+
+
 sim-dg06
 ===========
 

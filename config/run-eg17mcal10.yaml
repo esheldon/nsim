@@ -43,9 +43,8 @@ metacal_pars:
 s2n_vals: [ 25 ]
 
 desired_err: 2.5e-5
-desired_hours: 1.1
-# actually more like 0.6 on the faster machines
-sec_per_pair: 0.13
+desired_hours: 0.5
+sec_per_pair: 0.11
 npair_min: 40000
 
 verbose: True

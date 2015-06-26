@@ -817,6 +817,14 @@ sim-dg06
         9.2e-05 +/- 0.00014
     - sensitivity peaks at abot 0.8!
 
+- run-dg06mcalt01
+    - using full rendering of models
+    - test run with exp fit
+    - straight
+        0.0047 +/- 0.0027
+    - weighted
+        0.0033 +/- 0.0027
+
 - problems with dev
     - psf might be no longer a good fit to 1 gauss
         - no, see dg06mcal06

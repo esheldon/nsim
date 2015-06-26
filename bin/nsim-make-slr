@@ -66,11 +66,13 @@ function runsim {
     return $status
 }
 
-
 s2n=$1
 npair=$2
 output=$3
 logfile=$4
+
+. ~/.bashrc
+. ~/nsim-setup.sh
 
 run=%(run)s
 

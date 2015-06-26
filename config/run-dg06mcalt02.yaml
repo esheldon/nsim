@@ -43,15 +43,15 @@ metacal_pars:
 s2n_vals: [ 50 ]
 
 desired_err: 2.5e-5
-desired_hours: 0.2
+desired_hours: 1.0
 # on comet
 # slower rendering
-sec_per_pair: 0.23
+#sec_per_pair: 0.23
 # faster rendering
 #sec_per_pair: 0.11
 
 # on astro slower rendering
-#sec_per_pair: 0.55
+sec_per_pair: 0.55
 
 npair_min: 40000
 

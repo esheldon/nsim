@@ -19,6 +19,9 @@ parser.add_option('--missing',action='store_true',
 parser.add_option('-w','--walltime',default='04:00:00',
                   help='walltime for job, default %default')
 
+parser.add_option('--project',default='bnl100',
+                  help='project to charg %default')
+
 
 
 MAXTIME_HOURS=3.0
@@ -34,6 +37,7 @@ _slr_template="""#!/bin/bash
 #SBATCH -o %(job_name)s.out
 #SBATCH -t %(walltime)s
 #SBATCH --export=ALL
+#SBATCH -A %(project)s
 
 echo "working on host: $(hostname)"
 
@@ -71,8 +75,8 @@ npair=$2
 output=$3
 logfile=$4
 
-. ~/.bashrc
-. ~/nsim-setup.sh
+#. ~/.bashrc
+#. ~/nsim-setup.sh
 
 run=%(run)s
 
@@ -190,6 +194,7 @@ def write_slr_files(c, master_script, equal_time=False, missing=False):
                 job_name='%s-%03d-%05d' % (overall_name,is2n,isplit)
                 qdata=_slr_template % dict(master_script=master_script,
                                            walltime=c['walltime'],
+                                           project=c['project'],
                                            s2n=s2n,
                                            npair=npair,
                                            output=output,
@@ -225,6 +230,7 @@ def main():
     c['simc'] = nsim.files.read_config(c['sim'])
     c['command'] = get_command()
     c['walltime'] = options.walltime
+    c['project'] = options.project
 
     make_some_dirs(run)
     master_script=write_master(c)

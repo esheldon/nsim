@@ -753,6 +753,11 @@ sim-eg17
     - s/n=25
     - straight
         0.054 +/- 0.0031
+    - re-running with full rendering
+    - straight
+        0.049 +/- 0.0033
+    - weights
+        0.031 +/- 0.0031
 
 sim-dg06
 ===========

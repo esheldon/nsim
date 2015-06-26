@@ -5,7 +5,7 @@ sim: "sim-eg17"
 fitter: "metacal-max"
 fit_model: "exp"
 
-g_prior_during: true
+g_prior_during: True
 use_logpars: True
 
 priors:

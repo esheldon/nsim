@@ -255,6 +255,16 @@ def get_weights(data,conf,type='noise'):
         )
         wts = 1.0/denom
 
+    elif type=='nosn':
+        print("using SN:",0)
+        denom = (
+            + data['g_cov'][:,0,0]
+            + 2*data['g_cov'][:,0,1]
+            + data['g_cov'][:,1,1]
+        )
+        wts = 1.0/denom
+
+
     elif type=='Ts2n':
         print("using Ts2n weighting")
         if conf['use_logpars']:

@@ -730,9 +730,23 @@ REAL METACAL
 sim-eg17
 ===========
 
-- run-eg17mcal04
+- run-eg17mcal07
     - s/n=100
-    - works well
+    - straight
+         0.0035 +/- 0.0066
+
+- run-eg17mcal08
+    - s/n=100
+    - from dg06mcal01 rerun, wonder if something has gone wrong
+    - also more stats
+    - straight average
+        0.00078 +/- 0.0031
+
+- run-eg17mcal09
+    - fitting gauss
+    - s/n=100
+    - straight
+        -0.0013 +/- 0.0031
 
 sim-dg06
 ===========
@@ -744,6 +758,10 @@ sim-dg06
         -0.0046 +/- 0.0051
     - weights
         -0.0037 +/- 0.0051
+    - did new run with more stats
+    - straight
+        0.0054 +/- 0.0025
+    - that's a big swing... something wrong?
 
 - run-dg06mcal02
     - s/n=100
@@ -800,6 +818,7 @@ sim-dg06
     - the 50 might be narrower, but hard to tell. probably
         not
 - try averaging fits to get g
+    - checked c, looks consistent with zero
 - try bigger step
     - quick try at 0.02 looked same for s2n=10
 - try more stable fitting, e.g. em

@@ -763,7 +763,14 @@ sim-eg17
     - exp fit
     - full rendering
     - s/n=25
+    - straight
+        0.048 +/- 0.0032
+    - weighted
+         0.037 +/- 0.0031
 
+    - very similar to when fitting a gaussian. I think this indicates the
+        problem is just related to the noise not being identical for the
+        different images
 
 sim-dg06
 ===========

@@ -751,6 +751,8 @@ sim-eg17
 - run-eg17mcal10
     - gauss fit
     - s/n=25
+    - straight
+        0.054 +/- 0.0031
 
 sim-dg06
 ===========
@@ -815,21 +817,28 @@ sim-dg06
         9.2e-05 +/- 0.00014
     - sensitivity peaks at abot 0.8!
 
-- psf might be no longer a good fit to 1 gauss
-    - no, see dg06mcal06
+- problems with dev
+    - psf might be no longer a good fit to 1 gauss
+        - no, see dg06mcal06
 
-- try guessing fits from noshear fit
-    - the 50 might be narrower, but hard to tell. probably
-        not
-- try averaging fits to get g
-    - checked c, looks consistent with zero
-- try bigger step
-    - quick try at 0.02 looked same for s2n=10
-- try more stable fitting, e.g. em
-    - not great, even at s/n=1000
-    - bias -0.035
-- try whitening
+    - try guessing fits from noshear fit
+        - the 50 might be narrower, but hard to tell. probably
+            not
+    - try averaging fits to get g
+        - checked c, looks consistent with zero
+    - try bigger step
+        - quick try at 0.02 looked same for s2n=10
+    - try more stable fitting, e.g. em
+        - not great, even at s/n=1000
+        - bias -0.035
+    - try whitening
+    - maybe it is the size of the stamp, or
+        boundary issues in the sim?
+        - psf stamp is very large
+        - maybe try trimming the stamp or psf?
 
+        - maybe it is the rendering clipping at 5 sigma?
+            - doing a run with full rendering; slower by factor of 2!
 
 
 # old shapesim stuff

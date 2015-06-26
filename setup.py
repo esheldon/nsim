@@ -10,6 +10,7 @@ scripts=['nsim-average-outputs',
          'nsim-make-condor',
          'nsim-make-wq',
          'nsim-make-lsf',
+         'nsim-make-slr',
          'nsim-plot',
          'nsim-make-paper-plots',
          'nsim-run']

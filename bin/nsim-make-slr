@@ -1,0 +1,232 @@
+#!/usr/bin/env python
+"""
+    %prog run
+"""
+from __future__ import print_function
+import sys
+import os
+from math import ceil
+import numpy
+
+import nsim
+
+from optparse import OptionParser
+parser=OptionParser(__doc__)
+
+parser.add_option('--missing',action='store_true',
+                  help='write slr job files for the missing files')
+
+parser.add_option('-w','--walltime',default='08:00',
+                  help='walltime for job, default %default')
+
+
+
+MAXTIME_HOURS=3.0
+
+
+
+_slr_template="""#!/bin/bash
+#SBATCH -p shared
+#SBATCH -J %(job_name)s
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --mem=200M
+#SBATCH -o %(job_name)s.out
+#SBATCH -t %(walltime)s
+#SBATCH --export=ALL
+
+echo "working on host: $(hostname)"
+
+command=%(master_script)s
+s2n=%(s2n)s
+npair=%(npair)s
+output="%(output)s"
+logfile="%(logfile)s"
+
+${command} ${s2n} ${npair} ${output} ${logfile}
+"""
+
+
+
+_master_template="""#!/bin/bash
+function runsim {
+    echo "host: $(hostname)"
+    echo "will write to file: $output"
+
+    command=%(command)s
+    ${command} ${run} ${s2n} ${npair} ${output}
+    status=$?
+
+    echo "time: $SECONDS"
+
+    if [[ $status != "0" ]]; then
+        echo "error running sim: $status"
+    fi
+
+    return $status
+}
+
+
+s2n=$1
+npair=$2
+output=$3
+logfile=$4
+
+run=%(run)s
+
+export TMPDIR=/scratch/$USER/$SLURM_JOB_ID
+echo "cd $TMPDIR"
+cd $TMPDIR
+
+tmplog=$(basename $logfile)
+
+runsim &> ${tmplog}
+status=$?
+
+echo "moving log file ${tmplog} -> ${logfile}" >> ${tmplog}
+
+# errors go to the jobs stderr
+mv -fv "${tmplog}" "${logfile}" 1>&2
+status2=$?
+
+if [[ $status2 != "0" ]]; then
+    # this error message will go to main error file
+    echo "error ${status2} moving log to: ${logfile}" 1>&2
+
+    status=$status2
+fi
+
+cd $HOME
+
+exit $status
+"""
+
+
+def get_seconds_per_pair(c):
+    """
+    Boosting this for the slowest machines
+    """
+
+    return c['sec_per_pair']
+
+def write_master(c):
+    master_url=nsim.files.get_slr_master_url(c['run'])
+    d=os.path.dirname(master_url)
+    if not os.path.exists(d):
+        os.makedirs(d)
+
+    print(master_url)
+    with open(master_url,'w') as fobj:
+        fobj.write(_master_template % c)
+    print()
+
+    os.system('chmod 755 %s' % master_url)
+    return master_url
+
+def make_some_dirs(run):
+    d = nsim.files.get_slr_dir(run)
+    outd = nsim.files.get_output_dir(run, sub='bytrial')
+
+    if not os.path.exists(d):
+        os.makedirs(d)
+
+    if not os.path.exists(outd):
+        os.makedirs(outd)
+
+def write_slr_files(c, master_script, equal_time=False, missing=False):
+    run=c['run']
+    overall_name = '-'.join( (run.split('-'))[1:] )
+
+    if missing:
+        overall_name += 'missing'
+
+    npair_min=c.get('npair_min',None)
+
+    ns2n=len(c['s2n_vals'])
+    seconds_per=get_seconds_per_pair(c)
+    print('seconds per:',seconds_per)
+
+    tmsec = c['desired_hours']*3600.0
+
+    if 'desired_err' in c:
+        do_by_noise=True
+    else:
+        do_by_noise=False
+
+    njobs=0
+    npair_tot=0
+
+    old_filenum=-1
+    filenum=0
+
+    for is2n in xrange(ns2n):
+
+        s2n=c['s2n_vals'][is2n]
+
+        npair, nsplit = nsim.files.get_npair_nsplit(c, is2n, npair_min=npair_min)
+
+        time_hours = npair*seconds_per/3600.0
+        print('    nsplit:',nsplit,'npair:',npair,'time (hours):',time_hours)
+
+        for isplit in xrange(nsplit):
+            npair_tot += npair
+            output = nsim.files.get_output_url(run, 0, is2n, itrial=isplit)
+            do_write=True
+            if missing and os.path.exists(output):
+                do_write=False
+
+            if do_write:
+                
+                logfile = output.replace('.fits','.log')
+
+                slr_job_url=nsim.files.get_slr_job_url(run,
+                                                     filenum,
+                                                     missing=missing)
+
+
+
+                job_name='%s-%03d-%05d' % (overall_name,is2n,isplit)
+                qdata=_slr_template % dict(master_script=master_script,
+                                           walltime=c['walltime'],
+                                           s2n=s2n,
+                                           npair=npair,
+                                           output=output,
+                                           logfile=logfile,
+                                           job_name=job_name)
+
+
+                with open(slr_job_url,'w') as fobj:
+                    fobj.write(qdata)
+                njobs += 1
+                filenum += 1
+
+
+    print('total jobs: ',njobs)
+    print('total pairs:',npair_tot)
+
+def get_command():
+    dir=os.environ['NSIM_DIR']
+    cmd = os.path.join(dir, 'bin/nsim-run')
+    return cmd
+
+def main():
+    options,args = parser.parse_args(sys.argv[1:])
+
+    if len(args) < 1:
+        parser.print_help()
+        sys.exit(45)
+
+    run=args[0]
+
+
+    c = nsim.files.read_config(run)
+    c['simc'] = nsim.files.read_config(c['sim'])
+    c['command'] = get_command()
+    c['walltime'] = options.walltime
+
+    make_some_dirs(run)
+    master_script=write_master(c)
+
+    write_slr_files(c, master_script, missing=options.missing)
+
+main()

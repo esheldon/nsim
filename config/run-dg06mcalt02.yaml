@@ -57,4 +57,4 @@ npair_min: 40000
 
 verbose: True
 
-#avg_sens_range: [0.0, 2.0]
+avg_sens_range: [0.0, 2.0]

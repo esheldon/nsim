@@ -829,6 +829,11 @@ sim-dg06
     - fit exp
     - s/n=50
     - using full rendering of models
+    - straight
+        0.023 +/- 0.0026
+    - with weights
+        0.021 +/- 0.0027
+
 
 - problems with dev
     * my previous sims indicated need exact same noise for this to work well

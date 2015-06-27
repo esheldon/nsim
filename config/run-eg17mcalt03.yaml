@@ -1,5 +1,6 @@
 # new real metacal
-run: "run-eg17mcalt02"
+# whitening
+run: "run-eg17mcalt03"
 sim: "sim-eg17"
 
 fitter: "metacal-max"
@@ -37,6 +38,7 @@ max_pars:
 
 metacal_pars:
     step: 0.01
+    whiten: True
 
 #s2n_vals: [ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
 s2n_vals: [ 25 ]

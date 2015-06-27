@@ -536,6 +536,11 @@ class MaxMetacalFitter(MaxFitter):
 
         return fitter, psf_flux_res
 
+    def _setup(self, run_conf, **keys):
+        super(MaxMetacalFitter,self)._setup(run_conf, **keys)
+        mpars=self['metacal_pars']
+        mpars['whiten']=mpars.get('whiten',False)
+
     def _do_one_fit(self, obs, guess=None, ntry=None):
         boot=ngmix.Bootstrapper(obs, use_logpars=self['use_logpars'])
 
@@ -646,7 +651,7 @@ class MaxMetacalFitter(MaxFitter):
 
         mpars=self['metacal_pars']
 
-        mc=Metacal(obs)
+        mc=Metacal(obs, whiten=mpars['whiten'])
 
         sval=mpars['step']
         sh1m=Shape(-sval,  0.00 )

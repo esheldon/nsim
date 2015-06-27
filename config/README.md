@@ -772,6 +772,10 @@ sim-eg17
         problem is just related to the noise not being identical for the
         different images
 
+- run-eg17mcalt03
+    - exp fit
+    - whitening
+
 sim-dg06
 ===========
 

@@ -856,8 +856,21 @@ sim-dg06
     - with weights
         0.021 +/- 0.0027
 
+- run-dg06mcalt03
+    - fit exp
+    - s/n=50
+    - back to trying unsheared, just to see difference with 02
+        0.029 +/- 0.0027
 
 - problems with dev
+    * would isample be more stable?
+    * fit with N gauss, render scene and deconvolve, reconvolve to 
+        measure synthetic response?
+    * easy version: exp fitting exp, residual should be noise.
+        render full model no pixelization, deconv and reconv. 
+        and add residual back to both, do fits
+    - is using mean of +/- a problem? no
+
     * my previous sims indicated need exact same noise for this to work well
         - try whitening
 

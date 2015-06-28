@@ -38,6 +38,7 @@ max_pars:
 
 metacal_pars:
     step: 0.01
+    mean_from: "avg"
 
 #s2n_vals: [ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
 s2n_vals: [ 50 ]

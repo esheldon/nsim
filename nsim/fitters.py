@@ -527,8 +527,10 @@ class MaxMetacalFitter(MaxFitter):
         _, fitter, psf_flux_res = self._do_one_fit(obs)
         res=fitter.get_result()
 
-        #pars, g_sens = self._get_sensitivity(obs)
-        pars, g_sens = self._get_sensitivity_avg(obs)
+        if mpars['mean_from']=='avg':
+            pars, g_sens = self._get_sensitivity_avg(obs)
+        else:
+            pars, g_sens = self._get_sensitivity_unsheared(obs)
 
         res['pars'] = pars
         res['g'] = pars[2:2+2].copy()
@@ -594,11 +596,11 @@ class MaxMetacalFitter(MaxFitter):
         return pars, g_sens
 
 
-    def _get_sensitivity(self, obs):
+    def _get_sensitivity_unsheared(self, obs):
         mpars=self['metacal_pars']
 
-        R_obs_1m, R_obs_1p, R_obs_noshear = self._get_metacal_obslist(obs,
-                                                                      get_noshear=True)
+        R_obs_1m, R_obs_1p, R_obs_noshear = \
+                self._get_metacal_obslist(obs, get_noshear=True)
 
         boot, fitter_noshear, _ = self._do_one_fit(R_obs_noshear)
         pars_noshear=fitter_noshear.get_result()['pars'].copy()
@@ -618,7 +620,7 @@ class MaxMetacalFitter(MaxFitter):
         g_mean = 0.5*(g_1m + g_1p)
         c = g_mean-pars_noshear[2:2+2]
 
-        print("    c: %g, %g" % tuple(c))
+        print("    c: %g %g" % tuple(c))
 
         g_sens = array( [g_sens1]*2 )
 
@@ -652,7 +654,8 @@ class MaxMetacalFitter(MaxFitter):
 
         mpars=self['metacal_pars']
 
-        mc=Metacal(obs, whiten=mpars['whiten'],
+        mc=Metacal(obs,
+                   whiten=mpars['whiten'],
                    same_seed=mpars['same_seed'])
 
         sval=mpars['step']
@@ -660,6 +663,7 @@ class MaxMetacalFitter(MaxFitter):
         sh1p=Shape( sval,  0.00 )
         #sh2m=Shape( 0.00, -sval )
         #sh2p=Shape( 0.00,  sval )
+
 
         R_obs1p = mc.get_obs_galshear(sh1p)
         if get_noshear:

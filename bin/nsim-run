@@ -99,6 +99,8 @@ def run_sim(sim_conf,
         fitter=nsim.fitters.MaxFitter(sim, run_conf, npairs, **kw)
     elif ftype=='metacal-max':
         fitter=nsim.fitters.MaxMetacalFitter(sim, run_conf, npairs, **kw)
+    elif ftype=='metacal-isample':
+        fitter=nsim.fitters.ISampleMetacalFitter(sim, run_conf, npairs, **kw)
     elif ftype=='metacal-em':
         fitter=nsim.fitters.EMMetacalFitter(sim, run_conf, npairs, **kw)
     else:

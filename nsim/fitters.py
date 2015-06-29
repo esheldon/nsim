@@ -451,7 +451,7 @@ class MaxFitter(SimpleFitterBase):
         if 'nfev' in res:
             mess="    s2n_w: %.1f  ntry: %d  nfev: %d"
             mess = mess % (res['s2n_w'],res['ntry'],res['nfev'])
-        print(mess)
+            print(mess)
 
         print_pars(res['pars'],      front='        pars: ')
         print_pars(res['pars_err'],  front='        perr: ')
@@ -524,8 +524,7 @@ class MaxMetacalFitter(MaxFitter):
         mpars=self['metacal_pars']
 
         obs=imdict['obs']
-        _, fitter, psf_flux_res = self._do_one_fit(obs)
-        res=fitter.get_result()
+        res, psf_flux_res, fitter = self._do_one_fit(obs, get_fitter=True)
 
         if mpars['mean_from']=='avg':
             pars, g_sens = self._get_sensitivity_avg(obs)
@@ -544,7 +543,8 @@ class MaxMetacalFitter(MaxFitter):
         mpars['whiten']=mpars.get('whiten',False)
         mpars['same_seed']=mpars.get('same_seed',False)
 
-    def _do_one_fit(self, obs, guess=None, ntry=None):
+    def _do_one_fit(self, obs, guess=None, ntry=None,
+                    get_boot=False, get_fitter=False):
         boot=ngmix.Bootstrapper(obs, use_logpars=self['use_logpars'])
 
         Tguess=self.sim['psf_T']
@@ -570,20 +570,26 @@ class MaxMetacalFitter(MaxFitter):
             raise TryAgainError("failed to fit galaxy")
 
         fitter=boot.get_max_fitter() 
+        res=fitter.get_result()
         psf_flux_res = boot.get_psf_flux_result()
 
-        return boot, fitter, psf_flux_res
+        if get_fitter:
+            return res, psf_flux_res, fitter
+        elif get_boot:
+            return res, psf_flux_res, boot
+        else:
+            return res, psf_flux_res
 
     def _get_sensitivity_avg(self, obs):
         mpars=self['metacal_pars']
 
         R_obs_1m, R_obs_1p = self._get_metacal_obslist(obs)
 
-        _, fitter_1m, _ = self._do_one_fit(R_obs_1m)
-        _, fitter_1p, _ = self._do_one_fit(R_obs_1p)
+        res_1m, _ = self._do_one_fit(R_obs_1m)
+        res_1p, _ = self._do_one_fit(R_obs_1p)
 
-        pars_1m=fitter_1m.get_result()['pars']
-        pars_1p=fitter_1p.get_result()['pars']
+        pars_1m=res_1m['pars']
+        pars_1p=res_1p['pars']
         g_1m=pars_1m[2:2+2]
         g_1p=pars_1p[2:2+2]
 
@@ -602,17 +608,17 @@ class MaxMetacalFitter(MaxFitter):
         R_obs_1m, R_obs_1p, R_obs_noshear = \
                 self._get_metacal_obslist(obs, get_noshear=True)
 
-        boot, fitter_noshear, _ = self._do_one_fit(R_obs_noshear)
-        pars_noshear=fitter_noshear.get_result()['pars'].copy()
+        res_noshear, _ = self._do_one_fit(R_obs_noshear)
+        pars_noshear=res_noshear['pars'].copy()
 
 
-        _, fitter_1m, _ = self._do_one_fit(R_obs_1m,
+        res_1m, _ = self._do_one_fit(R_obs_1m,
                                            guess=pars_noshear, ntry=1)
-        _, fitter_1p, _ = self._do_one_fit(R_obs_1p,
+        res_1p, _ = self._do_one_fit(R_obs_1p,
                                            guess=pars_noshear, ntry=1)
 
-        g_1m=fitter_1m.get_result()['pars'][2:2+2]
-        g_1p=fitter_1p.get_result()['pars'][2:2+2]
+        g_1m=res_1m['pars'][2:2+2]
+        g_1p=res_1p['pars'][2:2+2]
 
         step=mpars['step']
         g_sens1 = (g_1p[0] - g_1m[0])/(2*step)
@@ -625,28 +631,6 @@ class MaxMetacalFitter(MaxFitter):
         g_sens = array( [g_sens1]*2 )
 
         return pars_noshear, g_sens
-
-    def _get_sensitivity_old(self, obs):
-        mpars=self['metacal_pars']
-
-        R_obs_1m, R_obs_1p, R_obs_noshear = self._get_metacal_obslist(obs,
-                                                                      get_noshear=True)
-
-        _, fitter_1m, _ = self._do_one_fit(R_obs_1m)
-        _, fitter_1p, _ = self._do_one_fit(R_obs_1p)
-        _, fitter_noshear, _ = self._do_one_fit(R_obs_noshear)
-
-        g_1m=fitter_1m.get_result()['pars'][2:2+2]
-        g_1p=fitter_1p.get_result()['pars'][2:2+2]
-        pars_noshear=fitter_noshear.get_result()['pars'].copy()
-
-        step=mpars['step']
-        g_sens1 = (g_1p[0] - g_1m[0])/(2*step)
-
-        g_sens = array( [g_sens1]*2 )
-
-        return pars_noshear, g_sens
-
 
     def _get_metacal_obslist(self, obs, get_noshear=False):
         from ngmix.metacal import Metacal
@@ -699,6 +683,95 @@ class MaxMetacalFitter(MaxFitter):
         d=self.data
         d['g_sens'][i] = res['g_sens']
 
+
+class ISampleMetacalFitter(MaxMetacalFitter):
+    def _dofit(self, imdict):
+        """
+        Fit according to the requested method
+        """
+        mpars=self['metacal_pars']
+
+        obs=imdict['obs']
+
+        # we want to create a sampler and covariance matrix
+        # then fit the +/- shears using the same samples
+        print("    Doing main fit")
+        res, sampler, psf_flux_res = self._do_main_fit(obs)
+
+        assert mpars['mean_from'] in ['orig','avg'],"avg or orig for now"
+        print("    getting sens")
+        pars, g_sens = self._get_sensitivity_avg(obs)
+
+        res['pars'] = pars
+
+        if mpars['mean_from'] != 'orig':
+            res['g'] = pars[2:2+2].copy()
+        else:
+            print("    using orig g")
+        res['g_sens'] = g_sens
+
+        # reset result
+        sampler._result=res
+        return sampler, psf_flux_res
+
+    def _do_main_fit(self, obs, ntry=None):
+        mconf=self['max_pars']
+        if ntry is None:
+            ntry=mconf['ntry']
+
+        # this does the max like fit only
+        res,psf_flux_res, boot= \
+                super(ISampleMetacalFitter,self)._do_one_fit(obs,
+                                                             ntry=ntry,
+                                                             get_boot=True)
+
+
+        ipars=self['isample_pars']
+
+        try:
+            boot.isample(ipars, prior=self.prior)
+        except BootGalFailure:
+            raise TryAgainError("failed to isample galaxy")
+
+        self.boot=boot
+
+        sampler=boot.get_isampler()
+
+        maxres=boot.get_max_fitter().get_result()
+        res['model'] = maxres['model']
+        res['s2n_w'] = maxres['s2n_w']
+
+
+        return res, sampler, psf_flux_res
+
+    def _do_one_fit(self, obs, ntry=None):
+        """
+        re-use sampler and samples
+
+        use the max fitter with new observation set
+        """
+
+        mconf=self['max_pars']
+        if ntry is None:
+            ntry=mconf['ntry']
+
+        # just want to fit the psfs and get a maxlike fitter object
+        _, _, tboot = \
+                super(ISampleMetacalFitter,self)._do_one_fit(obs,
+                                                             ntry=ntry,
+                                                             get_boot=True)
+
+        print("    re-using samples")
+
+        max_fitter=tboot.get_max_fitter()
+
+        sampler=self.boot.get_isampler()
+        sampler.set_iweights(max_fitter.calc_lnprob)
+        sampler.calc_result()
+
+        res=sampler.get_result()
+
+        return res, None
 
 class EMMetacalFitter(MaxMetacalFitter):
 

@@ -862,6 +862,24 @@ sim-dg06
     - back to trying unsheared, just to see difference with 02
         0.029 +/- 0.0027
 
+- run-dg06mcalt04
+    - fit exp
+    - isample
+    - s/n=50
+    - straight
+        0.022 +/- 0.0028
+
+- run-dg06mcalt04
+    - fit exp
+    - isample
+    - s/n=50
+    - using original fit shape
+    - straight
+        0.013 +/- 0.0027
+    - weights
+        0.011 +/- 0.0027
+
+
 - problems with dev
     * would isample be more stable?
     * fit with N gauss, render scene and deconvolve, reconvolve to 

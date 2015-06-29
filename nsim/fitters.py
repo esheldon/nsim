@@ -16,6 +16,7 @@ from ngmix.fitting import print_pars
 from ngmix.gexceptions import GMixRangeError
 from ngmix.observation import Observation
 from ngmix.gexceptions import GMixMaxIterEM
+from ngmix.shape import Shape
 
 from ngmix.gexceptions import BootPSFFailure, BootGalFailure
 
@@ -526,13 +527,19 @@ class MaxMetacalFitter(MaxFitter):
         obs=imdict['obs']
         res, psf_flux_res, fitter = self._do_one_fit(obs, get_fitter=True)
 
+        self.fitter=fitter
+
         if mpars['mean_from']=='avg':
             pars, g_sens = self._get_sensitivity_avg(obs)
         else:
-            pars, g_sens = self._get_sensitivity_unsheared(obs)
+            pars, g_sens = self._get_sensitivity(obs)
 
-        res['pars'] = pars
-        res['g'] = pars[2:2+2].copy()
+        if mpars['mean_from'] != 'orig':
+            res['pars'] = pars
+            res['g'] = pars[2:2+2].copy()
+        else:
+            print("    using orig g")
+
         res['g_sens'] = g_sens
 
         return fitter, psf_flux_res
@@ -602,7 +609,7 @@ class MaxMetacalFitter(MaxFitter):
         return pars, g_sens
 
 
-    def _get_sensitivity_unsheared(self, obs):
+    def _get_sensitivity(self, obs):
         mpars=self['metacal_pars']
 
         R_obs_1m, R_obs_1p, R_obs_noshear = \
@@ -634,7 +641,6 @@ class MaxMetacalFitter(MaxFitter):
 
     def _get_metacal_obslist(self, obs, get_noshear=False):
         from ngmix.metacal import Metacal
-        from ngmix.shape import Shape
 
         mpars=self['metacal_pars']
 
@@ -683,6 +689,83 @@ class MaxMetacalFitter(MaxFitter):
         d=self.data
         d['g_sens'][i] = res['g_sens']
 
+class MaxMetacalFitterModel(MaxMetacalFitter):
+    def __init__(self, *args, **keys):
+        super(MaxMetacalFitterModel,self).__init__(*args,**keys)
+        mpars=self['metacal_pars']
+        if mpars['mean_from'] != 'orig':
+            raise ValueError("mean_from must be orig")
+
+
+    def _get_sensitivity(self, obs):
+        """
+        just simulate the model at different shears
+
+        would only correct noise bias I think
+        """
+        mpars=self['metacal_pars']
+
+        im=obs.image
+        imshape=im.shape
+        jacobian=obs.jacobian
+
+        res=self.fitter.get_result()
+        model=res['model']
+
+        parsm=self.fitter.get_band_pars(res['pars'], band=0)
+        parsp=parsm.copy()
+
+        shm=ngmix.Shape(parsm[2], parsm[3])
+        shp=ngmix.Shape(parsp[2], parsp[3])
+        
+        sval=mpars['step']
+        shm.shear(-sval, 0.0)
+        shp.shear( sval, 0.0)
+
+        parsm[2],parsm[3]=shm.g1, shm.g2
+        parsp[2],parsp[3]=shp.g1, shp.g2
+
+        gmm0=ngmix.GMixModel(parsm,model)
+        gmp0=ngmix.GMixModel(parsp,model)
+
+        gmm=gmm0.convolve(obs.psf.gmix)
+        gmp=gmp0.convolve(obs.psf.gmix)
+
+        imm=gmm.make_image(imshape, jacobian=jacobian, nsub=1)
+        imp=gmp.make_image(imshape, jacobian=jacobian, nsub=1)
+        
+        R_obs_1m = _make_new_obs(obs, imm)
+        R_obs_1p = _make_new_obs(obs, imp)
+
+        res_1m, _ = self._do_one_fit(R_obs_1m)
+        res_1p, _ = self._do_one_fit(R_obs_1p)
+
+        pars_1m=res_1m['pars']
+        pars_1p=res_1p['pars']
+        g_1m=pars_1m[2:2+2]
+        g_1p=pars_1p[2:2+2]
+
+        step=mpars['step']
+        g_sens1 = (g_1p[0] - g_1m[0])/(2*step)
+
+        g_sens = array( [g_sens1]*2 )
+
+        return None, g_sens
+
+def _make_new_obs(obs, im):
+    """
+    only diff is im
+    """
+
+    newobs=Observation(im,
+                       jacobian=obs.jacobian,
+                       weight=obs.weight,
+                       psf=obs.psf)
+    return newobs
+
+
+
+
 
 class ISampleMetacalFitter(MaxMetacalFitter):
     def _dofit(self, imdict):
@@ -702,9 +785,9 @@ class ISampleMetacalFitter(MaxMetacalFitter):
         print("    getting sens")
         pars, g_sens = self._get_sensitivity_avg(obs)
 
-        res['pars'] = pars
 
         if mpars['mean_from'] != 'orig':
+            res['pars'] = pars
             res['g'] = pars[2:2+2].copy()
         else:
             print("    using orig g")

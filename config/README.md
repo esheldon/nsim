@@ -776,6 +776,13 @@ sim-eg17
     - exp fit
     - whitening
 
+- run-eg17mcalt04
+    - exp fit
+    - s/n=25
+    - just resimulating the model.  should only correct noise bias,
+        so need to run with true model
+
+
 sim-dg06
 ===========
 
@@ -878,7 +885,6 @@ sim-dg06
         0.013 +/- 0.0027
     - weights
         0.011 +/- 0.0027
-
 
 - problems with dev
     * would isample be more stable?

@@ -97,12 +97,20 @@ def run_sim(sim_conf,
     ftype=run_conf['fitter']
     if ftype=='max':
         fitter=nsim.fitters.MaxFitter(sim, run_conf, npairs, **kw)
+
     elif ftype=='metacal-max':
-        fitter=nsim.fitters.MaxMetacalFitter(sim, run_conf, npairs, **kw)
+        mpars=run_conf['metacal_pars']
+        if mpars['method']=='model':
+            fitter=nsim.fitters.MaxMetacalFitterModel(sim, run_conf, npairs, **kw)
+        else:
+            fitter=nsim.fitters.MaxMetacalFitter(sim, run_conf, npairs, **kw)
+
     elif ftype=='metacal-isample':
         fitter=nsim.fitters.ISampleMetacalFitter(sim, run_conf, npairs, **kw)
+
     elif ftype=='metacal-em':
         fitter=nsim.fitters.EMMetacalFitter(sim, run_conf, npairs, **kw)
+
     else:
         raise RuntimeError("bad fitter: '%s'" % ftype)
 

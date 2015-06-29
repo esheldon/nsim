@@ -712,15 +712,24 @@ class MaxMetacalFitterModel(MaxMetacalFitter):
         res=self.fitter.get_result()
         model=res['model']
 
-        parsm=self.fitter.get_band_pars(res['pars'], band=0)
-        parsp=parsm.copy()
+        pars=self.fitter.get_band_pars(res['pars'], band=0)
+        #gm0=ngmix.GMixModel(pars,model)
+        #gm=gm0.convolve(obs.psf.gmix)
+        #model_im=gm.make_image(imshape, jacobian=jacobian, nsub=1)
+        #nim=obs.image-model_im
+
+        skysig=self.sim['skysig']
+        nim=numpy.random.normal(scale=skysig, size=imshape)
+
+        parsm=pars.copy()
+        parsp=pars.copy()
 
         shm=ngmix.Shape(parsm[2], parsm[3])
         shp=ngmix.Shape(parsp[2], parsp[3])
         
-        sval=mpars['step']
-        shm.shear(-sval, 0.0)
-        shp.shear( sval, 0.0)
+        step=mpars['step']
+        shm.shear(-step, 0.0)
+        shp.shear( step, 0.0)
 
         parsm[2],parsm[3]=shm.g1, shm.g2
         parsp[2],parsp[3]=shp.g1, shp.g2
@@ -734,8 +743,6 @@ class MaxMetacalFitterModel(MaxMetacalFitter):
         imm=gmm.make_image(imshape, jacobian=jacobian, nsub=1)
         imp=gmp.make_image(imshape, jacobian=jacobian, nsub=1)
 
-        skysig=self.sim['skysig']
-        nim=numpy.random.normal(scale=skysig, size=imshape)
 
         imm += nim
         imp += nim
@@ -751,7 +758,6 @@ class MaxMetacalFitterModel(MaxMetacalFitter):
         g_1m=pars_1m[2:2+2]
         g_1p=pars_1p[2:2+2]
 
-        step=mpars['step']
         g_sens1 = (g_1p[0] - g_1m[0])/(2*step)
 
         g_sens = array( [g_sens1]*2 )
@@ -763,10 +769,14 @@ def _make_new_obs(obs, im):
     only diff is im
     """
 
+    psf_obs=Observation(obs.psf.image,
+                        jacobian=obs.psf.jacobian,
+                        gmix=obs.psf.gmix.copy())
+
     newobs=Observation(im,
                        jacobian=obs.jacobian,
                        weight=obs.weight,
-                       psf=obs.psf)
+                       psf=psf_obs)
     return newobs
 
 

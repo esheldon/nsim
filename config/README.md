@@ -776,12 +776,14 @@ sim-eg17
     - exp fit
     - whitening
 
-- run-eg17mcalt04
+- run-eg17mcalt05
     - exp fit
     - s/n=25
     - just resimulating the model.  should only correct noise bias,
         so need to run with true model
-
+    - undercorrecting from quick test
+    - forgot will be *very* biased location
+        -0.039
 
 sim-dg06
 ===========

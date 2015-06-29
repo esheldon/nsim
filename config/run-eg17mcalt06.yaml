@@ -43,10 +43,10 @@ metacal_pars:
 s2n_vals: [ 25 ]
 
 desired_err: 2.5e-5
-desired_hours: 0.15
-# on comet
-sec_per_pair: 0.084
+desired_hours: 0.50
 
+# on comet
+sec_per_pair: 0.20
 
 npair_min: 40000
 

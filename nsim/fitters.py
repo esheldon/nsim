@@ -733,6 +733,12 @@ class MaxMetacalFitterModel(MaxMetacalFitter):
 
         imm=gmm.make_image(imshape, jacobian=jacobian, nsub=1)
         imp=gmp.make_image(imshape, jacobian=jacobian, nsub=1)
+
+        skysig=self.sim['skysig']
+        nim=numpy.random.normal(scale=skysig, size=imshape)
+
+        imm += nim
+        imp += nim
         
         R_obs_1m = _make_new_obs(obs, imm)
         R_obs_1p = _make_new_obs(obs, imp)

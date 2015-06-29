@@ -532,18 +532,11 @@ class MaxMetacalFitter(MaxFitter):
 
         self.fitter=fitter
 
-        if mpars['mean_from']=='avg':
-            pars, g_sens = self._get_sensitivity_avg(obs)
-        else:
-            pars, g_sens = self._get_sensitivity(obs)
+        sdict = self._get_sensitivity(obs)
+        res.update(sdict)
 
-        if mpars['mean_from'] != 'orig':
-            res['pars'] = pars
-            res['g'] = pars[2:2+2].copy()
-        else:
-            print("    using orig g")
-
-        res['g_sens'] = g_sens
+        g_sens_model = self._get_sensitivity_model(obs, fitter)
+        res['g_sens_model'] = g_sens_model
 
         return fitter, psf_flux_res
 
@@ -587,30 +580,6 @@ class MaxMetacalFitter(MaxFitter):
                 'res':res,
                 'psf_flux_res':psf_flux_res}
 
-    def _get_sensitivity_avg(self, obs):
-        mpars=self['metacal_pars']
-
-        R_obs_1m, R_obs_1p = self._get_metacal_obslist(obs)
-
-        mdict_1m = self._do_one_fit(R_obs_1m)
-        mdict_1p = self._do_one_fit(R_obs_1p)
-        res_1m, _ = mdict_1m['res']
-        res_1p, _ = mdict_1p['res']
-
-        pars_1m=res_1m['pars']
-        pars_1p=res_1p['pars']
-        g_1m=pars_1m[2:2+2]
-        g_1p=pars_1p[2:2+2]
-
-        step=mpars['step']
-        g_sens1 = (g_1p[0] - g_1m[0])/(2*step)
-
-        g_sens = array( [g_sens1]*2 )
-        pars = 0.5*(pars_1m + pars_1p)
-
-        return pars, g_sens
-
-
     def _get_sensitivity(self, obs):
         mpars=self['metacal_pars']
 
@@ -627,20 +596,97 @@ class MaxMetacalFitter(MaxFitter):
         res_1m = mdict_1m['res']
         res_1p = mdict_1p['res']
 
+        pars_1m=res_1m['pars']
+        pars_1p=res_1p['pars']
+        pars_mean = 0.5*(pars_1m + pars_1p)
+        
         g_1m=res_1m['pars'][2:2+2]
         g_1p=res_1p['pars'][2:2+2]
 
         step=mpars['step']
         g_sens1 = (g_1p[0] - g_1m[0])/(2*step)
 
-        g_mean = 0.5*(g_1m + g_1p)
+        g_mean = pars_mean[2:2+2]
         c = g_mean-pars_noshear[2:2+2]
 
         print("    c: %g %g" % tuple(c))
 
         g_sens = array( [g_sens1]*2 )
 
-        return pars_noshear, g_sens
+
+        return {'pars_noshear':pars_noshear,
+                'pars_mean':pars_mean,
+                'g_sens':g_sens,
+                'c':c}
+
+    def _get_sensitivity_model(self, obs, fitter):
+        """
+        just simulate the model at different shears
+
+        would only correct noise bias I think
+        """
+        mpars=self['metacal_pars']
+
+        im=obs.image
+        imshape=im.shape
+        jacobian=obs.jacobian
+
+        res=fitter.get_result()
+        model=res['model']
+
+        pars=fitter.get_band_pars(res['pars'], band=0)
+        #gm0=ngmix.GMixModel(pars,model)
+        #gm=gm0.convolve(obs.psf.gmix)
+        #model_im=gm.make_image(imshape, jacobian=jacobian, nsub=1)
+        #nim=obs.image-model_im
+
+        skysig=self.sim['skysig']
+        nim=numpy.random.normal(scale=skysig, size=imshape)
+
+        parsm=pars.copy()
+        parsp=pars.copy()
+
+        shm=ngmix.Shape(parsm[2], parsm[3])
+        shp=ngmix.Shape(parsp[2], parsp[3])
+        
+        step=mpars['step']
+        shm.shear(-step, 0.0)
+        shp.shear( step, 0.0)
+
+        parsm[2],parsm[3]=shm.g1, shm.g2
+        parsp[2],parsp[3]=shp.g1, shp.g2
+
+        gmm0=ngmix.GMixModel(parsm,model)
+        gmp0=ngmix.GMixModel(parsp,model)
+
+        gmm=gmm0.convolve(obs.psf.gmix)
+        gmp=gmp0.convolve(obs.psf.gmix)
+
+        imm=gmm.make_image(imshape, jacobian=jacobian, nsub=1)
+        imp=gmp.make_image(imshape, jacobian=jacobian, nsub=1)
+
+        imm += nim
+        imp += nim
+        
+        R_obs_1m = _make_new_obs(obs, imm)
+        R_obs_1p = _make_new_obs(obs, imp)
+
+        mdict_1m = self._do_one_fit(R_obs_1m)
+        mdict_1p = self._do_one_fit(R_obs_1p)
+        res_1m = mdict_1m['res']
+        res_1p = mdict_1p['res']
+
+        pars_1m=res_1m['pars']
+        pars_1p=res_1p['pars']
+        g_1m=pars_1m[2:2+2]
+        g_1p=pars_1p[2:2+2]
+
+        g_sens1 = (g_1p[0] - g_1m[0])/(2*step)
+
+        g_sens = array( [g_sens1]*2 )
+
+        return g_sens
+
 
     def _get_metacal_obslist(self, obs, get_noshear=False):
         from ngmix.metacal import Metacal
@@ -680,7 +726,10 @@ class MaxMetacalFitter(MaxFitter):
         """
         dt=super(MaxMetacalFitter,self)._get_dtype()
         dt += [
+            ('g_noshear','f8',2),
+            ('g_mean','f8',2),
             ('g_sens','f8',2),
+            ('g_sens_model','f8',2),
         ]
         return dt
 
@@ -690,7 +739,17 @@ class MaxMetacalFitter(MaxFitter):
         super(MaxMetacalFitter,self)._copy_to_output(res, i)
 
         d=self.data
+        # reconv with no shear
+        d['g_noshear'][i] = res['pars_noshear'][2:2+2]
+
+        # mean from the two sheared images
+        d['g_mean'][i] = res['pars_mean'][2:2+2]
+
+        # sensitivity from two sheared images
         d['g_sens'][i] = res['g_sens']
+
+        # sensitivity from simulating the model
+        d['g_sens_model'][i] = res['g_sens_model']
 
 
 class MaxMetacalFitterModel(MaxMetacalFitter):
@@ -699,7 +758,6 @@ class MaxMetacalFitterModel(MaxMetacalFitter):
         mpars=self['metacal_pars']
         if mpars['mean_from'] != 'orig':
             raise ValueError("mean_from must be orig")
-
 
     def _get_sensitivity(self, obs):
         """

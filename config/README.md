@@ -785,6 +785,9 @@ sim-eg17
     - forgot will be *very* biased location
         -0.039
 
+- run-eg17mcalt06
+    - unused now
+
 sim-dg06
 ===========
 

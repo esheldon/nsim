@@ -786,7 +786,12 @@ sim-eg17
         -0.039
 
 - run-eg17mcalt06
-    - unused now
+    - added lots of outputs to calculate e.g. gmean,
+        gnoshear, sens from model
+    - see that gmean*0.5*(1/sens + 1/sens_model) is nearly unbiased
+- run-eg17mcalt07
+    - same os 06 but fitting gauss
+    - doesn't work
 
 sim-dg06
 ===========

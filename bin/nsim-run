@@ -102,10 +102,16 @@ def run_sim(sim_conf,
         mpars=run_conf['metacal_pars']
         if mpars['method']=='model':
             fitter=nsim.fitters.MaxMetacalFitterModel(sim, run_conf, npairs, **kw)
-        elif mpars['method']=='moms':
-            fitter=nsim.fitters.MomMetacalFitterModel(sim, run_conf, npairs, **kw)
         else:
             fitter=nsim.fitters.MaxMetacalFitter(sim, run_conf, npairs, **kw)
+
+    elif ftype=='metacal-mom':
+        fitter=nsim.fitters.MomMetacalFitter(sim, run_conf, npairs, **kw)
+
+    elif ftype=='metacal-admom':
+        fitter=nsim.fitters.AdmomMetacalFitter(sim, run_conf, npairs, **kw)
+
+
 
     elif ftype=='metacal-isample':
         fitter=nsim.fitters.ISampleMetacalFitter(sim, run_conf, npairs, **kw)

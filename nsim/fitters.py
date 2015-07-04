@@ -12,6 +12,7 @@ from numpy.random import random as randu
 from numpy.random import randn
 
 import ngmix
+from ngmix import srandu
 from ngmix.fitting import print_pars
 from ngmix.gexceptions import GMixRangeError
 from ngmix.observation import Observation
@@ -524,6 +525,9 @@ class MaxMetacalFitter(MaxFitter):
         """
         Fit according to the requested method
         """
+
+        self.imdict=imdict
+
         mpars=self['metacal_pars']
 
         obs=imdict['obs']
@@ -769,36 +773,129 @@ class MaxMetacalFitter(MaxFitter):
         d['g_sens_model'][i] = res['g_sens_model']
 
 
-class MomMetacalFitter(MaxMetacalFitter):
-    def _do_one_fit(self, obs, gm_weight, ntry=None):
+class AdmomMetacalFitter(MaxMetacalFitter):
+    def _do_one_fit(self, obs, **kw):
+        """
+        note guess= and ntry= are ignored
+        """
+        import admom
+        admompars=self['admom_pars']
+        ntry=admompars['ntry']
 
-        mompars=self['mom_pars']
-        res=gm_weight.get_weighted_mom_sums(obs,
-                                            maxiter=mompars['maxiter'],
-                                            centol=mompars['centol'])
+        gm=self.imdict['gm']
+
+        row0,col0=obs.jacobian.get_cen()
+        row,col=gm.get_cen()
+        row += row0
+        col += col0
+
+        T=gm.get_T()
+
+        for i in xrange(ntry):
+            rowguess=row + 0.1*srandu()
+            colguess=col + 0.1*srandu()
+            Tguess=T*(1.0 + 0.1*srandu())
+
+            res=admom.admom(obs.image, rowguess, colguess,
+                            sigsky=self.sim['skysig'],
+                            guess=Tguess/2.,
+                            **admompars)
+
+            res['flags']=res['whyflag']
+            if res['flags']==0:
+                break
 
         if res['flags'] != 0:
-            raise TryAgainError("error getting weights: '%s'" % res['flagstr'])
+            raise TryAgainError("admom error '%s'" % res['whystr'])
 
-        noise=self.sim['skysig']
+        res['pars'] = array([res['wrow']-row0,
+                             res['wcol']-col0,
+                             res['e1'],
+                             res['e2'],
+                             res['Irr']+res['Icc'],
+                             1.0])
 
-        res['pars_var'] *= noise
-        res['pars_err'] = sqrt(res['pars_var'])
+        res['pars_err']=res['pars']*0 - 9999
 
-        res['s2n_w'] = res['pars'][0]/res['pars_err'][0]
+        res['pars_cov'] = diag( res['pars']*0 - 9999 )
+
+        res['g'] = res['pars'][2:2+2].copy()
+        res['g_cov'] = res['pars_cov'][2:2+2, 2:2+2].copy()
+
+        res['s2n_w'] = res['s2n']
 
         psf_flux_res={'psf_flux':-9999.0,
                       'psf_flux_err':9999.0}
-        return {'res':res,
+
+        reswrap=MomWrapper(res)
+        return {'fitter':reswrap,
+                'res':res,
                 'psf_flux_res':psf_flux_res}
 
     def _get_sensitivity_model(self, obs, fitter):
         return zeros(2)-9999.0
 
-    def _copy_to_output(self, res, i):
-        super(SimpleFitterBase,self)._copy_to_output(res, i)
+    #def _copy_to_output(self, res, i):
+    #    super(SimpleFitterBase,self)._copy_to_output(res, i)
 
 
+class MomMetacalFitter(MaxMetacalFitter):
+    def _do_one_fit(self, obs, ntry=None, **kw):
+        """
+        note guess= is ignored
+        """
+
+        mompars=self['mom_pars']
+
+        wtype=mompars['weight_type']
+        if wtype =="truth":
+            gm_weight = self.imdict['gm'].copy()
+            # weight should always have center 0,0, coinciding
+            # with jacobian center of coordinates.
+            gm_weight.set_cen(0.0, 0.0)
+        else:
+            raise RuntimeError("bad weight type: '%s'" % wtype)
+
+        res=gm_weight.get_weighted_mom_sums(obs, **mompars)
+
+        if res['flags'] != 0:
+            raise TryAgainError("error getting weights: '%s'" % res['flagstr'])
+
+        skyvar=self.sim['skysig']**2
+
+        #res['pars'][2] = res['pars'][2]/res['pars'][5]
+        #res['pars'][3] = res['pars'][3]/res['pars'][5]
+        res['pars'][2] = res['pars'][2]/res['pars'][4]
+        res['pars'][3] = res['pars'][3]/res['pars'][4]
+
+        res['pars_var'] *= skyvar
+        res['pars_cov'] *= skyvar
+        res['pars_err'] = sqrt(res['pars_var'])
+        res['g'] = res['pars'][2:2+2].copy()
+        res['g_cov'] = res['pars_cov'][2:2+2, 2:2+2].copy()
+
+        res['s2n_w'] = res['pars'][5]/res['pars_err'][5]
+
+        psf_flux_res={'psf_flux':-9999.0,
+                      'psf_flux_err':9999.0}
+
+        reswrap=MomWrapper(res)
+        return {'fitter':reswrap,
+                'res':res,
+                'psf_flux_res':psf_flux_res}
+
+    def _get_sensitivity_model(self, obs, fitter):
+        return zeros(2)-9999.0
+
+    #def _copy_to_output(self, res, i):
+    #    super(SimpleFitterBase,self)._copy_to_output(res, i)
+
+
+class MomWrapper(object):
+    def __init__(self, res):
+        self._result=res
+    def get_result(self):
+        return self._result
 
 class MaxMetacalFitterModel(MaxMetacalFitter):
     def __init__(self, *args, **keys):
@@ -991,12 +1088,12 @@ class EMMetacalFitter(MaxMetacalFitter):
         psf_flux_res={'psf_flux':-9999.0,
                       'psf_flux_err':9999.0}
 
-        if guess is not None:
-            raise RuntimeError("support geuss")
-            mdict = self._do_one_fit_with_guess(obs, guess)
-            fitter=mdict['fitter']
-            if ok:
-                return boot, fitter, psf_flux_res
+        #if guess is not None:
+        #    raise RuntimeError("support geuss")
+        #    mdict = self._do_one_fit_with_guess(obs, guess)
+        #    fitter=mdict['fitter']
+        #    if ok:
+        #        return boot, fitter, psf_flux_res
 
         emconf = self['em_pars']
         ngauss = emconf['ngauss']
@@ -1012,12 +1109,17 @@ class EMMetacalFitter(MaxMetacalFitter):
 
         fitter=runner.get_fitter()
         res=fitter.get_result()
+        res['model'] = 'gauss'
+
         if res['flags'] != 0:
             raise TryAgainError("em gal failed")
 
         self._convert2pars(fitter)
 
-        return {'boot':boot, 'fitter':fitter, 'psf_flux_res':psf_flux_res}
+        return {'boot':boot,
+                'fitter':fitter,
+                'res':res,
+                'psf_flux_res':psf_flux_res}
 
     def _do_one_fit_with_guess(self, obs, guess):
         from ngmix.em import GMixEM, prep_image
@@ -1057,11 +1159,11 @@ class EMMetacalFitter(MaxMetacalFitter):
         T=pars[3]+pars[5]
         e1 = (pars[5]-pars[3])/T
         e2 = 2*pars[4]/T
-        g1,g2=e1,e2
-        #try:
-        #    g1,g2=ngmix.shape.e1e2_to_g1g2(e1,e2)
-        #except GMixRangeError:
-        #    raise TryAgainError("bad e1,e2")
+        #g1,g2=e1,e2
+        try:
+            g1,g2=ngmix.shape.e1e2_to_g1g2(e1,e2)
+        except GMixRangeError:
+            raise TryAgainError("bad e1,e2")
 
         tpars=array([pars[1],pars[2], g1, g2, T, 1.0])
 
@@ -1103,3 +1205,5 @@ class EMMetacalFitter(MaxMetacalFitter):
         return Tguess
 
 
+    def _get_sensitivity_model(self, obs, fitter):
+        return zeros(2)-9999.0

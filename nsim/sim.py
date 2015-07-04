@@ -142,6 +142,7 @@ class NGMixSim(dict):
                                               self['pixel_scale'])
 
         psf_cen=pars1[0:0+2].copy()
+        #psf_cen=[0,0]
         psf_image=self._get_psf_image(dims_pix, psf_cen)
 
         psf_obs = Observation(psf_image, jacobian=self.jacobian)

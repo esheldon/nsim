@@ -793,6 +793,20 @@ sim-eg17
     - same os 06 but fitting gauss
     - doesn't work
 
+- run-eg17mcalt08
+    - using moms
+    - crap
+
+- run-eg17mcalt09
+    - using em
+    - crap
+
+- run-eg17mcalt09
+    - using admom
+    - nsub 4
+
+
+
 sim-dg06
 ===========
 

@@ -1,0 +1,47 @@
+# using weighted moments
+run: "run-eg17mcalt08"
+sim: "sim-eg17"
+
+fitter: "metacal-mom"
+
+# this is a hack just to get the right number of pars
+fit_model: "gauss"
+
+g_prior_during: True
+use_logpars: True
+
+priors:
+    cen:
+        type: "truth"
+    T:
+        type: "truth"
+    counts:
+        type: "truth"
+    g:
+        type: "ba"
+        sigma: 0.3
+
+mom_pars:
+    weight_type: "truth"
+    maxiter: 1000
+    centol: 1.0e-4
+    max_shift: 5.0
+
+metacal_pars:
+    method: "conv"
+    step: 0.01
+
+#s2n_vals: [ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
+s2n_vals: [ 1000 ]
+
+desired_err: 2.5e-5
+desired_hours: 0.05
+
+# on astro
+sec_per_pair: 0.18
+
+npair_min: 40000
+
+verbose: True
+
+#avg_sens_range: [0.0, 2.0]

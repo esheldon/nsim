@@ -517,7 +517,9 @@ class MaxFitter(SimpleFitterBase):
             d['ntry'][i] = res['ntry']
 
 class MaxMetacalFitter(MaxFitter):
-
+    """
+    metacal with a maximum likelihood fit
+    """
     def _dofit(self, imdict):
         """
         Fit according to the requested method
@@ -540,13 +542,10 @@ class MaxMetacalFitter(MaxFitter):
 
         return fitter, psf_flux_res
 
-    def _setup(self, run_conf, **keys):
-        super(MaxMetacalFitter,self)._setup(run_conf, **keys)
-        mpars=self['metacal_pars']
-        mpars['whiten']=mpars.get('whiten',False)
-        mpars['same_seed']=mpars.get('same_seed',False)
-
     def _do_one_fit(self, obs, guess=None, ntry=None):
+        """
+        the basic fitter for this class
+        """
         boot=ngmix.Bootstrapper(obs, use_logpars=self['use_logpars'])
 
         Tguess=self.sim['psf_T']
@@ -581,6 +580,9 @@ class MaxMetacalFitter(MaxFitter):
                 'psf_flux_res':psf_flux_res}
 
     def _get_sensitivity(self, obs):
+        """
+        fit sheared observations
+        """
         mpars=self['metacal_pars']
 
         R_obs_1m, R_obs_1p, R_obs_noshear = \
@@ -689,6 +691,9 @@ class MaxMetacalFitter(MaxFitter):
 
 
     def _get_metacal_obslist(self, obs, get_noshear=False):
+        """
+        get Observations for the sheared images
+        """
         from ngmix.metacal import Metacal
 
         mpars=self['metacal_pars']
@@ -720,6 +725,16 @@ class MaxMetacalFitter(MaxFitter):
         super(MaxMetacalFitter,self)._print_res(res)
         print_pars(res['g_sens'],      front='        sens: ')
 
+    def _setup(self, run_conf, **keys):
+        """
+        setup parameters for this specific class
+        """
+        super(MaxMetacalFitter,self)._setup(run_conf, **keys)
+        mpars=self['metacal_pars']
+        mpars['whiten']=mpars.get('whiten',False)
+        mpars['same_seed']=mpars.get('same_seed',False)
+
+
     def _get_dtype(self):
         """
         get the dtype for the output struct
@@ -735,7 +750,9 @@ class MaxMetacalFitter(MaxFitter):
 
 
     def _copy_to_output(self, res, i):
-
+        """
+        copy parameters specific to this class
+        """
         super(MaxMetacalFitter,self)._copy_to_output(res, i)
 
         d=self.data
@@ -750,6 +767,37 @@ class MaxMetacalFitter(MaxFitter):
 
         # sensitivity from simulating the model
         d['g_sens_model'][i] = res['g_sens_model']
+
+
+class MomMetacalFitter(MaxMetacalFitter):
+    def _do_one_fit(self, obs, gm_weight, ntry=None):
+
+        mompars=self['mom_pars']
+        res=gm_weight.get_weighted_mom_sums(obs,
+                                            maxiter=mompars['maxiter'],
+                                            centol=mompars['centol'])
+
+        if res['flags'] != 0:
+            raise TryAgainError("error getting weights: '%s'" % res['flagstr'])
+
+        noise=self.sim['skysig']
+
+        res['pars_var'] *= noise
+        res['pars_err'] = sqrt(res['pars_var'])
+
+        res['s2n_w'] = res['pars'][0]/res['pars_err'][0]
+
+        psf_flux_res={'psf_flux':-9999.0,
+                      'psf_flux_err':9999.0}
+        return {'res':res,
+                'psf_flux_res':psf_flux_res}
+
+    def _get_sensitivity_model(self, obs, fitter):
+        return zeros(2)-9999.0
+
+    def _copy_to_output(self, res, i):
+        super(SimpleFitterBase,self)._copy_to_output(res, i)
+
 
 
 class MaxMetacalFitterModel(MaxMetacalFitter):

@@ -1,9 +1,10 @@
-# first run keeping all the different sets of pars
-run: "run-eg17mcalt06"
+# second run keeping all the different sets of pars
+# fitting gauss
+run: "run-eg17mcalt07"
 sim: "sim-eg17"
 
 fitter: "metacal-max"
-fit_model: "exp"
+fit_model: "gauss"
 
 g_prior_during: True
 use_logpars: True
@@ -43,10 +44,10 @@ metacal_pars:
 s2n_vals: [ 25 ]
 
 desired_err: 2.5e-5
-desired_hours: 0.50
+desired_hours: 0.35
 
 # on comet
-sec_per_pair: 0.20
+sec_per_pair: 0.13
 
 npair_min: 40000
 

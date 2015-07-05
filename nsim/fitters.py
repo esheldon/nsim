@@ -695,6 +695,13 @@ class MaxMetacalFitter(MaxFitter):
 
 
     def _get_metacal_obslist(self, obs, get_noshear=False):
+        mpars=self['metacal_pars']
+        if mpars['method']=='conv':
+            return self._get_metacal_obslist_conv(obs, get_noshear=get_noshear)
+        else:
+            return self._get_metacal_obslist_cheat(obs, get_noshear=get_noshear)
+
+    def _get_metacal_obslist_conv(self, obs, get_noshear=False):
         """
         get Observations for the sheared images
         """
@@ -720,6 +727,36 @@ class MaxMetacalFitter(MaxFitter):
         else:
             R_obs1m = mc.get_obs_galshear(sh1m)
             return R_obs1m, R_obs1p
+
+    def _get_metacal_obslist_cheat(self, obs, get_noshear=False):
+        """
+        get Observations for the sheared images
+        """
+        imdict=self.imdict
+
+        mpars=self['metacal_pars']
+
+        imshape=obs.image.shape
+
+        psf_gmix=self.sim.psf_gmix_true.copy()
+        # these are post-shear pars
+        pars=imdict['pars'].copy()
+        model=self.sim['obj_model']
+        nsub=self.sim['nsub']
+
+        step=mpars['step']
+        pars_m=make_sheared_pars(pars, -step, 0.0)
+        pars_p=make_sheared_pars(pars, +step, 0.0)
+
+        noise_im=imdict['nim']
+        obs_m=make_cheat_metacal_obs(psf_gmix, pars_m, model, noise_im, obs, nsub)
+        obs_p=make_cheat_metacal_obs(psf_gmix, pars_p, model, noise_im, obs, nsub)
+
+        if get_noshear:
+            return obs_m, obs_p, obs
+        else:
+            return obs_m, obs_p
+
 
     def _print_res(self,res):
         """
@@ -810,8 +847,12 @@ class AdmomMetacalFitter(MaxMetacalFitter):
 
         res['pars'] = array([res['wrow']-row0,
                              res['wcol']-col0,
-                             res['e1'],
-                             res['e2'],
+                             #res['e1'],
+                             #res['e2'],
+                             #res['Icc']-res['Irr'],
+                             #2*res['Irc'],
+                             (res['Icc']-res['Irr'])*res['Isum'],
+                             2*res['Irc']*res['Isum'],
                              res['Irr']+res['Icc'],
                              1.0])
 
@@ -865,8 +906,8 @@ class MomMetacalFitter(MaxMetacalFitter):
 
         #res['pars'][2] = res['pars'][2]/res['pars'][5]
         #res['pars'][3] = res['pars'][3]/res['pars'][5]
-        res['pars'][2] = res['pars'][2]/res['pars'][4]
-        res['pars'][3] = res['pars'][3]/res['pars'][4]
+        #res['pars'][2] = res['pars'][2]/res['pars'][4]
+        #res['pars'][3] = res['pars'][3]/res['pars'][4]
 
         res['pars_var'] *= skyvar
         res['pars_cov'] *= skyvar
@@ -1207,3 +1248,35 @@ class EMMetacalFitter(MaxMetacalFitter):
 
     def _get_sensitivity_model(self, obs, fitter):
         return zeros(2)-9999.0
+
+def make_sheared_pars(pars, shear_g1, shear_g2):
+    from ngmix import Shape
+    shpars=pars.copy()
+
+    sh=Shape(shpars[2], shpars[3])
+    sh.shear(shear_g1, shear_g2)
+
+    shpars[2]=sh.g1
+    shpars[3]=sh.g2
+
+    return shpars
+
+def make_cheat_metacal_obs(psf_gmix, pars, model, noise_image, obs, nsub):
+    """
+    """
+    from ngmix import Observation
+
+    gm0=ngmix.GMixModel(pars, model)
+    gm=gm0.convolve(psf_gmix)
+
+    im = gm.make_image(obs.image.shape,
+                       jacobian=obs.jacobian,
+                       nsub=nsub)
+
+    im += noise_image
+
+    obs_new=Observation(im, jacobian=obs.jacobian, weight=obs.weight, psf=obs.psf)
+
+    return obs_new
+
+

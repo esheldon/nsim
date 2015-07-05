@@ -30,8 +30,9 @@ em_pars:
 
 metacal_pars:
     method: "conv"
-    whiten: True
-    same_seed: True
+    #method: "cheat"
+    #whiten: True
+    #same_seed: True
     step: 0.01
 
 #s2n_vals: [ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]

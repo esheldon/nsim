@@ -25,8 +25,8 @@ import ngmix
 from ngmix.fitting import print_pars
 from ngmix.observation import Observation
 
-# region over which to render images
-NSIGMA_RENDER=5.0
+# image will be 2*5 sigma on a side
+NSIGMA_IMAGE=5.0
 
 class NGMixSim(dict):
     def __init__(self, sim_conf, s2n):
@@ -275,7 +275,7 @@ class NGMixSim(dict):
         sim_conf['do_ring'] = sim_conf.get('do_ring',True)
         if not sim_conf['do_ring']:
             print("    not doing ring")
-        self['nsigma_render']=self.get('nsigma_render',NSIGMA_RENDER)
+        self['nsigma_image']=self.get('nsigma_image',NSIGMA_IMAGE)
 
         self.update(sim_conf)
 
@@ -430,7 +430,7 @@ class NGMixSim(dict):
         """
 
         sigma_pix=numpy.sqrt(T/2.)/self['pixel_scale']
-        dims_pix = array( [2.*sigma_pix*self['nsigma_render']]*2 )
+        dims_pix = array( [2.*sigma_pix*self['nsigma_image']]*2 )
 
         cen_pix = array( [(dims_pix[0]-1.)/2.]*2 )
 

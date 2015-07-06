@@ -4,8 +4,7 @@ Use the Width class to measure fwhm ratio vs T
 from sys import stdout
 import numpy
 
-# region over which to render images and calculate likelihoods
-from .sim import NSIGMA_RENDER
+from .sim import NSIGMA_IMAGE
 
 def measure_image_width_interp(image, thresh, nsub, order, show=False):
     """
@@ -53,7 +52,7 @@ class Width(object):
                  nsub=16, # for rendering
                  order=3, # for interp
                  nsub_interp=20,  # sub-interp
-                 nsigma_render=NSIGMA_RENDER):
+                 nsigma_image=NSIGMA_IMAGE):
 
         import ngmix
 
@@ -68,7 +67,7 @@ class Width(object):
         self.order=order
 
         self.nsub_interp=nsub_interp
-        self.nsigma_render=nsigma_render
+        self.nsigma_image=nsigma_image
 
 
     def get_T_ratio_from_width_ratio(self, width_ratio, thresh, show=True,
@@ -148,7 +147,7 @@ class Width(object):
         obj=obj0.convolve(psf)
 
         T = obj.get_T()
-        dims, cen=get_dims_cen(T+self.psf_T,self.nsigma_render)
+        dims, cen=get_dims_cen(T+self.psf_T,self.nsigma_image)
 
         cen += 0.1*numpy.random.randn(2)
 
@@ -202,12 +201,12 @@ def _make_interpolated_image(im, nsub, order, show=False):
 
 
 
-def get_dims_cen(T, nsigma_render):
+def get_dims_cen(T, nsigma_image):
     """
     Based on T, get the required dimensions and a center
     """
     sigma=numpy.sqrt(T/2.)
-    dims = numpy.array( [2.*sigma*nsigma_render]*2 )
+    dims = numpy.array( [2.*sigma*nsigma_image]*2 )
     cen = numpy.array( [(dims[0]-1.)/2.]*2 )
 
     return dims, cen

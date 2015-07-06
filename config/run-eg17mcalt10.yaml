@@ -25,6 +25,7 @@ admom_pars:
     nsub: 1
     ntry: 20
     maxit: 1000
+    dopsf: False
 
 metacal_pars:
     method: "conv"

@@ -34,6 +34,9 @@ parser.add_option('--nojack',action='store_true',
 parser.add_option('--weights',
                   help="use the specified weighting")
 
+parser.add_option('--gfield',default='g',
+                  help="the field to use for 'g'")
+
 
 parser.add_option('--progress',action='store_true',
                   help="show progress during jackknifing")
@@ -125,8 +128,9 @@ def get_lensfit_stats(conf, data, weights, options):
 
     do_ring=conf['simc'].get('do_ring',True)
 
+    gfield=options.gfield
     shear, shear_cov, g_sum, gsens_sum = \
-            ngmix.lensfit.lensfit_jackknife(data['g'], data['g_sens'],
+            ngmix.lensfit.lensfit_jackknife(data[gfield], data['g_sens'],
                                             weights=weights,
                                             progress=options.progress,
                                             chunksize=chunksize,

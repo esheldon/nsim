@@ -596,9 +596,13 @@ class MaxMetacalFitter(MaxFitter):
         res_noshear = mdict_noshear['res']
         pars_noshear=res_noshear['pars'].copy()
 
+        if mpars['guess_noshear']:
+            guess=pars_noshear
+        else:
+            guess=None
 
-        mdict_1m = self._do_one_fit(R_obs_1m, guess=pars_noshear, ntry=1)
-        mdict_1p = self._do_one_fit(R_obs_1p, guess=pars_noshear, ntry=1)
+        mdict_1m = self._do_one_fit(R_obs_1m, guess=guess, ntry=1)
+        mdict_1p = self._do_one_fit(R_obs_1p, guess=guess, ntry=1)
         res_1m = mdict_1m['res']
         res_1p = mdict_1p['res']
 
@@ -828,15 +832,29 @@ class AdmomMetacalFitter(MaxMetacalFitter):
 
         T=gm.get_T()
 
+        dopsf=admompars['dopsf']
+        if dopsf:
+            psfres=self._fit_psf(obs)
+
+        #print("fitting gal")
         for i in xrange(ntry):
             rowguess=row + 0.1*srandu()
             colguess=col + 0.1*srandu()
             Tguess=T*(1.0 + 0.1*srandu())
 
-            res=admom.admom(obs.image, rowguess, colguess,
-                            sigsky=self.sim['skysig'],
-                            guess=Tguess/2.,
-                            **admompars)
+            if dopsf:
+                res=admom.wrappers.admom_1psf(obs.image, rowguess, colguess,
+                                     psfres['Irr'],psfres['Irc'],psfres['Icc'],
+                                     #0.0, 0.0, 0.0,
+                                     sigsky=self.sim['skysig'],
+                                     guess=Tguess/2.,
+                                     **admompars)
+
+            else:
+                res=admom.admom(obs.image, rowguess, colguess,
+                                sigsky=self.sim['skysig'],
+                                guess=Tguess/2.,
+                                **admompars)
 
             res['flags']=res['whyflag']
             if res['flags']==0:
@@ -847,12 +865,12 @@ class AdmomMetacalFitter(MaxMetacalFitter):
 
         res['pars'] = array([res['wrow']-row0,
                              res['wcol']-col0,
-                             #res['e1'],
-                             #res['e2'],
+                             res['e1'],
+                             res['e2'],
                              #res['Icc']-res['Irr'],
                              #2*res['Irc'],
-                             (res['Icc']-res['Irr'])*res['Isum'],
-                             2*res['Irc']*res['Isum'],
+                             #(res['Icc']-res['Irr'])*res['Isum'],
+                             #2*res['Irc']*res['Isum'],
                              res['Irr']+res['Icc'],
                              1.0])
 
@@ -872,6 +890,30 @@ class AdmomMetacalFitter(MaxMetacalFitter):
         return {'fitter':reswrap,
                 'res':res,
                 'psf_flux_res':psf_flux_res}
+
+    def _fit_psf(self, obs):
+        import admom
+        #print("fitting psf")
+        gm=self.sim.psf_gmix_true
+
+        row0,col0=obs.psf.jacobian.get_cen()
+        row,col=gm.get_cen()
+
+        row += row0
+        col += col0
+
+        T=gm.get_T()
+
+        admompars=self['admom_pars']
+        res=admom.admom(obs.psf.image, row, col,
+                        sigsky=1.0e-6,
+                        guess=T/2.,
+                        **admompars)
+
+        if res['whyflag'] != 0:
+            raise TryAgainError("admom psf error '%s'" % res['whystr'])
+
+        return res
 
     def _get_sensitivity_model(self, obs, fitter):
         return zeros(2)-9999.0

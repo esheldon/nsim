@@ -747,6 +747,14 @@ sim-eg17
     - s/n=100
     - straight
         -0.0013 +/- 0.0031
+    - reran
+        - g_mean as field
+        -straight
+            0.0038 +/- 0.0033
+        -weighted
+            -0.0011 +/- 0.0032
+
+
 
 - run-eg17mcal10
     - gauss fit
@@ -795,17 +803,24 @@ sim-eg17
 
 - run-eg17mcalt08
     - using moms
-    - crap
+    - crap at high s/n
 
 - run-eg17mcalt09
     - using em
-    - crap
+    - crap at high s/n
 
-- run-eg17mcalt09
+- run-eg17mcalt10
     - using admom
-    - nsub 4
+    - for deconv. psf version, works at high s/n to 0.25%
+        - would only work for gaussian psf
+    - just fitting a gaussian convolved with gaussian psf works
+        better
 
-
+- run-eg17mcalt11
+    - gauss fit
+    - s/n=50
+        - weights -0.00065 +/- 0.0038
+        - straight 0.0099 +/- 0.004
 
 sim-dg06
 ===========

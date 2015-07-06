@@ -36,15 +36,19 @@ max_pars:
         h: 1.0e-3
 
 metacal_pars:
+    method: "conv"
     step: 0.01
 
 #s2n_vals: [ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
 s2n_vals: [ 100 ]
 
-desired_err: 5.0e-5
+desired_err: 2.5e-5
 desired_hours: 0.035
-# actually more like 0.6 on the faster machines
-sec_per_pair: 0.18
+
+# on comet
+#sec_per_pair: 0.18
+# on astro
+sec_per_pair: 0.33
 npair_min: 40000
 
 verbose: True

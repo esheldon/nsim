@@ -37,6 +37,8 @@ parser.add_option('--weights',
 parser.add_option('--gfield',default='g',
                   help="the field to use for 'g'")
 
+parser.add_option('--corr-model',action='store_true',
+                  help="apply model bias correction")
 
 parser.add_option('--progress',action='store_true',
                   help="show progress during jackknifing")
@@ -77,6 +79,9 @@ def get_dtype(fobj, model, options):
            ('P_sum','f8'),
            ('Q_sum','f8',2),
            ('Cinv_sum','f8',(2,2))]
+
+    if options.corr_model:
+        dt += [('g_sens_model_sum','f8',2)]
 
     if 'S' in data.dtype.names:
         if options.is_zero:
@@ -128,19 +133,25 @@ def get_lensfit_stats(conf, data, weights, options):
 
     do_ring=conf['simc'].get('do_ring',True)
 
+    if options.corr_model:
+        gsens_alt=data['g_sens_model']
+    else:
+        gsens_alt=None
+
     gfield=options.gfield
-    shear, shear_cov, g_sum, gsens_sum = \
-            ngmix.lensfit.lensfit_jackknife(data[gfield], data['g_sens'],
-                                            weights=weights,
-                                            progress=options.progress,
-                                            chunksize=chunksize,
-                                            get_sums=True,
-                                            do_ring=do_ring,
-                                            show=options.show)
+    res = ngmix.lensfit.lensfit_jackknife(data[gfield], data['g_sens'],
+                                          gsens_alt=gsens_alt,
+                                          weights=weights,
+                                          progress=options.progress,
+                                          chunksize=chunksize,
+                                          get_sums=True,
+                                          do_ring=do_ring,
+                                          show=options.show)
 
     tm=time.time()-t0
 
-    return shear, shear_cov, g_sum, gsens_sum
+    #return shear, shear_cov, g_sum, gsens_sum
+    return res
 
 
 def get_shear_stats(conf, data, options):
@@ -300,9 +311,17 @@ def do_sums(conf, data, d, options):
 
         d['shear_cov_inv_sum'][0] += shear_cov_inv
 
-    sh_lf, shcov_lf, g_sum, gsens_sum = get_lensfit_stats(conf, data, weights, options)
+    lres = get_lensfit_stats(conf, data, weights, options)
+    if options.corr_model:
+        sh_lf, shcov_lf, g_sum, gsens_sum, gsens_model_sum = lres
+    else:
+        sh_lf, shcov_lf, g_sum, gsens_sum=lres
+
     d['g_sum'][0] += g_sum
     d['g_sens_sum'][0] += gsens_sum
+
+    if options.corr_model:
+        d['g_sens_model_sum'][0] += gsens_model_sum
 
     shcov_lf_inv = numpy.linalg.inv(shcov_lf)
     d['shear_lensfit_cov_inv_sum'][0] += shcov_lf_inv
@@ -349,7 +368,12 @@ def do_avg(conf, d, options):
 
     shlf = d['g_sum'][0]/d['g_sens_sum'][0]
 
-    d['g_sens'] = d['g_sens_sum'][0]/d['wsum'][0]
+    if options.corr_model:
+        d['g_sens_model'][0] = d['g_sens_model_sum'][0]/d['wsum'][0]
+        shlf = shlf / d['g_sens_model'][0]
+
+    d['g_sens'][0] = d['g_sens_sum'][0]/d['wsum'][0]
+
     d['shear_lensfit'][0] = shlf
     d['shear_lensfit_cov'][0] = numpy.linalg.inv(d['shear_lensfit_cov_inv_sum'][0])
 

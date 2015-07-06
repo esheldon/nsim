@@ -1283,21 +1283,22 @@ class ISampleMetacalFitterNearest(MaxMetacalFitter):
         g_sens = ls.get_g_sens()
 
         res['g_sens_model'] = g_sens_model
-        #print('model sensitivity: %g %g' % tuple(g_sens_model))
 
         res['g_sens'] = g_sens
         res['nuse'] = ls.get_nuse()
-        #print("lensfit sensitivity: %g %g" % tuple(g_sens))
 
+        pqrobj=ngmix.pqr.PQR(g_vals, g_prior,
+                             shear_expand=self.shear_expand,
+                             weights=iweights,
+                             remove_prior=self.remove_prior)
+
+        P,Q,R = pqrobj.get_pqr()
+        res['P']=P
+        res['Q']=Q
+        res['R']=R
 
         if False:
-            from biggles import plot_hist
-            mn=sens_vals.mean()
-            rng=3*sens_vals.std()
-
-            plot_hist(sens_vals, min=mn-rng,max=mn+rng,nbin=40)
-            key=raw_input('hit a key: ')
-            if key=='q': stop
+            self._plot_sens_vals(sens_vals)
 
         '''
         weights = iweights*sens_vals
@@ -1327,6 +1328,16 @@ class ISampleMetacalFitterNearest(MaxMetacalFitter):
         res['R']=R
         '''
  
+
+    def _plot_sens_vals(self, sens_vals):
+            from biggles import plot_hist
+            mn=sens_vals.mean()
+            rng=3*sens_vals.std()
+
+            plot_hist(sens_vals, min=mn-rng,max=mn+rng,nbin=40)
+            key=raw_input('hit a key: ')
+            if key=='q': stop
+
     def _load_deep_data(self):
         import fitsio
         from scipy.interpolate import NearestNDInterpolator
@@ -1347,9 +1358,9 @@ class ISampleMetacalFitterNearest(MaxMetacalFitter):
         dt += [
             ('g_sens','f8',2),
             ('g_sens_model','f8',2),
-            #('P','f8'),
-            #('Q','f8',2),
-            #('R','f8',(2,2)),
+            ('P','f8'),
+            ('Q','f8',2),
+            ('R','f8',(2,2)),
         ]
         return dt
 
@@ -1364,13 +1375,9 @@ class ISampleMetacalFitterNearest(MaxMetacalFitter):
 
         d['g_sens'][i] = res['g_sens']
         d['g_sens_model'][i] = res['g_sens_model']
-        '''
         d['P'][i] = res['P']
         d['Q'][i] = res['Q']
         d['R'][i] = res['R']
-        '''
-
-
 
 class EMMetacalFitter(MaxMetacalFitter):
 

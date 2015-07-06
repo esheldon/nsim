@@ -1,0 +1,70 @@
+# fit gauss, use training set
+# high s/n to be used for training
+run: "run-eg17mcalt13"
+sim: "sim-eg17"
+
+deep_data_run: "run-eg17mcalt12"
+
+fitter: "metacal-isample-nearest"
+fit_model: "gauss"
+
+g_prior_during: True
+use_logpars: True
+
+expand_shear_true: False
+
+priors:
+    cen:
+        type: "truth"
+    T:
+        type: "truth"
+    counts:
+        type: "truth"
+    g:
+        type: "ba"
+        sigma: 0.3
+
+psf_pars:
+    model: "em1"
+    ntry: 1000
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+#            ftol: 1.0e-6
+#            xtol: 1.0e-3
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+metacal_pars:
+    guess_noshear: False
+    method: "conv"
+    step: 0.01
+
+isample_pars:
+    nsample: [2000]
+    ifactor: 1.0
+    df: 2.1
+    min_err: [1.0e-4,1.0e-4,1.0e-3,1.0e-3,1.0e-4,1.0e-4]
+    max_err: [1.0,1.0,1.0,1.0,1.0,1.0]
+
+    # number of tries for max fitter
+    max_fitter: "lm"
+    max_tries: 4
+
+s2n_vals: [ 50 ]
+
+desired_err: 2.5e-5
+#desired_err: 1.0e-5
+desired_hours: 0.10
+# on comet
+sec_per_pair: 0.17
+# on astro
+#sec_per_pair: 0.25
+npair_min: 40000
+
+verbose: True

@@ -766,6 +766,12 @@ sim-eg17
         0.049 +/- 0.0033
     - weights
         0.031 +/- 0.0031
+    - rerunning with new code, but I don't expect change
+        -straight
+            0.051 +/- 0.0033
+        - weights, g_mean
+            0.04 +/- 0.0031
+    - big jump from s/n=50
 
 - run-eg17mcalt02
     - exp fit

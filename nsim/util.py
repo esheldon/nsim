@@ -1,7 +1,7 @@
 from __future__ import print_function
 import os
 import numpy
-from numpy import exp, zeros, sqrt
+from numpy import exp, zeros, ones, sqrt
 import ngmix
 from esutil.random import srandu
 

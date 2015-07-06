@@ -336,31 +336,6 @@ def do_avg(conf, d, options):
 
     d['s2n_w'][0] = d['s2n_w_sum'][0]/d['wsum'][0]
 
-    if not options.skip_pqr:
-        #
-        # pqr
-        #
-        shear_cov = numpy.linalg.inv(d['shear_cov_inv_sum'][0,:,:])
-
-        C = numpy.linalg.inv(d['Cinv_sum'][0,:,:])
-        Q_sum = d['Q_sum'][0,:]
-        shear = numpy.dot(C,Q_sum)
-
-
-        # did we expand around the true shear?
-        expand_shear=conf.get('expand_shear_true',False)
-        if expand_shear:
-            true_shear = numpy.array( conf['simc']['shear'] )
-            print('adding expand shear:',true_shear)
-            shear += true_shear
-
-        d['shear'][0] = shear
-        d['shear_cov'][0,:,:] = shear_cov
-
-        sherr=numpy.sqrt(shear_cov[0,0])
-        fracdiff=shear[0]/shtrue[0]-1.0
-        fracdiff_err=sherr/shtrue[0]
-        print('fracdiff(pqr):     %.2g +/- %.2g' % (fracdiff, fracdiff_err))
 
     #
     # lensfit
@@ -383,6 +358,42 @@ def do_avg(conf, d, options):
     fracdiff_err=sherrlf/shtrue[0]
 
     print('fracdiff(lensfit): %.2g +/- %.2g' % (fracdiff, fracdiff_err))
+
+
+    if not options.skip_pqr:
+        #
+        # pqr
+        #
+        shear_cov = numpy.linalg.inv(d['shear_cov_inv_sum'][0,:,:])
+
+        C = numpy.linalg.inv(d['Cinv_sum'][0,:,:])
+        Q_sum = d['Q_sum'][0,:]
+        shear = numpy.dot(C,Q_sum)
+
+
+        # did we expand around the true shear?
+        expand_shear=conf.get('expand_shear_true',False)
+        if expand_shear:
+            true_shear = numpy.array( conf['simc']['shear'] )
+            print('adding expand shear:',true_shear)
+            shear += true_shear
+
+        if options.corr_model:
+            shear *= 1.0 / d['g_sens_model'][0]
+            shear_cov[0,0] *= (1.0 / d['g_sens_model'][0,0])**2
+            shear_cov[0,1] *= (1.0 / d['g_sens_model'][0,0])**2
+            shear_cov[1,0] *= (1.0 / d['g_sens_model'][0,0])**2
+            shear_cov[1,1] *= (1.0 / d['g_sens_model'][0,1])**2
+
+        d['shear'][0] = shear
+        d['shear_cov'][0,:,:] = shear_cov
+
+
+        sherr=numpy.sqrt(shear_cov[0,0])
+        fracdiff=shear[0]/shtrue[0]-1.0
+        fracdiff_err=sherr/shtrue[0]
+        print('fracdiff(pqr):     %.2g +/- %.2g' % (fracdiff, fracdiff_err))
+
 
     if 'lnp_shear' in d.dtype.names:
         guess={'shear_cov':d['shear_lensfit_cov'][0].copy()}

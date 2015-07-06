@@ -843,16 +843,19 @@ sim-eg17
             0.0064
         - weights
             -0.0034
+    - rerunning with BA
+        - s/n=100
+            0.0017 +/- 0.0026 (6% correction)
+        - s/n=50
 
 - run-eg17mcalt14
     - gauss fit
     - nearest from t12 above
     - s/n=23 and higher
-        - straight
-            XXX
-        - weights
-            XXX
-
+        - decent with weights
+        - one big outlier... similar to what I saw before. Maybe
+            remove huge outliers
+    - rerunning with BA
 
 
 sim-dg06

@@ -354,4 +354,31 @@ def write_fits(filename, data):
 
     return success
 
+def get_weights(data,SN=0.24,type='noise'):
+    """
+    Using Ts2n weights seems to  help when there is a mixture
+    of exp and dev, essentially downweighting dev
+    """
+
+    if type=='noise':
+        print("using SN:",SN)
+        denom = (
+            2*SN**2
+            + data['g_cov'][:,0,0]
+            + 2*data['g_cov'][:,0,1]
+            + data['g_cov'][:,1,1]
+        )
+        wts = 1.0/denom
+
+    elif type is None:
+        wts = ones(data.size)
+
+    else:
+        raise ValueError("bad weight type: '%s'" % type)
+
+    wts *= (1.0/wts.max())
+    wfrac=wts.sum()/wts.size
+    print("    weighted frac: %.3g" % wfrac)
+    return wts
+
 

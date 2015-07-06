@@ -828,6 +828,33 @@ sim-eg17
         - weights -0.00065 +/- 0.0038
         - straight 0.0099 +/- 0.004
 
+- run-eg17mcalt12
+    - gauss fit
+    - s/n=10000
+    - to be used for nearest
+
+- run-eg17mcalt13
+    - gauss fit
+    - nearest from t12 above
+    - s/n=100
+        - works
+    - s/n=50
+        - straight
+            0.0064
+        - weights
+            -0.0034
+
+- run-eg17mcalt14
+    - gauss fit
+    - nearest from t12 above
+    - s/n=23 and higher
+        - straight
+            XXX
+        - weights
+            XXX
+
+
+
 sim-dg06
 ===========
 

@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 from os.path import join as path_join
 
@@ -177,13 +178,14 @@ def get_output_url(run, is2, is2n, itrial=None, fs=None, ext='fits'):
     f += '.%s' % ext
     return path_join(dir, f)
 
-def read_output(run, is2n, fs=None, ext='fits'):
+def read_output(run, is2n, fs=None, ext='fits', **kw):
     """
     Read the collated file with all trials
     """
     import fitsio
     fname=get_output_url(run, 0, is2n, fs=fs, ext=ext)
-    return fitsio.read(fname)
+    print("reading collated file:",fname)
+    return fitsio.read(fname, **kw)
 
 
 def get_averaged_url(run, is2n=None, fs=None, ext='fits'):

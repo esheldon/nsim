@@ -1161,6 +1161,217 @@ class ISampleMetacalFitter(MaxMetacalFitter):
 
         return {'res':res}
 
+
+
+class ISampleMetacalFitterNearest(MaxMetacalFitter):
+    def __init__(self, *args, **kw):
+        super(ISampleMetacalFitterNearest,self).__init__(*args,**kw)
+
+        self._load_deep_data()
+
+        if self['expand_shear_true']:
+            self.shear_expand=self.sim['shear']
+        else:
+            self.shear_expand=[0.0, 0.0]
+
+        if self.g_prior_during:
+            self.remove_prior=True
+        else:
+            self.remove_prior=False
+
+
+    def _dofit(self, imdict):
+        """
+        re-use sampler and samples
+
+        use the max fitter with new observation set
+        """
+
+        mconf=self['max_pars']
+
+        obs=imdict['obs']
+        mobs = self._get_metacal_obs_noshear(obs)
+
+        # first fit original data
+        #sampler, psf_flux_res = self._do_isample_fit(obs)
+
+        # now convolved by dilated psf
+        sampler_mcal, pres_mcal = self._do_isample_fit(mobs)
+
+        # add PQR etc. with sensitivity modified likelihood
+        self._add_mcmc_stats(sampler_mcal)
+
+        return sampler_mcal, pres_mcal
+
+    def _do_isample_fit(self, obs):
+
+        mconf=self['max_pars']
+        ntry=mconf['ntry']
+
+        # just want to fit the psfs and get a maxlike fitter object
+        mdict= super(ISampleMetacalFitterNearest,self)._do_one_fit(obs, ntry=ntry)
+
+        boot=mdict['boot']
+
+        ipars=self['isample_pars']
+
+        try:
+            boot.isample(ipars, prior=self.prior)
+        except BootGalFailure:
+            raise TryAgainError("failed to isample galaxy")
+
+        sampler=boot.get_isampler()
+        res=sampler.get_result()
+
+        max_fitter=boot.get_max_fitter()
+        maxres=max_fitter.get_result()
+
+        res['model'] = maxres['model']
+        res['s2n_w'] = maxres['s2n_w']
+
+        psf_flux_res=mdict['psf_flux_res']
+        return sampler, psf_flux_res
+
+    def _get_metacal_obs_noshear(self, obs):
+        """
+        get Observations for the sheared images
+        """
+        from ngmix.metacal import Metacal
+
+        mpars=self['metacal_pars']
+
+        mc=Metacal(obs,
+                   whiten=mpars['whiten'],
+                   same_seed=mpars['same_seed'])
+
+        sval=mpars['step']
+        sh1p=Shape( sval,  0.00 )
+
+        newobs = mc.get_obs_dilated_only(sh1p)
+        return newobs
+
+    def _add_mcmc_stats(self, sampler):
+        """
+        Calculate some stats
+
+        The result dict internal to the sampler is modified to include
+        g_sens and P,Q,R
+
+        call calc_result before calling this method
+        """
+
+        res=sampler.get_result()
+
+        # this is the full prior
+        g_prior=self.g_prior
+
+        iweights = sampler.get_iweights()
+        samples = sampler.get_samples()
+        g_vals=samples[:,2:2+2]
+
+        # nearest neighbor metacal sensitivity values
+        sens_vals = self.interp(samples[:,2:])
+
+        g_sens_model = (iweights*sens_vals).sum()/iweights.sum()
+        g_sens_model = array([g_sens_model]*2)
+
+
+        ls=ngmix.lensfit.LensfitSensitivity(g_vals,
+                                            g_prior,
+                                            weights=iweights,
+                                            remove_prior=self.remove_prior)
+        g_sens = ls.get_g_sens()
+
+        res['g_sens_model'] = g_sens_model
+        #print('model sensitivity: %g %g' % tuple(g_sens_model))
+
+        res['g_sens'] = g_sens
+        res['nuse'] = ls.get_nuse()
+        #print("lensfit sensitivity: %g %g" % tuple(g_sens))
+
+
+        if False:
+            from biggles import plot_hist
+            mn=sens_vals.mean()
+            rng=3*sens_vals.std()
+
+            plot_hist(sens_vals, min=mn-rng,max=mn+rng,nbin=40)
+            key=raw_input('hit a key: ')
+            if key=='q': stop
+
+        '''
+        weights = iweights*sens_vals
+
+        # keep for later if we want to make plots
+        self._weights=weights
+
+        ls=ngmix.lensfit.LensfitSensitivity(g_vals,
+                                            g_prior,
+                                            weights=weights,
+                                            remove_prior=self.remove_prior)
+        g_sens = ls.get_g_sens()
+
+        res=sampler.get_result()
+        res['g_sens'] = g_sens
+        res['nuse'] = ls.get_nuse()
+
+        pqrobj=ngmix.pqr.PQR(g_vals, g_prior,
+                             shear_expand=self.shear_expand,
+                             weights=weights,
+                             remove_prior=self.remove_prior)
+
+
+        P,Q,R = pqrobj.get_pqr()
+        res['P']=P
+        res['Q']=Q
+        res['R']=R
+        '''
+ 
+    def _load_deep_data(self):
+        import fitsio
+        from scipy.interpolate import NearestNDInterpolator
+        from . import files
+        run=self['deep_data_run']
+        data=files.read_output(run, 0)
+
+        self.interp = NearestNDInterpolator(data['pars'][:,2:],
+                                            data['g_sens'][:,0],
+                                            rescale=True)
+
+    def _get_dtype(self):
+        """
+        get the dtype for the output struct
+        """
+        #dt=super(ISampleMetacalFitterNearest,self)._get_dtype()
+        dt=MaxFitter._get_dtype(self)
+        dt += [
+            ('g_sens','f8',2),
+            ('g_sens_model','f8',2),
+            #('P','f8'),
+            #('Q','f8',2),
+            #('R','f8',(2,2)),
+        ]
+        return dt
+
+    def _copy_to_output(self, res, i):
+        """
+        copy parameters specific to this class
+        """
+        #super(ISampleMetacalFitterNearest,self)._copy_to_output(res, i)
+        MaxFitter._copy_to_output(self, res, i)
+
+        d=self.data
+
+        d['g_sens'][i] = res['g_sens']
+        d['g_sens_model'][i] = res['g_sens_model']
+        '''
+        d['P'][i] = res['P']
+        d['Q'][i] = res['Q']
+        d['R'][i] = res['R']
+        '''
+
+
+
 class EMMetacalFitter(MaxMetacalFitter):
 
     def _do_one_fit(self, obs, guess=None, ntry=None):

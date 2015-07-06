@@ -19,7 +19,7 @@ from pprint import pprint
 from optparse import OptionParser
 
 
-from nsim.util import get_shear_grid, get_true_shear
+from nsim.util import get_shear_grid, get_true_shear, get_weights
 from nsim.util import fit_lnp_shear2d
 
 parser=OptionParser(__doc__)
@@ -236,68 +236,6 @@ def add_pqrs_stats(conf, data, d, options):
 
         d['shear_pqrs'][0,:] = res[0:0+2]
 
-def get_weights(data,conf,type='noise'):
-    """
-    Using Ts2n weights seems to  help when there is a mixture
-    of exp and dev, essentially downweighting dev
-    """
-
-    if type=='noise':
-        #no_ring=conf['simc'].get('no_ring',False)
-        #if no_ring:
-        #    SN=0.16
-        #else:
-        #    SN=0.0001
-        SN=0.22
-
-        print("using SN:",SN)
-        denom = (
-            2*SN**2
-            + data['g_cov'][:,0,0]
-            + 2*data['g_cov'][:,0,1]
-            + data['g_cov'][:,1,1]
-        )
-        wts = 1.0/denom
-
-    elif type=='nosn':
-        print("using SN:",0)
-        denom = (
-            + data['g_cov'][:,0,0]
-            + 2*data['g_cov'][:,0,1]
-            + data['g_cov'][:,1,1]
-        )
-        wts = 1.0/denom
-
-
-    elif type=='Ts2n':
-        print("using Ts2n weighting")
-        if conf['use_logpars']:
-            Ts2n = sqrt( 1.0/data['pcov'][:,4,4])
-        else:
-            Ts2n = data['pars'][:,4]/sqrt( data['pcov'][:,4,4])
-
-        wts = Ts2n**2
-
-    elif type=='hybrid':
-        # on s/n=50 seems to work about the same as Ts2n
-        wts = get_weights(data,conf,type='noise')
-        wts *= Ts2n**2
-
-    elif type=='efficiency':
-        # maybe doesn't work
-        wts = data['efficiency']
-
-    elif type is None:
-        wts = ones(data.size)
-
-    else:
-        raise ValueError("bad weight type: '%s'" % type)
-
-    wts *= (1.0/wts.max())
-    wfrac=wts.sum()/wts.size
-    print("    weighted frac: %.3g" % wfrac)
-    return wts
-
 def add_shearp(conf, data, d):
     d['lnp_shear'][0] += data['lnp_shear'].sum(axis=0)
 
@@ -337,7 +275,7 @@ def fit_shearp(conf, d, show=False, guess=None):
 
 
 def do_sums(conf, data, d, options):
-    weights = get_weights(data, conf, type=options.weights)
+    weights = get_weights(data, type=options.weights)
 
     wsum = weights.sum()
     d['wsum'][0] += wsum

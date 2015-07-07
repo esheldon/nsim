@@ -1345,7 +1345,14 @@ class ISampleMetacalFitterNearest(MaxMetacalFitter):
         run=self['deep_data_run']
         data=files.read_output(run, 0)
 
-        self.interp = NearestNDInterpolator(data['pars'][:,2:],
+        pars=data['pars'][:,2:].copy()
+
+        # we want g_noshear, gotten from the post-convolved fit,
+        # since that is what we are matching to
+        pars[:,0] = data['g_noshear'][:,0]
+        pars[:,1] = data['g_noshear'][:,1]
+
+        self.interp = NearestNDInterpolator(pars,
                                             data['g_sens'][:,0],
                                             rescale=True)
 

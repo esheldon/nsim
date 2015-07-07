@@ -847,6 +847,7 @@ sim-eg17
         - s/n=100
             0.0017 +/- 0.0026 (6% correction)
         - s/n=50
+            -0.003
 
 - run-eg17mcalt14
     - gauss fit
@@ -857,6 +858,12 @@ sim-eg17
             remove huge outliers
     - rerunning with BA
 
+-run-eg17zmcal01
+    - zero shear training run
+- run-eg17mcalt15
+    - gauss fit
+    - nearest from zero shear eg17zmcal01
+    - s/n=100
 
 sim-dg06
 ===========

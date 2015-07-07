@@ -971,6 +971,20 @@ sim-dg06
     - weights
         0.011 +/- 0.0027
 
+# using prior info
+- sim-dg06z
+    - zero shear, calculating metacal pars
+    - will use for priors
+- run-dg06zmcal01
+    - fitting exp
+    - will use for priors
+
+- run-dg06mcalt06
+    - fitting exp
+    - bring in prior from run-dg06zmcal01
+    - s/n=100 fine
+    - s/n=50 fine
+
 - problems with dev
     * would isample be more stable?
     * fit with N gauss, render scene and deconvolve, reconvolve to 

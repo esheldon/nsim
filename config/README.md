@@ -864,7 +864,9 @@ sim-eg17
 - run-eg17mcalt15
     - gauss fit
     - nearest from zero shear eg17zmcal01
-    - s/n=100
+    - many s/n
+    - wierd s/n=23 for BA, does't fit with
+        others; more outlier stuff?
 
 sim-dg06
 ===========

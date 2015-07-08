@@ -1002,6 +1002,15 @@ sim-dg06
     - new prior sampling technique, sampling from actual
         parameters measured from a high s/n run
 
+- run-dg06mcalt10
+    - metacal-isample-nearest
+    - fit exp
+    - s/n=50
+    - priors from the high s/n fit
+    - may want to remove the prior we apply, but then calculate
+        sensitivity from the true prior (or best guess in real
+        data)?
+
 
 - problems with dev
     * would isample be more stable?

@@ -351,6 +351,9 @@ class SimpleFitterBase(FitterBase):
 
             else:
                 fit_T_prior = self.sim.T_pdf
+        elif Tp['type']=='normal':
+            Tpars=Tp['pars']
+            fit_T_prior=ngmix.priors.Normal(Tpars[0], Tpars[1])
         else:
             T_prior_pars = Tp['pars']
             fit_T_prior=ngmix.priors.TwoSidedErf(*T_prior_pars)
@@ -370,6 +373,10 @@ class SimpleFitterBase(FitterBase):
 
             else:
                 fit_counts_prior = self.sim.counts_pdf
+
+        elif cp['type']=='normal':
+            cpars=cp['pars']
+            fit_counts_prior=ngmix.priors.Normal(cpars[0], cpars[1])
 
         else:
             counts_prior_pars = cp['pars']

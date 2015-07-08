@@ -8,6 +8,7 @@ import pprint
 
 import numpy
 from numpy import array, zeros, ones, log, log10, exp, sqrt, diag
+from numpy import where
 from numpy.random import random as randu
 from numpy.random import randn
 
@@ -785,7 +786,10 @@ class MaxMetacalFitter(MaxFitter):
         get the dtype for the output struct
         """
         dt=super(MaxMetacalFitter,self)._get_dtype()
+
+        npars=self['npars']
         dt += [
+            ('pars_noshear','f8',npars),
             ('g_noshear','f8',2),
             ('g_mean','f8',2),
             ('g_sens','f8',2),
@@ -801,7 +805,9 @@ class MaxMetacalFitter(MaxFitter):
         super(MaxMetacalFitter,self)._copy_to_output(res, i)
 
         d=self.data
+
         # reconv with no shear
+        d['pars_noshear'][i] = res['pars_noshear']
         d['g_noshear'][i] = res['pars_noshear'][2:2+2]
 
         # mean from the two sheared images
@@ -1187,23 +1193,21 @@ class ISampleMetacalFitterNearest(MaxMetacalFitter):
         use the max fitter with new observation set
         """
 
-        mconf=self['max_pars']
-
         obs=imdict['obs']
         mobs = self._get_metacal_obs_noshear(obs)
 
         # first fit original data
-        #sampler, psf_flux_res = self._do_isample_fit(obs)
+        #sampler, psf_flux_res = self._do_one_fit(obs)
 
         # now convolved by dilated psf
-        sampler_mcal, pres_mcal = self._do_isample_fit(mobs)
+        sampler_mcal, pres_mcal = self._do_one_fit(mobs)
 
         # add PQR etc. with sensitivity modified likelihood
         self._add_mcmc_stats(sampler_mcal)
 
         return sampler_mcal, pres_mcal
 
-    def _do_isample_fit(self, obs):
+    def _do_one_fit(self, obs):
 
         mconf=self['max_pars']
         ntry=mconf['ntry']
@@ -1345,13 +1349,10 @@ class ISampleMetacalFitterNearest(MaxMetacalFitter):
         run=self['deep_data_run']
         data=files.read_output(run, 0)
 
-        pars=data['pars'][:,2:].copy()
+        pars=data['pars_noshear'][:,2:].copy()
 
-        # we want g_noshear, gotten from the post-convolved fit,
-        # since that is what we are matching to
-        pars[:,0] = data['g_noshear'][:,0]
-        pars[:,1] = data['g_noshear'][:,1]
-
+        # not g_sens (the sens from metacal) not g_sens_model
+        # which means something else for max like fitting
         self.interp = NearestNDInterpolator(pars,
                                             data['g_sens'][:,0],
                                             rescale=True)
@@ -1385,6 +1386,129 @@ class ISampleMetacalFitterNearest(MaxMetacalFitter):
         d['P'][i] = res['P']
         d['Q'][i] = res['Q']
         d['R'][i] = res['R']
+
+
+class PSampleMetacalFitter(ISampleMetacalFitterNearest):
+    """
+    draw examples from our prior sample
+    """
+    def __init__(self, *args, **kw):
+        super(PSampleMetacalFitter,self).__init__(*args, **kw)
+        self.remove_prior=True
+
+    def _dofit(self, imdict):
+        """
+        re-use sampler and samples
+
+        use the max fitter with new observation set
+        """
+
+        obs=imdict['obs']
+        mobs = self._get_metacal_obs_noshear(obs)
+
+        sampler, pres= self._do_one_fit(mobs)
+
+        self._add_mcmc_stats(sampler)
+
+        return sampler, pres
+
+    def _do_one_fit(self, obs):
+        """
+        run a maxlike fit then do prior sampling
+        """
+        mconf=self['max_pars']
+        ntry=mconf['ntry']
+
+        # just want to fit the psfs and get a maxlike fitter object
+        mdict= MaxMetacalFitter._do_one_fit(self, obs, ntry=ntry)
+
+        boot=mdict['boot']
+
+        psample_pars=self['psample_pars']
+        try:
+            boot.psample(psample_pars, self.deep_pars)
+        except BootGalFailure as err:
+            raise TryAgainError(str(err))
+
+        sampler=boot.get_psampler()
+        maxres=boot.get_max_fitter().get_result()
+
+        res=sampler.get_result()
+        res['model'] = maxres['model']
+        res['s2n_w'] = maxres['s2n_w']
+
+        psf_flux_res=mdict['psf_flux_res']
+        
+        print("    nuse:",res['nuse'])
+        print("    neff:",res['neff'])
+
+        return sampler, psf_flux_res
+
+    def _add_mcmc_stats(self, sampler):
+        """
+        Calculate some stats
+
+        The result dict internal to the sampler is modified to include
+        g_sens and P,Q,R
+
+        call calc_result before calling this method
+        """
+
+        res=sampler.get_result()
+
+        # this is the full prior
+        g_prior=self.g_prior
+
+        likes = sampler.get_likelihoods()
+        samples = sampler.get_used_samples()
+        ind = sampler.get_used_indices()
+
+        g_vals=samples[:,2:2+2]
+
+        # nearest neighbor metacal sensitivity values
+        sens_vals = self.deep_sens[ind]
+
+        likesum=likes.sum()
+        g_sens_model = (likes*sens_vals).sum()/likesum
+        g_sens_model = array([g_sens_model]*2)
+
+        ls=ngmix.lensfit.LensfitSensitivity(g_vals,
+                                            g_prior,
+                                            weights=likes,
+                                            remove_prior=self.remove_prior)
+        g_sens = ls.get_g_sens()
+
+        res['g_sens_model'] = g_sens_model
+
+        res['g_sens'] = g_sens
+        res['nuse'] = ls.get_nuse()
+
+        pqrobj=ngmix.pqr.PQR(g_vals, g_prior,
+                             shear_expand=self.shear_expand,
+                             weights=likes,
+                             remove_prior=self.remove_prior)
+
+        P,Q,R = pqrobj.get_pqr()
+        res['P']=P
+        res['Q']=Q
+        res['R']=R
+
+        if False:
+            self._plot_sens_vals(sens_vals)
+
+
+    def _load_deep_data(self):
+        import fitsio
+        from . import files
+        run=self['deep_data_run']
+        data=files.read_output(run, 0)
+
+        # note g_sens (the sens from metacal) not g_sens_model
+        # which means something else for max like fitting
+        # make sure to convert to native data type
+        self.deep_pars=array(data['pars_noshear'], dtype='f8', copy=True)
+        self.deep_sens=array(data['g_sens'][:,0], dtype='f8', copy=True)
+
 
 class EMMetacalFitter(MaxMetacalFitter):
 

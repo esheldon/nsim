@@ -985,6 +985,24 @@ sim-dg06
     - s/n=100 fine
     - s/n=50 fine
 
+- run-dg06mcal07
+    - fitting exp
+    - bring in prior from run-dg06zmcal01
+     [ 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
+    - 23 blew up, why?
+
+- run-dg06mcalt07
+    - fit gauss
+    - s/n=50
+
+- run-dg06mcalt08
+    - metacal-psamp
+    - fit exp
+    - s/n=50
+    - new prior sampling technique, sampling from actual
+        parameters measured from a high s/n run
+
+
 - problems with dev
     * would isample be more stable?
     * fit with N gauss, render scene and deconvolve, reconvolve to 

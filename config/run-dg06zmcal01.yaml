@@ -48,9 +48,9 @@ desired_err: 2.5e-5
 #desired_err: 1.0e-5
 desired_hours: 0.10
 # on comet
-#sec_per_pair: 0.13
+sec_per_pair: 0.30
 # on astro
-sec_per_pair: 0.53
+#sec_per_pair: 0.53
 npair_min: 40000
 
 verbose: True

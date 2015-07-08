@@ -119,6 +119,9 @@ def run_sim(sim_conf,
     elif ftype=='metacal-isample-nearest':
         fitter=nsim.fitters.ISampleMetacalFitterNearest(sim, run_conf, npairs, **kw)
 
+    elif ftype=='metacal-psamp':
+        fitter=nsim.fitters.PSampleMetacalFitter(sim, run_conf, npairs, **kw)
+
 
     elif ftype=='metacal-em':
         fitter=nsim.fitters.EMMetacalFitter(sim, run_conf, npairs, **kw)

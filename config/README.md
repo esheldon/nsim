@@ -1042,8 +1042,10 @@ sim-dg06
     - true priors
     - fit exp
     - s/n=100
-        - ok
+        fracdiff(lensfit): 0.0021 +/- 0.0027
+        fracdiff(pqr):     0.0019 +/- 0.0022
     - s/n=50
+
 
 
 - is it the T/F or g priors?

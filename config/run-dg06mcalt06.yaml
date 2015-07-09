@@ -66,6 +66,9 @@ desired_hours: 0.5
 
 # on comet
 sec_per_pair: 0.43
+# on slac
+sec_per_pair: 0.70
+
 npair_min: 40000
 
 verbose: True

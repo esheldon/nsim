@@ -1027,46 +1027,26 @@ sim-dg06
         fracdiff(lensfit): 0.0085 +/- 0.0028
         fracdiff(pqr):     0.0081 +/- 0.0024
 
+- is it the T/F or g priors?
+
+    - "true" priors applied for deep run, although they may not have
+        mattered much
+        - the actual recovered values very different from priors
+    - for runs that worked same priors were applied.
+
+    - the sensitivities are coming out very low compared to the
+        run with true g prior
+        - model sens less different
+        - should I apply true prior?  Then the issue is I have
+            no examples with which to calculate the model sensitivity in
+            regions where the true prior differs
+    - this is the problem with using biased measurements
+
+    - I didn't match prior galaxies in centroid
 
 
 
-- problems with dev
-    * would isample be more stable?
-    * fit with N gauss, render scene and deconvolve, reconvolve to 
-        measure synthetic response?
-    * easy version: exp fitting exp, residual should be noise.
-        render full model no pixelization, deconv and reconv. 
-        and add residual back to both, do fits
-    - is using mean of +/- a problem? no
 
-    * my previous sims indicated need exact same noise for this to work well
-        - try whitening
-
-    * maybe it is the size of the stamp, or
-        boundary issues in the sim?
-        - psf stamp is very large
-        - maybe try trimming the stamp or psf?
-
-        - maybe it is the rendering clipping at 5 sigma?
-            - doing a run with full rendering; slower by factor of 2!
-
-    * maybe lm fitter not giving stable result or failing in a biased way?
-        - remove loosened pars?
-        - of course pure em fit failed too.
-
-    - psf might be no longer a good fit to 1 gauss
-        - no, see dg06mcal06
-
-    - try guessing fits from noshear fit
-        - the 50 might be narrower, but hard to tell. probably
-            not
-    - try averaging fits to get g
-        - checked c, looks consistent with zero
-    - try bigger step
-        - quick try at 0.02 looked same for s2n=10
-    - try more stable fitting, e.g. em
-        - not great, even at s/n=1000
-        - bias -0.035
 
 # old shapesim stuff
 - nsim-eg01

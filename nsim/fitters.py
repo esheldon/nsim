@@ -549,8 +549,8 @@ class MaxMetacalFitter(MaxFitter):
         sdict = self._get_sensitivity(obs)
         res.update(sdict)
 
-        g_sens_model = self._get_sensitivity_model(obs, fitter)
-        res['g_sens_model'] = g_sens_model
+        #g_sens_model = self._get_sensitivity_model(obs, fitter)
+        #res['g_sens_model'] = g_sens_model
 
         return fitter, psf_flux_res
 
@@ -800,7 +800,7 @@ class MaxMetacalFitter(MaxFitter):
             ('g_noshear','f8',2),
             ('g_mean','f8',2),
             ('g_sens','f8',2),
-            ('g_sens_model','f8',2),
+            #('g_sens_model','f8',2),
         ]
         return dt
 
@@ -824,7 +824,7 @@ class MaxMetacalFitter(MaxFitter):
         d['g_sens'][i] = res['g_sens']
 
         # sensitivity from simulating the model
-        d['g_sens_model'][i] = res['g_sens_model']
+        #d['g_sens_model'][i] = res['g_sens_model']
 
 
 class AdmomMetacalFitter(MaxMetacalFitter):
@@ -1281,7 +1281,10 @@ class ISampleMetacalFitterNearest(MaxMetacalFitter):
         g_vals=samples[:,2:2+2]
 
         # nearest neighbor metacal sensitivity values
-        sens_vals = self.interp(samples[:,2:])
+        if self['match_pars']['match_all_pars']:
+            sens_vals = self.interp(samples)
+        else:
+            sens_vals = self.interp(samples[:,2:])
 
         g_sens_model = (iweights*sens_vals).sum()/iweights.sum()
         g_sens_model = array([g_sens_model]*2)
@@ -1356,7 +1359,10 @@ class ISampleMetacalFitterNearest(MaxMetacalFitter):
         run=self['deep_data_run']
         data=files.read_output(run, 0)
 
-        pars=data['pars_noshear'][:,2:].copy()
+        if self['match_pars']['match_all_pars']:
+            pars=data['pars_noshear'].copy()
+        else:
+            pars=data['pars_noshear'][:,2:].copy()
 
         # not g_sens (the sens from metacal) not g_sens_model
         # which means something else for max like fitting

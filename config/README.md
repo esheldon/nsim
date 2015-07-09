@@ -984,6 +984,15 @@ sim-dg06
     - bring in prior from run-dg06zmcal01
     - s/n=100 fine
     - s/n=50 fine
+    - running again to make sure nothing changed
+        weights
+        fracdiff(lensfit): -0.005 +/- 0.0026
+        fracdiff(pqr):     -0.0023 +/- 0.0022
+        no weights
+        fracdiff(lensfit): -0.0028 +/- 0.0027
+        fracdiff(pqr):     -0.0024 +/- 0.0022
+
+
 
 - run-dg06mcal07
     - fitting exp
@@ -1017,7 +1026,7 @@ sim-dg06
 
 - run-dg06mcalt11
     - metacal-isample-nearest
-    - fit exp
+    - fit gauss
     - s/n=50
     - priors from the high s/n fit
     - may want to remove the prior we apply, but then calculate
@@ -1026,6 +1035,16 @@ sim-dg06
 
         fracdiff(lensfit): 0.0085 +/- 0.0028
         fracdiff(pqr):     0.0081 +/- 0.0024
+
+- run-dg06mcalt12
+    - metacal-isample-nearest
+    - including centroid in nearest match
+    - true priors
+    - fit exp
+    - s/n=100
+        - ok
+    - s/n=50
+
 
 - is it the T/F or g priors?
 

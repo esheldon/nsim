@@ -69,6 +69,7 @@ def get_dtype(fobj, model, options):
 
     dt =data.dtype.descr
     dt += [('s2n_matched','f8'),
+           ('nsum','i8'),
            ('wsum','f8'),
            ('s2n_w_sum','f8'),
            ('g_sum','f8',2),
@@ -81,7 +82,10 @@ def get_dtype(fobj, model, options):
            ('Cinv_sum','f8',(2,2))]
 
     if options.corr_model:
-        dt += [('g_sens_model_sum','f8',2)]
+        # pqr does not use weights, so need separate one
+        dt += [('g_sens_model_sum','f8',2),
+               ('g_sens_model_sum_pqr','f8',2),
+               ('g_sens_model_pqr','f8',2)]
 
     if 'S' in data.dtype.names:
         if options.is_zero:
@@ -289,6 +293,7 @@ def do_sums(conf, data, d, options):
     weights = get_weights(data, type=options.weights)
 
     wsum = weights.sum()
+    d['nsum'][0] += data.size
     d['wsum'][0] += wsum
 
     # width of this will be too large when using
@@ -317,11 +322,17 @@ def do_sums(conf, data, d, options):
     else:
         sh_lf, shcov_lf, g_sum, gsens_sum=lres
 
+    
+
     d['g_sum'][0] += g_sum
     d['g_sens_sum'][0] += gsens_sum
 
     if options.corr_model:
+        # no weights for pqr
+        gsens_model_sum_pqr = data['g_sens_model'].sum(axis=0)
+
         d['g_sens_model_sum'][0] += gsens_model_sum
+        d['g_sens_model_sum_pqr'][0] += gsens_model_sum_pqr
 
     shcov_lf_inv = numpy.linalg.inv(shcov_lf)
     d['shear_lensfit_cov_inv_sum'][0] += shcov_lf_inv
@@ -345,6 +356,7 @@ def do_avg(conf, d, options):
 
     if options.corr_model:
         d['g_sens_model'][0] = d['g_sens_model_sum'][0]/d['wsum'][0]
+        d['g_sens_model_pqr'][0] = d['g_sens_model_sum_pqr'][0]/d['nsum'][0]
         shlf = shlf / d['g_sens_model'][0]
 
     d['g_sens'][0] = d['g_sens_sum'][0]/d['wsum'][0]
@@ -372,11 +384,11 @@ def do_avg(conf, d, options):
 
 
         if options.corr_model:
-            shear *= 1.0 / d['g_sens_model'][0]
-            shear_cov[0,0] *= (1.0 / d['g_sens_model'][0,0])**2
-            shear_cov[0,1] *= (1.0 / d['g_sens_model'][0,0])**2
-            shear_cov[1,0] *= (1.0 / d['g_sens_model'][0,0])**2
-            shear_cov[1,1] *= (1.0 / d['g_sens_model'][0,1])**2
+            shear *= 1.0 / d['g_sens_model_pqr'][0]
+            shear_cov[0,0] *= (1.0 / d['g_sens_model_pqr'][0,0])**2
+            shear_cov[0,1] *= (1.0 / d['g_sens_model_pqr'][0,0])**2
+            shear_cov[1,0] *= (1.0 / d['g_sens_model_pqr'][0,0])**2
+            shear_cov[1,1] *= (1.0 / d['g_sens_model_pqr'][0,1])**2
 
         # did we expand around the true shear?
         expand_shear=conf.get('expand_shear_true',False)

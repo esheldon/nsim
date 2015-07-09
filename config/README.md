@@ -1012,6 +1012,8 @@ sim-dg06
         data)?
     - 0.004 in both
     - running again (on slac)
+        fracdiff(lensfit): 0.0074 +/- 0.0026
+        fracdiff(pqr):     0.0059 +/- 0.0022
 
 - run-dg06mcalt11
     - metacal-isample-nearest
@@ -1022,6 +1024,8 @@ sim-dg06
         sensitivity from the true prior (or best guess in real
         data)?
 
+        fracdiff(lensfit): 0.0085 +/- 0.0028
+        fracdiff(pqr):     0.0081 +/- 0.0024
 
 
 

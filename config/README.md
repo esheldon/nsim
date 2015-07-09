@@ -1010,7 +1010,7 @@ sim-dg06
     - may want to remove the prior we apply, but then calculate
         sensitivity from the true prior (or best guess in real
         data)?
-
+    - 0.004 in both
 
 - problems with dev
     * would isample be more stable?

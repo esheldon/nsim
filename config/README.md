@@ -1011,6 +1011,20 @@ sim-dg06
         sensitivity from the true prior (or best guess in real
         data)?
     - 0.004 in both
+    - running again (on slac)
+
+- run-dg06mcalt11
+    - metacal-isample-nearest
+    - fit exp
+    - s/n=50
+    - priors from the high s/n fit
+    - may want to remove the prior we apply, but then calculate
+        sensitivity from the true prior (or best guess in real
+        data)?
+
+
+
+
 
 - problems with dev
     * would isample be more stable?

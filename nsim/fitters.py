@@ -1401,6 +1401,301 @@ class ISampleMetacalFitterNearest(MaxMetacalFitter):
         d['R'][i] = res['R']
 
 
+class ISampleGaussMom(MaxFitter):
+    """
+    sample the likelihood and record mean covariance
+    Do same for reconvolved galaxy, ala metacal
+    """
+    def _dofit(self, imdict):
+        """
+        re-use sampler and samples
+
+        use the max fitter with new observation set
+        """
+
+        obs=imdict['obs']
+        mobs = self._get_metacal_obs_noshear(obs)
+
+        # first fit original data
+        sampler, psf_flux_res = self._do_one_fit(obs)
+
+        # now convolved by dilated psf
+        sampler_mcal, pres_mcal = self._do_one_fit(mobs)
+
+        # add dilated psf meaure to result
+        res=sampler.get_result()
+        mres=sampler_mcal.get_result()
+        res['pars_conv'] = mres['pars']
+        res['pars_conv_cov'] = mres['pars_cov']
+
+        return sampler, psf_flux_res
+
+    def _do_one_fit(self, obs):
+        """
+        the basic fitter for this class
+        """
+        boot=ngmix.bootstrap.BootstrapperGaussMom(obs)
+
+        Tguess=self.sim['psf_T']
+        ppars=self['psf_pars']
+        try:
+            boot.fit_psfs(ppars['model'], Tguess, ntry=ppars['ntry'])
+        except BootPSFFailure:
+            raise TryAgainError("failed to fit psf")
+
+        mconf=self['max_pars']
+
+        try:
+            boot.fit_max(mconf['pars'],
+                         prior=self.prior,
+                         ntry=mconf['ntry'])
+
+            if mconf['pars']['method']=='lm':
+                boot.try_replace_cov(mconf['cov_pars'])
+        except BootGalFailure:
+            raise TryAgainError("failed to fit galaxy")
+
+        mfitter=boot.get_max_fitter() 
+        mres=mfitter.get_result()
+        psf_flux_res = boot.get_psf_flux_result()
+
+        ipars=self['isample_pars']
+
+        try:
+            boot.isample(ipars, prior=self.prior, verbose=False)
+        except BootGalFailure:
+            raise TryAgainError("failed to isample galaxy")
+
+        sampler=boot.get_isampler()
+        res=sampler.get_result()
+
+        res['model'] = mres['model']
+        res['s2n_w'] = mres['s2n_w']
+
+        return sampler, psf_flux_res
+
+    def _get_metacal_obs_noshear(self, obs):
+        """
+        get Observations for the sheared images
+        """
+        from ngmix.metacal import Metacal
+
+        mpars=self['metacal_pars']
+
+        mc=Metacal(obs)
+
+        sval=mpars['step']
+        sh1p=Shape( sval,  0.00 )
+
+        newobs = mc.get_obs_dilated_only(sh1p)
+        return newobs
+
+    def _set_prior(self):
+        """
+        Set all the priors.  These are simple ranges only
+        """
+        import ngmix
+        from ngmix.joint_prior import PriorMomSep
+
+        ppars=self['priors']
+
+        cp=ppars['cen']
+        if cp['type']=="flat":
+            rng=[-cp['width']*0.5,cp['width']*0.5]
+            cen1_prior = ngmix.priors.FlatPrior(*rng)
+            cen2_prior = ngmix.priors.FlatPrior(*rng)
+        else:
+            raise ValueError("cen prior must be 'flat'")
+
+        M1p=ppars['M1']
+        if M1p['type']=="flat":
+            M1_prior = ngmix.priors.FlatPrior(*M1p['pars'])
+        else:
+            raise ValueError("M1 prior must be 'flat'")
+
+        M2p=ppars['M2']
+        if M2p['type']=="flat":
+            M2_prior = ngmix.priors.FlatPrior(*M2p['pars'])
+        else:
+            raise ValueError("M2 prior must be 'flat'")
+
+        Tp=ppars['T']
+        if Tp['type']=="flat":
+            T_prior = ngmix.priors.FlatPrior(*Tp['pars'])
+        else:
+            raise ValueError("T prior must be 'flat'")
+
+        Ip=ppars['I']
+        if Ip['type']=="flat":
+            I_prior = ngmix.priors.FlatPrior(*Ip['pars'])
+        else:
+            raise ValueError("I prior must be 'flat'")
+
+        self.prior = PriorMomSep(cen1_prior,
+                                 cen2_prior,
+                                 M1_prior,
+                                 M2_prior,
+                                 T_prior,
+                                 I_prior)
+
+
+
+    def _get_dtype(self):
+        """
+        get the dtype for the output struct
+        """
+        npars=self['npars']
+        dt=FitterBase._get_dtype(self)
+        dt += [
+            ('psf_flux','f8'),
+            ('psf_flux_err','f8'),
+            ('psf_flux_s2n','f8'),
+            ('pars','f8',npars),
+            ('pcov','f8',(npars,npars)),
+            ('pars_conv','f8',npars),
+            ('pars_conv_cov','f8',(npars,npars)),
+            ('s2n_w','f8')
+        ]
+
+        return dt
+
+    def _copy_to_output(self, res, i):
+
+        super(SimpleFitterBase,self)._copy_to_output(res, i)
+
+        d=self.data
+
+        d['psf_flux'][i] = res['psf_flux']
+        d['psf_flux_err'][i] = res['psf_flux_err']
+        d['psf_flux_s2n'][i] = res['psf_flux_s2n']
+
+        d['pars'][i,:] = res['pars']
+        d['pcov'][i,:,:] = res['pars_cov']
+        d['pars_conv'][i,:] = res['pars_conv']
+        d['pars_conv_cov'][i,:,:] = res['pars_conv_cov']
+
+        d['s2n_w'][i] = res['s2n_w']
+
+class ISampleGaussMomMetacal(ISampleGaussMom):
+    """
+    do metacal in moment space
+    """
+    def _dofit(self, imdict):
+        """
+        re-use sampler and samples
+
+        use the max fitter with new observation set
+        """
+
+        obs=imdict['obs']
+
+        # first fit original data
+        sampler, psf_flux_res = self._do_one_fit(obs)
+
+        sres = self._get_sensitivity(obs)
+
+        # add dilated psf meaure to result
+        res=sampler.get_result()
+        res['pars_mean'] = sres['pars_mean']
+        res['pars_noshear'] = sres['pars_noshear']
+        res['sens'] = sres['sens']
+        print_pars(res['sens'], front="        sensitivity:")
+
+        return sampler, psf_flux_res
+
+    def _get_sensitivity(self, obs):
+        """
+        fit sheared observations
+        """
+        mpars=self['metacal_pars']
+
+        R_obs_1m, R_obs_1p, R_obs_noshear = \
+                self._get_metacal_obslist(obs, get_noshear=True)
+
+        sampler_noshear, _ = self._do_one_fit(R_obs_noshear)
+        res_noshear = sampler_noshear.get_result()
+        pars_noshear=res_noshear['pars'].copy()
+
+        sampler_1m, _ = self._do_one_fit(R_obs_1m)
+        sampler_1p, _ = self._do_one_fit(R_obs_1p)
+        res_1m = sampler_1m.get_result()
+        res_1p = sampler_1p.get_result()
+
+        pars_1m=res_1m['pars']
+        pars_1p=res_1p['pars']
+        pars_mean = 0.5*(pars_1m + pars_1p)
+        
+        step=mpars['step']
+        sens = (pars_1p - pars_1m)/(2*step)
+
+        return {'pars_noshear':pars_noshear,
+                'pars_mean':pars_mean,
+                'sens':sens}
+
+    def _get_metacal_obslist(self, obs, get_noshear=False):
+        """
+        get Observations for the sheared images
+        """
+        from ngmix.metacal import Metacal
+
+        mpars=self['metacal_pars']
+
+        mc=Metacal(obs)
+
+        sval=mpars['step']
+        sh1m=Shape(-sval,  0.00 )
+        sh1p=Shape( sval,  0.00 )
+        #sh2m=Shape( 0.00, -sval )
+        #sh2p=Shape( 0.00,  sval )
+
+
+        R_obs1p = mc.get_obs_galshear(sh1p)
+        if get_noshear:
+            R_obs1m, R_obs_noshear = mc.get_obs_galshear(sh1m, get_unsheared=True)
+            return R_obs1m, R_obs1p, R_obs_noshear 
+        else:
+            R_obs1m = mc.get_obs_galshear(sh1m)
+            return R_obs1m, R_obs1p
+
+    def _get_dtype(self):
+        """
+        get the dtype for the output struct
+        """
+        npars=self['npars']
+        dt=FitterBase._get_dtype(self)
+        dt += [
+            ('psf_flux','f8'),
+            ('psf_flux_err','f8'),
+            ('psf_flux_s2n','f8'),
+            ('pars','f8',npars),
+            ('pcov','f8',(npars,npars)),
+            ('pars_noshear','f8',npars),
+            ('pars_mean','f8',npars),
+            ('sens','f8',npars),
+            ('s2n_w','f8')
+        ]
+
+        return dt
+
+    def _copy_to_output(self, res, i):
+
+        super(SimpleFitterBase,self)._copy_to_output(res, i)
+
+        d=self.data
+
+        d['psf_flux'][i] = res['psf_flux']
+        d['psf_flux_err'][i] = res['psf_flux_err']
+        d['psf_flux_s2n'][i] = res['psf_flux_s2n']
+
+        d['pars'][i,:] = res['pars']
+        d['pcov'][i,:,:] = res['pars_cov']
+        d['pars_noshear'][i,:] = res['pars_noshear']
+        d['pars_mean'][i,:] = res['pars_mean']
+        d['sens'][i,:] = res['sens']
+
+        d['s2n_w'][i] = res['s2n_w']
+
+
 class PSampleMetacalFitter(ISampleMetacalFitterNearest):
     """
     draw examples from our prior sample

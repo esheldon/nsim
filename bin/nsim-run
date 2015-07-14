@@ -96,39 +96,46 @@ def run_sim(sim_conf,
 
     ftype=run_conf['fitter']
     if ftype=='max':
-        fitter=nsim.fitters.MaxFitter(sim, run_conf, npairs, **kw)
+        fitclass=nsim.fitters.MaxFitter
+
+    elif ftype=='isample-gaussmom':
+        fitclass=nsim.fitters.ISampleGaussMom
+    elif ftype=='isample-gaussmom-metacal':
+        fitclass=nsim.fitters.ISampleGaussMomMetacal
+
 
     elif ftype=='metacal-max':
         mpars=run_conf['metacal_pars']
         if mpars['method']=='model':
-            fitter=nsim.fitters.MaxMetacalFitterModel(sim, run_conf, npairs, **kw)
+            fitclass=nsim.fitters.MaxMetacalFitterModel
         else:
-            fitter=nsim.fitters.MaxMetacalFitter(sim, run_conf, npairs, **kw)
+            fitclass=nsim.fitters.MaxMetacalFitter
 
     elif ftype=='metacal-mom':
-        fitter=nsim.fitters.MomMetacalFitter(sim, run_conf, npairs, **kw)
+        fitclass=nsim.fitters.MomMetacalFitter
 
     elif ftype=='metacal-admom':
-        fitter=nsim.fitters.AdmomMetacalFitter(sim, run_conf, npairs, **kw)
+        fitclass=nsim.fitters.AdmomMetacalFitter
 
 
 
     elif ftype=='metacal-isample':
-        fitter=nsim.fitters.ISampleMetacalFitter(sim, run_conf, npairs, **kw)
+        fitclass=nsim.fitters.ISampleMetacalFitter
 
     elif ftype=='metacal-isample-nearest':
-        fitter=nsim.fitters.ISampleMetacalFitterNearest(sim, run_conf, npairs, **kw)
+        fitclass=nsim.fitters.ISampleMetacalFitterNearest
 
     elif ftype=='metacal-psamp':
-        fitter=nsim.fitters.PSampleMetacalFitter(sim, run_conf, npairs, **kw)
+        fitclass=nsim.fitters.PSampleMetacalFitter
 
 
     elif ftype=='metacal-em':
-        fitter=nsim.fitters.EMMetacalFitter(sim, run_conf, npairs, **kw)
+        fitclass=nsim.fitters.EMMetacalFitter
 
     else:
         raise RuntimeError("bad fitter: '%s'" % ftype)
 
+    fitter=fitclass(sim, run_conf, npairs, **kw)
     fitter.go()
 
     data=fitter.get_data()

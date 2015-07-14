@@ -1,9 +1,12 @@
+# note recently switched this to non-ring
 # for ngmix
 #     gaussian psf
 #     exponential galaxy
 # total fwhm=1.2*psf
 
 name: "sim-eg17z"
+
+do_ring: False
 
 psf_model: "gauss"
 psf_T: 4.0

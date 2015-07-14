@@ -868,6 +868,10 @@ sim-eg17
     - wierd s/n=23 for BA, does't fit with
         others; more outlier stuff?
 
+** gaussmomn
+- run-eg17zgmom01
+    - gauss mom fitting, high s/n for training
+
 sim-dg06
 ===========
 

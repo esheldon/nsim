@@ -21,6 +21,22 @@ parser.add_option('--missing',action='store_true',
 
 MAXTIME_HOURS=3.0
 
+_wq_combine_psample_template="""
+command: |
+
+    #source $HOME/.bashrc
+    . $HOME/shell_scripts/nsim2-prepare.sh
+
+    command=nsim-combine-psample-trial
+    run=%(run)s
+    is2n=%(is2n)s
+    itrial=%(itrial)s
+    ${command} ${run} ${is2n} ${itrial}
+    
+job_name: "%(job_name)s"
+"""
+
+
 
 _wq_template="""
 command: |
@@ -195,6 +211,38 @@ def write_wq_files(c, master_script, equal_time=False, missing=False):
     print('total jobs: ',njobs)
     print('total pairs:',npair_tot)
 
+
+def write_combine_psample_wq_files(c):
+
+    print("writing combine psample scripts")
+
+    ns2n=len(c['s2n_vals'])
+    run=c['run']
+
+    njobs=0
+
+    template=_wq_combine_psample_template
+
+    npair_min=c.get('npair_min',None)
+
+    for is2n in xrange(ns2n):
+        s2n=c['s2n_vals'][is2n]
+
+        npair, nsplit = nsim.files.get_npair_nsplit(c, is2n, npair_min=npair_min)
+
+        for isplit in xrange(nsplit):
+
+            wq_url = nsim.files.get_wq_combine_psample_job_url(run, is2n, isplit)
+
+            job_name='%s-%03d-%05d' % (run, is2n,isplit)
+            qdata=template % dict(run=run,
+                                  is2n=is2n,
+                                  itrial=isplit,
+                                  job_name=job_name)
+
+            with open(wq_url,'w') as fobj:
+                fobj.write(qdata)
+
 def get_command():
     dir=os.environ['NSIM_DIR']
     cmd = os.path.join(dir, 'bin/nsim-run')
@@ -219,5 +267,8 @@ def main():
     master_script=write_master(c)
 
     write_wq_files(c, master_script, missing=options.missing)
+
+    if 'shear_grid' in c:
+        write_combine_psample_wq_files(c)
 
 main()

@@ -107,6 +107,12 @@ def get_wq_job_url(run, filenum, missing=False):
     fname='{run}{end}.yaml'.format(run=run,end=end)
     return path_join(d,fname)
 
+def get_wq_combine_psample_job_url(run, is2n, itrial):
+    d=get_wq_dir(run)
+
+    fname='%s-%05d-%05d-comb-psample.yaml' % (run,is2n,itrial)
+    return path_join(d,fname)
+
 def get_wq_master_url(run):
     d=get_wq_dir(run)
     return path_join(d,'%s.sh' % run)
@@ -178,12 +184,35 @@ def get_output_url(run, is2, is2n, itrial=None, fs=None, ext='fits'):
     f += '.%s' % ext
     return path_join(dir, f)
 
-def read_output(run, is2n, fs=None, ext='fits', **kw):
+def get_psample_summed_url(run, is2n, itrial=None, fs=None, ext='fits'):
+    """
+    is2 and is2n are the index in the list of s2 and s2n vals for a given run.
+    """
+
+    sub=None
+    if itrial is not None:
+        sub='bytrial'
+
+    dir=get_output_dir(run, sub=sub, fs=fs)
+
+    f='%s-%03i-%03i' % (run,0,is2n)
+
+    if itrial is not None:
+        if itrial == '*':
+            f += '-*'
+        else:
+            f += '-%05i' % itrial
+
+    f += '-summed.%s' % ext
+    return path_join(dir, f)
+
+
+def read_output(run, is2n, fs=None, itrial=None, ext='fits', **kw):
     """
     Read the collated file with all trials
     """
     import fitsio
-    fname=get_output_url(run, 0, is2n, fs=fs, ext=ext)
+    fname=get_output_url(run, 0, is2n, itrial=itrial, fs=fs, ext=ext)
     print("reading collated file:",fname)
     return fitsio.read(fname, **kw)
 

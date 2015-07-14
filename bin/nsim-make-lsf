@@ -18,9 +18,9 @@ parser.add_option('-v','--version',default='work',
 parser.add_option('--missing',action='store_true',
                   help='write lsf job files for the missing files')
 
-parser.add_option('-q','--queue',default='long',
+parser.add_option('-q','--queue',default='medium',
                   help='lsf queue, default %default')
-parser.add_option('-w','--walltime',default='08:00',
+parser.add_option('-w','--walltime',default='02:00',
                   help='lsf queue, default %default')
 
 

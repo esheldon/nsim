@@ -1582,9 +1582,9 @@ class ISampleGaussMomMetacal(ISampleGaussMom):
     """
     def _dofit(self, imdict):
         """
-        re-use sampler and samples
+        fit the original observation
 
-        use the max fitter with new observation set
+        Also get the sensitivity
         """
 
         obs=imdict['obs']

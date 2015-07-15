@@ -27,6 +27,20 @@ parser.add_option('-w','--walltime',default='02:00',
 
 MAXTIME_HOURS=3.0
 
+_lsf_combine_psample_template="""#BSUB -q %(queue)s
+#BSUB -J %(job_name)s
+#BSUB -n 1
+#BSUB -oo ./%(job_name)s.oe
+#BSUB -W %(walltime)s
+#BSUB -R "linux64 && rhel60 && scratch > 2"
+
+command=nsim-combine-psample-trial
+run=%(run)s
+is2n=%(is2n)s
+itrial=%(itrial)s
+${command} ${run} ${is2n} ${itrial}
+"""
+
 
 
 _lsf_template="""#!/bin/bash
@@ -211,6 +225,43 @@ def write_lsf_files(c, master_script, equal_time=False, missing=False):
     print('total jobs: ',njobs)
     print('total pairs:',npair_tot)
 
+
+def write_combine_psample_lsf_files(c):
+
+    print("writing combine psample scripts")
+
+    ns2n=len(c['s2n_vals'])
+    run=c['run']
+
+    njobs=0
+
+    template=_lsf_combine_psample_template
+
+    npair_min=c.get('npair_min',None)
+
+    for is2n in xrange(ns2n):
+        s2n=c['s2n_vals'][is2n]
+
+        npair, nsplit = nsim.files.get_npair_nsplit(c, is2n, npair_min=npair_min)
+
+        for isplit in xrange(nsplit):
+
+            lsf_url = nsim.files.get_lsf_combine_psample_job_url(run, is2n, isplit)
+
+            job_name='%s-%03d-%05d' % (run, is2n,isplit)
+            qdata=template % dict(run=run,
+                                  queue=c['queue'],
+                                  walltime=c['walltime'],
+                                  is2n=is2n,
+                                  itrial=isplit,
+                                  job_name=job_name)
+
+            with open(lsf_url,'w') as fobj:
+                fobj.write(qdata)
+
+
+
+
 def get_command():
     dir=os.environ['NSIM_DIR']
     cmd = os.path.join(dir, 'bin/nsim-run')
@@ -237,5 +288,9 @@ def main():
     master_script=write_master(c)
 
     write_lsf_files(c, master_script, missing=options.missing)
+
+    if 'shear_grid' in c:
+        write_combine_psample_lsf_files(c)
+
 
 main()

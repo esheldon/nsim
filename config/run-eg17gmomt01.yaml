@@ -58,17 +58,21 @@ isample_pars:
 
     
 shear_grid:
-    #nsigma: 4.0
+    nsigma: 20.0
     # currently only have sensitivities in shear1
     dims: [20,20]
-    s1range: [0.000,0.03]
-    s2range: [-0.005,0.005]
+#    s1range: [0.000,0.03]
+#    s2range: [-0.005,0.005]
+#    s1range: [0.005,0.015]
+#    s2range: [-0.005,0.005]
 
-#s2n_vals: [ 50 ]
-s2n_vals: [ 100 ]
+s2n_vals: [ 40 ]
+#s2n_vals: [ 100 ]
 #s2n_vals: [ 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
 
-desired_err: 2.5e-5
+#desired_err: 2.5e-5
+desired_err: 5.0e-5
+
 desired_hours: 0.40
 
 # on comet

@@ -3,6 +3,7 @@
     %prog run is2n
 """
 from __future__ import print_function
+import os
 import nsim
 from nsim import files
 import fitsio
@@ -12,6 +13,8 @@ from argparse import ArgumentParser
 parser=ArgumentParser(__doc__)
 parser.add_argument('run',help='run identifier')
 parser.add_argument('is2n',help='is2n number', type=int)
+parser.add_argument('--allow-missing',help='skip missing ones',
+                    action='store_true')
 
 
 def main():
@@ -32,6 +35,13 @@ def main():
 
         infile=files.get_psample_summed_url(args.run, args.is2n, itrial=isplit)
         print("%d/%d: %s" % (isplit+1,nsplit,infile))
+
+        if not os.path.exists(infile):
+            if args.allow_missing:
+                print("   skipping missing:",infile)
+                continue
+            else:
+                raise IOError("missing file: " + infile)
 
         with fitsio.FITS(infile) as fits:
 

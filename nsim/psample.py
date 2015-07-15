@@ -51,8 +51,8 @@ class PSampler(dict):
         from scipy.stats import multivariate_normal
 
         #starti=self['starti']
-        #fname,cname='pars_conv','pars_conv_cov'
-        fname,cname='pars','pcov'
+        fname,cname='pars_conv','pars_conv_cov'
+        #fname,cname='pars','pcov'
         pars = data[fname][i]
         cov = data[cname][i]
 
@@ -61,25 +61,29 @@ class PSampler(dict):
         deep_pars=self.deep_pars
         deep_sens=self.deep_sens
 
-        sheared_pars=deep_pars.copy()
+        #sheared_pars=deep_pars.copy()
 
-        if True:
-            self._compare_dist(dist)
-
+        neffsum=0.0
         for i1,s1 in enumerate(self.s1grid):
 
+            sheared_pars = deep_pars + deep_sens*s1
             #sheared_pars[:] = deep_pars
-            sheared_pars[:,2] = deep_pars[:,2]
-            sheared_pars[:,2] += deep_sens[:,2]*s1
+            #sheared_pars[:,2] = deep_pars[:,2]
+            #sheared_pars[:,2] += deep_sens[:,2]*s1
             
             likes = dist.pdf(sheared_pars)
 
             likesum = likes.sum()
 
-            effnum=likesum/likes.max()
-            print("effnum:",effnum)
+            neff=likesum/likes.max()
+            neffsum += neff
+            #print("neff:",neff)
             if likesum > 0:
                 self.lnp[i1] += numpy.log( likesum )
+
+        print("neff mean:",neffsum/self.s1grid.size)
+        if False:
+            self._compare_dist(dist)
 
     def _set_shear_grid(self):
         from .util import get_shear_grid
@@ -181,7 +185,7 @@ class PSampler(dict):
 
         si=self['starti']
 
-        fname='pars'
+        fname='pars_noshear'
         self.deep_pars=numpy.array(data[fname],
                                    dtype='f8',
                                    copy=True)
@@ -189,6 +193,10 @@ class PSampler(dict):
                                    dtype='f8',
                                    copy=True)
 
+        self.deep_sens[:,0] = 0.0
+        self.deep_sens[:,1] = 0.0
+        self.deep_sens[:,4] = 0.0
+        self.deep_sens[:,5] = 0.0
 
     def _setup(self, run, **keys):
         """

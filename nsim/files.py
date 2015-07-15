@@ -92,6 +92,11 @@ def get_condor_master_url(run):
     d=get_condor_dir(run)
     return path_join(d,'%s.sh' % run)
 
+
+#
+# wq
+#
+
 def get_wq_dir(run):
     dir=get_run_dir(run)
     dir=path_join(dir, 'wq')
@@ -117,6 +122,9 @@ def get_wq_master_url(run):
     d=get_wq_dir(run)
     return path_join(d,'%s.sh' % run)
 
+#
+# lsf
+#
 
 def get_lsf_dir(run):
     dir=get_run_dir(run)
@@ -132,6 +140,13 @@ def get_lsf_job_url(run, filenum, missing=False):
 
     fname='{run}{end}.lsf'.format(run=run,end=end)
     return path_join(d,fname)
+
+def get_lsf_combine_psample_job_url(run, is2n, itrial):
+    d=get_lsf_dir(run)
+
+    fname='%s-%05d-%05d-comb-psample.lsf' % (run,is2n,itrial)
+    return path_join(d,fname)
+
 
 def get_lsf_master_url(run):
     d=get_lsf_dir(run)

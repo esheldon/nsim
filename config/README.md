@@ -871,6 +871,13 @@ sim-eg17
 ** gaussmomn
 - run-eg17zgmom01
     - gauss mom fitting, high s/n for training
+- run-eg17gmomt01
+    - using run-eg17zgmom01 for training.  Realized this
+        full p(g) will necessarily be "no ring". switching
+        to sim-egnr05
+
+- run-egnr05gmomt01
+    - using run-eg17zgmom01 for training
 
 sim-dg06
 ===========

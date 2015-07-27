@@ -84,7 +84,11 @@ def run_sim(sim_conf,
             npairs,
             output_file,
             options):
-    sim=nsim.sim.NGMixSim(sim_conf, s2n)
+
+
+    seed = run_conf.get('seed',None)
+    print("using seed:",seed)
+    sim=nsim.sim.NGMixSim(sim_conf, s2n, seed=seed)
 
     checkpoint_file, checkpoint_data=get_checkpoint_data(output_file)
     plot_base=output_file.replace('.fits','')
@@ -100,6 +104,11 @@ def run_sim(sim_conf,
 
     elif ftype=='isample-gaussmom':
         fitclass=nsim.fitters.ISampleGaussMom
+
+    elif ftype=='psample-gaussmom':
+        fitclass=nsim.fitters.PSampleGaussMom
+
+
     elif ftype=='isample-gaussmom-metacal':
         fitclass=nsim.fitters.ISampleGaussMomMetacal
 

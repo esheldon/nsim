@@ -879,6 +879,15 @@ sim-eg17
 - run-egnr05gmomt01
     - using run-eg17zgmom01 for training
 
+sim-gg11 and sim-gg1z
+=====================
+
+For testing moment fitting and prior template sampling
+
+- run-gg11zgmom01
+    - high s/n for training
+    - aiming for 100,000 templates
+
 sim-dg06
 ===========
 

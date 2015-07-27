@@ -29,7 +29,7 @@ from ngmix.observation import Observation
 NSIGMA_IMAGE=5.0
 
 class NGMixSim(dict):
-    def __init__(self, sim_conf, s2n):
+    def __init__(self, sim_conf, s2n, seed=None):
         """
         Simulate images
 
@@ -45,9 +45,11 @@ class NGMixSim(dict):
 
         # seed a new MT random generator from devrand
         # and return the object
-        self.random_state=get_random_state_devrand()
-        # also seed the global random number generator from devrand
-        seed_global_devrand()
+
+        if seed is not None:
+            numpy.random.seed(seed)
+        else:
+            seed_global_devrand()
 
         self._set_config(sim_conf)
 
@@ -452,11 +454,14 @@ def seed_global_devrand():
     seed = get_devrand_uint()
     numpy.random.seed(seed)
 
-def get_random_state_devrand():
+def get_random_state_devrand(seed=None):
     """
-    Seed the numpy random state from /dev/random
+    get the random state.  If seed is not sent, 
+    get the eed the numpy random state from /dev/random
     """
-    seed = get_devrand_uint()
+
+    if seed is None:
+        seed = get_devrand_uint()
     return numpy.random.mtrand.RandomState(seed=seed)
 
 def get_devrand_uint():

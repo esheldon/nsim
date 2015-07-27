@@ -1195,7 +1195,6 @@ class ISampleMetacalFitterNearest(MaxMetacalFitter):
 
     def _dofit(self, imdict):
         """
-        re-use sampler and samples
 
         use the max fitter with new observation set
         """
@@ -1561,7 +1560,8 @@ class ISampleGaussMom(MaxFitter):
 
     def _copy_to_output(self, res, i):
 
-        super(SimpleFitterBase,self)._copy_to_output(res, i)
+        #super(SimpleFitterBase,self)._copy_to_output(res, i)
+        FitterBase._copy_to_output(self, res, i)
 
         d=self.data
 
@@ -1576,9 +1576,12 @@ class ISampleGaussMom(MaxFitter):
 
         d['s2n_w'][i] = res['s2n_w']
 
+
 class ISampleGaussMomMetacal(ISampleGaussMom):
     """
-    do metacal in moment space
+    do metacal in moment space.  Used for template set
+
+    fitter name in config is  "isample-gaussmom-metacal"
     """
     def _dofit(self, imdict):
         """
@@ -1696,13 +1699,16 @@ class ISampleGaussMomMetacal(ISampleGaussMom):
         d['s2n_w'][i] = res['s2n_w']
 
 
-class PSampleMetacalFitter(ISampleMetacalFitterNearest):
+class PSampleGaussMom(ISampleGaussMom):
     """
-    draw examples from our prior sample
+    isample the likelihood and then convert to analytic likelihood.
+
+    Then sum over template galaxies to get posterior and P,Q,R
     """
     def __init__(self, *args, **kw):
-        super(PSampleMetacalFitter,self).__init__(*args, **kw)
-        self.remove_prior=True
+        super(PSampleGaussMom,self).__init__(*args, **kw)
+
+        self._load_deep_data()
 
     def _dofit(self, imdict):
         """
@@ -1712,9 +1718,7 @@ class PSampleMetacalFitter(ISampleMetacalFitterNearest):
         """
 
         obs=imdict['obs']
-        mobs = self._get_metacal_obs_noshear(obs)
-
-        sampler, pres= self._do_one_fit(mobs)
+        sampler, pres= self._do_one_fit(obs)
 
         self._add_mcmc_stats(sampler)
 
@@ -1722,100 +1726,137 @@ class PSampleMetacalFitter(ISampleMetacalFitterNearest):
 
     def _do_one_fit(self, obs):
         """
-        run a maxlike fit then do prior sampling
+        the basic fitter for this class
         """
-        mconf=self['max_pars']
-        ntry=mconf['ntry']
+        boot=ngmix.bootstrap.BootstrapperGaussMom(obs)
 
-        # just want to fit the psfs and get a maxlike fitter object
-        mdict= MaxMetacalFitter._do_one_fit(self, obs, ntry=ntry)
-
-        boot=mdict['boot']
-
-        psample_pars=self['psample_pars']
+        Tguess=self.sim['psf_T']
+        ppars=self['psf_pars']
         try:
-            boot.psample(psample_pars, self.deep_pars)
-        except BootGalFailure as err:
-            raise TryAgainError(str(err))
+            boot.fit_psfs(ppars['model'], Tguess, ntry=ppars['ntry'])
+        except BootPSFFailure:
+            raise TryAgainError("failed to fit psf")
 
-        sampler=boot.get_psampler()
-        maxres=boot.get_max_fitter().get_result()
+        mconf=self['max_pars']
 
+        try:
+            boot.fit_max(mconf['pars'],
+                         prior=self.prior,
+                         ntry=mconf['ntry'])
+
+            if mconf['pars']['method']=='lm':
+                boot.try_replace_cov(mconf['cov_pars'])
+        except BootGalFailure:
+            raise TryAgainError("failed to fit galaxy")
+
+        mfitter=boot.get_max_fitter() 
+        mres=mfitter.get_result()
+        psf_flux_res = boot.get_psf_flux_result()
+
+        ipars=self['isample_pars']
+
+        try:
+            boot.isample(ipars, prior=self.prior, verbose=False)
+        except BootGalFailure:
+            raise TryAgainError("failed to isample galaxy")
+
+        sampler=boot.get_isampler()
         res=sampler.get_result()
-        res['model'] = maxres['model']
-        res['s2n_w'] = maxres['s2n_w']
 
-        psf_flux_res=mdict['psf_flux_res']
-        
-        print("    nuse:",res['nuse'])
-        print("    neff:",res['neff'])
+        res['model'] = mres['model']
+        res['s2n_w'] = mres['s2n_w']
 
         return sampler, psf_flux_res
 
+
     def _add_mcmc_stats(self, sampler):
         """
-        Calculate some stats
-
-        The result dict internal to the sampler is modified to include
-        g_sens and P,Q,R
-
-        call calc_result before calling this method
+        convert to analytic likelihood and do sums
+        over templates (prior) to get stats
         """
 
         res=sampler.get_result()
+        self.pqrt.calc_pqr(res['pars'], res['pars_cov'])
 
-        # this is the full prior
-        g_prior=self.g_prior
+        pqr_res=self.pqrt.get_result()
 
-        likes = sampler.get_likelihoods()
-        samples = sampler.get_used_samples()
-        ind = sampler.get_used_indices()
+        res['P']=pqr_res['P']
+        res['Q']=pqr_res['Q']
+        res['R']=pqr_res['R']
+        res['template_nuse'] = pqr_res['nuse']
+        res['template_neff'] = pqr_res['neff']
 
-        g_vals=samples[:,2:2+2]
-
-        # nearest neighbor metacal sensitivity values
-        sens_vals = self.deep_sens[ind]
-
-        likesum=likes.sum()
-        g_sens_model = (likes*sens_vals).sum()/likesum
-        g_sens_model = array([g_sens_model]*2)
-
-        ls=ngmix.lensfit.LensfitSensitivity(g_vals,
-                                            g_prior,
-                                            weights=likes,
-                                            remove_prior=self.remove_prior)
-        g_sens = ls.get_g_sens()
-
-        res['g_sens_model'] = g_sens_model
-
-        res['g_sens'] = g_sens
-        res['nuse'] = ls.get_nuse()
-
-        pqrobj=ngmix.pqr.PQR(g_vals, g_prior,
-                             shear_expand=self.shear_expand,
-                             weights=likes,
-                             remove_prior=self.remove_prior)
-
-        P,Q,R = pqrobj.get_pqr()
-        res['P']=P
-        res['Q']=Q
-        res['R']=R
-
-        if False:
-            self._plot_sens_vals(sens_vals)
-
+    def _print_res(self, res):
+        super(PSampleGaussMom,self)._print_res(res)
+        print("neff:",res['template_neff'],"nuse:",res['template_nuse'])
 
     def _load_deep_data(self):
         import fitsio
         from . import files
-        run=self['deep_data_run']
+
+        dconf=self['deep_data']
+        run=dconf['run']
+        pars_field=dconf['pars_field']
+
         data=files.read_output(run, 0)
 
-        # note g_sens (the sens from metacal) not g_sens_model
-        # which means something else for max like fitting
-        # make sure to convert to native data type
-        self.deep_pars=array(data['pars_noshear'], dtype='f8', copy=True)
-        self.deep_sens=array(data['g_sens'][:,0], dtype='f8', copy=True)
+        self.deep_pars=array(data[pars_field], dtype='f8', copy=True)
+
+        cen_prior = self.sim.cen_pdf
+
+        psample_pars=self['psample_pars']
+        if psample_pars['noise_model']=='mvn':
+            from ngmix.moments import PQRMomTemplatesGauss
+            self.pqrt = PQRMomTemplatesGauss(self.deep_pars,
+                                             cen_prior,
+                                             psample_pars['nrand_cen'],
+                                             nsigma=psample_pars['nsigma'])
+        else:
+            raise ValueError("support other noise models")
+
+    def _get_dtype(self):
+        """
+        get the dtype for the output struct
+        """
+        npars=self['npars']
+        dt=FitterBase._get_dtype(self)
+        dt += [
+            ('psf_flux','f8'),
+            ('psf_flux_err','f8'),
+            ('psf_flux_s2n','f8'),
+            ('pars','f8',npars),
+            ('pcov','f8',(npars,npars)),
+            ('s2n_w','f8'),
+            ('template_nuse','i4'),
+            ('template_neff','f4'),
+            ('P','f8'),
+            ('Q','f8',2),
+            ('R','f8',(2,2)),
+
+        ]
+
+        return dt
+
+    def _copy_to_output(self, res, i):
+
+        FitterBase._copy_to_output(self, res, i)
+
+        d=self.data
+
+        d['psf_flux'][i] = res['psf_flux']
+        d['psf_flux_err'][i] = res['psf_flux_err']
+        d['psf_flux_s2n'][i] = res['psf_flux_s2n']
+
+        d['pars'][i,:] = res['pars']
+        d['pcov'][i,:,:] = res['pars_cov']
+
+        d['s2n_w'][i] = res['s2n_w']
+
+        d['template_nuse'][i] = res['template_nuse']
+        d['template_neff'][i] = res['template_neff']
+        d['P'][i] = res['P']
+        d['Q'][i] = res['Q']
+        d['R'][i] = res['R']
 
 
 class EMMetacalFitter(MaxMetacalFitter):

@@ -59,7 +59,7 @@ isample_pars:
 
     
 shear_grid:
-    nsigma: 20.0
+    nsigma: 4.0
     # currently only have sensitivities in shear1
     dims: [20,20]
 #    s1range: [0.000,0.03]

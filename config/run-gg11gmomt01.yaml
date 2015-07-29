@@ -1,0 +1,96 @@
+run: "run-gg11gmomt01"
+sim: "sim-gg11"
+
+#seed: 35
+#seed: 20
+seed: 100
+
+# zero shear run
+deep_data:
+    run: "run-gg11zgmom01"
+    pars_field: "pars"
+
+fitter: "psample-gaussmom"
+fit_model: "gaussmom"
+
+# multi-variate normal, only works at high s/n
+psample_pars:
+    noise_model: "mvn"
+    nrand_cen: 100
+#    nrand_cen: 10
+    nsigma: 5.0
+#    neff_max: 100.0
+    neff_max: 1.0e+09
+
+    expand_true_shear: True
+
+priors:
+    cen:
+        type: "flat"
+        width: 2.0
+    M1:
+        type: "flat"
+        pars: [-1000,1000]
+    M2:
+        type: "flat"
+        pars: [-1000,1000]
+    T:
+        type: "flat"
+        pars: [-10,1000]
+    I:
+        type: "flat"
+        pars: [-10,1000]
+
+psf_pars:
+    model: "em1"
+    ntry: 1000
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+#            ftol: 1.0e-6
+#            xtol: 1.0e-3
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+metacal_pars:
+    guess_noshear: False
+    method: "conv"
+    step: 0.01
+
+isample_pars:
+    nsample: [500,2000]
+    ifactor: 1.0
+    df: 2.1
+    min_err: [1.0e-4,1.0e-4,1.0e-3,1.0e-3,1.0e-4,1.0e-4]
+    max_err: [2.0,2.0,100.0,100.0,100.0,100.0]
+
+    # number of tries for max fitter
+    max_fitter: "lm"
+    max_tries: 4
+    
+# 40 is still gaussian
+s2n_vals: [ 40 ]
+#s2n_vals: [ 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
+
+#desired_err: 2.5e-5
+#desired_err: 5.0e-5
+desired_err: 1.0e-4
+
+desired_hours: 0.40
+
+# on comet
+#sec_per_pair: 0.22
+# on astro
+#sec_per_pair: 0.25
+# at slac for nrand_cen = 10
+
+sec_per_pair: 2.1
+
+npair_min: 40000
+
+verbose: True

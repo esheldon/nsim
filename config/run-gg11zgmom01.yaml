@@ -1,0 +1,73 @@
+# high s/n to be used for training
+run: "run-gg11zgmom01"
+
+# non ring
+sim: "sim-gg11z"
+
+# metacal sensitivities should be nearly equal to the
+# calculated ones
+fitter: "isample-gaussmom-metacal"
+fit_model: "gaussmom"
+
+priors:
+    cen:
+        type: "flat"
+        width: 2.0
+    M1:
+        type: "flat"
+        pars: [-1000,1000]
+    M2:
+        type: "flat"
+        pars: [-1000,1000]
+    T:
+        type: "flat"
+        pars: [-10,1000]
+    I:
+        type: "flat"
+        pars: [-10,1000]
+
+psf_pars:
+    model: "em1"
+    ntry: 1000
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+#            ftol: 1.0e-6
+#            xtol: 1.0e-3
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+metacal_pars:
+    guess_noshear: False
+    step: 0.01
+
+isample_pars:
+    nsample: [500,2000]
+    ifactor: 1.0
+    df: 2.1
+    min_err: [1.0e-4,1.0e-4,1.0e-3,1.0e-3,1.0e-4,1.0e-4]
+    max_err: [2.0,2.0,100.0,100.0,100.0,100.0]
+
+    # number of tries for max fitter
+    max_fitter: "lm"
+    max_tries: 4
+
+s2n_vals: [ 10000 ]
+
+# this gives 100,000 objects (50,000 pairs but this is non-ring)
+desired_err: 9.75e-4
+desired_hours: 0.1
+
+# on comet
+#sec_per_pair: 0.22
+
+# on astro/slac
+sec_per_pair: 0.94
+npair_min: 40000
+
+verbose: True

@@ -4,7 +4,7 @@ fit simulated images
 from __future__ import print_function
 import os
 import time
-import pprint
+from pprint import pprint
 
 import numpy
 from numpy import array, zeros, ones, log, log10, exp, sqrt, diag
@@ -49,7 +49,7 @@ class FitterBase(dict):
         if self.data is None:
             self._make_struct()
 
-        pprint.pprint(self)
+        pprint(self)
 
     def go(self):
         """
@@ -1780,6 +1780,9 @@ class PSampleGaussMom(ISampleGaussMom):
 
         pqr_res=self.pqrt.get_result()
 
+        if pqr_res['nuse']==0:
+            raise TryAgainError("zero template galaxies used")
+
         res['P']=pqr_res['P']
         res['Q']=pqr_res['Q']
         res['R']=pqr_res['R']
@@ -1794,23 +1797,48 @@ class PSampleGaussMom(ISampleGaussMom):
         import fitsio
         from . import files
 
-        dconf=self['deep_data']
-        run=dconf['run']
-        pars_field=dconf['pars_field']
+        psample_pars=self['psample_pars']
+        dconf=psample_pars['deep_data']
 
-        data=files.read_output(run, 0)
+        if dconf['type']=='draw-pdf':
+            deep_pars = self.sim.pdf.sample(dconf['nrand'])
+            g1 = deep_pars[:,2]
+            g2 = deep_pars[:,3]
+            T = deep_pars[:,4]
+            e1,e2=ngmix.shape.g1g2_to_e1e2(g1,g2)
+            M1 = T*e1
+            M2 = T*e2
 
-        self.deep_pars=array(data[pars_field], dtype='f8', copy=True)
+            deep_pars[:,2] = M1 
+            deep_pars[:,3] = M2
+            self.deep_pars=deep_pars
+        else:
+            run=dconf['run']
+            pars_field=dconf['pars_field']
+
+            data=files.read_output(run, 0)
+
+            self.deep_pars=array(data[pars_field], dtype='f8', copy=True)
 
         cen_prior = self.sim.cen_pdf
 
-        psample_pars=self['psample_pars']
         if psample_pars['noise_model']=='mvn':
-            from ngmix.moments import PQRMomTemplatesGauss
-            self.pqrt = PQRMomTemplatesGauss(self.deep_pars,
-                                             cen_prior,
-                                             psample_pars['nrand_cen'],
-                                             nsigma=psample_pars['nsigma'])
+
+            if psample_pars['expand_shear_true']:
+                shear_expand=self.sim['shear']
+            else:
+                shear_expand=None
+
+            #pqrt_class = ngmix.moments.PQRMomTemplatesGauss
+            pqrt_class = ngmix.moments.PQRMomTemplatesGaussFull
+            pprint(psample_pars)
+            self.pqrt = pqrt_class(self.deep_pars,
+                                   cen_prior,
+                                   dconf['nrand_cen'],
+                                   nsigma=psample_pars['nsigma'],
+                                   neff_max=psample_pars['neff_max'],
+                                   h=psample_pars['h'],
+                                   shear_expand=shear_expand)
         else:
             raise ValueError("support other noise models")
 

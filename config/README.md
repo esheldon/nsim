@@ -888,6 +888,27 @@ For testing moment fitting and prior template sampling
     - high s/n for training
     - aiming for 100,000 templates
 
+- run-gg11gmomt01
+    - expanding true shear, h=1.0e-3
+    - mean shear comes out about right (zero before adding truth
+        back in) but the covariance matrix is crazy.  Maybe
+        it was zero just due to errors
+
+- run-gg11gmomt02
+    - don't expand true shear, this should not come out zero in
+        raw shear
+    - seeing shear in component 2 as well; a clue!
+- run-gg11gmomt03
+    - h=1.0e-6
+    - nope, same
+
+- run-gg11gmomt04
+    - s/n=10 even though gaussian assumption breaks down
+    - should give stable results
+
+- h 1.0e-3 maybe use 1.0e-6?
+
+
 sim-dg06
 ===========
 

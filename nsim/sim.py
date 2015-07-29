@@ -213,15 +213,21 @@ class NGMixSim(dict):
         shape1=ngmix.shape.Shape(pars1[2],pars1[3])
         shape2=ngmix.shape.Shape(pars2[2],pars2[3])
 
+        Tround = ngmix.moments.get_Tround(pars1[4], pars1[2], pars1[3])
+
         shear=self._get_shear()
-        #print("    shear:",shear)
         shape1.shear(shear[0], shear[1])
         shape2.shear(shear[0], shear[1])
+
+        Tsheared = ngmix.moments.get_T(Tround, shape1.g1, shape2.g2)
 
         pars1[2]=shape1.g1
         pars1[3]=shape1.g2
         pars2[2]=shape2.g1
         pars2[3]=shape2.g2
+
+        pars1[4] = Tsheared
+        pars2[4] = Tsheared
 
         return pars1, pars2, pars1_noshear, pars2_noshear
 

@@ -1070,6 +1070,20 @@ sim-dg06
     - ran with larger allowed errors, still blows up
         at s/n=23
 
+- run-dg06mcal08
+    - fitting exp
+    - bring in run-dg06zmcal01
+    - using sensitivity directly in lensfit sum
+    - 100 looks fine
+    - before doing lower s/n need to think on prior.  Is
+        using true prior appropriate?  How would we get
+        that in the real world?  might cause problems
+        for the nearest neighbor matching, if the
+        range of the true prior doesn't match the values
+        from the low s/n run.  Should just do the fits (easier
+        in moment space)
+
+
 - run-dg06mcalt07
     - fit gauss
     - s/n=50

@@ -905,6 +905,31 @@ For testing moment fitting and prior template sampling
 - run-gg11gmomt04
     - s/n=10 even though gaussian assumption breaks down
     - should give stable results
+    - errors look reasonable, but seeing signal in e2
+        - was bug in sim
+
+* run-gg11gmomt05
+    - s/n=12, expand true, still draw truth for templates
+    - no ring
+    - still terrible, maybe it is draw truth
+        - re-running without seed bug
+        - still terrible
+
+- run-gg11gmomt06
+    - s/n=12, expand [0,0], draw truth for templates, 
+        except centers which are randomized uniformly
+    - no ring
+    - also improves stability of isampling a bit, but still
+        getting low neff
+    - looks OK, still need
+        - better sampling
+        - proper likelihood functions
+
+- run-gg11gmomt07
+    - same as run-gg11gmomt06 but using the training
+        set run, nrand_cen=10
+    - OK but seeing some significant shear 2!
+        - was bug in sim
 
 - h 1.0e-3 maybe use 1.0e-6?
 
@@ -1040,6 +1065,10 @@ sim-dg06
     - bring in prior from run-dg06zmcal01
      [ 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
     - 23 blew up, why?
+
+- run-dg06mcal07-b
+    - ran with larger allowed errors, still blows up
+        at s/n=23
 
 - run-dg06mcalt07
     - fit gauss

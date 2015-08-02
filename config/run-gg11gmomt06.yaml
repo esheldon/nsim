@@ -1,0 +1,105 @@
+run: "run-gg11gmomt06"
+sim: "sim-gg11"
+
+fitter: "psample-gaussmom"
+fit_model: "gaussmom"
+
+# multi-variate normal, only works at high s/n
+psample_pars:
+    deep_data:
+        type: 'draw-pdf'
+        nrand: 100000
+        nrand_cen: 10
+        # uniform in [cen_width,cen_width] box centered on 0,0
+        cen_width: 10
+    #deep_data:
+    #    type: 'measured'
+    #    run: "run-gg11zgmom01"
+    #    pars_field: "pars"
+    #    nrand_cen: 100
+
+
+    noise_model: "mvn"
+    nsigma: 5.0
+    neff_max: 1.0e+09
+
+    expand_shear_true: False
+
+    h: 1.0e-06
+
+priors:
+    cen:
+        #type: "flat"
+        #width: 2.0
+        type: "gauss"
+        sigma: 2.0
+    M1:
+        #type: "flat"
+        #pars: [-1000,1000]
+        type: "gauss"
+        sigma: 20.0
+    M2:
+        #type: "flat"
+        #pars: [-1000,1000]
+        type: "gauss"
+        sigma: 20.0
+    T:
+        type: "erf2"
+        pars: [-4,1.0, 200.0,10.0]
+    I:
+        type: "erf2"
+        pars: [0.0,1.0,300.0,10.0]
+
+psf_pars:
+    model: "em1"
+    ntry: 1000
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+#            ftol: 1.0e-6
+#            xtol: 1.0e-3
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+metacal_pars:
+    guess_noshear: False
+    method: "conv"
+    step: 0.01
+
+isample_pars:
+    nsample: [500,2000]
+    ifactor: 1.0
+    df: 2.1
+    min_err: [1.0e-4,1.0e-4,1.0e-3,1.0e-3,1.0e-4,1.0e-4]
+    max_err: [2.0,2.0,100.0,100.0,100.0,100.0]
+
+    # number of tries for max fitter
+    max_fitter: "lm"
+    max_tries: 4
+    
+# 40 is still gaussian
+s2n_vals: [ 12 ]
+#s2n_vals: [ 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
+
+#desired_err: 2.5e-5
+#desired_err: 5.0e-5
+desired_err: 4.0e-4
+
+desired_hours: 0.25
+
+# on comet
+#sec_per_pair: 0.22
+# on astro
+#sec_per_pair: 0.25
+# at slac for nrand_cen = 10
+
+sec_per_pair: 1.0
+
+npair_min: 40000
+
+verbose: True

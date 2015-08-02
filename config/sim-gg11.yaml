@@ -5,6 +5,8 @@
 
 name: "sim-gg11"
 
+do_ring: False
+
 psf_model: "gauss"
 psf_T: 4.0
 psf_shape: [0.0, 0.0]

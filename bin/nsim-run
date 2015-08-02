@@ -86,9 +86,7 @@ def run_sim(sim_conf,
             options):
 
 
-    seed = run_conf.get('seed',None)
-    print("using seed:",seed)
-    sim=nsim.sim.NGMixSim(sim_conf, s2n, seed=seed)
+    sim=nsim.sim.NGMixSim(sim_conf, s2n)
 
     checkpoint_file, checkpoint_data=get_checkpoint_data(output_file)
     plot_base=output_file.replace('.fits','')

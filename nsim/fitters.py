@@ -8,7 +8,7 @@ from pprint import pprint
 
 import numpy
 from numpy import array, zeros, ones, log, log10, exp, sqrt, diag
-from numpy import where
+from numpy import where, isfinite
 from numpy.random import random as randu
 from numpy.random import randn
 
@@ -1288,13 +1288,20 @@ class ISampleMetacalFitterNearest(MaxMetacalFitter):
         g_sens_model = (iweights*sens_vals).sum()/iweights.sum()
         g_sens_model = array([g_sens_model]*2)
 
+        # fake the other dimension
+        response=zeros( g_vals.shape )
+        response[:,0] = sens_vals
+        response[:,1] = sens_vals
+        print("        mean response:",response.mean(axis=0))
 
         ls=ngmix.lensfit.LensfitSensitivity(g_vals,
                                             g_prior,
                                             weights=iweights,
+                                            response=response,
                                             remove_prior=self.remove_prior)
         g_sens = ls.get_g_sens()
 
+        print("        mean sens model:",g_sens_model)
         res['g_sens_model'] = g_sens_model
 
         res['g_sens'] = g_sens
@@ -1461,7 +1468,7 @@ class ISampleGaussMom(MaxFitter):
         ipars=self['isample_pars']
 
         try:
-            boot.isample(ipars, prior=self.prior, verbose=False)
+            boot.isample(ipars, prior=self.prior)
         except BootGalFailure:
             raise TryAgainError("failed to isample galaxy")
 
@@ -1503,30 +1510,41 @@ class ISampleGaussMom(MaxFitter):
             rng=[-cp['width']*0.5,cp['width']*0.5]
             cen1_prior = ngmix.priors.FlatPrior(*rng)
             cen2_prior = ngmix.priors.FlatPrior(*rng)
+        elif cp['type']=="gauss":
+            cen1_prior = ngmix.priors.Normal(0.0, cp['sigma'])
+            cen2_prior = ngmix.priors.Normal(0.0, cp['sigma'])
         else:
-            raise ValueError("cen prior must be 'flat'")
+            raise ValueError("cen prior must be 'flat' or gauss")
 
         M1p=ppars['M1']
         if M1p['type']=="flat":
             M1_prior = ngmix.priors.FlatPrior(*M1p['pars'])
+        elif M1p['type']=='gauss':
+            M1_prior = ngmix.priors.Normal(0.0, M1p['sigma'])
         else:
-            raise ValueError("M1 prior must be 'flat'")
+            raise ValueError("M1 prior must be 'flat' or gauss")
 
         M2p=ppars['M2']
         if M2p['type']=="flat":
             M2_prior = ngmix.priors.FlatPrior(*M2p['pars'])
+        elif M2p['type']=='gauss':
+            M2_prior = ngmix.priors.Normal(0.0, M2p['sigma'])
         else:
-            raise ValueError("M2 prior must be 'flat'")
+            raise ValueError("M2 prior must be 'flat' or gauss")
 
         Tp=ppars['T']
         if Tp['type']=="flat":
             T_prior = ngmix.priors.FlatPrior(*Tp['pars'])
+        elif Tp['type']=="erf2":
+            T_prior=ngmix.priors.TwoSidedErf(*Tp['pars'])
         else:
             raise ValueError("T prior must be 'flat'")
 
         Ip=ppars['I']
         if Ip['type']=="flat":
             I_prior = ngmix.priors.FlatPrior(*Ip['pars'])
+        elif Ip['type']=="erf2":
+            I_prior=ngmix.priors.TwoSidedErf(*Ip['pars'])
         else:
             raise ValueError("I prior must be 'flat'")
 
@@ -1756,11 +1774,18 @@ class PSampleGaussMom(ISampleGaussMom):
         ipars=self['isample_pars']
 
         try:
-            boot.isample(ipars, prior=self.prior, verbose=False)
+            boot.isample(ipars, prior=self.prior)
         except BootGalFailure:
             raise TryAgainError("failed to isample galaxy")
 
         sampler=boot.get_isampler()
+
+        if False:
+            sampler.make_plots(show=True,nsigma=4)
+            key=raw_input('hit enter (q to quit): ')
+            if key=='q':
+                stop
+
         res=sampler.get_result()
 
         res['model'] = mres['model']
@@ -1779,6 +1804,9 @@ class PSampleGaussMom(ISampleGaussMom):
         self.pqrt.calc_pqr(res['pars'], res['pars_cov'])
 
         pqr_res=self.pqrt.get_result()
+
+        if not isfinite(pqr_res['P']):
+            raise TryAgainError("pqr not finite")
 
         if pqr_res['nuse']==0:
             raise TryAgainError("zero template galaxies used")
@@ -1809,6 +1837,8 @@ class PSampleGaussMom(ISampleGaussMom):
             M1 = T*e1
             M2 = T*e2
 
+            deep_pars[:,0] = dconf['cen_width']*srandu(g1.size)
+            deep_pars[:,1] = dconf['cen_width']*srandu(g1.size)
             deep_pars[:,2] = M1 
             deep_pars[:,3] = M2
             self.deep_pars=deep_pars
@@ -1820,6 +1850,9 @@ class PSampleGaussMom(ISampleGaussMom):
 
             self.deep_pars=array(data[pars_field], dtype='f8', copy=True)
 
+            del data
+
+        # not used in all cases
         cen_prior = self.sim.cen_pdf
 
         if psample_pars['noise_model']=='mvn':

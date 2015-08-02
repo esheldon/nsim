@@ -24,12 +24,13 @@ from numpy.random import randn
 import ngmix
 from ngmix.fitting import print_pars
 from ngmix.observation import Observation
+from ngmix.gexceptions import GMixRangeError 
 
 # image will be 2*5 sigma on a side
 NSIGMA_IMAGE=5.0
 
 class NGMixSim(dict):
-    def __init__(self, sim_conf, s2n, seed=None):
+    def __init__(self, sim_conf, s2n):
         """
         Simulate images
 
@@ -46,10 +47,7 @@ class NGMixSim(dict):
         # seed a new MT random generator from devrand
         # and return the object
 
-        if seed is not None:
-            numpy.random.seed(seed)
-        else:
-            seed_global_devrand()
+        seed_global_devrand()
 
         self._set_config(sim_conf)
 
@@ -119,56 +117,66 @@ class NGMixSim(dict):
         """
         import ngmix
 
-        pars1, pars2, p1_noshear, p2_noshear = self.get_pair_pars(random=random)
+        while True:
+            try:
+                pars1, pars2, p1_noshear, p2_noshear = self.get_pair_pars(random=random)
 
-        obj_model = self.model_sampler()
-        print("sim model:",obj_model)
+                obj_model = self.model_sampler()
+                print("sim model:",obj_model)
+                #print_pars(pars1,front="pars1:")
+                #print_pars(pars2,front="pars2:")
+                #print("psf T:",self.psf_gmix_true.get_T())
 
-        gm1_pre=ngmix.gmix.GMixModel(pars1, obj_model)
-        gm2_pre=ngmix.gmix.GMixModel(pars2, obj_model)
+                gm1_pre=ngmix.gmix.GMixModel(pars1, obj_model)
+                gm2_pre=ngmix.gmix.GMixModel(pars2, obj_model)
 
-        gm1  = gm1_pre.convolve(self.psf_gmix_true)
-        gm2  = gm2_pre.convolve(self.psf_gmix_true)
+                gm1  = gm1_pre.convolve(self.psf_gmix_true)
+                gm2  = gm2_pre.convolve(self.psf_gmix_true)
 
-        # in case not doing a ring
-        T = max(gm1.get_T(), gm2.get_T())
+                # in case not doing a ring
+                T = max(gm1.get_T(), gm2.get_T())
 
-        dims_pix, cen0_pix = self._get_dims_cen(T + self['psf_T'])
+                dims_pix, cen0_pix = self._get_dims_cen(T + self['psf_T'])
 
-        # conversion between pixels and sky in arcsec
-        self.jacobian=ngmix.jacobian.Jacobian(cen0_pix[0],
-                                              cen0_pix[1],
-                                              self['pixel_scale'],
-                                              0.0,
-                                              0.0,
-                                              self['pixel_scale'])
+                # conversion between pixels and sky in arcsec
+                self.jacobian=ngmix.jacobian.Jacobian(cen0_pix[0],
+                                                      cen0_pix[1],
+                                                      self['pixel_scale'],
+                                                      0.0,
+                                                      0.0,
+                                                      self['pixel_scale'])
 
-        psf_cen=pars1[0:0+2].copy()
-        #psf_cen=[0,0]
-        psf_image=self._get_psf_image(dims_pix, psf_cen)
+                psf_cen=pars1[0:0+2].copy()
+                #psf_cen=[0,0]
+                psf_image=self._get_psf_image(dims_pix, psf_cen)
 
-        psf_obs = Observation(psf_image, jacobian=self.jacobian)
+                psf_obs = Observation(psf_image, jacobian=self.jacobian)
 
-        nsub = self['nsub']
-        im1=gm1.make_image(dims_pix, nsub=nsub, jacobian=self.jacobian)
-        im2=gm2.make_image(dims_pix, nsub=nsub, jacobian=self.jacobian)
+                nsub = self['nsub']
+                im1=gm1.make_image(dims_pix, nsub=nsub, jacobian=self.jacobian)
+                im2=gm2.make_image(dims_pix, nsub=nsub, jacobian=self.jacobian)
 
-        obs1 = Observation(im1, psf=psf_obs, jacobian=self.jacobian)
-        obs2 = Observation(im2, psf=psf_obs, jacobian=self.jacobian)
-        
-        out={'im1':{'pars':pars1,
-                    'pars_noshear':p1_noshear,
-                    'gm_pre':gm1_pre,
-                    'gm':gm1,
-                    'obs0':obs1,
-                    'model':obj_model},
-             'im2':{'pars':pars2,
-                    'pars_noshear':p2_noshear,
-                    'gm_pre':gm2_pre,
-                    'gm':gm2,
-                    'obs0':obs2,
-                    'model':obj_model},
-            }
+                obs1 = Observation(im1, psf=psf_obs, jacobian=self.jacobian)
+                obs2 = Observation(im2, psf=psf_obs, jacobian=self.jacobian)
+                
+                out={'im1':{'pars':pars1,
+                            'pars_noshear':p1_noshear,
+                            'gm_pre':gm1_pre,
+                            'gm':gm1,
+                            'obs0':obs1,
+                            'model':obj_model},
+                     'im2':{'pars':pars2,
+                            'pars_noshear':p2_noshear,
+                            'gm_pre':gm2_pre,
+                            'gm':gm2,
+                            'obs0':obs2,
+                            'model':obj_model},
+                    }
+
+                break
+            except GMixRangeError as err:
+                print("caught range exception: %s" % str(err))
+
         return out
 
     def get_pair_pars(self, random=True):
@@ -213,21 +221,23 @@ class NGMixSim(dict):
         shape1=ngmix.shape.Shape(pars1[2],pars1[3])
         shape2=ngmix.shape.Shape(pars2[2],pars2[3])
 
-        Tround = ngmix.moments.get_Tround(pars1[4], pars1[2], pars1[3])
+        Tround1 = ngmix.moments.get_Tround(pars1[4], pars1[2], pars1[3])
+        Tround2 = ngmix.moments.get_Tround(pars2[4], pars2[2], pars2[3])
 
         shear=self._get_shear()
         shape1.shear(shear[0], shear[1])
         shape2.shear(shear[0], shear[1])
 
-        Tsheared = ngmix.moments.get_T(Tround, shape1.g1, shape2.g2)
+        Tsheared1 = ngmix.moments.get_T(Tround1, shape1.g1, shape1.g2)
+        Tsheared2 = ngmix.moments.get_T(Tround2, shape2.g1, shape2.g2)
 
         pars1[2]=shape1.g1
         pars1[3]=shape1.g2
         pars2[2]=shape2.g1
         pars2[3]=shape2.g2
 
-        pars1[4] = Tsheared
-        pars2[4] = Tsheared
+        pars1[4] = Tsheared1
+        pars2[4] = Tsheared2
 
         return pars1, pars2, pars1_noshear, pars2_noshear
 

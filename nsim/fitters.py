@@ -1425,6 +1425,7 @@ class ISampleMetacalFitterNearest(MaxMetacalFitter):
         #dt=super(ISampleMetacalFitterNearest,self)._get_dtype()
         dt=MaxFitter._get_dtype(self)
         dt += [
+            ('neff','f4'),
             ('g_sens','f8',2),
             ('g_sens_r','f8',2),
             ('g_sens_model','f8',2),
@@ -1443,6 +1444,7 @@ class ISampleMetacalFitterNearest(MaxMetacalFitter):
 
         d=self.data
 
+        d['neff'][i] = res['neff']
         d['g_sens'][i] = res['g_sens']
         d['g_sens_r'][i] = res['g_sens_r']
         d['g_sens_model'][i] = res['g_sens_model']

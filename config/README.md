@@ -1098,6 +1098,28 @@ sim-dg06
 
 - run-dg06mcal10
     - same as 09 but keeping both kinds of lensfit sens
+    - pqr post model corr
+        0.011 +/- 0.0042
+        wtf?  sometimes get those fluctuations
+    - lensfit with g_sens_r
+        -0.0147
+    - lensfit with post model corr
+        no weights: 0.017 +/- 0.0053
+        weights: 0.017 +/- 0.0052
+
+- run-dg06mcal11
+    - doing isampler iterattion andupping the number of isamples, saving
+        neff [500,4000]
+    - s/n=23 same as 09 and 10
+        pqr model corr post
+            0.0044 +/- 0.0053
+        lensfit model corr pose
+            0.01 +/- 0.0053
+        lensfit g_sens_r
+            0.0098
+
+- run-dg06mcal12
+    - same as run-dg06mcal11 but s/n=10
 
 * use mean relation for response
 * proper weighting for pqr etc.

@@ -1,7 +1,7 @@
 from __future__ import print_function
 import os
 import numpy
-from numpy import exp, zeros, ones, sqrt
+from numpy import exp, log, zeros, ones, sqrt, newaxis
 import ngmix
 from esutil.random import srandu
 
@@ -382,3 +382,128 @@ def get_weights(data,SN=0.24,type='noise'):
     return wts
 
 
+def fit_prior(run, is2n=0, field='pars',show=False):
+    import biggles
+    import esutil as eu
+    from sklearn.mixture import GMM
+    import fitsio
+    from . import files
+    gm=ngmix.gmix.GMixND()
+
+    alldata=files.read_output(run, is2n)
+    data=alldata[field]
+
+    # fit |g|
+    g=sqrt(data[:,2]**2 + data[:,3]**2)
+
+    gp=ngmix.priors.GPriorBA()
+
+    bs=eu.stat.Binner(g)
+    bs.dohist(nbin=100)
+    bs.calc_stats()
+    xvals=bs['center']
+    yvals=bs['hist'].astype('f8')
+    gp.dofit(xvals, yvals)
+    rg=gp.sample1d(1000000)
+
+    #eta1,eta2,good=ngmix.shape.g1g2_to_eta1eta2_array(data[:,2],
+    #                                                  data[:,3])
+    #eta = 2*numpy.arctanh(g)
+    #logg=log(g)
+
+
+    outfile=files.get_fitprior_url(run, is2n)
+    epsfile=files.get_fitprior_url(run, is2n, ext='eps')
+
+    # fit TF with n-dimensional gaussian
+    ngauss=20
+    gm.fit(data[:, 4:], ngauss, min_covar=1.0e-4)
+
+    '''
+    print("fitting log(g)")
+    g_gmm=GMM(n_components=10,
+                 n_iter=5000,
+                 min_covar=1.0e-4,
+                 covariance_type='full')
+    g_gmm.fit(eta[:,newaxis])
+
+    if not g_gmm.converged_:
+        print("DID NOT CONVERGE")
+
+    rg=g_gmm.sample(1000000)
+    gplt=biggles.plot_hist(eta,nbin=100,xlabel='|g|',
+                           norm=1,
+                           visible=False)
+    '''
+    gplt=biggles.plot_hist(g,nbin=100,xlabel='|g|',
+                           norm=1,
+                           visible=False)
+    #gplt=biggles.plot_hist(rg[:,0],nbin=100,
+    gplt=biggles.plot_hist(rg,nbin=100,
+                           plt=gplt,
+                           norm=1,
+                           color='red',
+                           visible=False)
+
+    print("saving mixture to:",outfile)
+    gm.save_mixture(outfile)
+    with fitsio.FITS(outfile,'rw') as fits:
+        gout=numpy.zeros(1, dtype=[('sigma','f8')])
+        gout['sigma'] = gp.fit_pars[1]
+
+        fits.write(gout, extname='gfit')
+
+    #
+    # plots
+    #
+    r=gm.sample(1000000)
+
+    tab=biggles.Table(2,2)
+
+    Tplt=biggles.plot_hist(data[:,4], nbin=100,
+                          xlabel='log(T)',
+                          norm=1,
+                          visible=False)
+    biggles.plot_hist(r[:,0], nbin=100,
+                      color='red',
+                      norm=1,
+                      plt=Tplt,
+                      visible=False)
+
+    Fplt=biggles.plot_hist(data[:,5], nbin=100,
+                          xlabel='log(F)',
+                          norm=1,
+                          visible=False)
+    biggles.plot_hist(r[:,1], nbin=100,
+                      color='red',
+                      norm=1,
+                      plt=Fplt,
+                      visible=False)
+
+    '''
+    eta1plt=biggles.plot_hist(eta1, nbin=100,
+                              xlabel='eta1',
+                              norm=1,
+                              visible=False)
+    eta2plt=biggles.plot_hist(eta2, nbin=100,
+                              xlabel='eta2',
+                              norm=1,
+                              visible=False)
+    '''
+
+    tab[0,0] = Tplt
+    tab[0,1] = Fplt
+    #tab[1,0] = eta1plt
+    #tab[1,1] = eta2plt
+    tab[1,0] = gplt
+    tab[1,1] = gplt
+
+    tab.aspect_ratio=0.5
+
+    print("writing:",epsfile)
+    tab.write_eps(epsfile)
+
+    if show:
+        biggles.configure('screen','width',1200)
+        biggles.configure('screen','height',700)
+        tab.show()

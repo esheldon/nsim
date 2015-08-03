@@ -231,6 +231,13 @@ def read_output(run, is2n, fs=None, itrial=None, ext='fits', **kw):
     print("reading collated file:",fname)
     return fitsio.read(fname, **kw)
 
+def get_fitprior_url(run, is2n, itrial=None, fs=None, ext='fits'):
+    """
+    we fit prior from high s/n sample
+    """
+    url=get_output_url(run, 0, is2n, itrial=itrial, fs=fs, ext=ext)
+    url = url.replace('.%s' % ext,'-fitprior.%s' % ext)
+    return url
 
 def get_averaged_url(run, is2n=None, fs=None, ext='fits'):
     """

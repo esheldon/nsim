@@ -1082,7 +1082,19 @@ sim-dg06
         range of the true prior doesn't match the values
         from the low s/n run.  Should just do the fits (easier
         in moment space)
+    - implemented prior from the run.
+    - rerunning at s/n=100 to make sure all went well
+        - ok 
+               weights: -0.0016 +/- 0.0055
+            no weights: -0.00068 +/- 0.0056
+    - now running at s/n=50
+        - lensfit: -0.0079 +/- 0.0053
+        - BA using mean response: -0.0042 +/- 0.0053
 
+- run-dg06mcal09
+    - same as run-dg06mcal08 but at s/n=23
+    - note pqr does not have any corr intrinsic to it,
+        so we do --corr-model to apply a correction
 
 - run-dg06mcalt07
     - fit gauss

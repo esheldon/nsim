@@ -24,6 +24,7 @@ from ngmix.gexceptions import BootPSFFailure, BootGalFailure
 
 from .sim import NGMixSim
 from .util import write_fits
+from . import files
 
 # minutes
 DEFAULT_CHECKPOINTS=[30,60,90,110]
@@ -1292,7 +1293,7 @@ class ISampleMetacalFitterNearest(MaxMetacalFitter):
         response=zeros( g_vals.shape )
         response[:,0] = sens_vals
         response[:,1] = sens_vals
-        print("        mean response:",response.mean(axis=0))
+        #print("        mean response:",response.mean(axis=0))
 
         ls=ngmix.lensfit.LensfitSensitivity(g_vals,
                                             g_prior,
@@ -1357,6 +1358,37 @@ class ISampleMetacalFitterNearest(MaxMetacalFitter):
             plot_hist(sens_vals, min=mn-rng,max=mn+rng,nbin=40)
             key=raw_input('hit a key: ')
             if key=='q': stop
+
+    def _set_prior(self):
+        from ngmix.joint_prior import JointPriorSimpleHybrid
+        import fitsio
+
+        priors=self['priors']
+        if 'run' not in priors:
+            super(ISampleMetacalFitterNearest,self)._set_prior()
+            return
+
+        self.g_prior_during = self.get('g_prior_during',False)
+        if not self.g_prior_during:
+            raise RuntimeError("always g prior during "
+                               "when using a run for prior")
+        print("loading prior from run:",priors['run'])
+        fname=files.get_fitprior_url(priors['run'], 0)
+
+        TF_prior = ngmix.gmix.GMixND()
+        TF_prior.load_mixture(fname)
+
+        gfit=fitsio.read(fname,ext='gfit')
+        sigma = gfit['sigma'][0]
+
+        self.g_prior = ngmix.priors.GPriorBA(sigma)
+
+        cen_prior=self.sim.cen_pdf
+
+        self.prior=JointPriorSimpleHybrid(cen_prior,
+                                          self.g_prior,
+                                          TF_prior)
+
 
     def _load_deep_data(self):
         import fitsio

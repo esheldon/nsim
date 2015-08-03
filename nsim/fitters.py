@@ -1298,14 +1298,24 @@ class ISampleMetacalFitterNearest(MaxMetacalFitter):
         ls=ngmix.lensfit.LensfitSensitivity(g_vals,
                                             g_prior,
                                             weights=iweights,
-                                            response=response,
                                             remove_prior=self.remove_prior)
         g_sens = ls.get_g_sens()
 
-        print("        mean sens model:",g_sens_model)
+
+        lsr=ngmix.lensfit.LensfitSensitivity(g_vals,
+                                            g_prior,
+                                            weights=iweights,
+                                            response=response,
+                                            remove_prior=self.remove_prior)
+        g_sens_r = lsr.get_g_sens()
+
+        print("        sens model:",g_sens_model)
+        print("        sens response:",g_sens_r)
+
         res['g_sens_model'] = g_sens_model
 
         res['g_sens'] = g_sens
+        res['g_sens_r'] = g_sens_r
         res['nuse'] = ls.get_nuse()
 
         pqrobj=ngmix.pqr.PQR(g_vals, g_prior,
@@ -1416,6 +1426,7 @@ class ISampleMetacalFitterNearest(MaxMetacalFitter):
         dt=MaxFitter._get_dtype(self)
         dt += [
             ('g_sens','f8',2),
+            ('g_sens_r','f8',2),
             ('g_sens_model','f8',2),
             ('P','f8'),
             ('Q','f8',2),
@@ -1433,6 +1444,7 @@ class ISampleMetacalFitterNearest(MaxMetacalFitter):
         d=self.data
 
         d['g_sens'][i] = res['g_sens']
+        d['g_sens_r'][i] = res['g_sens_r']
         d['g_sens_model'][i] = res['g_sens_model']
         d['P'][i] = res['P']
         d['Q'][i] = res['Q']

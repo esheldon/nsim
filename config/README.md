@@ -1075,13 +1075,6 @@ sim-dg06
     - bring in run-dg06zmcal01
     - using sensitivity directly in lensfit sum
     - 100 looks fine
-    - before doing lower s/n need to think on prior.  Is
-        using true prior appropriate?  How would we get
-        that in the real world?  might cause problems
-        for the nearest neighbor matching, if the
-        range of the true prior doesn't match the values
-        from the low s/n run.  Should just do the fits (easier
-        in moment space)
     - implemented prior from the run.
     - rerunning at s/n=100 to make sure all went well
         - ok 
@@ -1095,6 +1088,21 @@ sim-dg06
     - same as run-dg06mcal08 but at s/n=23
     - note pqr does not have any corr intrinsic to it,
         so we do --corr-model to apply a correction
+    - pqr with model bias post-fix
+        0.0033 +/- 0.0053
+        - maybe using correct priors was what was needed
+    - lensfit with model bias included in sens. calc.
+        -0.023 +/- 0.0051
+    - may want to do a run where we keep both lensfit
+        style sensitivities, and model bias
+
+- run-dg06mcal10
+    - same as 09 but keeping both kinds of lensfit sens
+
+* use mean relation for response
+* proper weighting for pqr etc.
+* can do "importance sampling" over the template set,
+    instead of some other likelihood/posterior sampling
 
 - run-dg06mcalt07
     - fit gauss

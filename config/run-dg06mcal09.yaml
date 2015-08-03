@@ -60,7 +60,7 @@ s2n_vals: [ 23 ]
 desired_err: 5.0e-5
 desired_hours: 1.0
 
-# on comet
+# on slac
 sec_per_pair: 0.75
 npair_min: 40000
 

@@ -382,6 +382,13 @@ def do_avg(conf, d, options):
         Q_sum = d['Q_sum'][0,:]
         shear = numpy.dot(C,Q_sum)
 
+        # did we expand around the true shear?
+        expand_shear=conf.get('expand_shear_true',False)
+        if expand_shear:
+            true_shear = numpy.array( conf['simc']['shear'] )
+            print('adding expand shear:',true_shear)
+            shear += true_shear
+
 
         if options.corr_model:
             shear *= 1.0 / d['g_sens_model_pqr'][0]
@@ -389,13 +396,6 @@ def do_avg(conf, d, options):
             shear_cov[0,1] *= (1.0 / d['g_sens_model_pqr'][0,0])**2
             shear_cov[1,0] *= (1.0 / d['g_sens_model_pqr'][0,0])**2
             shear_cov[1,1] *= (1.0 / d['g_sens_model_pqr'][0,1])**2
-
-        # did we expand around the true shear?
-        expand_shear=conf.get('expand_shear_true',False)
-        if expand_shear:
-            true_shear = numpy.array( conf['simc']['shear'] )
-            print('adding expand shear:',true_shear)
-            shear += true_shear
 
 
         d['shear'][0] = shear

@@ -1,4 +1,3 @@
-# fit gauss
 # high s/n to be used for training
 run: "run-dg06zmcal02"
 sim: "sim-dg06z"

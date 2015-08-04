@@ -1135,6 +1135,42 @@ sim-dg06
         the errors are probably a bit underestimated, maybe because there is
         significant spread in this mean model correction; it is hard to say.
 
+        Maybe errors being off is due to using the convolved image?
+
+        But it looks decent.  So the detail I needed to get right was the
+        prior being from the same model we are using at low s/n. Using
+        more samples may also have been important.
+
+        Need to get pqr jackknifing working from the chunks
+
+- sim-dg07z
+    - zero shear, no ring sim used as metacal training for sim-dg07
+    - run-dg07zmcal01
+        - using still max like, plus adding Richardson extrapolation
+    - do a non-max like run?  Might matter at the part in 1000 level
+
+- sim-dg07
+    - 0.03 shear for testing metacal.
+    - We expect possible bias at
+        the 0.0015 level from metacal failing at higher shear
+    - expect B&A to have error also, at 0.002 level
+    - both are postive, so we expect we need to expand B&A around
+        true shear to avoid that bias
+
+    - at higher shear the nearest neighbor matching won't work as well
+        - argument for doing this with full sheared version of the
+            prior rather than just using derivatives.
+
+- run-dg07mcaltest01
+    - at s/n = 100 expanding about true shear.
+        0.0051 +/- 0.0018
+    - using mean sensitivity from templates 0.004, so maybe
+        the space is too sparse?
+    - s/n=50
+        - pqr
+            - like averaged 0.0030 +/- 0.0018
+            - overall mean correction 0.0028
+    - another run using new zero shear training set dg07z
 
 * use mean relation for response
 * proper weighting for pqr etc.

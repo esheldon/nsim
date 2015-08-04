@@ -547,7 +547,8 @@ class MaxMetacalFitter(MaxFitter):
 
         self.fitter=fitter
 
-        sdict = self._get_sensitivity(obs)
+        #sdict = self._get_sensitivity(obs)
+        sdict = self._get_sensitivity_richardson(obs)
         res.update(sdict)
 
         #g_sens_model = self._get_sensitivity_model(obs, fitter)
@@ -592,14 +593,68 @@ class MaxMetacalFitter(MaxFitter):
                 'res':res,
                 'psf_flux_res':psf_flux_res}
 
-    def _get_sensitivity(self, obs):
+    def _get_sensitivity_richardson(self, obs):
         """
-        fit sheared observations
+
+        fit sheared observations to get derivative with respect to shear. Use
+        Richarsdon extrapolation to improve the estimate
+
+        if fac is the richardson factor, then the improved sensitivity is given
+        by 
+
+            fac*s(step/fac) - s(step)
+
+        This is true because the finite difference has error going as the
+        step.  See https://en.wikipedia.org/wiki/Richardson_extrapolation
+
+        parameters
+        ----------
+        obs: Observation
+            The image data
         """
+
         mpars=self['metacal_pars']
 
+        fac = mpars['richardson_factor']
+        rstep = mpars['step']*fac
+
+        sdict = self._get_sensitivity(obs)
+        sdict_richardson = self._get_sensitivity(obs, step=rstep)
+
+        sens_orig=sdict['g_sens']
+        sens_r=sdict_richardson['g_sens']
+        better_sens = fac*sens_r - sens_orig
+
+        sdict['g_sens_orig'] = sens_orig
+        sdict['g_sens'] = better_sens
+
+        fmt='%g'
+        print_pars(sens_orig,  front="       old sens:       ",fmt=fmt)
+        print_pars(better_sens,front="       richardson sens:",fmt=fmt)
+
+        return sdict
+
+    def _get_sensitivity(self, obs, step=None):
+        """
+        fit sheared observations to get derivative with respect
+        to shear
+
+        parameters
+        ----------
+        obs: Observation
+            The image data
+        step: float, optional
+            If not sent, will be gotten from self['metacal_pars']
+        """
+
+        mpars=self['metacal_pars']
+
+        if step is None:
+            step=mpars['step']
+
+
         R_obs_1m, R_obs_1p, R_obs_noshear = \
-                self._get_metacal_obslist(obs, get_noshear=True)
+                self._get_metacal_obslist(obs, step=step, get_noshear=True)
 
         mdict_noshear = self._do_one_fit(R_obs_noshear)
         res_noshear = mdict_noshear['res']
@@ -622,7 +677,6 @@ class MaxMetacalFitter(MaxFitter):
         g_1m=res_1m['pars'][2:2+2]
         g_1p=res_1p['pars'][2:2+2]
 
-        step=mpars['step']
         g_sens1 = (g_1p[0] - g_1m[0])/(2*step)
 
         g_mean = pars_mean[2:2+2]
@@ -707,14 +761,14 @@ class MaxMetacalFitter(MaxFitter):
         return g_sens
 
 
-    def _get_metacal_obslist(self, obs, get_noshear=False):
+    def _get_metacal_obslist(self, obs, step=None, get_noshear=False):
         mpars=self['metacal_pars']
         if mpars['method']=='conv':
-            return self._get_metacal_obslist_conv(obs, get_noshear=get_noshear)
+            return self._get_metacal_obslist_conv(obs, step=step, get_noshear=get_noshear)
         else:
-            return self._get_metacal_obslist_cheat(obs, get_noshear=get_noshear)
+            return self._get_metacal_obslist_cheat(obs, step=step, get_noshear=get_noshear)
 
-    def _get_metacal_obslist_conv(self, obs, get_noshear=False):
+    def _get_metacal_obslist_conv(self, obs, step=None, get_noshear=False):
         """
         get Observations for the sheared images
         """
@@ -726,12 +780,11 @@ class MaxMetacalFitter(MaxFitter):
                    whiten=mpars['whiten'],
                    same_seed=mpars['same_seed'])
 
-        sval=mpars['step']
-        sh1m=Shape(-sval,  0.00 )
-        sh1p=Shape( sval,  0.00 )
-        #sh2m=Shape( 0.00, -sval )
-        #sh2p=Shape( 0.00,  sval )
+        if step is None:
+            step=mpars['step']
 
+        sh1m=Shape(-step,  0.00 )
+        sh1p=Shape( step,  0.00 )
 
         R_obs1p = mc.get_obs_galshear(sh1p)
         if get_noshear:
@@ -741,7 +794,7 @@ class MaxMetacalFitter(MaxFitter):
             R_obs1m = mc.get_obs_galshear(sh1m)
             return R_obs1m, R_obs1p
 
-    def _get_metacal_obslist_cheat(self, obs, get_noshear=False):
+    def _get_metacal_obslist_cheat(self, obs, step=None, get_noshear=False):
         """
         get Observations for the sheared images
         """
@@ -757,7 +810,8 @@ class MaxMetacalFitter(MaxFitter):
         model=self.sim['obj_model']
         nsub=self.sim['nsub']
 
-        step=mpars['step']
+        if step is None:
+            step=mpars['step']
         pars_m=make_sheared_pars(pars, -step, 0.0)
         pars_p=make_sheared_pars(pars, +step, 0.0)
 
@@ -1101,32 +1155,28 @@ class ISampleMetacalFitter(MaxMetacalFitter):
         # we want to create a sampler and covariance matrix
         # then fit the +/- shears using the same samples
         print("    Doing main fit")
-        res, sampler, psf_flux_res = self._do_main_fit(obs)
+        mdict = self._do_one_fit(obs)
 
-        assert mpars['mean_from'] in ['orig','avg'],"avg or orig for now"
         print("    getting sens")
-        pars, g_sens = self._get_sensitivity_avg(obs)
+        #sdict = self._get_sensitivity_richardson(obs)
+        sdict = self._get_sensitivity(obs)
 
+        fitter=mdict['fitter']
+        res=fitter.get_result()
+        res.update(sdict)
 
-        if mpars['mean_from'] != 'orig':
-            res['pars'] = pars
-            res['g'] = pars[2:2+2].copy()
-        else:
-            print("    using orig g")
-        res['g_sens'] = g_sens
+        psf_flux_res=mdict['psf_flux_res']
+        self.fitter=fitter
 
-        # reset result
-        sampler._result=res
-        return sampler, psf_flux_res
+        return fitter, psf_flux_res
 
-    def _do_main_fit(self, obs, ntry=None):
+    def _do_one_fit(self, obs, ntry=None, **kw):
         mconf=self['max_pars']
         if ntry is None:
             ntry=mconf['ntry']
 
         # this does the max like fit only
         mdict = super(ISampleMetacalFitter,self)._do_one_fit(obs, ntry=ntry)
-        res=mdict['res']
         psf_flux_res = mdict['psf_flux_res']
         boot= mdict['boot']
 
@@ -1141,17 +1191,19 @@ class ISampleMetacalFitter(MaxMetacalFitter):
 
         sampler=boot.get_isampler()
 
+        res=sampler.get_result()
         maxres=boot.get_max_fitter().get_result()
+
         res['model'] = maxres['model']
         res['s2n_w'] = maxres['s2n_w']
 
+        return {'fitter':sampler,
+                'boot':boot,
+                'res':res,
+                'psf_flux_res':psf_flux_res}
 
-        return res, sampler, psf_flux_res
-
-    def _do_one_fit(self, obs, ntry=None):
+    def _do_one_fit_old(self, obs, ntry=None, **kw):
         """
-        re-use sampler and samples
-
         use the max fitter with new observation set
         """
 
@@ -1163,7 +1215,6 @@ class ISampleMetacalFitter(MaxMetacalFitter):
         mdict= super(ISampleMetacalFitter,self)._do_one_fit(obs, ntry=ntry)
 
         tboot=mdict['boot']
-        print("    re-using samples")
 
         max_fitter=tboot.get_max_fitter()
 

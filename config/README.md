@@ -1120,6 +1120,13 @@ sim-dg06
 
 - run-dg06mcal12
     - same as run-dg06mcal11 but s/n=10
+    - lots of jobs died it seems
+    - corr model post (note no jack on pqr, so errors too small)
+        fracdiff(lensfit): -0.0024 +/- 0.0064
+        fracdiff(pqr):     -0.0087 +/- 0.0038
+
+        lensfit with weights: 0.0042 +/- 0.0064
+
 
 * use mean relation for response
 * proper weighting for pqr etc.

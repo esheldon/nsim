@@ -1125,7 +1125,15 @@ sim-dg06
         fracdiff(lensfit): -0.0024 +/- 0.0064
         fracdiff(pqr):     -0.0087 +/- 0.0038
 
-        lensfit with weights: 0.0042 +/- 0.0064
+        adding back in the jobs that died
+        fracdiff(lensfit): 0.0017 +/- 0.0053
+        fracdiff(pqr):     -0.0045 +/- 0.0031
+
+        lensfit with weights: 0.0082 +/- 0.0053
+
+        The errors for pqr are also probably about 0.0053 when jackknifed. So
+        the errors are probably a bit underestimated, maybe because there is
+        significant spread in this mean model correction; it is hard to say.
 
 
 * use mean relation for response

@@ -103,6 +103,9 @@ class NGMixSim(dict):
         imdict['im1']['s2n'] = im1_s2n
         imdict['im2']['s2n'] = im2_s2n
 
+        imdict['im1']['noise'] = self['skysig']
+        imdict['im2']['noise'] = self['skysig']
+
         return imdict
 
 

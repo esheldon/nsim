@@ -118,6 +118,9 @@ def run_sim(sim_conf,
         else:
             fitclass=nsim.fitters.MaxMetacalFitter
 
+    elif ftype=='metacal-max-degrade':
+        fitclass=nsim.fitters.MaxMetacalFitterDegrade
+
     elif ftype=='metacal-mom':
         fitclass=nsim.fitters.MomMetacalFitter
 

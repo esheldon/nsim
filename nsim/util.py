@@ -382,7 +382,7 @@ def get_weights(data,SN=0.24,type='noise'):
     return wts
 
 
-def fit_prior(run, is2n=0, field='pars',show=False):
+def fit_prior(run, is2n=0, field='pars_noshear',show=False):
     import biggles
     import esutil as eu
     from sklearn.mixture import GMM

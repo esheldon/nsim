@@ -1143,36 +1143,6 @@ sim-dg06
 
         Need to get pqr jackknifing working from the chunks
 
-- sim-dg07z
-    - zero shear, no ring sim used as metacal training for sim-dg07
-    - run-dg07zmcal01
-        - using still max like, plus adding Richardson extrapolation
-    - do a non-max like run?  Might matter at the part in 1000 level
-
-- sim-dg07
-    - 0.03 shear for testing metacal.
-    - We expect possible bias at
-        the 0.0015 level from metacal failing at higher shear
-    - expect B&A to have error also, at 0.002 level
-    - both are postive, so we expect we need to expand B&A around
-        true shear to avoid that bias
-
-    - at higher shear the nearest neighbor matching won't work as well
-        - argument for doing this with full sheared version of the
-            prior rather than just using derivatives.
-
-- run-dg07mcaltest01
-    - at s/n = 100 expanding about true shear.
-        0.0051 +/- 0.0018
-    - using mean sensitivity from templates 0.004, so maybe
-        the space is too sparse?
-    - s/n=50
-        - pqr
-            - like averaged 0.0030 +/- 0.0018
-            - overall mean correction 0.0028
-    - another run using new zero shear training set dg07z
-
-* use mean relation for response
 * proper weighting for pqr etc.
 * can do "importance sampling" over the template set,
     instead of some other likelihood/posterior sampling
@@ -1224,6 +1194,70 @@ sim-dg06
     - s/n=50
 
 
+
+- sim-dg07z
+    - zero shear, no ring sim used as metacal training for sim-dg07
+    - run-dg07zmcal01
+        - using still max like, plus adding Richardson extrapolation
+    - do a non-max like run?  Might matter at the part in 1000 level
+
+- sim-dg07
+    - shear = 0.03 for testing metacal.
+    - We expect possible bias at
+        the 0.0015 level from metacal failing at higher shear
+    - expect B&A to have error also, at 0.002 level
+    - both are postive, so we expect we need to expand B&A around
+        true shear to avoid that bias
+
+    - at higher shear the nearest neighbor matching won't work as well
+        - argument for doing this with full sheared version of the
+            prior rather than just using derivatives.
+
+- run-dg07mcaltest01
+    - at s/n = 100 expanding about true shear.
+        0.0051 +/- 0.0018
+    - using mean sensitivity from templates 0.004, so maybe
+        the space is too sparse?
+    - s/n=50
+        - pqr
+            - like averaged 0.0030 +/- 0.0018
+            - overall mean correction 0.0028
+    - another run using new zero shear training set dg07z
+        0.0035 +/- 0.0018
+      using total mean from training set
+        0.0026
+
+- run-dg07mcaltest02
+    - pqr
+        0.0074 +/- 0.0014
+
+* match pars in regular fit instead of convolved fit?
+* 
+* use mean relation for response
+    - not clear it will help much
+
+- new idea: just degrade high s/n images using same noise image
+- templates need to be done that match the data set at hand.
+    For my sims I'll just redo for each s/n level
+
+- s/n=50
+    - run-dg07zmcal-degrade50
+        - run with s/n=500 degraded to 50
+    - run-dg06mcal50-01
+        - run at s/n=50 for matching above using g_noshear
+            -0.00127 +/- 0.00531
+        ( using just g I get 0.00044 but that's probably a fluke )
+
+- s/n=20
+    - run-dg07zmcal-degrade20
+        - run with s/n=200 degraded to 20
+        - hmm... do we need more samples to get the mean correction
+            precise enough?
+                0.65859 +/- 0.00052
+
+    - run-dg06mcal20-01
+        - run at s/n=20 for matching above using g_noshear
+            
 
 - is it the T/F or g priors?
 

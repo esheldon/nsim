@@ -548,7 +548,10 @@ class MaxMetacalFitter(MaxFitter):
         self.fitter=fitter
 
         #sdict = self._get_sensitivity(obs)
-        sdict = self._get_sensitivity_richardson(obs)
+        if 'richardson_factor' in mpars:
+            sdict = self._get_sensitivity_richardson(obs)
+        else:
+            sdict = self._get_sensitivity(obs)
         res.update(sdict)
 
         #g_sens_model = self._get_sensitivity_model(obs, fitter)
@@ -616,7 +619,7 @@ class MaxMetacalFitter(MaxFitter):
         mpars=self['metacal_pars']
 
         fac = mpars['richardson_factor']
-        rstep = mpars['step']*fac
+        rstep = mpars['step']/fac
 
         sdict = self._get_sensitivity(obs)
         sdict_richardson = self._get_sensitivity(obs, step=rstep)
@@ -798,6 +801,7 @@ class MaxMetacalFitter(MaxFitter):
         """
         get Observations for the sheared images
         """
+        raise RuntimeError("this is no longer valid")
         imdict=self.imdict
 
         mpars=self['metacal_pars']
@@ -881,6 +885,93 @@ class MaxMetacalFitter(MaxFitter):
         # sensitivity from simulating the model
         #d['g_sens_model'][i] = res['g_sens_model']
 
+
+class MaxMetacalFitterDegrade(MaxMetacalFitter):
+    """
+    This class is to do the noise-degrated metacalibration measurement.
+    There is a nominal high s/n and the metacal is done on the degraded
+    s/n images, both of which should have the same noise image added
+
+    Here is the big plan
+
+    - We have a template image at some high s/n.
+
+        - We do metacal on it to get +/- sheared images
+        - Record pars_noshear at high s/n
+        - We add noise to reach some target s/n, same noise for all sheared
+        images.   Noise should be >> original noise.
+        - For noisy version we measure some estimator, record the pars_noshear
+        and sensitivity
+
+
+    - Then for independent, lower s/n data 
+        - apply same metacal reconvolution
+        - measure pars_noshear.
+    
+    - Then apply a mean sensitivity correction.
+
+    How best to get mean sensitivity?
+    
+    - for this sim we know the template set will very closely match the
+    lower s/n set, so we can just derive a mean correction
+
+    - In more realistic data, we could map the sensitivity vs measured noisy
+    T,F for the templates (and s/n for non-uniform data) and then match the
+    independent, lower s/n data to these templates by measured T/F and average
+    the sensitivity
+    """
+
+    def _setup(self, *args, **kw):
+        super(MaxMetacalFitterDegrade,self)._setup(*args, **kw)
+
+        if len(self['s2n_target']) > 1:
+            raise ValueError("only one target s2n allowed for now")
+
+        s2n_target = float(self['s2n_target'][0])
+        self['noise_boost'] = self.sim['s2n_for_noise']/s2n_target
+        print("    boosting noise by",self['noise_boost'])
+
+    def _get_metacal_obslist_conv(self, obs, **kw):
+        noise_image, new_weight = self._get_noise_image(obs)
+
+        res = super(MaxMetacalFitterDegrade,self)._get_metacal_obslist_conv(obs,
+                                                                            **kw)
+        
+        new_res=[]
+        for obs in res:
+            new_obs = self._get_degraded_obs(obs, noise_image, new_weight)
+            new_res.append(new_obs)
+        return new_res
+
+    def _get_degraded_obs(self, obs, noise_image, new_weight):
+
+        new_im = obs.image + noise_image
+
+        new_obs = Observation(new_im,
+                              weight=new_weight,
+                              jacobian=obs.jacobian,
+                              psf=obs.psf)
+
+        return new_obs
+
+    def _get_noise_image(self, obs):
+        """
+        get a noise image for use in degrading the high s/n image
+        """
+
+        mpars = self['metacal_pars']
+
+        added_noise = self.sim['skysig']*self['noise_boost']
+
+        new_var = self.sim['skysig']**2 + added_noise**2
+
+        noise_image = numpy.random.normal(loc=0.0,
+                                          scale=added_noise,
+                                          size=obs.image.shape)
+
+        new_weight = numpy.zeros( obs.image.shape ) + 1.0/new_var
+
+        return noise_image, new_weight
 
 class AdmomMetacalFitter(MaxMetacalFitter):
     def _do_one_fit(self, obs, **kw):

@@ -1257,7 +1257,9 @@ sim-dg06
 
     - run-dg06mcal20-01
         - run at s/n=20 for matching above using g_noshear
-            
+            0.0045 +/- 0.0053
+    - run-dg06mcal20-02
+        - more precision
 
 - is it the T/F or g priors?
 

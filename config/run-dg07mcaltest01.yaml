@@ -16,7 +16,7 @@ use_logpars: True
 expand_shear_true: True
 
 priors:
-    run: "run-dg06zmcal01"
+    run: "run-dg07zmcal01"
 
 psf_pars:
     model: "em1"

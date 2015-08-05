@@ -43,7 +43,7 @@ metacal_pars:
 # only one value allowed here
 s2n_vals: [ 20 ]
 
-desired_err: 1.0e-5
+desired_err: 2.0e-5
 
 desired_hours: 2.0
 

@@ -1,0 +1,55 @@
+# shear 0.01 sim
+# we get the calibration from run-dg07z-degrade20
+run: "run-dg06mcal20-01"
+sim: "sim-dg06"
+
+fitter: "metacal-max"
+fit_model: "exp"
+
+g_prior_during: True
+use_logpars: True
+
+# we hope to metacal these away
+priors:
+    cen:
+        type: "truth"
+    T:
+        type: "truth"
+    counts:
+        type: "truth"
+    g:
+        type: "ba"
+        sigma: 0.3
+
+psf_pars:
+    model: "em1"
+    ntry: 1000
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+metacal_pars:
+    guess_noshear: False
+    method: "conv"
+    step: 0.01
+
+# only one value allowed here
+s2n_vals: [ 20 ]
+
+desired_err: 5.0e-5
+
+desired_hours: 1.0
+
+# on slac
+sec_per_pair: 0.40
+
+npair_min: 50000
+
+verbose: True

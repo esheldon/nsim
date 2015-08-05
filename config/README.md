@@ -1257,7 +1257,11 @@ sim-dg06
 
     - run-dg06mcal20-01
         - run at s/n=20 for matching above using g_noshear
-            0.0045 +/- 0.0053
+            - using g_noshear (same for g)
+                 0.0045 +/- 0.0053
+            - using g_mean
+                -0.0013 +/- 0.0053
+
     - run-dg06mcal20-02
         - more precision
 

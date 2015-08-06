@@ -1246,6 +1246,8 @@ sim-dg06
     - run-dg06mcal50-01
         - run at s/n=50 for matching above using g_noshear
             -0.00127 +/- 0.00531
+        - using g_mean
+            -0.0035 +/- 0.0053
         ( using just g I get 0.00044 but that's probably a fluke )
 
 - s/n=20
@@ -1257,13 +1259,33 @@ sim-dg06
 
     - run-dg06mcal20-01
         - run at s/n=20 for matching above using g_noshear
-            - using g_noshear (same for g)
+            - using g_noshear
                  0.0045 +/- 0.0053
             - using g_mean
                 -0.0013 +/- 0.0053
 
     - run-dg06mcal20-02
         - more precision
+            - g_noshear
+                0.0032 +/- 0.0021
+            - g_mean
+                -0.0028 +/- 0.0021
+
+- s/n=10
+    - run-dg07zmcal-degrade10
+        - run with s/n=200 degraded to 10
+
+    - run-dg06mcal10-01
+        - quick run, expect error in fracdiff of 0.005
+        - using g_noshear
+        - using g_mean
+
+
+
+
+
+
+
 
 - is it the T/F or g priors?
 

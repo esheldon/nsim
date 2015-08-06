@@ -1279,9 +1279,12 @@ sim-dg06
         - quick run, expect error in fracdiff of 0.005
         - using g_noshear
         - using g_mean
+            0.0030 +/- 0.0053
 
 
-
+- idea for testing selections
+    - make a new sim with very broad flux distribution
+    - 
 
 
 

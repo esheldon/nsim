@@ -859,7 +859,6 @@ class MaxMetacalFitter(MaxFitter):
             ('g_noshear','f8',2),
             ('g_mean','f8',2),
             ('g_sens','f8',2),
-            #('g_sens_model','f8',2),
         ]
         return dt
 
@@ -881,9 +880,6 @@ class MaxMetacalFitter(MaxFitter):
 
         # sensitivity from two sheared images
         d['g_sens'][i] = res['g_sens']
-
-        # sensitivity from simulating the model
-        #d['g_sens_model'][i] = res['g_sens_model']
 
 
 class MaxMetacalFitterDegrade(MaxMetacalFitter):

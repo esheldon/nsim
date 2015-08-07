@@ -1249,6 +1249,9 @@ sim-dg06
         - using g_mean
             -0.0035 +/- 0.0053
         ( using just g I get 0.00044 but that's probably a fluke )
+    - run-dg06mcal50-02
+        - more precision
+            0.00118 +/- 0.00106
 
 - s/n=20
     - run-dg07zmcal-degrade20
@@ -1281,13 +1284,21 @@ sim-dg06
         - using g_mean
             0.0030 +/- 0.0053
 
+    - run-dg06mcal10-02
+        - more precision
+        - g_mean
+            -0.00027 +/- 0.00214
+        - g_noshear
+            0.0090
+        - I wonder if this points to something cancelling.  Also
+            maybe ring test biting me again?
 
-- idea for testing selections
-    - make a new sim with very broad flux distribution
-    - 
 
-
-
+- try at higher shear
+    - requires a high s/n version for both the training set and sim
+        - training set s/n=10000 with target 1000
+        - run at 1000
+- try without ring
 
 
 - is it the T/F or g priors?

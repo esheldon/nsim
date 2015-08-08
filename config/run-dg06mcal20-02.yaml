@@ -10,7 +10,7 @@ g_prior_during: True
 use_logpars: True
 
 deep_data:
-    run: "run-dg07zmcal-degrade50"
+    run: "run-dg07zmcal-degrade20"
 
 # we hope to metacal these away
 priors:

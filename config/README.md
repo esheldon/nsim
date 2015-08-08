@@ -1314,7 +1314,10 @@ still run-dg07zmcal-degrade50 for training set
     - s/n=50 lots of stats
 
         - using g_mean
+            0.0012 +/- 0.00054
 
+- run-dg01mcal50-02
+    - more stats
 
 - try without ring
 

@@ -1317,7 +1317,11 @@ still run-dg07zmcal-degrade50 for training set
             0.0012 +/- 0.00054
 
 - run-dg01mcal50-02
-    - more stats
+    - for more stats
+        0.00021 +/- 0.00055
+- combined dg01mcal50-01 and 02
+    0.000721 +/- 0.000383
+    7.21e-4 +/- 3.83e-4
 
 - try without ring
 

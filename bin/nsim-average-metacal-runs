@@ -28,12 +28,23 @@ def do_sums(data, data0):
 
 def do_avg(conf, data):
 
+    shtrue=nsim.util.get_true_shear(conf['simc'])
+
     for is2n in xrange(data.size):
+
 
         data['shear'][is2n] = data['g_sum'][is2n]/data['g_sens_sum'][is2n]
         data['shear_cov'][is2n] = numpy.linalg.inv(data['shear_cov_inv_sum'][is2n])
 
         data['s2n_w'][is2n] = data['s2n_w_sum'][is2n]/data['wsum'][is2n]
+
+        sherr=numpy.sqrt(data['shear_cov'][is2n,0,0])
+
+        fracdiff=data['shear'][is2n,0]/shtrue[0]-1.0
+        fracdiff_err=sherr/shtrue[0]
+
+        print('fracdiff: %.3g +/- %.3g' % (fracdiff, fracdiff_err))
+
 
 def main():
     options,args = parser.parse_args(sys.argv[1:])

@@ -131,7 +131,7 @@ def do_avg(conf, d, args):
     fracdiff=sh[0]/shtrue[0]-1.0
     fracdiff_err=sherr/shtrue[0]
 
-    print('fracdiff: %.2g +/- %.2g' % (fracdiff, fracdiff_err))
+    print('fracdiff: %.3g +/- %.3g' % (fracdiff, fracdiff_err))
 
 
 def do_sums_bychunk(conf, fobj, d, deep_data, args):

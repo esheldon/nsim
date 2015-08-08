@@ -1,0 +1,72 @@
+#!/usr/bin/env python
+"""
+    %prog new_run_name run1 run2 ..
+
+Description
+
+    Average the set of runs
+"""
+from __future__ import print_function
+import sys
+import numpy
+from numpy import sqrt
+
+import esutil as eu
+import nsim
+
+from optparse import OptionParser
+parser=OptionParser(__doc__)
+
+
+def do_sums(data, data0):
+    data['wsum'] += data0['wsum']
+    data['s2n_w_sum'] += data0['s2n_w_sum']
+    data['shear_cov_inv_sum'] += data0['shear_cov_inv_sum']
+
+    data['g_sum'] += data0['g_sum']
+    data['g_sens_sum'] += data0['g_sens_sum']
+
+def do_avg(conf, data):
+
+    for is2n in xrange(data.size):
+
+        data['shear'][is2n] = data['g_sum'][is2n]/data['g_sens_sum'][is2n]
+        data['shear_cov'][is2n] = numpy.linalg.inv(data['shear_cov_inv_sum'][is2n])
+
+        data['s2n_w'][is2n] = data['s2n_w_sum'][is2n]/data['wsum'][is2n]
+
+def main():
+    options,args = parser.parse_args(sys.argv[1:])
+
+    if len(args) < 3:
+        parser.print_help()
+        sys.exit(45)
+
+
+    new_run_name=args[0]
+    runs2average = args[1:]
+
+    conf = nsim.files.read_config(runs2average[0])
+    conf['simc'] = nsim.files.read_config(conf['sim'])
+
+    print('new run name:',new_run_name)
+    print('runs2average:',runs2average)
+
+    for i,run in enumerate(runs2average):
+        fname=nsim.files.get_averaged_url(run)
+        print(fname)
+        data0=eu.io.read(fname)
+
+        if i==0:
+            data=data0
+        else:
+            do_sums(data, data0)
+
+    do_avg(conf, data)
+
+    fout=nsim.files.get_averaged_url(new_run_name)
+    eu.ostools.makedirs_fromfile(fout)
+    print('writing run average:',fout)
+    eu.io.write(fout, data, clobber=True)
+
+main()

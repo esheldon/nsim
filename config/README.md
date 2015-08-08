@@ -1293,16 +1293,27 @@ sim-dg06
         - I wonder if this points to something cancelling.  Also
             maybe ring test biting me again?
 
-sim-dg08
---------
-same as sim-dg06 but shear=0.05
+higher shear
+-------------
+
+sim-dg01,sim-dg08
+==================
+same as sim-dg06 but shear=0.08,0.05 respectively
 still run-dg07zmcal-degrade50 for training set
 
 - run-dg08mcal50-01
+    - shear 0.05
     - s/n=50 lots of stats
 
-        - g_mean
+        - using g_mean
            -0.000979 +/- 0.000857
+
+
+- run-dg01mcal50-01
+    - shear 0.08
+    - s/n=50 lots of stats
+
+        - using g_mean
 
 
 - try without ring

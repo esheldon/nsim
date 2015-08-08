@@ -526,7 +526,7 @@ class MaxFitter(SimpleFitterBase):
             # set outside of fitter
             d['ntry'][i] = res['ntry']
 
-class MaxMetacalFitter(MaxFitter):
+class MaxMetacalFitterOld(MaxFitter):
     """
     metacal with a maximum likelihood fit
     """
@@ -882,7 +882,182 @@ class MaxMetacalFitter(MaxFitter):
         d['g_sens'][i] = res['g_sens']
 
 
+class MaxMetacalFitter(MaxFitter):
+    """
+    metacal with a maximum likelihood fit
+    """
+    def _dofit(self, imdict):
+        """
+        Fit according to the requested method
+        """
+
+        self.imdict=imdict
+
+        mpars=self['metacal_pars']
+
+        obs=imdict['obs']
+        mdict = self._do_fits(obs)
+        res=mdict['res']
+        psf_flux_res=mdict['psf_flux_res']
+        fitter=mdict['fitter']
+
+        self.fitter=fitter
+
+        return fitter, psf_flux_res
+
+    def _do_fits(self, obs):
+        """
+        the basic fitter for this class
+        """
+        boot=ngmix.Bootstrapper(obs, use_logpars=self['use_logpars'])
+
+        Tguess=self.sim['psf_T']
+        ppars=self['psf_pars']
+        try:
+            boot.fit_psfs(ppars['model'], Tguess, ntry=ppars['ntry'])
+        except BootPSFFailure:
+            raise TryAgainError("failed to fit psf")
+
+        mconf=self['max_pars']
+
+        try:
+            boot.fit_max(self['fit_model'],
+                         mconf['pars'],
+                         prior=self.prior,
+                         ntry=mconf['ntry'])
+
+            if mconf['pars']['method']=='lm':
+                boot.try_replace_cov(mconf['cov_pars'])
+        except BootGalFailure:
+            raise TryAgainError("failed to fit galaxy")
+
+        extra_noise = self.get('extra_noise',None)
+        boot.fit_metacal_max(ppars['model'],
+                             self['fit_model'],
+                             mconf['pars'],
+                             Tguess,
+                             prior=self.prior,
+                             ntry=mconf['ntry'],
+                             extra_noise=extra_noise)
+
+
+        fitter=boot.get_max_fitter() 
+        res=fitter.get_result()
+
+        mres = boot.get_metacal_max_result()
+        res.update(mres)
+
+        psf_flux_res = boot.get_psf_flux_result()
+
+        return {'fitter':fitter,
+                'boot':boot,
+                'res':res,
+                'psf_flux_res':psf_flux_res}
+
+    def _print_res(self,res):
+        """
+        print some stats
+        """
+
+        super(MaxMetacalFitter,self)._print_res(res)
+        print_pars(res['g_sens'].ravel(),      front='        sens: ')
+
+    def _get_dtype(self):
+        """
+        get the dtype for the output struct
+        """
+        dt=super(MaxMetacalFitter,self)._get_dtype()
+
+        npars=self['npars']
+        dt += [
+            ('pars_mean','f8',npars),
+            ('g_mean','f8',2),
+        ]
+        return dt
+
+
+    def _copy_to_output(self, res, i):
+        """
+        copy parameters specific to this class
+        """
+        super(MaxMetacalFitter,self)._copy_to_output(res, i)
+
+        d=self.data
+
+        # reconv with no shear
+        d['pars_mean'][i] = res['pars_mean']
+        d['g_mean'][i] = res['g_mean']
+
 class MaxMetacalFitterDegrade(MaxMetacalFitter):
+    """
+    This class is to do the noise-degrated metacalibration measurement.
+    There is a nominal high s/n and the metacal is done on the degraded
+    s/n images, both of which should have the same noise image added
+
+    Here is the big plan
+
+    - We have a template image at some high s/n.
+
+        - We do metacal on it to get +/- sheared images
+        - Record pars_noshear at high s/n
+        - We add noise to reach some target s/n, same noise for all sheared
+        images.   Noise should be >> original noise.
+        - For noisy version we measure some estimator, record the pars_noshear
+        and sensitivity
+
+
+    - Then for independent, lower s/n data 
+        - apply same metacal reconvolution
+        - measure pars_noshear.
+    
+    - Then apply a mean sensitivity correction.
+
+    How best to get mean sensitivity?
+    
+    - for this sim we know the template set will very closely match the
+    lower s/n set, so we can just derive a mean correction
+
+    - In more realistic data, we could map the sensitivity vs measured noisy
+    T,F for the templates (and s/n for non-uniform data) and then match the
+    independent, lower s/n data to these templates by measured T/F and average
+    the sensitivity
+    """
+
+    def _setup(self, *args, **kw):
+        super(MaxMetacalFitterDegrade,self)._setup(*args, **kw)
+
+        if len(self['s2n_target']) > 1:
+            raise ValueError("only one target s2n allowed for now")
+
+        s2n_target = float(self['s2n_target'][0])
+        self['noise_boost'] = self.sim['s2n_for_noise']/s2n_target
+        self['extra_noise'] = self.sim['skysig']*self['noise_boost']
+        print("    boosting noise by",self['noise_boost'])
+
+    def _get_dtype(self):
+        """
+        get the dtype for the output struct
+        """
+        dt=super(MaxMetacalFitterDegrade,self)._get_dtype()
+
+        dt += [
+            ('g_sens','f8',(2,2)),
+        ]
+        return dt
+
+
+    def _copy_to_output(self, res, i):
+        """
+        copy parameters specific to this class
+        """
+        super(MaxMetacalFitterDegrade,self)._copy_to_output(res, i)
+
+        d=self.data
+
+        d['g_sens'][i] = res['g_sens']
+
+
+class MaxMetacalFitterDegradeOld(MaxMetacalFitter):
     """
     This class is to do the noise-degrated metacalibration measurement.
     There is a nominal high s/n and the metacal is done on the degraded
@@ -968,6 +1143,7 @@ class MaxMetacalFitterDegrade(MaxMetacalFitter):
         new_weight = numpy.zeros( obs.image.shape ) + 1.0/new_var
 
         return noise_image, new_weight
+
 
 class AdmomMetacalFitter(MaxMetacalFitter):
     def _do_one_fit(self, obs, **kw):

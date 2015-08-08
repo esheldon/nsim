@@ -1,0 +1,311 @@
+#!/usr/bin/env python
+"""
+    %prog run is2n
+
+todo: 
+
+    - implement selections (selecting deep data as well)
+    - possibly weights (smooth selections)
+
+"""
+from __future__ import print_function
+import sys
+import os
+import numpy
+from numpy import sqrt, array, diag, ones, zeros, where
+
+import fitsio
+
+import ngmix
+import nsim
+
+from argparse import ArgumentParser
+
+
+
+parser=ArgumentParser()
+
+parser.add_argument('run',help='run to average')
+parser.add_argument('is2n',type=int,help='s2n index')
+parser.add_argument('--gfield',default='g_mean',
+                  help="the field to use for 'g'")
+parser.add_argument('--show',action='store_true',
+                  help="show jackknife plots")
+
+
+CHUNKSIZE=1000000
+
+simple_models=['exp','dev','gauss']
+
+def get_dtype(fobj, model, args):
+
+    data = fobj[1][0:10]
+
+    names=data.dtype.names
+
+    dt =data.dtype.descr
+    dt += [('s2n_matched','f8'),
+           ('s2n_w_sum','f8'),
+           ('wsum','f8'),
+           ('g_sum','f8',2),
+           ('g_sens_sum','f8',2),
+           ('shear','f8',2),
+           ('shear_cov','f8',(2,2)),
+           ('shear_cov_inv_sum','f8',(2,2))]
+
+    return dt
+
+def get_chunk_info(nrows):
+    nchunks=nrows//CHUNKSIZE
+
+    remain = nrows % CHUNKSIZE
+    if remain > 0:
+        nchunks += 1
+
+    return nchunks
+
+def get_shear_stats(conf, data, deep_data, args):
+
+
+    npair=data.size/2
+    chunksize = npair/1000
+
+    if chunksize < 1:
+        chunksize=1
+
+    print('    jackknife chunksize:',chunksize)
+
+    do_ring=conf['simc'].get('do_ring',True)
+
+    gfield=args.gfield
+
+    g_sens = data[gfield]*0
+    g_sens[:,0] = deep_data['g_sens'][:,0].mean()
+    g_sens[:,1] = deep_data['g_sens'][:,1].mean()
+
+    res = ngmix.lensfit.lensfit_jackknife(data[gfield],
+                                          g_sens,
+                                          chunksize=chunksize,
+                                          get_sums=True,
+                                          do_ring=do_ring,
+                                          show=args.show)
+
+
+    return res
+
+
+
+def do_sums(conf, data, deep_data, d, args):
+
+    weights = ones(data.size)
+
+    sh, shcov, g_sum, gsens_sum = get_shear_stats(conf, data, deep_data, args)
+
+    d['g_sum'][0] += g_sum
+    d['g_sens_sum'][0] += gsens_sum
+
+    shcov_inv = numpy.linalg.inv(shcov)
+    d['shear_cov_inv_sum'][0] += shcov_inv
+
+    d['wsum'][0] += weights.sum()
+    d['s2n_w_sum'][0] += (data['s2n_w']*weights).sum()
+
+def do_avg(conf, d, args):
+
+    shtrue=nsim.util.get_true_shear(conf['simc'])
+
+    model=conf['fit_model']
+
+    d['s2n_w'][0] = d['s2n_w_sum'][0]/d['wsum'][0]
+
+    sh = d['g_sum'][0]/d['g_sens_sum'][0]
+
+
+    d['g_sens'][0] = d['g_sens_sum'][0]/d['wsum'][0]
+
+    d['shear'][0] = sh
+    d['shear_cov'][0] = numpy.linalg.inv(d['shear_cov_inv_sum'][0])
+
+    sherr=numpy.sqrt(d['shear_cov'][0,0,0])
+
+    fracdiff=sh[0]/shtrue[0]-1.0
+    fracdiff_err=sherr/shtrue[0]
+
+    print('fracdiff: %.2g +/- %.2g' % (fracdiff, fracdiff_err))
+
+
+def do_sums_bychunk(conf, fobj, d, deep_data, args):
+    nrows=fobj[1].get_nrows()
+    nchunks = get_chunk_info(nrows)
+
+    for i in xrange(nchunks):
+        beg = i*CHUNKSIZE
+        end = (i+1)*CHUNKSIZE
+        print('    %s:%s of %s' % (beg,end,nrows))
+        data = fobj[1][beg:end]
+
+        #data_keep, deep_keep =select(conf, data, deep_data)
+        data_keep, deep_keep = data, deep_data
+
+        do_sums(conf, data_keep, deep_keep, d, args)
+
+
+def select(conf, data, deep_data):
+
+    raise RuntimeError("implement select")
+
+    logic = ones(data.size, dtype=bool)
+    docut=False
+    if 'avg_min_arate' in conf:
+        print("    selecting arate >",conf['avg_min_arate'])
+        logic = logic & (data['arate'] > conf['avg_min_arate'])
+        docut=True
+
+    if 'avg_sens_range' in conf:
+        sr=tuple(conf['avg_sens_range'])
+        print("    selecting sens [%g,%g]" % sr)
+        sens=data['g_sens'][:,0]
+        logic = logic & (sens > sr[0]) & (sens < sr[1])
+        docut=True
+
+    if 'avg_min_Ts2n' in conf:
+        if conf['use_logpars']:
+            print("       Ts2n for logpars")
+            Ts2n = 1.0/sqrt( data['pcov'][:,4,4] )
+        else:
+            Ts2n = data['pars'][:,4]/sqrt( data['pcov'][:,4,4] )
+
+        print("    selecting Ts2n >",conf['avg_min_Ts2n'])
+        logic = logic & (Ts2n > conf['avg_min_Ts2n'])
+        #logic = logic & (Ts2n > conf['avg_min_Ts2n']) & (Ts2n < 15)
+        docut=True
+
+    if 'avg_min_s2n' in conf:
+        s2n = data['s2n_w']
+        s2n_min = conf['avg_min_s2n']
+        elogic = (s2n > s2n_min)
+        w,=where(elogic)
+        if w.size != data.size:
+            print("    kept %d/%d for s/n > %.1f" % (w.size,data.size,s2n_min))
+        logic = logic & elogic
+        docut=True
+
+    if 'avg_min_psf_flux_s2n' in conf:
+        s2n = data['psf_flux_s2n']
+        s2n_min = conf['avg_min_psf_flux_s2n']
+        elogic = (s2n > s2n_min)
+        w,=where(elogic)
+        if w.size != data.size:
+            print("    kept %d/%d for psf s/n > %.1f" % (w.size,data.size,s2n_min))
+        logic = logic & elogic
+        docut=True
+
+
+    if 'avg_min_Fs2n' in conf:
+        if conf['use_logpars']:
+            print("       Fs2n for logpars")
+            Fs2n = 1.0/sqrt( data['pcov'][:,5,5] )
+        else:
+            Fs2n = data['pars'][:,5]/sqrt( data['pcov'][:,5,5] )
+
+        print("    selecting Fs2n >",conf['avg_min_Fs2n'])
+        logic = logic & (Fs2n > conf['avg_min_Fs2n'])
+        docut=True
+
+    if 'avg_min_flux' in conf:
+        flux = data['pars'][:,5]
+
+        print("    selecting flux >",conf['avg_min_flux'])
+        logic = logic & (flux > conf['avg_min_flux'])
+        docut=True
+
+    if 'avg_min_T' in conf:
+        flux = data['pars'][:,4]
+        minval = conf['avg_min_T']
+
+        print("    selecting T >",minval)
+        logic = logic & (flux > minval)
+        docut=True
+
+
+    if 'avg_min_neff' in conf:
+        print("    selecting neff >",conf['avg_min_neff'])
+        logic = logic & (data['neff'] > conf['avg_min_neff'])
+        docut=True
+
+    if 'avg_min_fracuse' in conf:
+        print("    selecting fracuse >",conf['avg_min_fracuse'])
+        logic = logic & (data['fracuse'] > conf['avg_min_fracuse'])
+        docut=True
+
+    if 'avg_max_g' in conf:
+        print("    selecting g <",conf['avg_max_g'])
+        gmax=sqrt(data['pars_max'][:,2]**2 + data['pars_max'][:,3]**2)
+        logic = logic & (gmax < conf['avg_max_g'])
+        docut=True
+
+    if 'avg_max_gerr' in conf:
+        print("    selecting maxlike g err <",conf['avg_max_gerr'])
+        logic = (
+                 logic
+                 & (sqrt(data['pcov_max'][:,2,2]) < conf['avg_max_gerr'])
+                 & (sqrt(data['pcov_max'][:,3,3]) < conf['avg_max_gerr']) 
+                )
+        docut=True
+
+    if docut:
+        do_ring=conf['simc'].get('do_ring',True)
+
+        if do_ring:
+            print("        pairing for ring")
+
+            w=nsim.util.ring_select(logic)
+        else:
+            w,=numpy.where(logic)
+        
+        frac=float(w.size)/data.size
+        print("        keeping %d/%d  %.3f" % (w.size,data.size,frac))
+        data=data[w]
+
+    return data
+
+def get_averaged(conf, deep_data, args):
+
+    model=conf['fit_model']
+
+    print(conf['fname'])
+    with fitsio.FITS(conf['fname']) as fobj:
+
+        dt= get_dtype(fobj,model,args)
+
+        d=zeros(1, dtype=dt)
+        d['s2n_matched'] = conf['s2n_matched']
+
+        do_sums_bychunk(conf, fobj, d, deep_data, args)
+
+    do_avg(conf, d, args)
+
+    return d
+
+
+def main():
+    args = parser.parse_args()
+
+    conf = nsim.files.read_config(args.run)
+    conf['simc'] = nsim.files.read_config(conf['sim'])
+
+    s2n_vals    = conf['s2n_vals']
+
+    conf['s2n_matched'] = s2n_vals[args.is2n]
+    conf['fname']=nsim.files.get_output_url(args.run, 0, args.is2n)
+
+    deep_data=nsim.files.read_output(conf['deep_data']['run'], 0)
+
+    output = get_averaged(conf, deep_data, args)
+
+    out_fname=nsim.files.get_averaged_url(args.run, is2n=args.is2n)
+
+    print('writing:',out_fname)
+    fitsio.write(out_fname, output, clobber=True)
+
+main()

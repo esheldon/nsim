@@ -4,6 +4,7 @@ from distutils.core import setup
 
 scripts=['nsim-average-outputs',
          'nsim-average-outputs-lm',
+         'nsim-average-metacal',
          'nsim-combine-averaged',
          'nsim-average-runs',
          'nsim-combine-trials',

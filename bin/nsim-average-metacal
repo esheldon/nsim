@@ -48,6 +48,7 @@ def get_dtype(fobj, model, args):
            ('s2n_w_sum','f8'),
            ('wsum','f8'),
            ('g_sum','f8',2),
+           ('g_sens','f8',2),
            ('g_sens_sum','f8',2),
            ('shear','f8',2),
            ('shear_cov','f8',(2,2)),
@@ -79,9 +80,9 @@ def get_shear_stats(conf, data, deep_data, args):
 
     gfield=args.gfield
 
-    g_sens = data[gfield]*0
-    g_sens[:,0] = deep_data['g_sens'][:,0].mean()
-    g_sens[:,1] = deep_data['g_sens'][:,1].mean()
+    g_sens = data[gfield].copy()
+    g_sens[:,0] = deep_data['g_sens'][:, 0, 0].mean()
+    g_sens[:,1] = deep_data['g_sens'][:, 1, 1].mean()
 
     res = ngmix.lensfit.lensfit_jackknife(data[gfield],
                                           g_sens,
@@ -112,7 +113,7 @@ def do_sums(conf, data, deep_data, d, args):
 
 def do_avg(conf, d, args):
 
-    shtrue=nsim.util.get_true_shear(conf['simc'])
+    shtrue=array(nsim.util.get_true_shear(conf['simc']))
 
     model=conf['fit_model']
 
@@ -126,12 +127,21 @@ def do_avg(conf, d, args):
     d['shear'][0] = sh
     d['shear_cov'][0] = numpy.linalg.inv(d['shear_cov_inv_sum'][0])
 
-    sherr=numpy.sqrt(d['shear_cov'][0,0,0])
 
-    fracdiff=sh[0]/shtrue[0]-1.0
-    fracdiff_err=sherr/shtrue[0]
+    sherr=sqrt(diag(d['shear_cov'][0]))
+    if shtrue[1] != 0.0:
+        fracdiff=sh/shtrue-1.0
+        fracdiff_err=sherr/shtrue
 
-    print('fracdiff: %.3g +/- %.3g' % (fracdiff, fracdiff_err))
+        mess='fracdiff: %.2g +/- %.2g  %.2g +/- %.2g'
+        print(mess % (fracdiff[0], fracdiff_err[0],fracdiff[1],fracdiff_err[1]))
+
+
+    else:
+        fracdiff=sh[0]/shtrue[0]-1.0
+        fracdiff_err=sherr[0]/shtrue[0]
+
+        print('fracdiff: %.2g +/- %.2g' % (fracdiff, fracdiff_err))
 
 
 def do_sums_bychunk(conf, fobj, d, deep_data, args):

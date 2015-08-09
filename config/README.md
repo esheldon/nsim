@@ -1323,6 +1323,20 @@ still run-dg07zmcal-degrade50 for training set
     0.000721 +/- 0.000383
     7.21e-4 +/- 3.83e-4
 
+sim-dg09
+=========
+shear [0.035,0.035]
+- run-dg09mcal50-01
+    - now doing sensitivity for both components
+- run-dg09mcal50-02
+    0.00063 +/- 0.00061  0.00094 +/- 0.00061
+
+- combined -01 and -02
+    0.00084 +/- 0.00054  0.00053 +/- 0.00054
+    combined using more stats training set
+    run: "run-dg07zmcal-degrade50-lots"
+    0.00054 +/- 0.00054  0.00031 +/- 0.00054
+
 - try without ring
 
 

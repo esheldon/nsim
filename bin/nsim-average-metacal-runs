@@ -9,7 +9,7 @@ Description
 from __future__ import print_function
 import sys
 import numpy
-from numpy import sqrt
+from numpy import sqrt, array, diag
 
 import esutil as eu
 import nsim
@@ -38,12 +38,21 @@ def do_avg(conf, data):
 
         data['s2n_w'][is2n] = data['s2n_w_sum'][is2n]/data['wsum'][is2n]
 
-        sherr=numpy.sqrt(data['shear_cov'][is2n,0,0])
+        sh=data['shear'][is2n]
+        sherr=sqrt(diag(data['shear_cov'][is2n]))
 
-        fracdiff=data['shear'][is2n,0]/shtrue[0]-1.0
-        fracdiff_err=sherr/shtrue[0]
+        if shtrue[1] != 0.0:
+            fracdiff=sh/shtrue-1.0
+            fracdiff_err=sherr/shtrue
 
-        print('fracdiff: %.3g +/- %.3g' % (fracdiff, fracdiff_err))
+            mess='fracdiff: %.2g +/- %.2g  %.2g +/- %.2g'
+            print(mess % (fracdiff[0], fracdiff_err[0],fracdiff[1],fracdiff_err[1]))
+
+        else:
+            fracdiff=sh[0]/shtrue[0]-1.0
+            fracdiff_err=sherr[0]/shtrue[0]
+
+            print('fracdiff: %.2g +/- %.2g' % (fracdiff, fracdiff_err))
 
 
 def main():

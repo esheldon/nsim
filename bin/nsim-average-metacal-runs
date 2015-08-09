@@ -45,14 +45,14 @@ def do_avg(conf, data):
             fracdiff=sh/shtrue-1.0
             fracdiff_err=sherr/shtrue
 
-            mess='fracdiff: %.2g +/- %.2g  %.2g +/- %.2g'
+            mess='fracdiff: %.1e +/- %.1e  %.1e +/- %.1e'
             print(mess % (fracdiff[0], fracdiff_err[0],fracdiff[1],fracdiff_err[1]))
 
         else:
             fracdiff=sh[0]/shtrue[0]-1.0
             fracdiff_err=sherr[0]/shtrue[0]
 
-            print('fracdiff: %.2g +/- %.2g' % (fracdiff, fracdiff_err))
+            print('fracdiff: %.1e +/- %.1e' % (fracdiff, fracdiff_err))
 
 
 def main():

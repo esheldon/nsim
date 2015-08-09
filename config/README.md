@@ -1333,9 +1333,8 @@ shear [0.035,0.035]
 
 - combined -01 and -02
     0.00084 +/- 0.00054  0.00053 +/- 0.00054
-    combined using more stats training set
-    run: "run-dg07zmcal-degrade50-lots"
-    0.00054 +/- 0.00054  0.00031 +/- 0.00054
+    combined using more stats training set "run-dg07zmcal-degrade50-lots"
+    5.4e-04 +/- 5.4e-04  3.0e-04 +/- 5.4e-04
 
 - try without ring
 

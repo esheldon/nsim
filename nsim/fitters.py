@@ -960,7 +960,7 @@ class MaxMetacalFitter(MaxFitter):
         """
 
         super(MaxMetacalFitter,self)._print_res(res)
-        print_pars(res['g_sens'].ravel(),      front='        sens: ')
+        print_pars(res['mcal_g_sens'].ravel(),      front='        sens: ')
 
     def _get_dtype(self):
         """
@@ -970,8 +970,9 @@ class MaxMetacalFitter(MaxFitter):
 
         npars=self['npars']
         dt += [
-            ('pars_mean','f8',npars),
-            ('g_mean','f8',2),
+            ('mcal_pars','f8',npars),
+            ('mcal_g','f8',2),
+            ('mcal_g_cov','f8', (2,2) ),
         ]
         return dt
 
@@ -984,9 +985,9 @@ class MaxMetacalFitter(MaxFitter):
 
         d=self.data
 
-        # reconv with no shear
-        d['pars_mean'][i] = res['pars_mean']
-        d['g_mean'][i] = res['g_mean']
+        d['mcal_pars'][i] = res['mcal_pars_mean']
+        d['mcal_g'][i] = res['mcal_g_mean']
+        d['mcal_g_cov'][i] = res['mcal_g_cov']
 
 class MaxMetacalFitterDegrade(MaxMetacalFitter):
     """
@@ -1041,7 +1042,7 @@ class MaxMetacalFitterDegrade(MaxMetacalFitter):
         dt=super(MaxMetacalFitterDegrade,self)._get_dtype()
 
         dt += [
-            ('g_sens','f8',(2,2)),
+            ('mcal_g_sens','f8',(2,2)),
         ]
         return dt
 
@@ -1054,7 +1055,7 @@ class MaxMetacalFitterDegrade(MaxMetacalFitter):
 
         d=self.data
 
-        d['g_sens'][i] = res['g_sens']
+        d['mcal_g_sens'][i] = res['mcal_g_sens']
 
 
 class MaxMetacalFitterDegradeOld(MaxMetacalFitter):

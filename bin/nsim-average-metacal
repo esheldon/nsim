@@ -27,8 +27,12 @@ parser=ArgumentParser()
 
 parser.add_argument('run',help='run to average')
 parser.add_argument('is2n',type=int,help='s2n index')
-parser.add_argument('--gfield',default='g_mean',
-                  help="the field to use for 'g'")
+
+parser.add_argument('--gfield',default='mcal_g',
+                  help="the field to use for g, default %default")
+parser.add_argument('--sens-field',default='mcal_g_sens',
+                  help="the field to use for sensitivity, default %default")
+
 parser.add_argument('--show',action='store_true',
                   help="show jackknife plots")
 
@@ -65,36 +69,6 @@ def get_chunk_info(nrows):
 
     return nchunks
 
-def get_shear_stats_old(conf, data, deep_data, args):
-
-
-    npair=data.size/2
-    chunksize = npair/1000
-
-    if chunksize < 1:
-        chunksize=1
-
-    print('    jackknife chunksize:',chunksize)
-
-    do_ring=conf['simc'].get('do_ring',True)
-
-    gfield=args.gfield
-
-    g_sens = data[gfield].copy()
-    g_sens[:,0] = deep_data['g_sens'][:, 0, 0].mean()
-    g_sens[:,1] = deep_data['g_sens'][:, 1, 1].mean()
-
-    res = ngmix.lensfit.lensfit_jackknife(data[gfield],
-                                          g_sens,
-                                          chunksize=chunksize,
-                                          get_sums=True,
-                                          do_ring=do_ring,
-                                          show=args.show)
-
-
-    return res
-
-
 def get_shear_stats(conf, data, deep_data, args):
 
 
@@ -111,11 +85,13 @@ def get_shear_stats(conf, data, deep_data, args):
 
     g = data[args.gfield]
 
+    sfield=args.sens_field
+
     g_sens = numpy.zeros( (data.size, 2, 2) )
-    g_sens[:,0, 0] = deep_data['g_sens'][:, 0, 0].mean()
-    g_sens[:,0, 1] = deep_data['g_sens'][:, 0, 1].mean()
-    g_sens[:,1, 0] = deep_data['g_sens'][:, 1, 0].mean()
-    g_sens[:,1, 1] = deep_data['g_sens'][:, 1, 1].mean()
+    g_sens[:,0, 0] = deep_data[sfield][:, 0, 0].mean()
+    g_sens[:,0, 1] = deep_data[sfield][:, 0, 1].mean()
+    g_sens[:,1, 0] = deep_data[sfield][:, 1, 0].mean()
+    g_sens[:,1, 1] = deep_data[sfield][:, 1, 1].mean()
 
     res = ngmix.metacal.jackknife_shear(g,
                                         g_sens,

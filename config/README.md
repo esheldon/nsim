@@ -1337,7 +1337,9 @@ shear [0.035,0.035]
     5.4e-04 +/- 5.4e-04  3.0e-04 +/- 5.4e-04
 
 - run-dg07zmcal-degrade10-lots
+    - on comet, need to copy to slac
 - run-dg09mcal10-01
+    - not yet run
 
 - is it the T/F or g priors?
 

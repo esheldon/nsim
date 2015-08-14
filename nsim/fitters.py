@@ -928,18 +928,18 @@ class MaxMetacalFitter(MaxFitter):
 
             if mconf['pars']['method']=='lm':
                 boot.try_replace_cov(mconf['cov_pars'])
+
+            extra_noise = self.get('extra_noise',None)
+            boot.fit_metacal_max(ppars['model'],
+                                 self['fit_model'],
+                                 mconf['pars'],
+                                 Tguess,
+                                 prior=self.prior,
+                                 ntry=mconf['ntry'],
+                                 extra_noise=extra_noise)
+
         except BootGalFailure:
             raise TryAgainError("failed to fit galaxy")
-
-        extra_noise = self.get('extra_noise',None)
-        boot.fit_metacal_max(ppars['model'],
-                             self['fit_model'],
-                             mconf['pars'],
-                             Tguess,
-                             prior=self.prior,
-                             ntry=mconf['ntry'],
-                             extra_noise=extra_noise)
-
 
         fitter=boot.get_max_fitter() 
         res=fitter.get_result()

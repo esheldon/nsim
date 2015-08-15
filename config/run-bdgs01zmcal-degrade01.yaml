@@ -1,0 +1,61 @@
+run: "run-bdgs01zmcal-degrade01"
+sim: "sim-bdgs01z"
+
+fitter: "metacal-max-degrade"
+fit_model: "exp"
+
+g_prior_during: True
+use_logpars: True
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 2.0
+    T:
+        type: "two-sided-erf"
+        pars: [-2.0, 0.1, 8.0, 1.0]
+    counts:
+        type: "two-sided-erf"
+        pars: [2.0, 0.1, 6.0, 0.1]
+    g:
+        type: "ba"
+        sigma: 0.3
+
+psf_pars:
+    #model: "em2"
+    model: "em3"
+    #model: "turb"
+    ntry: 1000
+    fit_pars:
+        tol: 1.0e-4
+        maxiter: 4000
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+metacal_pars:
+    step: 0.01
+
+    #richardson_factor: 2.0
+
+# only used to predict error
+s2n_vals: [ 10 ]
+
+desired_err: 1.0e-4
+
+#desired_err: 1.0e-5
+desired_hours: 0.5
+
+# on comet
+sec_per_pair: 1.20
+
+npair_min: 50000
+
+verbose: True

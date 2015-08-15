@@ -52,7 +52,9 @@ desired_err: 2.0e-5
 desired_hours: 2.0
 
 # on comet
-sec_per_pair: 0.35
+#sec_per_pair: 0.35
+# on slac
+sec_per_pair: 0.40
 
 npair_min: 50000
 

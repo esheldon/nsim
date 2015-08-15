@@ -46,6 +46,8 @@ class SimGS(dict):
 
         self.base_rng = base_rng
 
+        self._setup()
+
         pprint.pprint(self)
 
     def get_image_pair(self):
@@ -66,8 +68,9 @@ class SimGS(dict):
         """
 
         s2n = self.s2n_pdf.sample()
+        print("    s2n: %g" % s2n)
 
-        gal, psf = self.get_galsim_objects()
+        gal, psf = self._get_galsim_objects()
 
         psf_obs = self._make_obs(psf, self['psf']['s2n'])
         gal_obs = self._make_obs(gal, s2n)
@@ -83,20 +86,24 @@ class SimGS(dict):
 
         gs_obj.drawImage(gsimage, scale=self['pixel_scale'])
 
-        image_ref = gsimage.array
+        image_nonoise = gsimage.array.copy()
 
-        jacob = self.get_jacobian(image_ref)
+        jacob = self._get_jacobian(image_nonoise)
 
         gsimage.addNoiseSNR(self.gauss_noise, s2n)
         
         image = gsimage.array.copy()
 
-        weight = numpy.zeros( image.shape ) 1.0/self['skysig']**2
+        weight = numpy.zeros( image.shape ) + self['ivar']
 
         obs = ngmix.Observation(image, weight=weight, jacobian=jacob)
+
+        # monkey patching
+        obs.image_nonoise=image_nonoise
+
         return obs
 
-    def get_jacobian(self, image):
+    def _get_jacobian(self, image):
         """
         find the best center and set the jacobian center there
         """
@@ -110,7 +117,7 @@ class SimGS(dict):
                               0.0,
                               scale)
 
-    def get_galsim_objects(self):
+    def _get_galsim_objects(self):
         """
         get the galaxy and psf galsim objects
         """
@@ -120,25 +127,25 @@ class SimGS(dict):
 
         cenoff=(coff1,coff2)
 
-        psf  = self.get_psf_obj(cenoff)
-        gal0 = self.get_gal_obj(cenoff)
+        psf  = self._get_psf_obj(cenoff)
+        gal0 = self._get_gal_obj(cenoff)
 
         gal = galsim.Convolve([psf, gal0])
 
         return gal, psf
 
-    def get_gal_obj(self, cenoff):
+    def _get_gal_obj(self, cenoff):
         """
         get the galsim object for the galaxy model
         """
 
-        pars=self.get_galaxy_pars()
+        pars=self._get_galaxy_pars()
 
         r50 = pars['r50']
         bd_ratio = pars['bd_ratio']
         s1,s2=self['shear']
 
-        disk_flux = bd_ratio-1.0
+        disk_flux = 1.0 - bd_ratio
         bulge_flux = bd_ratio
 
         disk = galsim.Exponential(flux=disk_flux, half_light_radius=r50)
@@ -157,7 +164,7 @@ class SimGS(dict):
 
         return gal
 
-    def get_psf_obj(self, cenoff):
+    def _get_psf_obj(self, cenoff):
         """
         get the galsim object for the psf
         """
@@ -172,7 +179,7 @@ class SimGS(dict):
         psf = psf.shift(dx=cenoff[0], dy=cenoff[1])
         return psf
 
-    def get_galaxy_pars(self):
+    def _get_galaxy_pars(self):
         """
         Get pair parameters
 
@@ -182,28 +189,33 @@ class SimGS(dict):
 
 
         g1,g2 = self.g_pdf.sample2d()
-        g1=g1[0]
-        g2=g2[0]
 
         r50 = self.r50_pdf.sample()
 
         bd_ratio = self.bdratio_pdf.sample()
 
         # distribution is in units of r50
-        boff = r50*self.bulge_offset_pdf.sample2d()
+        boff1,boff2 = self.bulge_offset_pdf.sample2d()
+        boff = (r50*boff1, r50*boff2)
 
-        return {'g':(g1,g2),
+        pars = {'g':(g1,g2),
                 'r50':r50,
                 'bd_ratio':bd_ratio,
                 'boff':boff}
+
+        pprint.pprint(pars)
+
+        return pars
+
+    def _setup(self):
+        self['pixel_scale'] = self.get('pixel_scale',1.0)
+        self['ivar'] = 1.0/self['skysig']**2
+        self._set_pdfs()
 
     def _set_pdfs(self):
         """
         Set all the priors
         """
-        import ngmix
-
-        self['pixel_scale'] = self.get('pixel_scale',1.0)
 
         omodel=self['obj_model']
 
@@ -216,8 +228,8 @@ class SimGS(dict):
         r50_r = omodel['r50']['range']
         self.r50_pdf=ngmix.priors.FlatPrior(r50_r[0], r50_r[1])
 
-        cr=omodel['cen_shift']['range']
-        self.cen_pdf=ngmix.priors.FlatPrior(cr[0], cr[1])
+        cr=omodel['cen_shift']
+        self.cen_pdf=ngmix.priors.FlatPrior(-cr['radius'], cr['radius'])
 
         bs_spec=omodel['bulge_shift']
         self.bulge_offset_pdf = ngmix.priors.ZDisk2D(bs_spec['radius'])
@@ -248,6 +260,9 @@ def quick_fit_gauss(image, maxiter=4000, tol=1.0e-6, ntry=4):
                       0.0 + 0.02*srandu(),
                       guess_T*(1.0 + 0.05*srandu()),
                       1.0 + 0.05*srandu() ]
+
+        guess=ngmix.gmix.GMixModel(guess_pars, "gauss")
+
         fitter=ngmix.em.fit_em(obs, guess, maxiter=maxiter, tol=tol)
 
         res=fitter.get_result()
@@ -257,4 +272,5 @@ def quick_fit_gauss(image, maxiter=4000, tol=1.0e-6, ntry=4):
     if res['flags'] != 0:
         raise TryAgainError("could not fit 1 gauss")
 
+    #pprint.pprint(res)
     return fitter

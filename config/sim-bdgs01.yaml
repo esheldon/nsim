@@ -45,10 +45,10 @@ obj_model:
     bulge_shift:
         type: "uniform"
         # in units of r50
-        range: [0.0, 1.0]
+        radius: 1.0
 
     cen_shift:
         type: "uniform"
-        radius: 1.0
+        radius: 0.5
 
-label: '$bulge-disk offset$"
+label: "$bulge-disk offset$"

@@ -53,6 +53,9 @@ class SimGS(dict):
     def get_image_pair(self):
         """
         Get an image pair, with noise added
+
+        We never use a ring test for this version of the sim,
+        so this is just for backwards compatibility
         """
 
         im1_dict=self.get_image()
@@ -70,38 +73,71 @@ class SimGS(dict):
         s2n = self.s2n_pdf.sample()
         print("    s2n: %g" % s2n)
 
-        gal, psf = self._get_galsim_objects()
+        gal_pars=self._get_galaxy_pars()
+
+        gal, psf = self._get_galsim_objects(gal_pars)
 
         psf_obs = self._make_obs(psf, self['psf']['s2n'])
         gal_obs = self._make_obs(gal, s2n)
 
         gal_obs.set_psf(psf_obs)
 
-        return {'obs':gal_obs}
+        save_pars=[gal_pars['r50'],
+                   gal_pars['bd_ratio'],
+                   gal_obs.image_flux]
+        return {'obs':gal_obs,
+                's2n':s2n,
+                'model':self['model'],
+                'gal_info':gal_pars,
+                'pars':save_pars}
 
     def _make_obs(self, gs_obj, s2n):
+        """
+        get an ngmix Observation
+        """
 
         dims = self['stamp_size']
         gsimage = galsim.ImageD(dims[0], dims[1])
 
         gs_obj.drawImage(gsimage, scale=self['pixel_scale'])
 
-        image_nonoise = gsimage.array.copy()
+        scaled_gsimage, noisy_gsimage, flux = self._scale_and_add_noise(gsimage, s2n)
+
+        image_nonoise = scaled_gsimage.array.copy()
 
         jacob = self._get_jacobian(image_nonoise)
-
-        gsimage.addNoiseSNR(self.gauss_noise, s2n)
         
-        image = gsimage.array.copy()
+        image = noisy_gsimage.array.copy()
 
         weight = numpy.zeros( image.shape ) + self['ivar']
 
         obs = ngmix.Observation(image, weight=weight, jacobian=jacob)
 
         # monkey patching
-        obs.image_nonoise=image_nonoise
+        obs.image_nonoise = image_nonoise
+        obs.image_flux = flux
+        print("    image flux:",flux)
 
         return obs
+
+    def _scale_and_add_noise(self, gsimage, s2n):
+        """
+        find the flux that gives the requested s2n.
+        """
+        flux = self._get_flux_from_s2n(gsimage.array, s2n)
+
+        arr = gsimage.array
+        imsum = arr.sum()
+
+        factor = flux/imsum
+
+        scaled_gsimage = gsimage * factor
+
+        noisy_gsimage = scaled_gsimage.copy()
+
+        noisy_gsimage.addNoise(self.gauss_noise)
+
+        return scaled_gsimage, noisy_gsimage, flux
 
     def _get_jacobian(self, image):
         """
@@ -117,29 +153,24 @@ class SimGS(dict):
                               0.0,
                               scale)
 
-    def _get_galsim_objects(self):
+    def _get_galsim_objects(self, gal_pars):
         """
         get the galaxy and psf galsim objects
         """
 
-        coff1 = self.cen_pdf.sample()
-        coff2 = self.cen_pdf.sample()
-
-        cenoff=(coff1,coff2)
-
-        psf  = self._get_psf_obj(cenoff)
-        gal0 = self._get_gal_obj(cenoff)
+        psf  = self._get_psf_obj(gal_pars['cenoff'])
+        gal0 = self._get_gal_obj(gal_pars)
 
         gal = galsim.Convolve([psf, gal0])
 
         return gal, psf
 
-    def _get_gal_obj(self, cenoff):
+    def _get_gal_obj(self, pars):
         """
         get the galsim object for the galaxy model
         """
 
-        pars=self._get_galaxy_pars()
+        cenoff = pars['cenoff']
 
         r50 = pars['r50']
         bd_ratio = pars['bd_ratio']
@@ -187,6 +218,10 @@ class SimGS(dict):
         which are zero
         """
 
+        coff1 = self.cen_pdf.sample()
+        coff2 = self.cen_pdf.sample()
+
+        cenoff=(coff1,coff2)
 
         g1,g2 = self.g_pdf.sample2d()
 
@@ -198,18 +233,42 @@ class SimGS(dict):
         boff1,boff2 = self.bulge_offset_pdf.sample2d()
         boff = (r50*boff1, r50*boff2)
 
-        pars = {'g':(g1,g2),
+        pars = {'model':self['model'],
+                'g':(g1,g2),
                 'r50':r50,
                 'bd_ratio':bd_ratio,
+                'cenoff':cenoff,
                 'boff':boff}
 
-        pprint.pprint(pars)
+        #pprint.pprint(pars)
 
         return pars
+
+    def _get_flux_from_s2n(self, image, s2n):
+        """
+        get the flux required to give the image the requested s/n
+        """
+        s2n_raw = self._get_expected_s2n(image)
+
+        flux2use = s2n/s2n_raw
+
+        if False:
+            imsum=image.sum()
+            print("    image sum:",imsum)
+            timage = image * flux2use/imsum
+            s2n_got = self._get_expected_s2n(timage)
+            print("    requested s2n: %g got %g" % (s2n, s2n_got) )
+        return flux2use
+
+    def _get_expected_s2n(self, image):
+        s2n = numpy.sqrt( (image**2).sum() * self['ivar'] )
+        return s2n
+
 
     def _setup(self):
         self['pixel_scale'] = self.get('pixel_scale',1.0)
         self['ivar'] = 1.0/self['skysig']**2
+        self['model'] = self['obj_model']['model']
         self._set_pdfs()
 
     def _set_pdfs(self):
@@ -247,15 +306,15 @@ def quick_fit_gauss(image, maxiter=4000, tol=1.0e-6, ntry=4):
     dims = numpy.array(image.shape)
     cenguess = (dims-1)/2.0
 
-    j=ngmix.UnitJacobian(cenguess[0], cenguess[1])
+    j=ngmix.UnitJacobian(0.0, 0.0)
 
     obs = ngmix.Observation(image, jacobian=j)
 
     guess_T = 4.0
 
     for i in xrange(ntry):
-        guess_pars = [0.0 + 0.1*srandu(),
-                      0.0 + 0.1*srandu(),
+        guess_pars = [cenguess[0] + 0.1*srandu(),
+                      cenguess[1] + 0.1*srandu(),
                       0.0 + 0.02*srandu(),
                       0.0 + 0.02*srandu(),
                       guess_T*(1.0 + 0.05*srandu()),

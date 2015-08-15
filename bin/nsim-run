@@ -86,7 +86,11 @@ def run_sim(sim_conf,
             options):
 
 
-    sim=nsim.sim.NGMixSim(sim_conf, s2n)
+    simtype=sim_conf.get('simulator','ngmix')
+    if simtype=='ngmix':
+        sim=nsim.sim.NGMixSim(sim_conf, s2n)
+    else:
+        sim=nsim.simgs.SimGS(sim_conf)
 
     checkpoint_file, checkpoint_data=get_checkpoint_data(output_file)
     plot_base=output_file.replace('.fits','')
@@ -112,14 +116,13 @@ def run_sim(sim_conf,
 
 
     elif ftype=='metacal-max':
-        mpars=run_conf['metacal_pars']
-        if mpars['method']=='model':
-            fitclass=nsim.fitters.MaxMetacalFitterModel
-        else:
-            fitclass=nsim.fitters.MaxMetacalFitter
+        fitclass=nsim.fitters.MaxMetacalFitter
 
     elif ftype=='metacal-max-degrade':
-        fitclass=nsim.fitters.MaxMetacalFitterDegrade
+        if simtype=='galsim':
+            fitclass=nsim.fitters.MaxMetacalFitterDegradeGS
+        else:
+            fitclass=nsim.fitters.MaxMetacalFitterDegrade
 
     elif ftype=='metacal-mom':
         fitclass=nsim.fitters.MomMetacalFitter

@@ -16,13 +16,13 @@ psf:
     beta: 3.5
     r50: 1.5 # pixels
 
-    s2n: 1000.0
+    s2n: 10000.0
 
     shape: [0.0, 0.05]
 
 obj_model:
 
-    type: "bulge-disk-offset"
+    model: "bulge-disk-offset"
 
     # counts are set to produce a desired s/n
     s2n:

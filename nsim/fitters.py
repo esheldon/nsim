@@ -161,7 +161,12 @@ class FitterBase(dict):
 
         self['use_logpars']=self.get('use_logpars',False)
         self['npars']=ngmix.gmix.get_model_npars(self['fit_model'])
-        self['npars_true'] = ngmix.gmix.get_model_npars(self.sim['obj_model'])
+
+        if isinstance(self.sim['obj_model'], dict):
+            npars=3
+        else:
+            npars = ngmix.gmix.get_model_npars(self.sim['obj_model'])
+        self['npars_true']=npars
 
         self['make_plots']=keys.get('make_plots',False)
         self['plot_base']=keys.get('plot_base',None)
@@ -348,9 +353,11 @@ class SimpleFitterBase(FitterBase):
         elif Tp['type']=='normal':
             Tpars=Tp['pars']
             fit_T_prior=ngmix.priors.Normal(Tpars[0], Tpars[1])
-        else:
+        elif Tp['type']=="two-sided-erf":
             T_prior_pars = Tp['pars']
             fit_T_prior=ngmix.priors.TwoSidedErf(*T_prior_pars)
+        else:
+            raise ValueError("bad Tprior: '%s'" % Tp['type'])
 
         cp=ppars['counts']
         if cp['type']=="truth":
@@ -372,19 +379,23 @@ class SimpleFitterBase(FitterBase):
             cpars=cp['pars']
             fit_counts_prior=ngmix.priors.Normal(cpars[0], cpars[1])
 
-        else:
+        elif cp['type']=="two-sided-erf":
             counts_prior_pars = cp['pars']
             fit_counts_prior=ngmix.priors.TwoSidedErf(*counts_prior_pars)
+        else:
+            raise ValueError("bad counts prior: '%s'" % cp['type'])
 
         cp=ppars['cen']
         if cp['type']=="truth":
             fit_cen_prior=self.sim.cen_pdf
-        else:
-            fit_cen_sigma_arcsec=cp['sigma']
+        elif cp['type'] == "normal2d":
+            fit_cen_sigma=cp['sigma']
             fit_cen_prior=ngmix.priors.CenPrior(0.0,
                                                 0.0,
-                                                fit_cen_sigma_arcsec,
-                                                fit_cen_sigma_arcsec)
+                                                fit_cen_sigma,
+                                                fit_cen_sigma)
+        else:
+            raise ValueError("bad cen prior: '%s'" % cp['type'])
 
 
         self.prior = PriorSimpleSep(fit_cen_prior,
@@ -423,7 +434,7 @@ class MaxFitter(SimpleFitterBase):
 
         boot=ngmix.Bootstrapper(imdict['obs'], use_logpars=self['use_logpars'])
 
-        Tguess=self.sim['psf_T']
+        Tguess=self.sim.get('psf_T',4.0)
         ppars=self['psf_pars']
         try:
             boot.fit_psfs(ppars['model'], Tguess, ntry=ppars['ntry'])
@@ -558,7 +569,7 @@ class MaxMetacalFitterOld(MaxFitter):
         """
         boot=ngmix.Bootstrapper(obs, use_logpars=self['use_logpars'])
 
-        Tguess=self.sim['psf_T']
+        Tguess=self.sim.get('psf_T',4.0)
         ppars=self['psf_pars']
         try:
             boot.fit_psfs(ppars['model'], Tguess, ntry=ppars['ntry'])
@@ -904,16 +915,25 @@ class MaxMetacalFitter(MaxFitter):
         """
         boot=ngmix.Bootstrapper(obs, use_logpars=self['use_logpars'])
 
-        Tguess=self.sim['psf_T']
+        Tguess=self.sim.get('psf_T',4.0)
         ppars=self['psf_pars']
+
+        psf_fit_pars = ppars.get('fit_pars',None)
+        print("psf fit pars:",psf_fit_pars)
+    
         try:
-            boot.fit_psfs(ppars['model'], Tguess, ntry=ppars['ntry'])
+            boot.fit_psfs(ppars['model'], Tguess, ntry=ppars['ntry'],fit_pars=psf_fit_pars)
         except BootPSFFailure:
             raise TryAgainError("failed to fit psf")
+
+        if True:
+            self._compare_obs_fit(boot.mb_obs_list[0][0].psf,
+                                 label1='psf',label2='model')
 
         mconf=self['max_pars']
 
         try:
+            #print("    doing fit max")
             boot.fit_max(self['fit_model'],
                          mconf['pars'],
                          prior=self.prior,
@@ -922,15 +942,22 @@ class MaxMetacalFitter(MaxFitter):
             if mconf['pars']['method']=='lm':
                 boot.try_replace_cov(mconf['cov_pars'])
 
+            mres=boot.get_max_fitter().get_result()
+            #print("    s2n:",mres['s2n_w'])
+            #print_pars(mres['pars'],front="    pars:")
+            #print("    doing metacal")
             extra_noise = self.get('extra_noise',None)
             boot.fit_metacal_max(ppars['model'],
                                  self['fit_model'],
                                  mconf['pars'],
                                  Tguess,
+                                 psf_fit_pars=psf_fit_pars,
                                  prior=self.prior,
                                  ntry=mconf['ntry'],
                                  extra_noise=extra_noise)
 
+        except BootPSFFailure:
+            raise TryAgainError("failed to fit metacal psfs")
         except BootGalFailure:
             raise TryAgainError("failed to fit galaxy")
 
@@ -966,6 +993,7 @@ class MaxMetacalFitter(MaxFitter):
             ('mcal_pars','f8',npars),
             ('mcal_g','f8',2),
             ('mcal_g_cov','f8', (2,2) ),
+            ('mcal_s2n_r','f8'),
         ]
         return dt
 
@@ -981,6 +1009,24 @@ class MaxMetacalFitter(MaxFitter):
         d['mcal_pars'][i] = res['mcal_pars_mean']
         d['mcal_g'][i] = res['mcal_g_mean']
         d['mcal_g_cov'][i] = res['mcal_g_cov']
+        d['mcal_s2n_r'][i] = res['mcal_s2n_r']
+
+    def _compare_obs_fit(self, obs, **keys):
+        gm = obs.get_gmix()
+        im=gm.make_image(obs.image.shape, jacobian=obs.jacobian)
+        im *= obs.image.sum()/im.sum()
+
+        self._compare_images(obs.image, im, **keys)
+
+        key=raw_input("hit a key:")
+        if key=='q':
+            stop
+
+    def _compare_images(self, im1, im2, **keys):
+        import images
+        keys['width']=1000
+        keys['height']=1000
+        images.compare_images(im1, im2, **keys)
 
 class MaxMetacalFitterDegrade(MaxMetacalFitter):
     """
@@ -1049,6 +1095,43 @@ class MaxMetacalFitterDegrade(MaxMetacalFitter):
         d=self.data
 
         d['mcal_g_sens'][i] = res['mcal_g_sens']
+
+class MaxMetacalFitterDegradeGS(MaxMetacalFitterDegrade):
+    """
+
+    this version we simulate a low-s2n object but we use the zero noise version
+    to do our work (which is in obs.image_nonoise).
+
+    """
+    def _dofits(self, obs):
+        """
+        we pull out the nonoise image and work with that
+        """
+        imnn = obs.image_nonoise
+
+        # just a little noise
+        skysig_start=self.sim['skysig']/100.0
+
+        noise_im = numpy.random.normal(loc=0.0,
+                                        scale=skysig_start,
+                                        size=imnn.shape)
+
+        imn = imnn + noise_im
+        nweight = obs.weight*0 + 1.0/skysig_start**2
+
+        nobs = Observation(imn,
+                           weight=nweight,
+                           jacobian=obs.jacobian,
+                           psf=obs.psf)
+
+        super(MaxMetacalFitterDegradeGS,self).__dofits(nobs)
+
+    def _setup(self, *args, **kw):
+        super(MaxMetacalFitterDegrade,self)._setup(*args, **kw)
+
+        self['extra_noise'] = self.sim['skysig']
+
+        print("    adding noise to zero noise image:",self['extra_noise'])
 
 
 class MaxMetacalFitterDegradeOld(MaxMetacalFitter):

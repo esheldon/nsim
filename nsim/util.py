@@ -5,6 +5,15 @@ from numpy import exp, log, zeros, ones, sqrt, newaxis
 import ngmix
 from esutil.random import srandu
 
+class TryAgainError(Exception):
+    """
+    signal to skip this image(s) and try a new one
+    """
+    def __init__(self, message):
+
+        # Call the base class constructor with the parameters it needs
+        Exception.__init__(self, message)
+
 def ring_select(logic):
 
     weven = numpy.arange(0,logic.size,2)

@@ -23,18 +23,11 @@ from ngmix.shape import Shape
 from ngmix.gexceptions import BootPSFFailure, BootGalFailure
 
 from .sim import NGMixSim
-from .util import write_fits
+from .util import write_fits, TryAgainError
 from . import files
 
 # minutes
 DEFAULT_CHECKPOINTS=[30,60,90,110]
-
-class TryAgainError(Exception):
-    def __init__(self, message):
-
-        # Call the base class constructor with the parameters it needs
-        Exception.__init__(self, message)
-
 
 class FitterBase(dict):
     def __init__(self, sim, run_conf, npairs, **keys):

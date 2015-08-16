@@ -1,5 +1,5 @@
 # galsim bulge-disk
-name: "sim-bdgs01"
+name: "sim-bd01"
 
 simulator: "galsim"
 

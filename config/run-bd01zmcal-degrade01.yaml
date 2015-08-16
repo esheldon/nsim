@@ -1,5 +1,5 @@
-run: "run-bdgs01zmcal-degrade01"
-sim: "sim-bdgs01z"
+run: "run-bd01zmcal-degrade01"
+sim: "sim-bd01z"
 
 fitter: "metacal-max-degrade"
 fit_model: "exp"

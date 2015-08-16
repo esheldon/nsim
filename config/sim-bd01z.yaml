@@ -1,6 +1,6 @@
 # galsim bulge-disk
 # zero shear
-name: "sim-bdgs01z"
+name: "sim-bd01z"
 
 simulator: "galsim"
 

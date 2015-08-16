@@ -1,4 +1,664 @@
-# vim: set filetype=markdown :
+REAL METACAL
+--------------
+
+sim-bd01 and sim-bd01z
+=======================
+using galsim to do Gary's bulge+disk sim
+
+- run-bd01zmcal-degrade01
+    - shows significant e2, along direction of psf ellipticity
+    - coellip3 psf modeling is probably shit
+    - also the values are piling up at the boundaries in the two
+        sided erf
+
+- run-bd01zmcal-degrade02
+    - round the edges more in the two sided erfs
+    - will address psf in next test
+
+
+
+
+sim-eg17
+===========
+
+- run-eg17mcal07
+    - s/n=100
+    - straight
+         0.0035 +/- 0.0066
+
+- run-eg17mcal08
+    - s/n=100
+    - from dg06mcal01 rerun, wonder if something has gone wrong
+    - also more stats
+    - straight average
+        0.00078 +/- 0.0031
+
+- run-eg17mcal09
+    - fitting gauss
+    - s/n=100
+    - straight
+        -0.0013 +/- 0.0031
+    - reran
+        - g_mean as field
+        -straight
+            0.0038 +/- 0.0033
+        -weighted
+            -0.0011 +/- 0.0032
+
+
+
+- run-eg17mcal10
+    - gauss fit
+    - s/n=25
+    - straight
+        0.054 +/- 0.0031
+    - re-running with full rendering
+    - straight
+        0.049 +/- 0.0033
+    - weights
+        0.031 +/- 0.0031
+    - rerunning with new code, but I don't expect change
+        -straight
+            0.051 +/- 0.0033
+        - weights, g_mean
+            0.04 +/- 0.0031
+    - big jump from s/n=50
+
+- run-eg17mcalt02
+    - exp fit
+    - full rendering
+    - s/n=25
+    - straight
+        0.048 +/- 0.0032
+    - weighted
+         0.037 +/- 0.0031
+
+    - very similar to when fitting a gaussian. I think this indicates the
+        problem is just related to the noise not being identical for the
+        different images
+
+- run-eg17mcalt03
+    - exp fit
+    - whitening
+
+- run-eg17mcalt05
+    - exp fit
+    - s/n=25
+    - just resimulating the model.  should only correct noise bias,
+        so need to run with true model
+    - undercorrecting from quick test
+    - forgot will be *very* biased location
+        -0.039
+
+- run-eg17mcalt06
+    - added lots of outputs to calculate e.g. gmean,
+        gnoshear, sens from model
+    - see that gmean*0.5*(1/sens + 1/sens_model) is nearly unbiased
+- run-eg17mcalt07
+    - same os 06 but fitting gauss
+    - doesn't work
+
+- run-eg17mcalt08
+    - using moms
+    - crap at high s/n
+
+- run-eg17mcalt09
+    - using em
+    - crap at high s/n
+
+- run-eg17mcalt10
+    - using admom
+    - for deconv. psf version, works at high s/n to 0.25%
+        - would only work for gaussian psf
+    - just fitting a gaussian convolved with gaussian psf works
+        better
+
+- run-eg17mcalt11
+    - gauss fit
+    - s/n=50
+        - weights -0.00065 +/- 0.0038
+        - straight 0.0099 +/- 0.004
+
+- run-eg17mcalt12
+    - gauss fit
+    - s/n=10000
+    - to be used for nearest
+
+- run-eg17mcalt13
+    - gauss fit
+    - nearest from t12 above
+    - s/n=100
+        - works
+    - s/n=50
+        - straight
+            0.0064
+        - weights
+            -0.0034
+    - rerunning with BA
+        - s/n=100
+            0.0017 +/- 0.0026 (6% correction)
+        - s/n=50
+            -0.003
+
+- run-eg17mcalt14
+    - gauss fit
+    - nearest from t12 above
+    - s/n=23 and higher
+        - decent with weights
+        - one big outlier... similar to what I saw before. Maybe
+            remove huge outliers
+    - rerunning with BA
+
+-run-eg17zmcal01
+    - zero shear training run
+
+- run-eg17mcalt15
+    - gauss fit
+    - nearest from zero shear eg17zmcal01
+    - many s/n
+    - wierd s/n=23 for BA, does't fit with
+        others; more outlier stuff?
+
+** gaussmomn
+- run-eg17zgmom01
+    - gauss mom fitting, high s/n for training
+- run-eg17gmomt01
+    - using run-eg17zgmom01 for training.  Realized this
+        full p(g) will necessarily be "no ring". switching
+        to sim-egnr05
+
+- run-egnr05gmomt01
+    - using run-eg17zgmom01 for training
+
+sim-gg11 and sim-gg1z
+=====================
+
+For testing moment fitting and prior template sampling
+
+- run-gg11zgmom01
+    - high s/n for training
+    - aiming for 100,000 templates
+
+- run-gg11gmomt01
+    - expanding true shear, h=1.0e-3
+    - mean shear comes out about right (zero before adding truth
+        back in) but the covariance matrix is crazy.  Maybe
+        it was zero just due to errors
+
+- run-gg11gmomt02
+    - don't expand true shear, this should not come out zero in
+        raw shear
+    - seeing shear in component 2 as well; a clue!
+- run-gg11gmomt03
+    - h=1.0e-6
+    - nope, same
+
+- run-gg11gmomt04
+    - s/n=10 even though gaussian assumption breaks down
+    - should give stable results
+    - errors look reasonable, but seeing signal in e2
+        - was bug in sim
+
+* run-gg11gmomt05
+    - s/n=12, expand true, still draw truth for templates
+    - no ring
+    - still terrible, maybe it is draw truth
+        - re-running without seed bug
+        - still terrible
+
+- run-gg11gmomt06
+    - s/n=12, expand [0,0], draw truth for templates, 
+        except centers which are randomized uniformly
+    - no ring
+    - also improves stability of isampling a bit, but still
+        getting low neff
+    - looks OK, still need
+        - better sampling
+        - proper likelihood functions
+
+- run-gg11gmomt07
+    - same as run-gg11gmomt06 but using the training
+        set run, nrand_cen=10
+    - OK but seeing some significant shear 2!
+        - was bug in sim
+
+- h 1.0e-3 maybe use 1.0e-6?
+
+
+sim-dg06
+===========
+
+- run-dg06mcal01
+    - s/n=100
+    - fit dev
+    - straight
+        -0.0046 +/- 0.0051
+    - weights
+        -0.0037 +/- 0.0051
+    - did new run with more stats
+    - straight
+        0.0054 +/- 0.0025
+    - that's a big swing... something wrong?
+
+- run-dg06mcal02
+    - s/n=100
+    - fit gauss
+    - ~1.4% bias
+    - putting sensitivity range [0.0, 2.0] results
+        in 0.0047 +/- 0.0058
+    - adding weights with SN=0.22 0.0092 +/- 0.0059
+    - both 0.003 +/- 0.0057
+
+- run-dg06mcal03
+    - s/n=100
+    - fit exp
+    - straight
+        0.0067 +/- 0.0027
+    - weights SN=0.22
+        0.0054 +/- 0.0027
+    - sens [0.0, 2.0] and weights
+        0.0022 +/- 0.0027
+
+- run-dg06mcal04
+    - s/n=50
+    - fit exp
+    - straight
+        0.027 +/- 0.0022
+    - weights SN=0.22
+        0.0054 +/- 0.0027
+    - sens [-0.5, 2.0]
+        0.019 +/- 0.0022
+    - sens [-0.25, 2.0] and weights
+        0.996 kept
+        0.0044 +/- 0.0021
+    - sens [-0.15, 2.0] and weights
+        0.993 kept
+        -0.0061 +/- 0.0022
+        
+    - sens [0.0, 2.0] and weights
+        0.95 kept
+        -0.032 +/- 0.0021
+    - sens [0.0, 2.0] no weights
+        same
+
+- run-dg06mcal06
+    - exp
+    - very high s/n 10000
+    - straight average
+        9.2e-05 +/- 0.00014
+    - sensitivity peaks at abot 0.8!
+
+- run-dg06mcalt01
+    - test run with exp fit
+    - s/n=100
+    - using full rendering of models
+    - straight
+        0.0047 +/- 0.0027
+    - weighted
+        0.0033 +/- 0.0027
+- run-dg06mcalt02
+    - fit exp
+    - s/n=50
+    - using full rendering of models
+    - straight
+        0.023 +/- 0.0026
+    - with weights
+        0.021 +/- 0.0027
+
+- run-dg06mcalt03
+    - fit exp
+    - s/n=50
+    - back to trying unsheared, just to see difference with 02
+        0.029 +/- 0.0027
+
+- run-dg06mcalt04
+    - fit exp
+    - isample
+    - s/n=50
+    - straight
+        0.022 +/- 0.0028
+
+- run-dg06mcalt04
+    - fit exp
+    - isample
+    - s/n=50
+    - using original fit shape
+    - straight
+        0.013 +/- 0.0027
+    - weights
+        0.011 +/- 0.0027
+
+# using prior info
+- sim-dg06z
+    - zero shear, calculating metacal pars
+    - will use for priors
+- run-dg06zmcal01
+    - fitting exp
+    - will use for priors
+
+- run-dg06mcalt06
+    - fitting exp
+    - bring in prior from run-dg06zmcal01
+    - s/n=100 fine
+    - s/n=50 fine
+    - running again to make sure nothing changed
+        weights
+        fracdiff(lensfit): -0.005 +/- 0.0026
+        fracdiff(pqr):     -0.0023 +/- 0.0022
+        no weights
+        fracdiff(lensfit): -0.0028 +/- 0.0027
+        fracdiff(pqr):     -0.0024 +/- 0.0022
+
+
+
+- run-dg06mcal07
+    - fitting exp
+    - bring in prior from run-dg06zmcal01
+     [ 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
+    - 23 blew up, why?
+
+- run-dg06mcal07-b
+    - ran with larger allowed errors, still blows up
+        at s/n=23
+
+- run-dg06mcal08
+    - fitting exp
+    - bring in run-dg06zmcal01
+    - using sensitivity directly in lensfit sum
+    - 100 looks fine
+    - implemented prior from the run.
+    - rerunning at s/n=100 to make sure all went well
+        - ok 
+               weights: -0.0016 +/- 0.0055
+            no weights: -0.00068 +/- 0.0056
+    - now running at s/n=50
+        - lensfit: -0.0079 +/- 0.0053
+        - BA using mean response: -0.0042 +/- 0.0053
+
+- run-dg06mcal09
+    - same as run-dg06mcal08 but at s/n=23
+    - note pqr does not have any corr intrinsic to it,
+        so we do --corr-model to apply a correction
+    - pqr with model bias post-fix
+        0.0033 +/- 0.0053
+        - maybe using correct priors was what was needed
+    - lensfit with model bias included in sens. calc.
+        -0.023 +/- 0.0051
+    - may want to do a run where we keep both lensfit
+        style sensitivities, and model bias
+
+- run-dg06mcal10
+    - same as 09 but keeping both kinds of lensfit sens
+    - pqr post model corr
+        0.011 +/- 0.0042
+        wtf?  sometimes get those fluctuations
+    - lensfit with g_sens_r
+        -0.0147
+    - lensfit with post model corr
+        no weights: 0.017 +/- 0.0053
+        weights: 0.017 +/- 0.0052
+
+- run-dg06mcal11
+    - doing isampler iterattion andupping the number of isamples, saving
+        neff [500,4000]
+    - s/n=23 same as 09 and 10
+        pqr model corr post
+            0.0044 +/- 0.0053
+        lensfit model corr pose
+            0.01 +/- 0.0053
+        lensfit g_sens_r
+            0.0098
+
+- run-dg06mcal12
+    - same as run-dg06mcal11 but s/n=10
+    - lots of jobs died it seems
+    - corr model post (note no jack on pqr, so errors too small)
+        fracdiff(lensfit): -0.0024 +/- 0.0064
+        fracdiff(pqr):     -0.0087 +/- 0.0038
+
+        adding back in the jobs that died
+        fracdiff(lensfit): 0.0017 +/- 0.0053
+        fracdiff(pqr):     -0.0045 +/- 0.0031
+
+        lensfit with weights: 0.0082 +/- 0.0053
+
+        The errors for pqr are also probably about 0.0053 when jackknifed. So
+        the errors are probably a bit underestimated, maybe because there is
+        significant spread in this mean model correction; it is hard to say.
+
+        Maybe errors being off is due to using the convolved image?
+
+        But it looks decent.  So the detail I needed to get right was the
+        prior being from the same model we are using at low s/n. Using
+        more samples may also have been important.
+
+        Need to get pqr jackknifing working from the chunks
+
+* proper weighting for pqr etc.
+* can do "importance sampling" over the template set,
+    instead of some other likelihood/posterior sampling
+
+- run-dg06mcalt07
+    - fit gauss
+    - s/n=50
+
+- run-dg06mcalt08
+    - metacal-psamp
+    - fit exp
+    - s/n=50
+    - new prior sampling technique, sampling from actual
+        parameters measured from a high s/n run
+
+- run-dg06mcalt10
+    - metacal-isample-nearest
+    - fit exp
+    - s/n=50
+    - priors from the high s/n fit
+    - may want to remove the prior we apply, but then calculate
+        sensitivity from the true prior (or best guess in real
+        data)?
+    - 0.004 in both
+    - running again (on slac)
+        fracdiff(lensfit): 0.0074 +/- 0.0026
+        fracdiff(pqr):     0.0059 +/- 0.0022
+
+- run-dg06mcalt11
+    - metacal-isample-nearest
+    - fit gauss
+    - s/n=50
+    - priors from the high s/n fit
+    - may want to remove the prior we apply, but then calculate
+        sensitivity from the true prior (or best guess in real
+        data)?
+
+        fracdiff(lensfit): 0.0085 +/- 0.0028
+        fracdiff(pqr):     0.0081 +/- 0.0024
+
+- run-dg06mcalt12
+    - metacal-isample-nearest
+    - including centroid in nearest match
+    - true priors
+    - fit exp
+    - s/n=100
+        fracdiff(lensfit): 0.0021 +/- 0.0027
+        fracdiff(pqr):     0.0019 +/- 0.0022
+    - s/n=50
+
+
+
+- sim-dg07z
+    - zero shear, no ring sim used as metacal training for sim-dg07
+    - run-dg07zmcal01
+        - using still max like, plus adding Richardson extrapolation
+    - do a non-max like run?  Might matter at the part in 1000 level
+
+- sim-dg07
+    - shear = 0.03 for testing metacal.
+    - We expect possible bias at
+        the 0.0015 level from metacal failing at higher shear
+    - expect B&A to have error also, at 0.002 level
+    - both are postive, so we expect we need to expand B&A around
+        true shear to avoid that bias
+
+    - at higher shear the nearest neighbor matching won't work as well
+        - argument for doing this with full sheared version of the
+            prior rather than just using derivatives.
+
+- run-dg07mcaltest01
+    - at s/n = 100 expanding about true shear.
+        0.0051 +/- 0.0018
+    - using mean sensitivity from templates 0.004, so maybe
+        the space is too sparse?
+    - s/n=50
+        - pqr
+            - like averaged 0.0030 +/- 0.0018
+            - overall mean correction 0.0028
+    - another run using new zero shear training set dg07z
+        0.0035 +/- 0.0018
+      using total mean from training set
+        0.0026
+
+- run-dg07mcaltest02
+    - pqr
+        0.0074 +/- 0.0014
+
+* match pars in regular fit instead of convolved fit?
+* 
+* use mean relation for response
+    - not clear it will help much
+
+- new idea: just degrade high s/n images using same noise image
+- templates need to be done that match the data set at hand.
+    For my sims I'll just redo for each s/n level
+
+- s/n=50
+    - run-dg07zmcal-degrade50
+        - run with s/n=500 degraded to 50
+    - run-dg06mcal50-01
+        - run at s/n=50 for matching above using g_noshear
+            -0.00127 +/- 0.00531
+        - using g_mean
+            -0.0035 +/- 0.0053
+        ( using just g I get 0.00044 but that's probably a fluke )
+    - run-dg06mcal50-02
+        - more precision
+            0.00118 +/- 0.00106
+
+- s/n=20
+    - run-dg07zmcal-degrade20
+        - run with s/n=200 degraded to 20
+        - hmm... do we need more samples to get the mean correction
+            precise enough?
+                0.65859 +/- 0.00052
+
+    - run-dg06mcal20-01
+        - run at s/n=20 for matching above using g_noshear
+            - using g_noshear
+                 0.0045 +/- 0.0053
+            - using g_mean
+                -0.0013 +/- 0.0053
+
+    - run-dg06mcal20-02
+        - more precision
+            - g_noshear
+                0.0032 +/- 0.0021
+            - g_mean
+                -0.0028 +/- 0.0021
+
+- s/n=10
+    - run-dg07zmcal-degrade10
+        - run with s/n=200 degraded to 10
+
+    - run-dg06mcal10-01
+        - quick run, expect error in fracdiff of 0.005
+        - using g_noshear
+        - using g_mean
+            0.0030 +/- 0.0053
+
+    - run-dg06mcal10-02
+        - more precision
+        - g_mean
+            -0.00027 +/- 0.00214
+        - g_noshear
+            0.0090
+        - I wonder if this points to something cancelling.  Also
+            maybe ring test biting me again?
+
+higher shear
+-------------
+
+sim-dg01,sim-dg08
+==================
+same as sim-dg06 but shear=0.08,0.05 respectively
+still run-dg07zmcal-degrade50 for training set
+
+- run-dg08mcal50-01
+    - shear 0.05
+    - s/n=50 lots of stats
+
+        - using g_mean
+           -0.000979 +/- 0.000857
+
+
+- run-dg01mcal50-01
+    - shear 0.08
+    - s/n=50 lots of stats
+
+        - using g_mean
+            0.0012 +/- 0.00054
+
+- run-dg01mcal50-02
+    - for more stats
+        0.00021 +/- 0.00055
+- combined dg01mcal50-01 and 02
+    0.000721 +/- 0.000383
+    7.21e-4 +/- 3.83e-4
+
+sim-dg09
+=========
+shear [0.035,0.035]
+- run-dg09mcal50-01
+    - now doing sensitivity for both components
+- run-dg09mcal50-02
+    0.00063 +/- 0.00061  0.00094 +/- 0.00061
+
+- combined -01 and -02
+    0.00084 +/- 0.00054  0.00053 +/- 0.00054
+    combined using more stats training set "run-dg07zmcal-degrade50-lots"
+    5.4e-04 +/- 5.4e-04  3.0e-04 +/- 5.4e-04
+
+- run-dg07zmcal-degrade10-lots
+    - on comet
+- run-dg09mcal10-01
+    - not yet run
+
+- is it the T/F or g priors?
+
+    - "true" priors applied for deep run, although they may not have
+        mattered much
+        - the actual recovered values very different from priors
+    - for runs that worked same priors were applied.
+
+    - the sensitivities are coming out very low compared to the
+        run with true g prior
+        - model sens less different
+        - should I apply true prior?  Then the issue is I have
+            no examples with which to calculate the model sensitivity in
+            regions where the true prior differs
+    - this is the problem with using biased measurements
+
+    - I didn't match prior galaxies in centroid
+
+
+
+
+
+
+
+
+
+
+
 
 s/n=50 results with no cuts
 ---------------------------
@@ -723,640 +1383,6 @@ older stuff
     - sim-eg17
         - shear 0.01
         - big run: run-eg17mcal04.  frac error 0.002-0.004
-
-REAL METACAL
---------------
-
-sim-eg17
-===========
-
-- run-eg17mcal07
-    - s/n=100
-    - straight
-         0.0035 +/- 0.0066
-
-- run-eg17mcal08
-    - s/n=100
-    - from dg06mcal01 rerun, wonder if something has gone wrong
-    - also more stats
-    - straight average
-        0.00078 +/- 0.0031
-
-- run-eg17mcal09
-    - fitting gauss
-    - s/n=100
-    - straight
-        -0.0013 +/- 0.0031
-    - reran
-        - g_mean as field
-        -straight
-            0.0038 +/- 0.0033
-        -weighted
-            -0.0011 +/- 0.0032
-
-
-
-- run-eg17mcal10
-    - gauss fit
-    - s/n=25
-    - straight
-        0.054 +/- 0.0031
-    - re-running with full rendering
-    - straight
-        0.049 +/- 0.0033
-    - weights
-        0.031 +/- 0.0031
-    - rerunning with new code, but I don't expect change
-        -straight
-            0.051 +/- 0.0033
-        - weights, g_mean
-            0.04 +/- 0.0031
-    - big jump from s/n=50
-
-- run-eg17mcalt02
-    - exp fit
-    - full rendering
-    - s/n=25
-    - straight
-        0.048 +/- 0.0032
-    - weighted
-         0.037 +/- 0.0031
-
-    - very similar to when fitting a gaussian. I think this indicates the
-        problem is just related to the noise not being identical for the
-        different images
-
-- run-eg17mcalt03
-    - exp fit
-    - whitening
-
-- run-eg17mcalt05
-    - exp fit
-    - s/n=25
-    - just resimulating the model.  should only correct noise bias,
-        so need to run with true model
-    - undercorrecting from quick test
-    - forgot will be *very* biased location
-        -0.039
-
-- run-eg17mcalt06
-    - added lots of outputs to calculate e.g. gmean,
-        gnoshear, sens from model
-    - see that gmean*0.5*(1/sens + 1/sens_model) is nearly unbiased
-- run-eg17mcalt07
-    - same os 06 but fitting gauss
-    - doesn't work
-
-- run-eg17mcalt08
-    - using moms
-    - crap at high s/n
-
-- run-eg17mcalt09
-    - using em
-    - crap at high s/n
-
-- run-eg17mcalt10
-    - using admom
-    - for deconv. psf version, works at high s/n to 0.25%
-        - would only work for gaussian psf
-    - just fitting a gaussian convolved with gaussian psf works
-        better
-
-- run-eg17mcalt11
-    - gauss fit
-    - s/n=50
-        - weights -0.00065 +/- 0.0038
-        - straight 0.0099 +/- 0.004
-
-- run-eg17mcalt12
-    - gauss fit
-    - s/n=10000
-    - to be used for nearest
-
-- run-eg17mcalt13
-    - gauss fit
-    - nearest from t12 above
-    - s/n=100
-        - works
-    - s/n=50
-        - straight
-            0.0064
-        - weights
-            -0.0034
-    - rerunning with BA
-        - s/n=100
-            0.0017 +/- 0.0026 (6% correction)
-        - s/n=50
-            -0.003
-
-- run-eg17mcalt14
-    - gauss fit
-    - nearest from t12 above
-    - s/n=23 and higher
-        - decent with weights
-        - one big outlier... similar to what I saw before. Maybe
-            remove huge outliers
-    - rerunning with BA
-
--run-eg17zmcal01
-    - zero shear training run
-
-- run-eg17mcalt15
-    - gauss fit
-    - nearest from zero shear eg17zmcal01
-    - many s/n
-    - wierd s/n=23 for BA, does't fit with
-        others; more outlier stuff?
-
-** gaussmomn
-- run-eg17zgmom01
-    - gauss mom fitting, high s/n for training
-- run-eg17gmomt01
-    - using run-eg17zgmom01 for training.  Realized this
-        full p(g) will necessarily be "no ring". switching
-        to sim-egnr05
-
-- run-egnr05gmomt01
-    - using run-eg17zgmom01 for training
-
-sim-gg11 and sim-gg1z
-=====================
-
-For testing moment fitting and prior template sampling
-
-- run-gg11zgmom01
-    - high s/n for training
-    - aiming for 100,000 templates
-
-- run-gg11gmomt01
-    - expanding true shear, h=1.0e-3
-    - mean shear comes out about right (zero before adding truth
-        back in) but the covariance matrix is crazy.  Maybe
-        it was zero just due to errors
-
-- run-gg11gmomt02
-    - don't expand true shear, this should not come out zero in
-        raw shear
-    - seeing shear in component 2 as well; a clue!
-- run-gg11gmomt03
-    - h=1.0e-6
-    - nope, same
-
-- run-gg11gmomt04
-    - s/n=10 even though gaussian assumption breaks down
-    - should give stable results
-    - errors look reasonable, but seeing signal in e2
-        - was bug in sim
-
-* run-gg11gmomt05
-    - s/n=12, expand true, still draw truth for templates
-    - no ring
-    - still terrible, maybe it is draw truth
-        - re-running without seed bug
-        - still terrible
-
-- run-gg11gmomt06
-    - s/n=12, expand [0,0], draw truth for templates, 
-        except centers which are randomized uniformly
-    - no ring
-    - also improves stability of isampling a bit, but still
-        getting low neff
-    - looks OK, still need
-        - better sampling
-        - proper likelihood functions
-
-- run-gg11gmomt07
-    - same as run-gg11gmomt06 but using the training
-        set run, nrand_cen=10
-    - OK but seeing some significant shear 2!
-        - was bug in sim
-
-- h 1.0e-3 maybe use 1.0e-6?
-
-
-sim-dg06
-===========
-
-- run-dg06mcal01
-    - s/n=100
-    - fit dev
-    - straight
-        -0.0046 +/- 0.0051
-    - weights
-        -0.0037 +/- 0.0051
-    - did new run with more stats
-    - straight
-        0.0054 +/- 0.0025
-    - that's a big swing... something wrong?
-
-- run-dg06mcal02
-    - s/n=100
-    - fit gauss
-    - ~1.4% bias
-    - putting sensitivity range [0.0, 2.0] results
-        in 0.0047 +/- 0.0058
-    - adding weights with SN=0.22 0.0092 +/- 0.0059
-    - both 0.003 +/- 0.0057
-
-- run-dg06mcal03
-    - s/n=100
-    - fit exp
-    - straight
-        0.0067 +/- 0.0027
-    - weights SN=0.22
-        0.0054 +/- 0.0027
-    - sens [0.0, 2.0] and weights
-        0.0022 +/- 0.0027
-
-- run-dg06mcal04
-    - s/n=50
-    - fit exp
-    - straight
-        0.027 +/- 0.0022
-    - weights SN=0.22
-        0.0054 +/- 0.0027
-    - sens [-0.5, 2.0]
-        0.019 +/- 0.0022
-    - sens [-0.25, 2.0] and weights
-        0.996 kept
-        0.0044 +/- 0.0021
-    - sens [-0.15, 2.0] and weights
-        0.993 kept
-        -0.0061 +/- 0.0022
-        
-    - sens [0.0, 2.0] and weights
-        0.95 kept
-        -0.032 +/- 0.0021
-    - sens [0.0, 2.0] no weights
-        same
-
-- run-dg06mcal06
-    - exp
-    - very high s/n 10000
-    - straight average
-        9.2e-05 +/- 0.00014
-    - sensitivity peaks at abot 0.8!
-
-- run-dg06mcalt01
-    - test run with exp fit
-    - s/n=100
-    - using full rendering of models
-    - straight
-        0.0047 +/- 0.0027
-    - weighted
-        0.0033 +/- 0.0027
-- run-dg06mcalt02
-    - fit exp
-    - s/n=50
-    - using full rendering of models
-    - straight
-        0.023 +/- 0.0026
-    - with weights
-        0.021 +/- 0.0027
-
-- run-dg06mcalt03
-    - fit exp
-    - s/n=50
-    - back to trying unsheared, just to see difference with 02
-        0.029 +/- 0.0027
-
-- run-dg06mcalt04
-    - fit exp
-    - isample
-    - s/n=50
-    - straight
-        0.022 +/- 0.0028
-
-- run-dg06mcalt04
-    - fit exp
-    - isample
-    - s/n=50
-    - using original fit shape
-    - straight
-        0.013 +/- 0.0027
-    - weights
-        0.011 +/- 0.0027
-
-# using prior info
-- sim-dg06z
-    - zero shear, calculating metacal pars
-    - will use for priors
-- run-dg06zmcal01
-    - fitting exp
-    - will use for priors
-
-- run-dg06mcalt06
-    - fitting exp
-    - bring in prior from run-dg06zmcal01
-    - s/n=100 fine
-    - s/n=50 fine
-    - running again to make sure nothing changed
-        weights
-        fracdiff(lensfit): -0.005 +/- 0.0026
-        fracdiff(pqr):     -0.0023 +/- 0.0022
-        no weights
-        fracdiff(lensfit): -0.0028 +/- 0.0027
-        fracdiff(pqr):     -0.0024 +/- 0.0022
-
-
-
-- run-dg06mcal07
-    - fitting exp
-    - bring in prior from run-dg06zmcal01
-     [ 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
-    - 23 blew up, why?
-
-- run-dg06mcal07-b
-    - ran with larger allowed errors, still blows up
-        at s/n=23
-
-- run-dg06mcal08
-    - fitting exp
-    - bring in run-dg06zmcal01
-    - using sensitivity directly in lensfit sum
-    - 100 looks fine
-    - implemented prior from the run.
-    - rerunning at s/n=100 to make sure all went well
-        - ok 
-               weights: -0.0016 +/- 0.0055
-            no weights: -0.00068 +/- 0.0056
-    - now running at s/n=50
-        - lensfit: -0.0079 +/- 0.0053
-        - BA using mean response: -0.0042 +/- 0.0053
-
-- run-dg06mcal09
-    - same as run-dg06mcal08 but at s/n=23
-    - note pqr does not have any corr intrinsic to it,
-        so we do --corr-model to apply a correction
-    - pqr with model bias post-fix
-        0.0033 +/- 0.0053
-        - maybe using correct priors was what was needed
-    - lensfit with model bias included in sens. calc.
-        -0.023 +/- 0.0051
-    - may want to do a run where we keep both lensfit
-        style sensitivities, and model bias
-
-- run-dg06mcal10
-    - same as 09 but keeping both kinds of lensfit sens
-    - pqr post model corr
-        0.011 +/- 0.0042
-        wtf?  sometimes get those fluctuations
-    - lensfit with g_sens_r
-        -0.0147
-    - lensfit with post model corr
-        no weights: 0.017 +/- 0.0053
-        weights: 0.017 +/- 0.0052
-
-- run-dg06mcal11
-    - doing isampler iterattion andupping the number of isamples, saving
-        neff [500,4000]
-    - s/n=23 same as 09 and 10
-        pqr model corr post
-            0.0044 +/- 0.0053
-        lensfit model corr pose
-            0.01 +/- 0.0053
-        lensfit g_sens_r
-            0.0098
-
-- run-dg06mcal12
-    - same as run-dg06mcal11 but s/n=10
-    - lots of jobs died it seems
-    - corr model post (note no jack on pqr, so errors too small)
-        fracdiff(lensfit): -0.0024 +/- 0.0064
-        fracdiff(pqr):     -0.0087 +/- 0.0038
-
-        adding back in the jobs that died
-        fracdiff(lensfit): 0.0017 +/- 0.0053
-        fracdiff(pqr):     -0.0045 +/- 0.0031
-
-        lensfit with weights: 0.0082 +/- 0.0053
-
-        The errors for pqr are also probably about 0.0053 when jackknifed. So
-        the errors are probably a bit underestimated, maybe because there is
-        significant spread in this mean model correction; it is hard to say.
-
-        Maybe errors being off is due to using the convolved image?
-
-        But it looks decent.  So the detail I needed to get right was the
-        prior being from the same model we are using at low s/n. Using
-        more samples may also have been important.
-
-        Need to get pqr jackknifing working from the chunks
-
-* proper weighting for pqr etc.
-* can do "importance sampling" over the template set,
-    instead of some other likelihood/posterior sampling
-
-- run-dg06mcalt07
-    - fit gauss
-    - s/n=50
-
-- run-dg06mcalt08
-    - metacal-psamp
-    - fit exp
-    - s/n=50
-    - new prior sampling technique, sampling from actual
-        parameters measured from a high s/n run
-
-- run-dg06mcalt10
-    - metacal-isample-nearest
-    - fit exp
-    - s/n=50
-    - priors from the high s/n fit
-    - may want to remove the prior we apply, but then calculate
-        sensitivity from the true prior (or best guess in real
-        data)?
-    - 0.004 in both
-    - running again (on slac)
-        fracdiff(lensfit): 0.0074 +/- 0.0026
-        fracdiff(pqr):     0.0059 +/- 0.0022
-
-- run-dg06mcalt11
-    - metacal-isample-nearest
-    - fit gauss
-    - s/n=50
-    - priors from the high s/n fit
-    - may want to remove the prior we apply, but then calculate
-        sensitivity from the true prior (or best guess in real
-        data)?
-
-        fracdiff(lensfit): 0.0085 +/- 0.0028
-        fracdiff(pqr):     0.0081 +/- 0.0024
-
-- run-dg06mcalt12
-    - metacal-isample-nearest
-    - including centroid in nearest match
-    - true priors
-    - fit exp
-    - s/n=100
-        fracdiff(lensfit): 0.0021 +/- 0.0027
-        fracdiff(pqr):     0.0019 +/- 0.0022
-    - s/n=50
-
-
-
-- sim-dg07z
-    - zero shear, no ring sim used as metacal training for sim-dg07
-    - run-dg07zmcal01
-        - using still max like, plus adding Richardson extrapolation
-    - do a non-max like run?  Might matter at the part in 1000 level
-
-- sim-dg07
-    - shear = 0.03 for testing metacal.
-    - We expect possible bias at
-        the 0.0015 level from metacal failing at higher shear
-    - expect B&A to have error also, at 0.002 level
-    - both are postive, so we expect we need to expand B&A around
-        true shear to avoid that bias
-
-    - at higher shear the nearest neighbor matching won't work as well
-        - argument for doing this with full sheared version of the
-            prior rather than just using derivatives.
-
-- run-dg07mcaltest01
-    - at s/n = 100 expanding about true shear.
-        0.0051 +/- 0.0018
-    - using mean sensitivity from templates 0.004, so maybe
-        the space is too sparse?
-    - s/n=50
-        - pqr
-            - like averaged 0.0030 +/- 0.0018
-            - overall mean correction 0.0028
-    - another run using new zero shear training set dg07z
-        0.0035 +/- 0.0018
-      using total mean from training set
-        0.0026
-
-- run-dg07mcaltest02
-    - pqr
-        0.0074 +/- 0.0014
-
-* match pars in regular fit instead of convolved fit?
-* 
-* use mean relation for response
-    - not clear it will help much
-
-- new idea: just degrade high s/n images using same noise image
-- templates need to be done that match the data set at hand.
-    For my sims I'll just redo for each s/n level
-
-- s/n=50
-    - run-dg07zmcal-degrade50
-        - run with s/n=500 degraded to 50
-    - run-dg06mcal50-01
-        - run at s/n=50 for matching above using g_noshear
-            -0.00127 +/- 0.00531
-        - using g_mean
-            -0.0035 +/- 0.0053
-        ( using just g I get 0.00044 but that's probably a fluke )
-    - run-dg06mcal50-02
-        - more precision
-            0.00118 +/- 0.00106
-
-- s/n=20
-    - run-dg07zmcal-degrade20
-        - run with s/n=200 degraded to 20
-        - hmm... do we need more samples to get the mean correction
-            precise enough?
-                0.65859 +/- 0.00052
-
-    - run-dg06mcal20-01
-        - run at s/n=20 for matching above using g_noshear
-            - using g_noshear
-                 0.0045 +/- 0.0053
-            - using g_mean
-                -0.0013 +/- 0.0053
-
-    - run-dg06mcal20-02
-        - more precision
-            - g_noshear
-                0.0032 +/- 0.0021
-            - g_mean
-                -0.0028 +/- 0.0021
-
-- s/n=10
-    - run-dg07zmcal-degrade10
-        - run with s/n=200 degraded to 10
-
-    - run-dg06mcal10-01
-        - quick run, expect error in fracdiff of 0.005
-        - using g_noshear
-        - using g_mean
-            0.0030 +/- 0.0053
-
-    - run-dg06mcal10-02
-        - more precision
-        - g_mean
-            -0.00027 +/- 0.00214
-        - g_noshear
-            0.0090
-        - I wonder if this points to something cancelling.  Also
-            maybe ring test biting me again?
-
-higher shear
--------------
-
-sim-dg01,sim-dg08
-==================
-same as sim-dg06 but shear=0.08,0.05 respectively
-still run-dg07zmcal-degrade50 for training set
-
-- run-dg08mcal50-01
-    - shear 0.05
-    - s/n=50 lots of stats
-
-        - using g_mean
-           -0.000979 +/- 0.000857
-
-
-- run-dg01mcal50-01
-    - shear 0.08
-    - s/n=50 lots of stats
-
-        - using g_mean
-            0.0012 +/- 0.00054
-
-- run-dg01mcal50-02
-    - for more stats
-        0.00021 +/- 0.00055
-- combined dg01mcal50-01 and 02
-    0.000721 +/- 0.000383
-    7.21e-4 +/- 3.83e-4
-
-sim-dg09
-=========
-shear [0.035,0.035]
-- run-dg09mcal50-01
-    - now doing sensitivity for both components
-- run-dg09mcal50-02
-    0.00063 +/- 0.00061  0.00094 +/- 0.00061
-
-- combined -01 and -02
-    0.00084 +/- 0.00054  0.00053 +/- 0.00054
-    combined using more stats training set "run-dg07zmcal-degrade50-lots"
-    5.4e-04 +/- 5.4e-04  3.0e-04 +/- 5.4e-04
-
-- run-dg07zmcal-degrade10-lots
-    - on comet
-- run-dg09mcal10-01
-    - not yet run
-
-- is it the T/F or g priors?
-
-    - "true" priors applied for deep run, although they may not have
-        mattered much
-        - the actual recovered values very different from priors
-    - for runs that worked same priors were applied.
-
-    - the sensitivities are coming out very low compared to the
-        run with true g prior
-        - model sens less different
-        - should I apply true prior?  Then the issue is I have
-            no examples with which to calculate the model sensitivity in
-            regions where the true prior differs
-    - this is the problem with using biased measurements
-
-    - I didn't match prior galaxies in centroid
 
 
 

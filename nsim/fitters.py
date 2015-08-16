@@ -919,14 +919,13 @@ class MaxMetacalFitter(MaxFitter):
         ppars=self['psf_pars']
 
         psf_fit_pars = ppars.get('fit_pars',None)
-        print("psf fit pars:",psf_fit_pars)
     
         try:
             boot.fit_psfs(ppars['model'], Tguess, ntry=ppars['ntry'],fit_pars=psf_fit_pars)
         except BootPSFFailure:
             raise TryAgainError("failed to fit psf")
 
-        if True:
+        if False:
             self._compare_obs_fit(boot.mb_obs_list[0][0].psf,
                                  label1='psf',label2='model')
 
@@ -1013,6 +1012,10 @@ class MaxMetacalFitter(MaxFitter):
 
     def _compare_obs_fit(self, obs, **keys):
         gm = obs.get_gmix()
+        d=gm._get_gmix_data()
+        print("psf gmix F values:",d['p'])
+        print("psf gmix T values:",d['irr']+d['icc'])
+        print("psf gmix T rel:",(d['irr']+d['icc'])/gm.get_T())
         im=gm.make_image(obs.image.shape, jacobian=obs.jacobian)
         im *= obs.image.sum()/im.sum()
 

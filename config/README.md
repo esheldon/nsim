@@ -15,7 +15,9 @@ using galsim to do Gary's bulge+disk sim
     - round the edges more in the two sided erfs
     - will address psf in next test
 
-
+- run-bd01zmcal-degrade03
+    - round the edges more in the two sided erfs
+    - em3 psf
 
 
 sim-eg17

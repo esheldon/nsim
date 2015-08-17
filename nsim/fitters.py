@@ -913,7 +913,9 @@ class MaxMetacalFitter(MaxFitter):
         """
         the basic fitter for this class
         """
-        boot=ngmix.Bootstrapper(obs, use_logpars=self['use_logpars'])
+        intpars=self.get('intpars',None) 
+
+        boot=ngmix.Bootstrapper(obs, use_logpars=self['use_logpars'],intpars=intpars)
 
         Tguess=self.sim.get('psf_T',4.0)
         ppars=self['psf_pars']

@@ -4,6 +4,9 @@ name: "sim-bd01z"
 
 simulator: "galsim"
 
+# these sims are never rings
+do_ring: False
+
 shear: [0.0, 0.0]
 
 pixel_scale: 1.0

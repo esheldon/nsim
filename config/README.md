@@ -41,20 +41,26 @@ using galsim to do Gary's bulge+disk sim
 
 
 
+- sim-bd02
 - sim-bd02z
-    - gaussian psf
-    - no centroid shifts (but still bulge shift)
+    - round gaussian psf, r50=1.5 same
+    - no centroid shifts or bulge shift
+- run-bd02zmcal-degrade01
+- run-bd02mcal-t01
+    - relatively short run
+    - looks OK:  -0.0015 +/- 0.0012
 
-- run-bd02zmcal-degrade-small01
-    - small run to test additive errors
-    - same
-- run-bd02zmcal-degrade-small02
-    - tried a few things
-        - no noise: same
-        - no noise, nsub=4 maybe a bit better
-        - calculating psf response
-            - wow, that picked up the bias
-        - noisy and with psf response
+- so was it the psf or the various shifts?
+
+- sim-bd03
+- sim-bd03z
+    - elliptical gaussian psf, r50=1.5 same
+    - no centroid shifts or bulge shift
+- run-bd03zmcal-degrade01
+- run-bd03mcal-t01
+    - relatively short run
+
+
 
 sim-eg17
 ===========

@@ -1,10 +1,13 @@
 # galsim bulge-disk
 # zero shear
-# gaussian psf
-# no shifts
+# round gaussian psf
+# no shifts to center or bulge
 name: "sim-bd02z"
 
 simulator: "galsim"
+
+# these sims are never rings
+do_ring: False
 
 shear: [0.0, 0.0]
 
@@ -16,15 +19,16 @@ stamp_size: [48,48]
 
 psf:
     model: "gauss"
-    r50: 1.5 # pixels
+    r50: 1.5
+    #r50: 1.66 # T=4
 
     s2n: 10000.0
 
-    shape: [0.0, 0.05]
+    shape: [0.0, 0.0]
 
 obj_model:
 
-    model: "bulge-disk-offset"
+    model: "bd"
 
     # counts are set to produce a desired s/n
     s2n:
@@ -44,11 +48,7 @@ obj_model:
         type: "uniform"
         range: [0.0, 1.0]
 
-    bulge_shift:
-        type: "uniform"
-        # in units of r50
-        radius: 1.0
-
+    bulge_shift: null
     cen_shift: null
 
 label: "$bulge-disk offset$"

@@ -1,5 +1,3 @@
-# small run to look for mean shape
-# don't add any noise, so we test noise factor
 run: "run-bd02zmcal-degrade-small02"
 sim: "sim-bd02z"
 
@@ -16,11 +14,9 @@ priors:
     T:
         type: "two-sided-erf"
         pars: [1.2, 1.0, 3.08, 1.0]
-        #pars: [-1.0, 0.1, 5.5, 0.1]
     counts:
         type: "two-sided-erf"
         pars: [3.5, 1.0, 6.0, 1.0]
-        #pars: [3.5, 0.1, 13.0, 1.0]
     g:
         type: "ba"
         sigma: 0.2

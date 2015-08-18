@@ -184,12 +184,13 @@ class SimGS(dict):
         disk = disk.shear(g1=s1, g2=s2)
         bulge = bulge.shear(g1=s1, g2=s2)
 
-        if self.cen_pdf is not None:
-            cenoff = pars['cenoff']
+        cenoff = pars['cenoff']
+        if cenoff is not None:
             disk = disk.shift(dx=cenoff[0], dy=cenoff[1])
 
         boff = pars['boff']
-        bulge = bulge.shift(dx=boff[0], dy=boff[1])
+        if boff is not None:
+            bulge = bulge.shift(dx=boff[0], dy=boff[1])
 
         gal = galsim.Add([disk, bulge])
 
@@ -242,8 +243,11 @@ class SimGS(dict):
         bd_ratio = self.bdratio_pdf.sample()
 
         # distribution is in units of r50
-        boff1,boff2 = self.bulge_offset_pdf.sample2d()
-        boff = (r50*boff1, r50*boff2)
+        if self.bulge_offset_pdf is not None:
+            boff1,boff2 = self.bulge_offset_pdf.sample2d()
+            boff = (r50*boff1, r50*boff2)
+        else:
+            boff=None
 
         pars = {'model':self['model'],
                 'g':(g1,g2),
@@ -306,7 +310,10 @@ class SimGS(dict):
             self.cen_pdf=ngmix.priors.FlatPrior(-cr['radius'], cr['radius'])
 
         bs_spec=omodel['bulge_shift']
-        self.bulge_offset_pdf = ngmix.priors.ZDisk2D(bs_spec['radius'])
+        if bs_spec is not None:
+            self.bulge_offset_pdf = ngmix.priors.ZDisk2D(bs_spec['radius'])
+        else:
+            self.bulge_offset_pdf = None
 
         bdr = omodel['bd_ratio']['range']
         self.bdratio_pdf=ngmix.priors.FlatPrior(bdr[0], bdr[1])

@@ -944,9 +944,6 @@ class MaxMetacalFitter(MaxFitter):
                 boot.try_replace_cov(mconf['cov_pars'])
 
             mres=boot.get_max_fitter().get_result()
-            #print("    s2n:",mres['s2n_w'])
-            #print_pars(mres['pars'],front="    pars:")
-            #print("    doing metacal")
             extra_noise = self.get('extra_noise',None)
             boot.fit_metacal_max(ppars['model'],
                                  self['fit_model'],
@@ -955,7 +952,8 @@ class MaxMetacalFitter(MaxFitter):
                                  psf_fit_pars=psf_fit_pars,
                                  prior=self.prior,
                                  ntry=mconf['ntry'],
-                                 extra_noise=extra_noise)
+                                 extra_noise=extra_noise,
+                                 verbose=False)
 
         except BootPSFFailure:
             raise TryAgainError("failed to fit metacal psfs")
@@ -981,6 +979,7 @@ class MaxMetacalFitter(MaxFitter):
         """
 
         super(MaxMetacalFitter,self)._print_res(res)
+        print("    mcal s2n_r:",res['mcal_s2n_r'])
         print_pars(res['mcal_g_sens'].ravel(),      front='        sens: ')
 
     def _get_dtype(self):
@@ -1087,6 +1086,7 @@ class MaxMetacalFitterDegrade(MaxMetacalFitter):
 
         dt += [
             ('mcal_g_sens','f8',(2,2)),
+            ('mcal_psf_sens','f8',2),
         ]
         return dt
 
@@ -1100,6 +1100,7 @@ class MaxMetacalFitterDegrade(MaxMetacalFitter):
         d=self.data
 
         d['mcal_g_sens'][i] = res['mcal_g_sens']
+        d['mcal_psf_sens'][i] = res['mcal_psf_sens']
 
 class MaxMetacalFitterDegradeGS(MaxMetacalFitterDegrade):
     """
@@ -1108,7 +1109,7 @@ class MaxMetacalFitterDegradeGS(MaxMetacalFitterDegrade):
     to do our work (which is in obs.image_nonoise).
 
     """
-    def _dofits(self, obs):
+    def _do_fits(self, obs):
         """
         we pull out the nonoise image and work with that
         """
@@ -1122,6 +1123,7 @@ class MaxMetacalFitterDegradeGS(MaxMetacalFitterDegrade):
                                         size=imnn.shape)
 
         imn = imnn + noise_im
+        imn = imnn
         nweight = obs.weight*0 + 1.0/skysig_start**2
 
         nobs = Observation(imn,
@@ -1129,12 +1131,13 @@ class MaxMetacalFitterDegradeGS(MaxMetacalFitterDegrade):
                            jacobian=obs.jacobian,
                            psf=obs.psf)
 
-        super(MaxMetacalFitterDegradeGS,self).__dofits(nobs)
+        return super(MaxMetacalFitterDegradeGS,self)._do_fits(nobs)
 
     def _setup(self, *args, **kw):
         super(MaxMetacalFitterDegrade,self)._setup(*args, **kw)
 
-        self['extra_noise'] = self.sim['skysig']
+        if 'extra_noise' not in self:
+            self['extra_noise'] = self.sim['skysig']
 
         print("    adding noise to zero noise image:",self['extra_noise'])
 

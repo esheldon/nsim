@@ -5,20 +5,56 @@ sim-bd01 and sim-bd01z
 =======================
 using galsim to do Gary's bulge+disk sim
 
-- run-bd01zmcal-degrade01
-    - shows significant e2, along direction of psf ellipticity
-    - coellip3 psf modeling is probably shit
-    - also the values are piling up at the boundaries in the two
-        sided erf
+- deep data
+    - run-bd01zmcal-degrade01
+        - shows significant e2, along direction of psf ellipticity
+        - coellip3 psf modeling is probably shit
+        - also the values are piling up at the boundaries in the two
+            sided erf
 
-- run-bd01zmcal-degrade02
-    - round the edges more in the two sided erfs
-    - will address psf in next test
+    - run-bd01zmcal-degrade02
+        - round the edges more in the two sided erfs
+        - will address psf in next test
+        - still additive error in e2
 
-- run-bd01zmcal-degrade03
-    - round the edges more in the two sided erfs
-    - em3 psf
+    - run-bd01zmcal-degrade03
+        - round the edges more in the two sided erfs
+        - em3 psf
+        - still additive error in e2
 
+    - run-bd01zmcal-degrade04
+        - a bit of sub-pixel integration 4x4
+        - still additive error in e2
+        - no better: maybe it is all or nothing?
+
+    - run-bd01zmcal-degrade05
+        - calculating psf response
+
+- regular runs
+    - run-bd01mcal-t01
+        - short run with frac err aimed to be ~0.0035
+
+    - run-bd01mcal-01
+        - planned full run
+
+
+
+
+
+- sim-bd02z
+    - gaussian psf
+    - no centroid shifts (but still bulge shift)
+
+- run-bd02zmcal-degrade-small01
+    - small run to test additive errors
+    - same
+- run-bd02zmcal-degrade-small02
+    - tried a few things
+        - no noise: same
+        - no noise, nsub=4 maybe a bit better
+        - calculating psf response
+            - wow, that picked up the bias
+        - noisy and with psf response
 
 sim-eg17
 ===========

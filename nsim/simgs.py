@@ -170,7 +170,6 @@ class SimGS(dict):
         get the galsim object for the galaxy model
         """
 
-        cenoff = pars['cenoff']
 
         r50 = pars['r50']
         bd_ratio = pars['bd_ratio']
@@ -185,7 +184,9 @@ class SimGS(dict):
         disk = disk.shear(g1=s1, g2=s2)
         bulge = bulge.shear(g1=s1, g2=s2)
 
-        disk = disk.shift(dx=cenoff[0], dy=cenoff[1])
+        if self.cen_pdf is not None:
+            cenoff = pars['cenoff']
+            disk = disk.shift(dx=cenoff[0], dy=cenoff[1])
 
         boff = pars['boff']
         bulge = bulge.shift(dx=boff[0], dy=boff[1])
@@ -202,12 +203,20 @@ class SimGS(dict):
 
         pspec = self['psf']
 
-        psf = galsim.Moffat(beta=pspec['beta'],
-                            half_light_radius=pspec['r50'])
+        model=pspec['model']
+        if model=='moffat':
+            psf = galsim.Moffat(beta=pspec['beta'],
+                                half_light_radius=pspec['r50'])
+        elif model=='gauss':
+            psf = galsim.Gaussian(half_light_radius=pspec['r50'])
+        else:
+            raise ValueError("bad psf model: '%s'" % model)
+
         psf = psf.shear(g1=pspec['shape'][0],
                         g2=pspec['shape'][1])
 
-        psf = psf.shift(dx=cenoff[0], dy=cenoff[1])
+        if self.cen_pdf is not None:
+            psf = psf.shift(dx=cenoff[0], dy=cenoff[1])
         return psf
 
     def _get_galaxy_pars(self):
@@ -218,10 +227,13 @@ class SimGS(dict):
         which are zero
         """
 
-        coff1 = self.cen_pdf.sample()
-        coff2 = self.cen_pdf.sample()
+        if self.cen_pdf is not None:
+            coff1 = self.cen_pdf.sample()
+            coff2 = self.cen_pdf.sample()
 
-        cenoff=(coff1,coff2)
+            cenoff=(coff1,coff2)
+        else:
+            cenoff=None
 
         g1,g2 = self.g_pdf.sample2d()
 
@@ -288,7 +300,10 @@ class SimGS(dict):
         self.r50_pdf=ngmix.priors.FlatPrior(r50_r[0], r50_r[1])
 
         cr=omodel['cen_shift']
-        self.cen_pdf=ngmix.priors.FlatPrior(-cr['radius'], cr['radius'])
+        if cr is None:
+            self.cen_pdf=None
+        else:
+            self.cen_pdf=ngmix.priors.FlatPrior(-cr['radius'], cr['radius'])
 
         bs_spec=omodel['bulge_shift']
         self.bulge_offset_pdf = ngmix.priors.ZDisk2D(bs_spec['radius'])

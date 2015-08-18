@@ -991,6 +991,7 @@ class MaxMetacalFitter(MaxFitter):
         npars=self['npars']
         dt += [
             ('mcal_pars','f8',npars),
+            ('mcal_pars_cov','f8',(npars,npars)),
             ('mcal_g','f8',2),
             ('mcal_g_cov','f8', (2,2) ),
             ('mcal_s2n_r','f8'),
@@ -1007,6 +1008,7 @@ class MaxMetacalFitter(MaxFitter):
         d=self.data
 
         d['mcal_pars'][i] = res['mcal_pars_mean']
+        d['mcal_pars_cov'][i] = res['mcal_pars_mean_cov']
         d['mcal_g'][i] = res['mcal_g_mean']
         d['mcal_g_cov'][i] = res['mcal_g_cov']
         d['mcal_s2n_r'][i] = res['mcal_s2n_r']

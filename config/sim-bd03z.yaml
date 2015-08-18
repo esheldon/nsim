@@ -1,0 +1,53 @@
+# galsim bulge-disk
+# elliptical gaussian psf
+# no shifts to center or bulge
+name: "sim-bd03z"
+
+simulator: "galsim"
+
+# these sims are never rings
+do_ring: False
+
+shear: [0.0, 0.0]
+
+pixel_scale: 1.0
+
+skysig: 1.0
+
+stamp_size: [48,48]
+
+psf:
+    model: "gauss"
+    r50: 1.5
+    #r50: 1.66 # T=4
+
+    s2n: 10000.0
+
+    shape: [0.0, 0.05]
+
+obj_model:
+
+    model: "bd"
+
+    # counts are set to produce a desired s/n
+    s2n:
+        type: "uniform"
+        range: [5.0,25.0]
+
+    # both components get the same scale length and ellipticity
+    g:
+        type: "ba"
+        sigma: 0.2
+
+    r50:
+        type: "uniform"
+        range: [1.5, 3.0]
+
+    bd_ratio:
+        type: "uniform"
+        range: [0.0, 1.0]
+
+    bulge_shift: null
+    cen_shift: null
+
+label: "$bulge-disk offset$"

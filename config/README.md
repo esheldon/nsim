@@ -48,10 +48,15 @@ using galsim to do Gary's bulge+disk sim
 - run-bd02zmcal-degrade01
 - run-bd02mcal-t01
     - relatively short run
-    - looks OK:  -0.0015 +/- 0.0012
+    - looks OK:  -0.0015 +/- 0.0021
 
-- so was it the psf or the various shifts?
+- so was it
+    - the psf form
+    - the psf ellipticity
+    - the dev shift
+    - the centroid shift
 
+# test psf ellipticity
 - sim-bd03
 - sim-bd03z
     - elliptical gaussian psf, r50=1.5 same
@@ -59,7 +64,20 @@ using galsim to do Gary's bulge+disk sim
 - run-bd03zmcal-degrade01
 - run-bd03mcal-t01
     - relatively short run
+    - looks OK:  -0.0016 +/- 0.0022
 
+# test dev shift
+- sim-bd04
+- sim-bd04z
+    - elliptical gaussian psf, r50=1.5 same
+    - add dev shift
+    - no centroid shift
+- run-bd04zmcal-degrade01
+- run-bd04mcal-t01
+    - relatively short run
+    - this was it: bias of -9% as before
+    - BUG FOUND in sim, not actually giving the galaxies shapes
+        and shearing each individuall rather than the total
 
 
 sim-eg17

@@ -699,75 +699,6 @@ class MaxMetacalFitterOld(MaxFitter):
                 'g_sens':g_sens,
                 'c':c}
 
-    def _get_sensitivity_model(self, obs, fitter):
-        """
-        just simulate the model at different shears
-
-        would only correct noise bias I think
-        """
-        mpars=self['metacal_pars']
-
-        im=obs.image
-        imshape=im.shape
-        jacobian=obs.jacobian
-
-        res=fitter.get_result()
-        model=res['model']
-
-        pars=fitter.get_band_pars(res['pars'], band=0)
-        #gm0=ngmix.GMixModel(pars,model)
-        #gm=gm0.convolve(obs.psf.gmix)
-        #model_im=gm.make_image(imshape, jacobian=jacobian, nsub=1)
-        #nim=obs.image-model_im
-
-        skysig=self.sim['skysig']
-        nim=numpy.random.normal(scale=skysig, size=imshape)
-
-        parsm=pars.copy()
-        parsp=pars.copy()
-
-        shm=ngmix.Shape(parsm[2], parsm[3])
-        shp=ngmix.Shape(parsp[2], parsp[3])
-        
-        step=mpars['step']
-        shm.shear(-step, 0.0)
-        shp.shear( step, 0.0)
-
-        parsm[2],parsm[3]=shm.g1, shm.g2
-        parsp[2],parsp[3]=shp.g1, shp.g2
-
-        gmm0=ngmix.GMixModel(parsm,model)
-        gmp0=ngmix.GMixModel(parsp,model)
-
-        gmm=gmm0.convolve(obs.psf.gmix)
-        gmp=gmp0.convolve(obs.psf.gmix)
-
-        imm=gmm.make_image(imshape, jacobian=jacobian, nsub=1)
-        imp=gmp.make_image(imshape, jacobian=jacobian, nsub=1)
-
-        imm += nim
-        imp += nim
-        
-        R_obs_1m = _make_new_obs(obs, imm)
-        R_obs_1p = _make_new_obs(obs, imp)
-
-        mdict_1m = self._do_one_fit(R_obs_1m)
-        mdict_1p = self._do_one_fit(R_obs_1p)
-        res_1m = mdict_1m['res']
-        res_1p = mdict_1p['res']
-
-        pars_1m=res_1m['pars']
-        pars_1p=res_1p['pars']
-        g_1m=pars_1m[2:2+2]
-        g_1p=pars_1p[2:2+2]
-
-        g_sens1 = (g_1p[0] - g_1m[0])/(2*step)
-
-        g_sens = array( [g_sens1]*2 )
-
-        return g_sens
-
-
     def _get_metacal_obslist(self, obs, step=None, get_noshear=False):
         mpars=self['metacal_pars']
         if mpars['method']=='conv':
@@ -928,8 +859,8 @@ class MaxMetacalFitter(MaxFitter):
             raise TryAgainError("failed to fit psf")
 
         if False:
-            self._compare_obs_fit(boot.mb_obs_list[0][0].psf,
-                                 label1='psf',label2='model')
+            self._compare_psf_obs_fit(boot.mb_obs_list[0][0].psf,
+                                      label1='psf',label2='model')
 
         mconf=self['max_pars']
 
@@ -939,6 +870,11 @@ class MaxMetacalFitter(MaxFitter):
                          mconf['pars'],
                          prior=self.prior,
                          ntry=mconf['ntry'])
+
+            if False:
+                self._compare_gal_obs_fit(boot.mb_obs_list[0][0],
+                                          boot.get_max_fitter().get_convolved_gmix(),
+                                          label1='gal',label2='model')
 
             if mconf['pars']['method']=='lm':
                 boot.try_replace_cov(mconf['cov_pars'])
@@ -954,6 +890,7 @@ class MaxMetacalFitter(MaxFitter):
                                  ntry=mconf['ntry'],
                                  extra_noise=extra_noise,
                                  verbose=False)
+
 
         except BootPSFFailure:
             raise TryAgainError("failed to fit metacal psfs")
@@ -1013,7 +950,7 @@ class MaxMetacalFitter(MaxFitter):
         d['mcal_g_cov'][i] = res['mcal_g_cov']
         d['mcal_s2n_r'][i] = res['mcal_s2n_r']
 
-    def _compare_obs_fit(self, obs, **keys):
+    def _compare_psf_obs_fit(self, obs, **keys):
         gm = obs.get_gmix()
         d=gm._get_gmix_data()
         print("psf gmix F values:",d['p'])
@@ -1024,10 +961,21 @@ class MaxMetacalFitter(MaxFitter):
 
         self._compare_images(obs.image, im, **keys)
 
-        key=raw_input("hit a key:")
+        key=raw_input("hit a key: ")
         if key=='q':
             stop
 
+    def _compare_gal_obs_fit(self, obs, gm, **keys):
+        d=gm._get_gmix_data()
+        im=gm.make_image(obs.image.shape, jacobian=obs.jacobian)
+
+        self._compare_images(obs.image, im, **keys)
+
+        key=raw_input("hit a key: ")
+        if key=='q':
+            stop
+
+ 
     def _compare_images(self, im1, im2, **keys):
         import images
         keys['width']=1000
@@ -1115,6 +1063,7 @@ class MaxMetacalFitterDegradeGS(MaxMetacalFitterDegrade):
         """
         we pull out the nonoise image and work with that
         """
+        print("    degrading")
         imnn = obs.image_nonoise
 
         # just a little noise

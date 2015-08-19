@@ -44,11 +44,11 @@ obj_model:
         type: "uniform"
         range: [1.5, 3.0]
 
-    bd_ratio:
+    fracdev:
         type: "uniform"
         range: [0.0, 1.0]
 
-    bulge_shift: null
+    dev_shift: null
     cen_shift: null
 
 label: "$bulge-disk offset$"

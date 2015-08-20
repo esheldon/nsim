@@ -141,6 +141,19 @@ using galsim to do Gary's bulge+disk sim
         loosen prior or tighten it to see what happens
     * sim might want to keep center of light near center of image
 
+- sim-ggnr01
+    - psf 0.0,0.05
+- run-ggnr01max01
+    - high s/n see if additive bias
+    - looks OK
+
+- sim-egnr06
+    - psf 0.0,0.05
+- run-egnr06max01
+    - fit gauss to exp
+    - high s/n see if additive bias
+
+
 sim-eg17
 ===========
 

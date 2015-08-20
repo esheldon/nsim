@@ -32,8 +32,12 @@ def do_avg(conf, data):
 
     for is2n in xrange(data.size):
 
+        sens_mean = data['g_sens_sum'][is2n]/data['wsum'][is2n]
+        sinv = numpy.linalg.inv( sens_mean )
 
-        data['shear'][is2n] = data['g_sum'][is2n]/data['g_sens_sum'][is2n]
+        gmean = data['g_sum'][is2n]/data['wsum'][is2n]
+
+        data['shear'][is2n] = numpy.dot(sinv, gmean)
         data['shear_cov'][is2n] = numpy.linalg.inv(data['shear_cov_inv_sum'][is2n])
 
         data['s2n_w'][is2n] = data['s2n_w_sum'][is2n]/data['wsum'][is2n]
@@ -45,14 +49,14 @@ def do_avg(conf, data):
             fracdiff=sh/shtrue-1.0
             fracdiff_err=sherr/shtrue
 
-            mess='fracdiff: %.1e +/- %.1e  %.1e +/- %.1e'
+            mess='fracdiff: %.2e +/- %.2e  %.2e +/- %.2e'
             print(mess % (fracdiff[0], fracdiff_err[0],fracdiff[1],fracdiff_err[1]))
 
         else:
             fracdiff=sh[0]/shtrue[0]-1.0
             fracdiff_err=sherr[0]/shtrue[0]
 
-            print('fracdiff: %.1e +/- %.1e' % (fracdiff, fracdiff_err))
+            print('fracdiff: %.2e +/- %.2e' % (fracdiff, fracdiff_err))
 
 
 def main():

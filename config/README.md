@@ -82,12 +82,21 @@ using galsim to do Gary's bulge+disk sim
        -0.00061 +/- 0.00012
     some detected additive bias
     fracdev on sheared component
-        0.0049 +/- 0.0033
+        4.87e-03 +/- 3.28e-03
     1.5 sigma
+- run-bd04mcal-t01b
+    - more stats
+        4.32e-03 +/- 2.38e-03
+    - combined with t01
+        4.51e-03 +/- 1.93e-03
 
+#  trying integration
+- run-bd04zmcal-degint01
+    - still additive errors same
+    - maybe they are noise related
 
-
-
+- ideas
+    - the pixel integration might still help at the level of 4 parts in a thousand
 
 sim-eg17
 ===========

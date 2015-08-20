@@ -8,6 +8,9 @@ fit_model: "exp"
 g_prior_during: True
 use_logpars: True
 
+deep_data:
+    run: "run-bd04zmcal-degrade01"
+
 priors:
     cen:
         type: "normal2d"

@@ -51,6 +51,7 @@ using galsim to do Gary's bulge+disk sim
         for the regular and degrade run; noise was assumed to be 1/100 higher
         than it was.  could this make up the few parts in a thousand
         difference?
+    - looks terrible, what happened?
 
 - run-bd02mcal-t01
     * rerunning after bug fix
@@ -94,6 +95,7 @@ using galsim to do Gary's bulge+disk sim
         4.32e-03 +/- 2.38e-03
     - combined with t01
         4.51e-03 +/- 1.93e-03
+
 
 #  trying integration
 - run-bd04zmcal-degint01

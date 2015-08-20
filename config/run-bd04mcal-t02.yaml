@@ -7,6 +7,9 @@ fit_model: "exp"
 g_prior_during: True
 use_logpars: True
 
+deep_data:
+    run: "run-bd04zmcal-degrade02"
+
 priors:
     cen:
         type: "normal2d"
@@ -19,7 +22,7 @@ priors:
         pars: [3.5, 1.0, 6.0, 1.0]
     g:
         type: "ba"
-        sigma: 0.3
+        sigma: 0.2
 
 psf_pars:
     model: "gauss"

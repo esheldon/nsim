@@ -46,7 +46,12 @@ using galsim to do Gary's bulge+disk sim
     - round gaussian psf, r50=1.5 same
     - no centroid shifts or bulge shift
 - run-bd02zmcal-degrade01
-    * rerunning after bug fix
+    - rerunning after bug fix in sim
+    - also bug fix in degradation: weight map was different
+        for the regular and degrade run; noise was assumed to be 1/100 higher
+        than it was.  could this make up the few parts in a thousand
+        difference?
+
 - run-bd02mcal-t01
     * rerunning after bug fix
 
@@ -141,18 +146,26 @@ using galsim to do Gary's bulge+disk sim
         loosen prior or tighten it to see what happens
     * sim might want to keep center of light near center of image
 
+exploring the psf leakage
+
 - sim-ggnr01
     - psf 0.0,0.05
 - run-ggnr01max01
-    - high s/n see if additive bias
+    - high s/n fitting correct model
+    - see if additive bias
     - looks OK
 
 - sim-egnr06
     - psf 0.0,0.05
 - run-egnr06max01
+    - high s/n
     - fit gauss to exp
-    - high s/n see if additive bias
-
+    - see if additive bias
+        >>> t['g'].mean(axis=0)
+            array([ 0.07516843,  0.00255811])
+        >>> t['g'].std(axis=0)/sqrt(t.size)
+            array([ 0.00029705,  0.00029721])
+      !! that was it:  model bias can lead to psf leakage!!
 
 sim-eg17
 ===========

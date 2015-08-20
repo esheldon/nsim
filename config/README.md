@@ -78,6 +78,15 @@ using galsim to do Gary's bulge+disk sim
     - this was it: bias of -9% as before
     - BUG FOUND in sim, not actually giving the galaxies shapes
         and shearing each individuall rather than the total
+    -   0.03517 +/- 0.00012
+       -0.00061 +/- 0.00012
+    some detected additive bias
+    fracdev on sheared component
+        0.0049 +/- 0.0033
+    1.5 sigma
+
+
+
 
 
 sim-eg17

@@ -95,8 +95,18 @@ using galsim to do Gary's bulge+disk sim
     - still additive errors same
     - maybe they are noise related
 
+- sim-bd05
+    - high s/n
+- run-bd05zmcal-degrade01
+- run-bd05mcal-t01
+
 - ideas
-    - the pixel integration might still help at the level of 4 parts in a thousand
+    - the pixel integration might still help at the level of 4 parts in a thousand.
+        Should check on a high s/n run
+    - centroid might move somewhat differently for the degraded.  Could either
+        loosen prior or tighten it to see what happens
+    - sim might want to keep center of light near center of image
+    - should keep sensitivities from main run too.
 
 sim-eg17
 ===========

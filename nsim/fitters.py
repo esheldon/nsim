@@ -917,7 +917,8 @@ class MaxMetacalFitter(MaxFitter):
 
         super(MaxMetacalFitter,self)._print_res(res)
         print("    mcal s2n_r:",res['mcal_s2n_r'])
-        print_pars(res['mcal_g_sens'].ravel(),      front='        sens: ')
+        print_pars(res['mcal_pars_mean'],      front='    mcal pars: ')
+        print_pars(res['mcal_g_sens'].ravel(), front='         sens: ')
 
     def _get_dtype(self):
         """
@@ -932,6 +933,8 @@ class MaxMetacalFitter(MaxFitter):
             ('mcal_g','f8',2),
             ('mcal_g_cov','f8', (2,2) ),
             ('mcal_s2n_r','f8'),
+            ('mcal_g_sens','f8',(2,2)),
+            ('mcal_psf_sens','f8',2),
         ]
         return dt
 
@@ -949,6 +952,9 @@ class MaxMetacalFitter(MaxFitter):
         d['mcal_g'][i] = res['mcal_g_mean']
         d['mcal_g_cov'][i] = res['mcal_g_cov']
         d['mcal_s2n_r'][i] = res['mcal_s2n_r']
+
+        d['mcal_g_sens'][i] = res['mcal_g_sens']
+        d['mcal_psf_sens'][i] = res['mcal_psf_sens']
 
     def _compare_psf_obs_fit(self, obs, **keys):
         gm = obs.get_gmix()
@@ -1028,30 +1034,6 @@ class MaxMetacalFitterDegrade(MaxMetacalFitter):
         self['extra_noise'] = self.sim['skysig']*self['noise_boost']
         print("    boosting noise by",self['noise_boost'])
 
-    def _get_dtype(self):
-        """
-        get the dtype for the output struct
-        """
-        dt=super(MaxMetacalFitterDegrade,self)._get_dtype()
-
-        dt += [
-            ('mcal_g_sens','f8',(2,2)),
-            ('mcal_psf_sens','f8',2),
-        ]
-        return dt
-
-
-    def _copy_to_output(self, res, i):
-        """
-        copy parameters specific to this class
-        """
-        super(MaxMetacalFitterDegrade,self)._copy_to_output(res, i)
-
-        d=self.data
-
-        d['mcal_g_sens'][i] = res['mcal_g_sens']
-        d['mcal_psf_sens'][i] = res['mcal_psf_sens']
-
 class MaxMetacalFitterDegradeGS(MaxMetacalFitterDegrade):
     """
 
@@ -1063,7 +1045,7 @@ class MaxMetacalFitterDegradeGS(MaxMetacalFitterDegrade):
         """
         we pull out the nonoise image and work with that
         """
-        print("    degrading")
+        print("    degrading noise")
         imnn = obs.image_nonoise
 
         # just a little noise
@@ -1092,93 +1074,6 @@ class MaxMetacalFitterDegradeGS(MaxMetacalFitterDegrade):
 
         print("    adding noise to zero noise image:",self['extra_noise'])
 
-
-class MaxMetacalFitterDegradeOld(MaxMetacalFitter):
-    """
-    This class is to do the noise-degrated metacalibration measurement.
-    There is a nominal high s/n and the metacal is done on the degraded
-    s/n images, both of which should have the same noise image added
-
-    Here is the big plan
-
-    - We have a template image at some high s/n.
-
-        - We do metacal on it to get +/- sheared images
-        - Record pars_noshear at high s/n
-        - We add noise to reach some target s/n, same noise for all sheared
-        images.   Noise should be >> original noise.
-        - For noisy version we measure some estimator, record the pars_noshear
-        and sensitivity
-
-
-    - Then for independent, lower s/n data 
-        - apply same metacal reconvolution
-        - measure pars_noshear.
-    
-    - Then apply a mean sensitivity correction.
-
-    How best to get mean sensitivity?
-    
-    - for this sim we know the template set will very closely match the
-    lower s/n set, so we can just derive a mean correction
-
-    - In more realistic data, we could map the sensitivity vs measured noisy
-    T,F for the templates (and s/n for non-uniform data) and then match the
-    independent, lower s/n data to these templates by measured T/F and average
-    the sensitivity
-    """
-
-    def _setup(self, *args, **kw):
-        super(MaxMetacalFitterDegrade,self)._setup(*args, **kw)
-
-        if len(self['s2n_target']) > 1:
-            raise ValueError("only one target s2n allowed for now")
-
-        s2n_target = float(self['s2n_target'][0])
-        self['noise_boost'] = self.sim['s2n_for_noise']/s2n_target
-        print("    boosting noise by",self['noise_boost'])
-
-    def _get_metacal_obslist_conv(self, obs, **kw):
-        noise_image, new_weight = self._get_noise_image(obs)
-
-        res = super(MaxMetacalFitterDegrade,self)._get_metacal_obslist_conv(obs,
-                                                                            **kw)
-        
-        new_res=[]
-        for obs in res:
-            new_obs = self._get_degraded_obs(obs, noise_image, new_weight)
-            new_res.append(new_obs)
-        return new_res
-
-    def _get_degraded_obs(self, obs, noise_image, new_weight):
-
-        new_im = obs.image + noise_image
-
-        new_obs = Observation(new_im,
-                              weight=new_weight,
-                              jacobian=obs.jacobian,
-                              psf=obs.psf)
-
-        return new_obs
-
-    def _get_noise_image(self, obs):
-        """
-        get a noise image for use in degrading the high s/n image
-        """
-
-        mpars = self['metacal_pars']
-
-        added_noise = self.sim['skysig']*self['noise_boost']
-
-        new_var = self.sim['skysig']**2 + added_noise**2
-
-        noise_image = numpy.random.normal(loc=0.0,
-                                          scale=added_noise,
-                                          size=obs.image.shape)
-
-        new_weight = numpy.zeros( obs.image.shape ) + 1.0/new_var
-
-        return noise_image, new_weight
 
 
 class AdmomMetacalFitter(MaxMetacalFitter):

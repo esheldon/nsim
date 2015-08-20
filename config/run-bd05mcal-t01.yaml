@@ -1,0 +1,53 @@
+run: "run-bd05mcal-t01"
+sim: "sim-bd05"
+
+fitter: "metacal-max"
+fit_model: "exp"
+
+g_prior_during: True
+use_logpars: True
+
+deep_data:
+    run: "run-bd05zmcal-degrade01"
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+    T:
+        type: "two-sided-erf"
+        pars: [1.2, 1.0, 3.08, 1.0]
+    counts:
+        type: "two-sided-erf"
+        pars: [8.0, 1.0, 14.0, 1.0]
+    g:
+        type: "ba"
+        sigma: 0.2
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+metacal_pars:
+    step: 0.01
+
+# only used to predict error
+s2n_vals: [ 10 ]
+
+npair: [2000000]
+
+desired_hours: 0.5
+
+sec_per_pair: 0.80
+
+verbose: True

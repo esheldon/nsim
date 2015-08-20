@@ -1046,21 +1046,18 @@ class MaxMetacalFitterDegradeGS(MaxMetacalFitterDegrade):
         we pull out the nonoise image and work with that
         """
         print("    degrading noise")
-        imnn = obs.image_nonoise
+        im_nonoise = obs.image_nonoise
 
-        # just a little noise
-        skysig_start=self.sim['skysig']/100.0
-
+        # start with just a little noise
         noise_im = numpy.random.normal(loc=0.0,
-                                        scale=skysig_start,
-                                        size=imnn.shape)
+                                       scale=self['start_noise'],
+                                       size=im_nonoise.shape)
 
-        imn = imnn + noise_im
-        imn = imnn
-        nweight = obs.weight*0 + 1.0/skysig_start**2
+        im_noisy = im_nonoise + noise_im
+        weight = obs.weight*0 + 1.0/self['start_noise']**2
 
-        nobs = Observation(imn,
-                           weight=nweight,
+        nobs = Observation(im_noisy,
+                           weight=weight,
                            jacobian=obs.jacobian,
                            psf=obs.psf)
 
@@ -1069,8 +1066,11 @@ class MaxMetacalFitterDegradeGS(MaxMetacalFitterDegrade):
     def _setup(self, *args, **kw):
         super(MaxMetacalFitterDegrade,self)._setup(*args, **kw)
 
+        self['start_noise'] = self.sim['skysig']/1000.0
+
         if 'extra_noise' not in self:
-            self['extra_noise'] = self.sim['skysig']
+            extra_noise = sqrt(self.sim['skysig']**2 - self['start_noise']**2)
+            self['extra_noise'] = extra_noise
 
         print("    adding noise to zero noise image:",self['extra_noise'])
 

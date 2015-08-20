@@ -1,13 +1,4 @@
 #!/usr/bin/env python
-"""
-    %prog run is2n
-
-todo: 
-
-    - implement selections (selecting deep data as well)
-    - possibly weights (smooth selections)
-
-"""
 from __future__ import print_function
 import sys
 import os
@@ -19,21 +10,21 @@ import fitsio
 import ngmix
 import nsim
 
-from argparse import ArgumentParser
+import argparse
 
 
 
-parser=ArgumentParser()
+parser=argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 parser.add_argument('run',help='run to average')
 parser.add_argument('is2n',type=int,help='s2n index')
 
 parser.add_argument('--gfield',default='mcal_g',
-                  help="the field to use for g, default %default")
+                  help="the field to use for g")
 parser.add_argument('--sens-field',default='mcal_g_sens',
-                  help="the field to use for sensitivity, default %default")
+                  help="the field to use for sensitivity")
 parser.add_argument('--psf-sens-field',default='mcal_psf_sens',
-                  help="the field to use for psf sensitivity, default %default")
+                  help="the field to use for psf sensitivity")
 
 
 parser.add_argument('--show',action='store_true',
@@ -142,6 +133,9 @@ def do_avg(conf, d, args):
     d['shear_cov'][0] = numpy.linalg.inv(d['shear_cov_inv_sum'][0])
 
     sherr=sqrt(diag(d['shear_cov'][0]))
+
+    print("meas: %g +/- %g, %g +/- %g" % (sh[0],sherr[0],sh[1],sherr[1]))
+
     if shtrue[1] != 0.0:
         fracdiff=sh/shtrue-1.0
         fracdiff_err=sherr/shtrue

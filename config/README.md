@@ -46,9 +46,9 @@ using galsim to do Gary's bulge+disk sim
     - round gaussian psf, r50=1.5 same
     - no centroid shifts or bulge shift
 - run-bd02zmcal-degrade01
+    * rerunning after bug fix
 - run-bd02mcal-t01
-    - relatively short run
-    - looks OK:  -0.0015 +/- 0.0021
+    * rerunning after bug fix
 
 - so was it
     - the psf form
@@ -99,14 +99,47 @@ using galsim to do Gary's bulge+disk sim
     - high s/n
 - run-bd05zmcal-degrade01
 - run-bd05mcal-t01
+    meas: 0.0349752 +/- 8.7483e-05, -7.44605e-05 +/- 8.38404e-05
+    fracdiff: -7.08e-04 +/- 2.50e-03
+
+    There is no detected additive or multiplicative error.
+    So metacal is not correcting for noise properly 
+
+    Maybe my degrading has a bug
+
+        # for this high s/n, various measures agree between the
+        # degraded and noisy run
+
+        >>> t['mcal_g'].mean(axis=0) - deep['mcal_psf_sens'].mean(axis=0)
+            array([  3.28291796e-02,  -6.99118029e-05])
+
+        >>> t['mcal_g'].mean(axis=0) - t['mcal_psf_sens'].mean(axis=0)
+            array([  3.28291706e-02,  -5.41409336e-05])
+
+        >>> deep['mcal_g_sens'].mean(axis=0)
+            array([[  9.38643015e-01,   8.87911118e-04],
+               [  4.66034495e-06,   9.41100525e-01]])
+
+        >>> t['mcal_g_sens'].mean(axis=0)
+            array([[  9.37297464e-01,   5.92893438e-04],
+               [ -3.01999789e-04,   9.42193738e-01]])
+
+        >>> t['g'].mean(axis=0)
+            array([ 0.03275939,  0.00289699])
+
+        >>> t['mcal_g'].mean(axis=0) - deep['mcal_psf_sens'].mean(axis=0)
+            array([  3.28291796e-02,  -6.99118029e-05])
+
 
 - ideas
-    - the pixel integration might still help at the level of 4 parts in a thousand.
+    * look at high s/n
+    * maybe the prior on g is too restrictive.  There is a population of high
+        ellip objects when the bulge is offset
+    * the pixel integration might still help at the level of 4 parts in a thousand.
         Should check on a high s/n run
-    - centroid might move somewhat differently for the degraded.  Could either
+    * centroid might move somewhat differently for the degraded.  Could either
         loosen prior or tighten it to see what happens
-    - sim might want to keep center of light near center of image
-    - should keep sensitivities from main run too.
+    * sim might want to keep center of light near center of image
 
 sim-eg17
 ===========

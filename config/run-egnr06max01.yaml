@@ -1,0 +1,48 @@
+run: "run-egnr06max01"
+sim: "sim-egnr06"
+
+fitter: "max"
+
+# note fitting a gaussian not an exp
+fit_model: "gauss"
+
+g_prior_during: True
+use_logpars: True
+
+priors:
+    cen:
+        type: "truth"
+    T:
+        type: "truth"
+    counts:
+        type: "truth"
+    g:
+        type: "ba"
+        sigma: 0.3
+
+psf_pars:
+    model: "em1"
+    ntry: 1000
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+# only one value allowed here
+s2n_vals: [ 10000 ]
+
+desired_err: 4.0e-4
+
+desired_hours: 0.1
+
+sec_per_pair: 0.12
+
+npair_min: 50000
+
+verbose: True

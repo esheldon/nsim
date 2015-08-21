@@ -222,11 +222,11 @@ class SimGS(dict):
         else:
             raise ValueError("bad psf model: '%s'" % model)
 
-        psf = psf.shear(g1=pspec['shape'][0],
-                        g2=pspec['shape'][1])
+        psf = psf.shear(g1=pspec['shape'][0], g2=pspec['shape'][1])
 
-        if self.cen_pdf is not None:
+        if cenoff is not None:
             psf = psf.shift(dx=cenoff[0], dy=cenoff[1])
+
         return psf
 
     def _get_galaxy_pars(self):

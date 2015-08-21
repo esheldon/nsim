@@ -156,6 +156,22 @@ using galsim to do Gary's bulge+disk sim
         >>> t['mcal_g'].mean(axis=0) - deep['mcal_psf_sens'].mean(axis=0)
             array([  3.28291796e-02,  -6.99118029e-05])
 
+- lets simplify
+- sim-ggnr02
+- sim-ggnr02z
+    - gauss model and psf
+- run-ggnr02zmcal-degrade01
+    - Rpsf = 0.0 !
+- run-ggnr02mcal-t01
+    - Rpsf != 0.0!
+
+    so something is going wrong in the degradation.  note in other runs
+    the degradation (even for skynoise/1000 start) was at least working
+    reasonably well in reproducing the Rpsf
+
+    - ideas
+        - need larger start noise, to include some of the issues?  In
+            my other sims I used noise/10
 
 - ideas
     * look at high s/n

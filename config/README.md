@@ -33,6 +33,16 @@ using galsim to do Gary's bulge+disk sim
 - regular runs
     - run-bd01mcal-t01
         - short run with frac err aimed to be ~0.0035
+    - run-bd01mcal-t02
+        meas: 0.0352182 +/- 0.000116463, 0.000519263 +/- 0.000115394
+        fracdiff: 6.24e-03 +/- 3.33e-03
+
+        additive is back
+
+        sensitivity is much broader than bd02-04.  Either due to
+        psf or due to centroid shift
+
+        making cut s2n_r > 10 gives same answer!  must be a bug
 
     - run-bd01mcal-01
         - planned full run
@@ -96,8 +106,8 @@ using galsim to do Gary's bulge+disk sim
     - combined with t01
         4.51e-03 +/- 1.93e-03
 
--run-bd04zmcal-degrade02
--run-bd04mcal-t02
+- run-bd04zmcal-degrade02
+- run-bd04mcal-t02
     - accidentally ran with prior g sigma 0.3 in both
         the degrade and normal run
     - I had modified it back but did not install it
@@ -109,7 +119,7 @@ using galsim to do Gary's bulge+disk sim
 #  trying integration
 - run-bd04zmcal-degint01
     - still additive errors same
-    - maybe they are noise related
+    - turns out this was model bias, see below
 
 - sim-bd05
     - high s/n

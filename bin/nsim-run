@@ -90,7 +90,10 @@ def run_sim(sim_conf,
     if simtype=='ngmix':
         sim=nsim.sim.NGMixSim(sim_conf, s2n)
     else:
-        sim=nsim.simgs.SimGS(sim_conf)
+        if sim_conf['obj_model']['model']=='bd':
+            sim=nsim.simgs.SimBD(sim_conf)
+        else:
+            sim=nsim.simgs.SimGS(sim_conf)
 
     checkpoint_file, checkpoint_data=get_checkpoint_data(output_file)
     plot_base=output_file.replace('.fits','')

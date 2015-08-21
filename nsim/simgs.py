@@ -73,18 +73,14 @@ class SimGS(dict):
         s2n = self.s2n_pdf.sample()
         print("    s2n: %g" % s2n)
 
-        gal_pars=self._get_galaxy_pars()
-
-        gal, psf = self._get_galsim_objects(gal_pars)
+        gal, gal_pars, psf = self._get_galsim_objects()
 
         psf_obs = self._make_obs(psf, self['psf']['s2n'])
         gal_obs = self._make_obs(gal, s2n)
 
         gal_obs.set_psf(psf_obs)
 
-        save_pars=[gal_pars['r50'],
-                   gal_pars['fracdev'],
-                   gal_obs.image_flux]
+        save_pars=[gal_pars['r50'], gal_obs.image_flux]
         return {'obs':gal_obs,
                 's2n':s2n,
                 'model':self['model'],
@@ -161,56 +157,54 @@ class SimGS(dict):
                               0.0,
                               scale)
 
-    def _get_galsim_objects(self, gal_pars):
+    def _get_galsim_objects(self):
         """
         get the galaxy and psf galsim objects
         """
 
+        gal0, gal_pars = self._get_gal_obj()
         psf  = self._get_psf_obj(gal_pars['cenoff'])
-        gal0 = self._get_gal_obj(gal_pars)
 
         gal = galsim.Convolve([psf, gal0])
 
-        return gal, psf
+        return gal, gal_pars, psf
 
-    def _get_gal_obj(self, pars):
+    def _get_gal_obj(self):
         """
         get the galsim object for the galaxy model
         """
 
+        pars=self._get_galaxy_pars()
 
         r50 = pars['r50']
-        fracdev = pars['fracdev']
 
         g1,g2=pars['g']
         s1,s2=self['shear']
 
-        disk_flux = 1.0 - fracdev
-        bulge_flux = fracdev
-
-        disk = galsim.Exponential(flux=disk_flux, half_light_radius=r50)
-        bulge = galsim.DeVaucouleurs(flux=bulge_flux, half_light_radius=r50)
-
-        # both disk and bulge get same overall shape
-        disk  = disk.shear(g1=g1, g2=g2)
-        bulge = bulge.shear(g1=g1, g2=g2)
-
-        # there can be a shift to the centroid
         cenoff = pars['cenoff']
-        if cenoff is not None:
-            disk = disk.shift(dx=cenoff[0], dy=cenoff[1])
-            bulge = bulge.shift(dx=cenoff[0], dy=cenoff[1])
 
-        # the bulge can be offset from the disk
-        dev_offset = pars['dev_offset']
-        if dev_offset is not None:
-            bulge = bulge.shift(dx=dev_offset[0], dy=dev_offset[1])
+        # we will scale the flux to get a requested s/n later
+        if pars['model']=='gauss':
+            gal = galsim.Gaussian(flux=1.0, half_light_radius=r50)
+        elif pars['model']=='exp':
+            gal = galsim.Exponential(flux=1.0, half_light_radius=r50)
+        elif pars['model']=='dev':
+            gal = galsim.DeVaucouleurs(flux=1.0, half_light_radius=r50)
+        else:
+            raise ValueError("bad galaxy model: '%s'" % self['model'])
 
-        # combine them and shear that
-        gal = galsim.Add([disk, bulge])
+        # first give it an intrinsic shape
+        gal = gal.shear(g1=g1, g2=g2)
+
+        # now shear it
         gal = gal.shear(g1=s1, g2=s2)
 
-        return gal
+        # in the demos, the shift was always applied after the shear, not sure
+        # if it matters
+        if cenoff is not None:
+            gal = gal.shift(dx=cenoff[0], dy=cenoff[1])
+
+        return gal, pars
 
     def _get_psf_obj(self, cenoff):
         """
@@ -255,24 +249,22 @@ class SimGS(dict):
 
         r50 = self.r50_pdf.sample()
 
-        fracdev = self.fracdev_pdf.sample()
-
-        # distribution is in units of r50
-        if self.dev_offset_pdf is not None:
-            dev_offset1,dev_offset2 = self.dev_offset_pdf.sample2d()
-            dev_offset = (r50*dev_offset1, r50*dev_offset2)
-            print("    dev offset:",dev_offset[0],dev_offset[1])
-        else:
-            dev_offset=None
-
         pars = {'model':self['model'],
                 'g':(g1,g2),
                 'r50':r50,
-                'fracdev':fracdev,
-                'cenoff':cenoff,
-                'dev_offset':dev_offset}
+                'cenoff':cenoff}
 
-        #pprint.pprint(pars)
+        if self['model']=='bd':
+            pars['fracdev'] = self.fracdev_pdf.sample()
+
+            # distribution is in units of r50
+            if self.dev_offset_pdf is not None:
+                dev_offset1,dev_offset2 = self.dev_offset_pdf.sample2d()
+                dev_offset = (r50*dev_offset1, r50*dev_offset2)
+                print("    dev offset:",dev_offset[0],dev_offset[1])
+            else:
+                dev_offset=None
+            pars['dev_offset'] = dev_offset
 
         return pars
 
@@ -325,6 +317,86 @@ class SimGS(dict):
         else:
             self.cen_pdf=ngmix.priors.FlatPrior(-cr['radius'], cr['radius'])
 
+        if omodel['model']=='bd':
+            ds_spec=omodel['dev_shift']
+            if ds_spec is not None:
+                # radius in units of r50
+                self.dev_offset_pdf = ngmix.priors.ZDisk2D(ds_spec['radius'])
+            else:
+                self.dev_offset_pdf = None
+
+            bdr = omodel['fracdev']['range']
+            self.fracdev_pdf=ngmix.priors.FlatPrior(bdr[0], bdr[1])
+
+class SimBD(SimGS):
+    """
+    specific sim to deal with complications of a bulge+disk model
+    """
+    def _get_gal_obj(self):
+        """
+        get the galsim object for the galaxy model
+        """
+
+        pars=self._get_galaxy_pars()
+
+        r50 = pars['r50']
+
+        g1,g2=pars['g']
+        s1,s2=self['shear']
+
+        cenoff = pars['cenoff']
+
+        fracdev = pars['fracdev']
+        disk_flux = 1.0 - fracdev
+        bulge_flux = fracdev
+
+        disk = galsim.Exponential(flux=disk_flux, half_light_radius=r50)
+        bulge = galsim.DeVaucouleurs(flux=bulge_flux, half_light_radius=r50)
+
+        # both disk and bulge get same overall shape
+        disk  = disk.shear(g1=g1, g2=g2)
+        bulge = bulge.shear(g1=g1, g2=g2)
+
+        # the bulge can be offset from the disk
+        dev_offset = pars['dev_offset']
+        if dev_offset is not None:
+            bulge = bulge.shift(dx=dev_offset[0], dy=dev_offset[1])
+
+        # combine them and shear that
+        gal = galsim.Add([disk, bulge])
+
+        gal = gal.shear(g1=s1, g2=s2)
+
+        if cenoff is not None:
+            gal = gal.shift(dx=cenoff[0], dy=cenoff[1])
+
+        return gal, pars
+
+
+    def _get_galaxy_pars(self):
+        """
+        all pars are the same except for the shift of the bulge
+        """
+        pars=super(SimBD,self)._get_galaxy_pars()
+
+        pars['fracdev'] = self.fracdev_pdf.sample()
+
+        # distribution is in units of r50
+        if self.dev_offset_pdf is not None:
+            dev_offset1,dev_offset2 = self.dev_offset_pdf.sample2d()
+            dev_offset = (r50*dev_offset1, r50*dev_offset2)
+            print("    dev offset:",dev_offset[0],dev_offset[1])
+        else:
+            dev_offset=None
+        pars['dev_offset'] = dev_offset
+
+        return pars
+
+    def _set_pdfs(self):
+        """
+        add fracdev and bulge offset distributions
+        """
+        super(SimBD,self)._set_pdfs()
         ds_spec=omodel['dev_shift']
         if ds_spec is not None:
             # radius in units of r50
@@ -336,7 +408,6 @@ class SimGS(dict):
         self.fracdev_pdf=ngmix.priors.FlatPrior(bdr[0], bdr[1])
 
 
-    
 def quick_fit_gauss(image, maxiter=4000, tol=1.0e-6, ntry=4):
     """
     use EM to fit a single gaussian

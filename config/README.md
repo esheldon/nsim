@@ -184,12 +184,14 @@ using galsim to do Gary's bulge+disk sim
                 running the degrade again at slac to see if suddenly the
                 additive term appears.
 
+- ARGH it is a galsim version difference!  I was using master at bnl and 1.3 at slac
+- I'm installing new version of galsim at slac now
+
 - run-ggnr02zmcal-degrade02
-    - at slac to see if additive appears
-    - quick test shows (on 1000 galaxies) that it is not there, or
-        at least small 8.69472673e-05 +/- 3.74688387e-05
-    - trying a deepcopy on obs in case I missed something
-        - no
+    - run at slac with new galsim
+- run-ggnr02mcal-t01
+    - run at slac with new galsim
+
 
 - ideas
     * look at high s/n

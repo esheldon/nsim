@@ -26,7 +26,7 @@ psf:
 
 obj_model:
 
-    model: "bulge-disk-offset"
+    model: "bd"
 
     # counts are set to produce a desired s/n
     s2n:

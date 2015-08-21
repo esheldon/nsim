@@ -115,6 +115,7 @@ using galsim to do Gary's bulge+disk sim
         meas: 0.0352601 +/- 0.000116722, -0.000132118 +/- 0.000123185
         fracdiff: 7.43e-03 +/- 3.33e-03
     - additive seems to be gone now...
+        - these were both slac runs with old galsim
 
 #  trying integration
 - run-bd04zmcal-degint01
@@ -124,7 +125,9 @@ using galsim to do Gary's bulge+disk sim
 - sim-bd05
     - high s/n
 - run-bd05zmcal-degrade01
+    - bnl
 - run-bd05mcal-t01
+    - bnl
     meas: 0.0349752 +/- 8.7483e-05, -7.44605e-05 +/- 8.38404e-05
     fracdiff: -7.08e-04 +/- 2.50e-03
 

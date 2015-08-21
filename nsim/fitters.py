@@ -881,6 +881,7 @@ class MaxMetacalFitter(MaxFitter):
 
             mres=boot.get_max_fitter().get_result()
             extra_noise = self.get('extra_noise',None)
+            print("    adding extra noise:",extra_noise)
             boot.fit_metacal_max(ppars['model'],
                                  self['fit_model'],
                                  mconf['pars'],
@@ -1045,6 +1046,8 @@ class MaxMetacalFitterDegradeGS(MaxMetacalFitterDegrade):
         """
         we pull out the nonoise image and work with that
         """
+        import copy
+
         print("    degrading noise")
         im_nonoise = obs.image_nonoise
 
@@ -1056,17 +1059,22 @@ class MaxMetacalFitterDegradeGS(MaxMetacalFitterDegrade):
         im_noisy = im_nonoise + noise_im
         weight = obs.weight*0 + 1.0/self['start_noise']**2
 
-        nobs = Observation(im_noisy,
-                           weight=weight,
-                           jacobian=obs.jacobian,
-                           psf=obs.psf)
+        nobs = copy.deepcopy(obs)
+
+        obs.image = im_noisy
+        nobs.set_weight(weight)
+
+        #nobs = Observation(im_noisy,
+        #                   weight=weight,
+        #                   jacobian=obs.jacobian,
+        #                   psf=obs.psf)
 
         return super(MaxMetacalFitterDegradeGS,self)._do_fits(nobs)
 
     def _setup(self, *args, **kw):
         super(MaxMetacalFitterDegrade,self)._setup(*args, **kw)
 
-        self['start_noise'] = self.sim['skysig']/1000.0
+        self['start_noise'] = self.sim['skysig']/self['start_noise_factor']
 
         if 'extra_noise' not in self:
             extra_noise = sqrt(self.sim['skysig']**2 - self['start_noise']**2)

@@ -190,6 +190,7 @@ using galsim to do Gary's bulge+disk sim
         at least small 8.69472673e-05 +/- 3.74688387e-05
     - trying a deepcopy on obs in case I missed something
         - that did it.... wtf?
+    - doing the full run....
 
 - ideas
     * look at high s/n

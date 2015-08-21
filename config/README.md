@@ -189,8 +189,7 @@ using galsim to do Gary's bulge+disk sim
     - quick test shows (on 1000 galaxies) that it is not there, or
         at least small 8.69472673e-05 +/- 3.74688387e-05
     - trying a deepcopy on obs in case I missed something
-        - that did it.... wtf?
-    - doing the full run....
+        - no
 
 - ideas
     * look at high s/n

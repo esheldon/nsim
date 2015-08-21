@@ -8,7 +8,7 @@ fit_model: "gauss"
 g_prior_during: True
 use_logpars: True
 
-start_noise_factor: 1000.0
+start_noise_factor: 10.0
 
 priors:
     cen:

@@ -8,7 +8,8 @@ g_prior_during: True
 use_logpars: True
 
 deep_data:
-  run: "run-ggnr02zmcal-degrade01"
+  #run: "run-ggnr02zmcal-degrade01"
+  run: "run-ggnr02zmcal-degrade02"
 
 priors:
     cen:

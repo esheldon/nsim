@@ -163,7 +163,7 @@ class FitterBase(dict):
         self['npars']=ngmix.gmix.get_model_npars(self['fit_model'])
 
         if isinstance(self.sim['obj_model'], dict):
-            npars=3
+            npars=2
         else:
             npars = ngmix.gmix.get_model_npars(self.sim['obj_model'])
         self['npars_true']=npars

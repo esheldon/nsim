@@ -161,17 +161,35 @@ using galsim to do Gary's bulge+disk sim
 - sim-ggnr02z
     - gauss model and psf
 - run-ggnr02zmcal-degrade01
-    - Rpsf = 0.0 !
-- run-ggnr02mcal-t01
-    - Rpsf != 0.0!
+    - at bnl
+    - Rpsf is well detected but small
+            -8.06407392e-05 +/- 4.20040477e-06
 
-    so something is going wrong in the degradation.  note in other runs
+- run-ggnr02mcal-t01
+    - at slac
+    - additive is huge (and Rpsf is measured to be even larger)
+        meas: 0.0351855 +/- 0.000108188, 0.00190488 +/- 0.000110891
+        fracdiff: 5.30e-03 +/- 3.09e-03
+
+    so something is going wrong in the degradation.  note in some runs
     the degradation (even for skynoise/1000 start) was at least working
     reasonably well in reproducing the Rpsf
 
     - ideas
         - need larger start noise, to include some of the issues?  In
             my other sims I used noise/10
+            - looks the same in a quick test
+        - maybe difference running at bnl vs slac
+            - the degrade ran at bnl and the regular at slac.  So try
+                running the degrade again at slac to see if suddenly the
+                additive term appears.
+
+- run-ggnr02zmcal-degrade02
+    - at slac to see if additive appears
+    - quick test shows (on 1000 galaxies) that it is not there, or
+        at least small 8.69472673e-05 +/- 3.74688387e-05
+    - trying a deepcopy on obs in case I missed something
+        - that did it.... wtf?
 
 - ideas
     * look at high s/n

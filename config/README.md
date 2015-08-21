@@ -96,6 +96,15 @@ using galsim to do Gary's bulge+disk sim
     - combined with t01
         4.51e-03 +/- 1.93e-03
 
+-run-bd04zmcal-degrade02
+-run-bd04mcal-t02
+    - accidentally ran with prior g sigma 0.3 in both
+        the degrade and normal run
+    - I had modified it back but did not install it
+
+        meas: 0.0352601 +/- 0.000116722, -0.000132118 +/- 0.000123185
+        fracdiff: 7.43e-03 +/- 3.33e-03
+    - additive seems to be gone now...
 
 #  trying integration
 - run-bd04zmcal-degint01

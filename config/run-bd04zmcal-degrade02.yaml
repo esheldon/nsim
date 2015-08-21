@@ -20,7 +20,7 @@ priors:
         pars: [3.5, 1.0, 6.0, 1.0]
     g:
         type: "ba"
-        sigma: 0.2
+        sigma: 0.3
 
 psf_pars:
     model: "gauss"

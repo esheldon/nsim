@@ -46,9 +46,9 @@ npair: [1000000]
 
 desired_err: 1.0e-4
 
-desired_hours: 0.25
+desired_hours: 0.50
 
 # at SLAC
-sec_per_pair: 0.70
+sec_per_pair: 1.23
 
 verbose: True

@@ -1,0 +1,57 @@
+run: "run-ggnr02zmcal-degrade-diffn01"
+sim: "sim-ggnr02z"
+
+fitter: "metacal-max-degrade"
+fit_model: "gauss"
+
+g_prior_during: True
+use_logpars: True
+
+start_noise_factor: 10.0
+same_noise: False
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+    T:
+        type: "two-sided-erf"
+        #pars: [1.2, 1.0, 3.08, 1.0]
+        #pars: [0.0, 1.0, 10.0, 1.0]
+        pars: [1.2, 1.0, 3.8, 1.0]
+    counts:
+        type: "two-sided-erf"
+        #pars: [3.5, 1.0, 6.0, 1.0]
+        #pars: [1.0, 1.0, 8.0, 1.0]
+        pars: [3.5, 1.0, 5.6, 1.0]
+    g:
+        type: "ba"
+        sigma: 0.2
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+metacal_pars:
+    step: 0.01
+
+# small run
+ngal: 10000
+nrand: 40
+
+desired_hours: 0.25
+
+# includes nrand per
+sec_per: 17.20
+
+verbose: True

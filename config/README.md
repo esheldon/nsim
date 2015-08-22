@@ -259,7 +259,9 @@ at slac I'm installing new version of galsim at slac now
     - what to check with short run
         - lowering start noise factor?
         - more nrand?
-            
+- run-ggnr02zmcal-degrade04
+    - smaller run with nrand=100
+
 - run-ggnr02zmcal-degrade-diffn01
     - same_noise: False
     - just add the noise once at the beginning and *then* do metacal,

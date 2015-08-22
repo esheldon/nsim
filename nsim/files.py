@@ -594,18 +594,19 @@ def get_gal_nsplit(c):
     ngal = c['ngal']
     nrand = c.get('nrand',1)
 
-    ntot = ngal*nrand
-
-    # this is per
+    # multiply by nrand to get total time per galaxy
     tmsec = c['desired_hours']*3600.0
-    ngal_per = int(round( tmsec/c['sec_per']))
 
-    nsplit = int(ceil( ntot/float(ngal_per) ))
+    sec_per = c['sec_per']*nrand
 
-    time_hours = ngal_per*c['sec_per']/3600.0
+    ngal_per = int(round( tmsec/sec_per ) )
+
+    nsplit = int(ceil( ngal/float(ngal_per) ))
+
+    time_hours = ngal_per*sec_per/3600.0
 
     print("ngal requested:",ngal,"nrand:",nrand)
-    print('seconds per:',c['sec_per'])
+    print('seconds per:',c['sec_per'],"with rand:",sec_per)
     print('nsplit:',nsplit,'ngal per:',ngal_per,'time (hours):',time_hours)
 
 

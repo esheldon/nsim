@@ -19,25 +19,89 @@ parser.add_argument('run',help='sim run')
 parser.add_argument('--missing',action='store_true',
                     help='write wq job files for the missing files')
 
+parser.add_argument('-q','--queue',default='medium',
+                    help='lsf queue, default %default')
+parser.add_argument('-w','--walltime',default='02:00',
+                    help='lsf queue, default %default')
+
 
 MAXTIME_HOURS=3.0
 
-_wq_combine_psample_template="""
-command: |
+_lsf_template="""#!/bin/bash
+#BSUB -q %(queue)s
+#BSUB -J %(job_name)s
+#BSUB -n 1
+#BSUB -oo ./%(job_name)s.oe
+#BSUB -W %(walltime)s
+#BSUB -R "linux64 && rhel60 && scratch > 2"
 
-    #source $HOME/.bashrc
-    . $HOME/shell_scripts/nsim2-prepare.sh
+echo "working on host: $(hostname)"
 
-    command=nsim-combine-psample-trial
-    run=%(run)s
-    is2n=%(is2n)s
-    itrial=%(itrial)s
-    ${command} ${run} ${is2n} ${itrial}
-    
-job_name: "%(job_name)s"
+command=%(master_script)s
+ngal=%(ngal_per)s
+output="%(output)s"
+logfile="%(logfile)s"
+
+${command} ${ngal} ${output} ${logfile}
 """
 
 
+
+_lsf_master_template="""#!/bin/bash
+function runsim {
+    echo "host: $(hostname)"
+    echo "will write to file: $output"
+
+    command=%(command)s
+    ${command} ${run} 9999 ${ngal} ${output}
+    status=$?
+
+    echo "time: $SECONDS"
+
+    if [[ $status != "0" ]]; then
+        echo "error running sim: $status"
+    fi
+
+    return $status
+}
+
+
+ngal=$1
+output=$2
+logfile=$3
+
+run=%(run)s
+
+tmpdir="/scratch/esheldon/${LSB_JOBID}"
+mkdir -p ${tmpdir}
+echo "cd $tmpdir"
+cd $tmpdir
+
+tmplog=$(basename $logfile)
+
+runsim &> ${tmplog}
+status=$?
+
+echo "moving log file ${tmplog} -> ${logfile}" >> ${tmplog}
+
+# errors go to the jobs stderr
+mv -fv "${tmplog}" "${logfile}" 1>&2
+status2=$?
+
+if [[ $status2 != "0" ]]; then
+    # this error message will go to main error file
+    echo "error ${status2} moving log to: ${logfile}" 1>&2
+
+    status=$status2
+fi
+
+cd $HOME
+
+echo "removing temporary directory"
+rm -rfv ${tmpdir}
+
+exit $status
+"""
 
 _wq_template="""
 command: |
@@ -46,7 +110,7 @@ command: |
     . $HOME/shell_scripts/nsim2-prepare.sh
 
     command=%(master_script)s
-    ngal=%(ngal)s
+    ngal=%(ngal_per)s
     output="%(output)s"
     logfile="%(logfile)s"
     ${command} ${ngal} ${output} ${logfile}
@@ -55,7 +119,7 @@ job_name: "%(job_name)s"
 """
 
 
-_master_template="""#!/bin/bash
+_wq_master_template="""#!/bin/bash
 function runsim {
     echo "host: $(hostname)"
     echo "will write to file: $output"
@@ -120,6 +184,19 @@ class MakerBase(dict):
 
         self.write_batch_files()
 
+    def write_master(self):
+        master_url=self.get_master_url()
+
+        with open(master_url,'w') as fobj:
+            text = self.get_master_text()
+            fobj.write(text % self)
+        print()
+
+        os.system('chmod 755 %s' % master_url)
+
+        self['master_script'] = master_url
+
+
     def write_batch_files(self):
         overall_name = '-'.join( (self['run'].split('-'))[1:] )
 
@@ -132,6 +209,7 @@ class MakerBase(dict):
         filenum=0
 
         ngal_per, nsplit = nsim.files.get_gal_nsplit(self)
+        self['ngal_per'] = ngal_per
 
         for isplit in xrange(nsplit):
             ngal_tot += ngal_per
@@ -145,7 +223,10 @@ class MakerBase(dict):
                 logfile = output.replace('.fits','.log')
                 job_name='%s-%05d' % (overall_name,isplit)
 
-                self.write_script(ngal_per, output, logfile, job_name, filenum)
+                self['output'] = output
+                self['logfile'] = logfile
+                self['job_name']=job_name
+                self.write_script(filenum)
 
                 njobs += 1
                 filenum += 1
@@ -155,12 +236,24 @@ class MakerBase(dict):
         print('total gals:',ngal_tot)
 
 
-class WQMaker(MakerBase):
-    def make_some_dirs(self):
-        run=self['run']
+    def write_script(self, filenum):
+        job_url=self.get_job_url(filenum)
+        
+        with open(job_url,'w') as fobj:
+            text = self.get_job_text()
+            fobj.write(text)
 
-        d = nsim.files.get_wq_dir(run)
-        outd = nsim.files.get_output_dir(run, sub='bytrial')
+
+    def make_some_dirs(self):
+
+        d=self.get_batch_dir()
+        outd = nsim.files.get_output_dir(self['run'], sub='bytrial')
+
+        master_url=self.get_master_url()
+
+        md=os.path.dirname(master_url)
+        print("dir:",md)
+
 
         if not os.path.exists(d):
             os.makedirs(d)
@@ -168,24 +261,33 @@ class WQMaker(MakerBase):
         if not os.path.exists(outd):
             os.makedirs(outd)
 
-        tmpdir='/data/esheldon/tmp'
-        if not os.path.exists(tmpdir):
-            os.makedirs(tmpdir)
-
-    def write_master(self):
-        master_url=nsim.files.get_wq_master_url(self['run'])
-        d=os.path.dirname(master_url)
-        if not os.path.exists(d):
+        if not os.path.exists(md):
             os.makedirs(d)
 
-        print(master_url)
-        with open(master_url,'w') as fobj:
-            fobj.write(_master_template % self)
-        print()
+        tmpdir=self.get_tmpdir()
+        if tmpdir is not None:
+            if not os.path.exists(tmpdir):
+                os.makedirs(tmpdir)
 
-        os.system('chmod 755 %s' % master_url)
 
-        self['master_script'] = master_url
+class WQMaker(MakerBase):
+    def get_tmpdir(self):
+        tmpdir='/data/esheldon/tmp'
+        return tmpdir
+
+    def get_batch_dir(self):
+        return nsim.files.get_wq_dir(self['run'])
+
+    def get_master_url(self):
+        master_url=nsim.files.get_wq_master_url(self['run'])
+        return master_url
+
+    def get_master_text(self):
+        text = _wq_master_template % self
+        return text
+
+    def get_job_text(self):
+        return _wq_template % self
 
     def get_job_url(self, filenum):
         job_url=nsim.files.get_wq_job_url(self['run'],
@@ -193,17 +295,29 @@ class WQMaker(MakerBase):
                                           missing=self['missing'])
         return job_url
 
-    def write_script(self, ngal_per, output, logfile, job_name, filenum):
-        job_url=self.get_job_url(filenum)
+class LSFMaker(MakerBase):
+    def get_tmpdir(self):
+        return None
 
-        qdata=_wq_template % dict(master_script=self['master_script'],
-                                  ngal=ngal_per,
-                                  output=output,
-                                  logfile=logfile,
-                                  job_name=job_name)
-        with open(job_url,'w') as fobj:
-            fobj.write(qdata)
+    def get_batch_dir(self):
+        return nsim.files.get_lsf_dir(self['run'])
 
+    def get_master_url(self):
+        master_url=nsim.files.get_lsf_master_url(self['run'])
+        return master_url
+
+    def get_master_text(self):
+        text = _lsf_master_template % self
+        return text
+
+    def get_job_text(self):
+        return _lsf_template % self
+
+    def get_job_url(self, filenum):
+        job_url=nsim.files.get_lsf_job_url(self['run'],
+                                           filenum,
+                                           missing=self['missing'])
+        return job_url
 
 def main():
     args = parser.parse_args()
@@ -219,6 +333,11 @@ def main():
 
     if system=='wq':
         maker=WQMaker(c)
+    elif system=='lsf':
+        c['queue'] = args.queue
+        c['walltime'] = args.walltime
+
+        maker=LSFMaker(c)
     else:
         raise ValueError("bad queue system: '%s'" % system)
     maker.go()

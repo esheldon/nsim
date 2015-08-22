@@ -252,6 +252,10 @@ at slac I'm installing new version of galsim at slac now
 - run-ggnr02zmcal-degrade03
     - first of new style sim
 
+
+
+
+
 - ideas
     * look at high s/n
     * maybe the prior on g is too restrictive.  There is a population of high

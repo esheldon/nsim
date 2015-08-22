@@ -52,38 +52,22 @@ class FitterBase(dict):
 
         self._start_timer()
 
-        itot=0
         nprocessed=0
         for igal in xrange(self['ngal']):
             print('%s/%s' % (igal+1,self['ngal']) )
 
-            # note igal:igal+nrand would all be set
-            if self.data['processed'][itot]:
-                itot += self['nrand']
+            if self.data['processed'][igal]:
                 continue
 
             while True:
-                imdict = self.sim.get_image()
                 try:
 
-                    # allow randomizing the noise on the same galaxy. put in a
-                    # list to make sure this is all atomic.
+                    imdict = self.sim.get_image()
 
-                    reslist=[]
-                    for irand in xrange(self['nrand']):
-                        if self['nrand'] > 1:
-                            tup=(igal+1,self['ngal'],irand+1,self['nrand'])
-                            print('%s/%s rand: %d/%d' % tup)
+                    res=self.process_one(imdict)
 
-                        res=self.process_one(imdict)
-                        reslist.append(res)
+                    self._copy_to_output(res, igal)
 
-                    for res in reslist:
-                        # also sets processed field
-                        self._copy_to_output(res, itot)
-                        itot += 1
-
-                    nprocessed += self['nrand']
                     self._set_elapsed_time()
                     self._try_checkpoint()
 
@@ -91,7 +75,7 @@ class FitterBase(dict):
                 except TryAgainError as err:
                     print(str(err))
 
-            nprocessed += self['nrand']
+            nprocessed += 1
 
         self._set_elapsed_time()
 
@@ -103,7 +87,7 @@ class FitterBase(dict):
         perform the fit
         """
 
-        print(imdict['obs'].image.shape)
+        print("    ",imdict['obs'].image.shape)
 
         fitter, psf_flux_res=self._dofit(imdict)
 
@@ -294,9 +278,7 @@ class FitterBase(dict):
         """
 
         dt=self._get_dtype()
-
-        ntot = self['ngal']*self['nrand']
-        self.data=numpy.zeros(ntot, dtype=dt)
+        self.data=numpy.zeros(self['ngal'], dtype=dt)
 
 class SimpleFitterBase(FitterBase):
 
@@ -607,7 +589,7 @@ class MaxMetacalFitter(MaxFitter):
 
 
             extra_noise=self.get('extra_noise',None)
-            print("    adding extra noise:",extra_noise)
+            print("    adding extra noise:",extra_noise,"same:",self['same_noise'])
 
             boot.fit_metacal_max(ppars['model'],
                                  self['fit_model'],
@@ -617,6 +599,8 @@ class MaxMetacalFitter(MaxFitter):
                                  prior=self.prior,
                                  ntry=mconf['ntry'],
                                  extra_noise=extra_noise,
+                                 same_noise=self['same_noise'],
+                                 nrand=self['nrand'],
                                  verbose=False)
 
 
@@ -646,8 +630,11 @@ class MaxMetacalFitter(MaxFitter):
         super(MaxMetacalFitter,self)._print_res(res)
         print("    mcal s2n_r:",res['mcal_s2n_r'])
         print_pars(res['mcal_pars_mean'],      front='    mcal pars: ')
+        print_pars(res['mcal_pars_noshear'],   front=' pars noshear: ')
         print_pars(res['mcal_g_sens'].ravel(), front='         sens: ')
         print_pars(res['mcal_psf_sens'],       front='     psf sens: ')
+
+        print("     mcal c:",res['mcal_c'][0], res['mcal_c'][1])
 
     def _get_dtype(self):
         """
@@ -661,6 +648,8 @@ class MaxMetacalFitter(MaxFitter):
             ('mcal_pars_cov','f8',(npars,npars)),
             ('mcal_g','f8',2),
             ('mcal_g_cov','f8', (2,2) ),
+            ('mcal_g_noshear','f8',2),
+            ('mcal_c','f8',2),
             ('mcal_s2n_r','f8'),
             ('mcal_g_sens','f8',(2,2)),
             ('mcal_psf_sens','f8',2),
@@ -681,6 +670,9 @@ class MaxMetacalFitter(MaxFitter):
         d['mcal_g'][i] = res['mcal_g_mean']
         d['mcal_g_cov'][i] = res['mcal_g_cov']
         d['mcal_s2n_r'][i] = res['mcal_s2n_r']
+
+        d['mcal_g_noshear'][i] = res['mcal_pars_noshear'][2:2+2]
+        d['mcal_c'][i] = res['mcal_c']
 
         d['mcal_g_sens'][i] = res['mcal_g_sens']
         d['mcal_psf_sens'][i] = res['mcal_psf_sens']
@@ -731,6 +723,9 @@ class MaxMetacalFitterDegrade(MaxMetacalFitter):
         s2n_target = float(self['s2n_target'][0])
         self['noise_boost'] = self.sim['s2n_for_noise']/s2n_target
         self['extra_noise'] = self.sim['skysig']*self['noise_boost']
+
+        self['same_noise'] = self.get('same_noise',False)
+
         print("    boosting noise by",self['noise_boost'])
 
 class MaxMetacalFitterDegradeGS(MaxMetacalFitterDegrade):
@@ -778,6 +773,8 @@ class MaxMetacalFitterDegradeGS(MaxMetacalFitterDegrade):
         if 'extra_noise' not in self:
             extra_noise = sqrt(self.sim['skysig']**2 - self['start_noise']**2)
             self['extra_noise'] = extra_noise
+
+        self['same_noise'] = self.get('same_noise',False)
 
         print("    adding noise to zero noise image:",self['extra_noise'])
 

@@ -49,6 +49,7 @@ metacal_pars:
 ngal: 4000000
 
 desired_hours: 0.80
+# this was off by factor of 2
 sec_per: 0.15
 
 verbose: True

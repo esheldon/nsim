@@ -8,6 +8,7 @@ g_prior_during: True
 use_logpars: True
 
 start_noise_factor: 10.0
+same_noise: True
 
 priors:
     cen:
@@ -49,8 +50,7 @@ nrand: 40
 
 desired_hours: 0.25
 
-# would be ~0.28 if nrand was 1
-# lower since we don't have simulation overhead
+# this was off by a factor of 2
 sec_per: 0.14
 
 verbose: True

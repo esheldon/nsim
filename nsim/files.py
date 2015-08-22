@@ -594,17 +594,15 @@ def get_gal_nsplit(c):
     ngal = c['ngal']
     nrand = c.get('nrand',1)
 
-    ngal_tot = ngal*nrand
-
     # this is per
     tmsec = c['desired_hours']*3600.0
     ngal_per = int(round( tmsec/c['sec_per']))
 
-    nsplit = int(ceil( ngal_tot/float(ngal_per) ))
+    nsplit = int(ceil( ngal/float(ngal_per) ))
 
     time_hours = ngal_per*c['sec_per']/3600.0
 
-    print("ngal requested:",ngal,"nrand:",nrand,"total:",ngal_tot)
+    print("ngal requested:",ngal,"nrand:",nrand)
     print('seconds per:',c['sec_per'])
     print('nsplit:',nsplit,'ngal per:',ngal_per,'time (hours):',time_hours)
 

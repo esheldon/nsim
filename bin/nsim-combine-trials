@@ -16,6 +16,9 @@ import nsim
 
 parser=OptionParser(__doc__)
 
+parser.add_option('--old',action='store_true',
+                  help="old style")
+
 parser.add_option('--allow-missing',action='store_true',
                   help="allow missing splits")
 parser.add_option('--allow-mismatch',action='store_true',
@@ -26,7 +29,48 @@ def get_tmp_file(fname):
     bname=os.path.basename(fname)
     return os.path.join(tmpdir, bname) 
 
-def combine_trials(run, is2n, allow_missing=False, allow_mismatch=False):
+def combine_trials_new(run, allow_missing=False, allow_mismatch=False):
+
+    is2n=0
+
+    fs=nsim.files.get_default_fs()
+    c = nsim.files.read_config(run)
+    c['simc'] = nsim.files.read_config(c['sim'])
+
+    ngal_per,nsplit = nsim.files.get_gal_nsplit(c)
+
+    outfile=nsim.files.get_output_url(run, 0, is2n, fs=fs, ext='fits')
+    tmpfile=get_tmp_file(outfile)
+    print('writing to temp file:',tmpfile)
+
+    with fitsio.FITS(tmpfile,mode="rw",clobber=True) as output:
+
+        first=True
+        for isplit in xrange(nsplit):
+            f=nsim.files.get_output_url(run, 0, is2n, itrial=isplit, fs=fs)
+            if allow_missing and not os.path.exists(f):
+                print("   missing file:",f)
+                continue
+            print(f)
+            t=fitsio.read(f)
+
+            if not allow_mismatch:
+                if t.size != ngal_per:
+                    raise ValueError("%s expected %d, got %d" % (f,ngal_per,t.size))
+
+            if first:
+                output.write(t)
+                first=False
+            else:
+                output[-1].append(t)
+
+    print('moving to:',outfile)
+    exit_code=os.system('mv -fv %s %s' % (tmpfile, outfile))
+    if exit_code != 0:
+        raise RuntimeError("error moving to final location")
+
+
+def combine_trials_old(run, is2n, allow_missing=False, allow_mismatch=False):
     fs=nsim.files.get_default_fs()
     c = nsim.files.read_config(run)
     c['simc'] = nsim.files.read_config(c['sim'])
@@ -74,16 +118,26 @@ def combine_trials(run, is2n, allow_missing=False, allow_mismatch=False):
 def main():
     options,args = parser.parse_args(sys.argv[1:])
 
-    if len(args) < 2:
-        parser.print_help()
-        sys.exit(1)
+    if options.old:
+        if len(args) < 2:
+            parser.print_help()
+            sys.exit(1)
 
-    run=args[0]
-    is2n=int(args[1])
+        run=args[0]
+        is2n=int(args[1])
 
-    combine_trials(run, is2n,
-                   allow_missing=options.allow_missing,
-                   allow_mismatch=options.allow_mismatch)
+        combine_trials_old(run, is2n,
+                           allow_missing=options.allow_missing,
+                           allow_mismatch=options.allow_mismatch)
+    else:
+        if len(args) < 1:
+            parser.print_help()
+            sys.exit(1)
 
+        run=args[0]
+
+        combine_trials_new(run,
+                           allow_missing=options.allow_missing,
+                           allow_mismatch=options.allow_mismatch)
 
 main()

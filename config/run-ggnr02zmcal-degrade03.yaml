@@ -48,9 +48,9 @@ metacal_pars:
 ngal: 100000
 nrand: 40
 
-desired_hours: 0.25
+desired_hours: 0.50
 
-# this was off by a factor of 2
-sec_per: 0.14
+# includes nrand per
+sec_per: 17.20
 
 verbose: True

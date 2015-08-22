@@ -589,7 +589,8 @@ class MaxMetacalFitter(MaxFitter):
 
 
             extra_noise=self.get('extra_noise',None)
-            print("    adding extra noise:",extra_noise,"same:",self['same_noise'])
+            print("    adding extra noise:",extra_noise,
+                  "nrand:",self['nrand'],"same:",self['same_noise'])
 
             boot.fit_metacal_max(ppars['model'],
                                  self['fit_model'],

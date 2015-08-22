@@ -256,8 +256,16 @@ at slac I'm installing new version of galsim at slac now
 - run-ggrn02mcal-t03
     meas: 0.0352673 +/- 0.000113649, -0.0005973 +/- 0.000105899
     fracdiff: 7.64e-03 +/- 3.25e-03
-
-
+    - what to check with short run
+        - lowering start noise factor?
+        - more nrand?
+            
+- run-ggnr02zmcal-degrade-diffn01
+    - same_noise: False
+    - just add the noise once at the beginning and *then* do metacal,
+        rather than adding noise after metacal
+    - way too big Rpsf 0.0042
+    - way too small R 6.62088972e-01 (need 0.716) 
 
 
 - ideas

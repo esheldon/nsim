@@ -1,0 +1,55 @@
+# rerun to test if we recover additive
+run: "run-bd04zmcal-degrade03"
+sim: "sim-bd04z"
+
+fitter: "metacal-max-degrade"
+fit_model: "exp"
+
+g_prior_during: True
+use_logpars: True
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+    T:
+        type: "two-sided-erf"
+        pars: [1.2, 1.0, 3.08, 1.0]
+    counts:
+        type: "two-sided-erf"
+        pars: [3.5, 1.0, 6.0, 1.0]
+    g:
+        type: "ba"
+        sigma: 0.3
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+metacal_pars:
+    step: 0.01
+
+# only used to predict error
+s2n_vals: [ 10 ]
+
+npair: [1000000]
+#npair: [100000]
+
+desired_err: 1.0e-4
+
+desired_hours: 0.25
+
+# at SLAC
+sec_per_pair: 0.70
+
+verbose: True

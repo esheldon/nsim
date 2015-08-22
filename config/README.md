@@ -5,6 +5,21 @@ sim-bd01 and sim-bd01z
 =======================
 using galsim to do Gary's bulge+disk sim
 
+- current state
+    - in gauss-gauss sims I'm seeing additive in the measurement but not
+        in Rpsf from the deep data
+        - noticed that mcal_g from  degraded run does agree! So it
+            is just not being picked up by the metacal psf sens
+        - maybe Rpsf is picking up model bias but not noise related bias
+            - backed up by the fact that g is unbiased but mcal_g is not
+                in the deep run
+            - idea: model bias is coherent for the mean g over the 4 metacal
+                images.  Mabye noise part is cancelling because it is not coherent
+                because I'm using the same noise
+            - record the noshear too
+
+    - trying to figure out why additive not accounted for in some sims
+
 - deep data
     - run-bd01zmcal-degrade01
         - shows significant e2, along direction of psf ellipticity
@@ -129,6 +144,7 @@ using galsim to do Gary's bulge+disk sim
     - Yes, the psf sens. is recovered
     - why not recovered in some other runs?
         - slac vs bnl?
+            - same at slac
         - galsim versions?
             - I'm on master (1.4) at bnl and recovered it with 03
         - start noise?
@@ -140,6 +156,9 @@ using galsim to do Gary's bulge+disk sim
 - run-bd04zmcal-degrade04
     - same as run-bd04zmcal-degrade02 but start noise factor 1000
     - looks similar
+- run-bd04zmcal-degrade05
+    - same as run-bd04zmcal-degrade03 but run at slac
+    - agrees with bnl runs
 
 #  trying integration
 - run-bd04zmcal-degint01
@@ -216,12 +235,19 @@ at slac I'm installing new version of galsim at slac now
 
 - run-ggnr02zmcal-degrade02
     - run at slac with new galsim
-- run-ggnr02mcal-t01
+- run-ggnr02mcal-t02
     - run at slac with new galsim
     - still additive problems
         meas: 0.035124 +/- 0.000111447, 0.00210291 +/- 0.000111993
         fracdiff: 3.54e-03 +/- 3.18e-03
 
+        mcal_psf_sens 
+        [ -5.43e-09, -9.30e-05] +/- [ 7.33e-09, 3.41e-06 ]
+
+        but note the mcal_g from the deep run
+            [-0.00019484,  0.00137993] +/- [ 0.00011141,  0.00011147]
+        subtracting that gives very small additive (note above it gets
+        boosted up by the R division)
 
 - ideas
     * look at high s/n

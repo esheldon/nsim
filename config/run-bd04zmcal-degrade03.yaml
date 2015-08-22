@@ -8,6 +8,8 @@ fit_model: "exp"
 g_prior_during: True
 use_logpars: True
 
+start_noise_factor: 100.0
+
 priors:
     cen:
         type: "normal2d"
@@ -42,12 +44,11 @@ metacal_pars:
 # only used to predict error
 s2n_vals: [ 10 ]
 
-npair: [1000000]
-#npair: [100000]
+npair: [100000]
 
 desired_err: 1.0e-4
 
-desired_hours: 0.25
+desired_hours: 0.1
 
 # at SLAC
 sec_per_pair: 0.70

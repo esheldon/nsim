@@ -120,8 +120,12 @@ using galsim to do Gary's bulge+disk sim
     - additive seems to be gone now...
         - these were both slac runs with old galsim
 
-- run-bd04zmcal-degrade02
+- run-bd04zmcal-degrade03
     - running at bnl to see if we recover additive
+    - short run 100,000
+    - I used start_noise_factor of 100, guessing this was
+        what I used before.
+    - Yes, the psf sens. is recovered
 
 #  trying integration
 - run-bd04zmcal-degint01

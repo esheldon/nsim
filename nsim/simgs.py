@@ -382,6 +382,8 @@ class SimBD(SimGS):
         pars['fracdev'] = self.fracdev_pdf.sample()
 
         # distribution is in units of r50
+        r50 = pars['r50']
+
         if self.dev_offset_pdf is not None:
             dev_offset1,dev_offset2 = self.dev_offset_pdf.sample2d()
             dev_offset = (r50*dev_offset1, r50*dev_offset2)
@@ -397,6 +399,9 @@ class SimBD(SimGS):
         add fracdev and bulge offset distributions
         """
         super(SimBD,self)._set_pdfs()
+
+        omodel=self['obj_model']
+
         ds_spec=omodel['dev_shift']
         if ds_spec is not None:
             # radius in units of r50

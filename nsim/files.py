@@ -584,3 +584,29 @@ def get_npair_nsplit(c, is2n, npair_min=None):
     nsplit = int(ceil( npair_tot/float(npair_per) ))
 
     return npair_per, nsplit
+
+def get_gal_nsplit(c):
+    """
+    new non ring where we request a specific number of gals
+    """
+    from math import ceil
+
+    ngal = c['ngal']
+    nrand = c.get('nrand',1)
+
+    ngal_tot = ngal*nrand
+
+    # this is per
+    tmsec = c['desired_hours']*3600.0
+    ngal_per = int(round( tmsec/c['sec_per']))
+
+    nsplit = int(ceil( ngal_tot/float(ngal_per) ))
+
+    time_hours = ngal_per*c['sec_per']/3600.0
+
+    print("ngal requested:",ngal,"nrand:",nrand,"total:",ngal_tot)
+    print('seconds per:',c['sec_per'])
+    print('nsplit:',nsplit,'ngal per:',ngal_per,'time (hours):',time_hours)
+
+
+    return ngal_per, nsplit

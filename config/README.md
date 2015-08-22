@@ -11,7 +11,7 @@ using galsim to do Gary's bulge+disk sim
         - noticed that mcal_g from  degraded run does agree! So it
             is just not being picked up by the metacal psf sens
         - maybe Rpsf is picking up model bias but not noise related bias
-            - backed up by the fact that g is unbiased but mcal_g is not
+            - backed up by the fact that high s/n g is unbiased but mcal_g is not
                 in the deep run
             - idea: model bias is coherent for the mean g over the 4 metacal
                 images.  Mabye noise part is cancelling because it is not coherent
@@ -248,6 +248,9 @@ at slac I'm installing new version of galsim at slac now
             [-0.00019484,  0.00137993] +/- [ 0.00011141,  0.00011147]
         subtracting that gives very small additive (note above it gets
         boosted up by the R division)
+
+- run-ggnr02zmcal-degrade03
+    - first of new style sim
 
 - ideas
     * look at high s/n

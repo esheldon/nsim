@@ -29,12 +29,8 @@ class SimGS(dict):
         sim=NGMixSim(conf)
 
         for i in xrange(1000):
-            impair = si.get_image_pair()
-            # process images
-
-        for i in xrange(1000):
-            impair = si.get_image()
-            # process images
+            imdict = si.get_image()
+            # process image
         """
 
         self.update(sim_conf)
@@ -42,28 +38,9 @@ class SimGS(dict):
         seed = ngmixsim.get_devrand_uint()
         numpy.random.seed(seed)
 
-        #base_rng = galsim.BaseDeviate(seed)
-        #self.gauss_noise = galsim.GaussianNoise(base_rng, sigma=self['skysig'])
-        #self.base_rng = base_rng
-
         self._setup()
 
         pprint.pprint(self)
-
-    def get_image_pair(self):
-        """
-        Get an image pair, with noise added
-
-        We never use a ring test for this version of the sim,
-        so this is just for backwards compatibility
-        """
-
-        im1_dict=self.get_image()
-        im2_dict=self.get_image()
-
-        imdict={'im1':im1_dict, 'im2':im2_dict}
-
-        return imdict
 
     def get_image(self):
         """

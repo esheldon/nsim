@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """
     %prog run s2n npairs output_file
+
+for some sims npair might just be ngal
 """
 
 from __future__ import print_function
@@ -164,45 +166,6 @@ def run_sim(sim_conf,
         print('not removing checkpoint due to write failure')
 
 
-
-def run_sim_old(sim_conf,run_conf,s2n,npairs,output_file,options):
-    """
-    Run the sim and deal with checkpointing
-
-    s2n ignored for Joint
-    """
-
-    checkpoint_file, checkpoint_data=get_checkpoint_data(output_file)
-    plot_base=output_file.replace('.fits','')
-
-    args=(sim_conf, run_conf, s2n, npairs)
-    kw=dict(checkpoint_file=checkpoint_file,
-            checkpoint_data=checkpoint_data,
-            make_plots=options.make_plots,
-            plot_base=plot_base)
-    if run_conf['fitter']=='pqrs-emcee':
-        sim=nsim.sim.NGMixSimPQRSMCMC(*args, **kw)
-    elif run_conf['fitter']=='covsample':
-        sim=nsim.sim.NGMixSimCovSample(*args, **kw)
-    elif run_conf['fitter']=='isample':
-        if run_conf['fit_model']=='composite':
-            sim=nsim.sim.NGMixSimISampleComposite(*args, **kw)
-        else:
-            sim=nsim.sim.NGMixSimISample(*args, **kw)
-    elif run_conf['fitter']=='isample-p':
-        sim=nsim.sim.NGMixSimISampleP(*args, **kw)
-    else:
-        sim=nsim.sim.NGMixSim(*args, **kw)
-
-    sim.run_sim()
-
-    data=sim.get_data()
-
-    success=nsim.sim.write_fits(output_file, data)
-    if success:
-        cleanup_checkpoint(checkpoint_file)
-    else:
-        print('not removing checkpoint due to write failure')
 
 
 def main():

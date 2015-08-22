@@ -30,12 +30,12 @@ from . import files
 DEFAULT_CHECKPOINTS=[30,60,90,110]
 
 class FitterBase(dict):
-    def __init__(self, sim, run_conf, npairs, **keys):
+    def __init__(self, sim, run_conf, ngal, **keys):
 
         self.sim=sim
         self._setup(run_conf, **keys)
 
-        self['npairs']=npairs
+        self['ngal']=ngal
 
         self._set_prior()
 
@@ -47,78 +47,85 @@ class FitterBase(dict):
 
     def go(self):
         """
-        process the requested number of pairs
+        process the requested number of simulated galaxies
         """
 
         self._start_timer()
 
-        npairs=self['npairs']
-        i=0
-        for ipair in xrange(npairs):
-            print('%s/%s' % (ipair+1,npairs) )
+        itot=0
+        nprocessed=0
+        for igal in xrange(self['ngal']):
+            print('%s/%s' % (igal+1,self['ngal']) )
 
-            self.ipair=ipair
-            if self.data['processed'][i]:
-                i += 2 # skip the pair
-            else:
-                while True:
-                    try:
-                        reslist=self.process_pair()
-                        break
-                    except TryAgainError as err:
-                        print(str(err))
+            # note igal:igal+nrand would all be set
+            if self.data['processed'][itot]:
+                itot += self['nrand']
+                continue
 
-                self._copy_to_output(reslist[0], i)
-                i += 1
-                self._copy_to_output(reslist[1], i)
-                i += 1
+            while True:
+                imdict = self.sim.get_image()
+                try:
 
-            self._set_elapsed_time()
-            self._try_checkpoint()
+                    # allow randomizing the noise on the same galaxy. put in a
+                    # list to make sure this is all atomic.
+
+                    reslist=[]
+                    for irand in xrange(self['nrand']):
+                        if self['nrand'] > 1:
+                            tup=(igal+1,self['ngal'],irand+1,self['nrand'])
+                            print('%s/%s rand: %d/%d' % tup)
+
+                        res=self.process_one(imdict)
+                        reslist.append(res)
+
+                    for res in reslist:
+                        # also sets processed field
+                        self._copy_to_output(res, itot)
+                        itot += 1
+
+                    nprocessed += self['nrand']
+                    self._set_elapsed_time()
+                    self._try_checkpoint()
+
+                    break
+                except TryAgainError as err:
+                    print(str(err))
+
+            nprocessed += self['nrand']
 
         self._set_elapsed_time()
 
         print('time minutes:',self.tm_minutes)
-        print('time per pair sec:',self.tm/npairs)
-        print('time per image sec:',self.tm/(2*npairs))
+        print('time per image sec:',self.tm/nprocessed)
 
-    def process_pair(self):
+    def process_one(self, imdict):
         """
-        Create a simulated image pair and perform the fit
+        perform the fit
         """
-        imdicts = self.sim.get_image_pair()
 
-        print(imdicts['im1']['obs'].image.shape)
+        print(imdict['obs'].image.shape)
 
-        reslist=[]
-        for key in ['im1','im2']:
+        fitter, psf_flux_res=self._dofit(imdict)
 
-            imd = imdicts[key]
+        res=fitter.get_result()
+        if res['flags'] != 0:
+            raise TryAgainError("failed at %s "
+                                "flags %s" % (key,res['flags']))
 
-            fitter, psf_flux_res=self._dofit(imd)
+        res['pars_true'] = imdict['pars']
+        res['model_true'] = imdict['model']
+        res['s2n_true'] = imdict['s2n']
 
-            res=fitter.get_result()
-            if res['flags'] != 0:
-                raise TryAgainError("failed at %s "
-                                    "flags %s" % (key,res['flags']))
+        res['psf_flux'] = psf_flux_res['psf_flux']
+        res['psf_flux_err'] = psf_flux_res['psf_flux_err']
+        res['psf_flux_s2n'] = res['psf_flux']/res['psf_flux_err']
 
-            res['pars_true'] = imd['pars']
-            res['model_true'] = imd['model']
-            res['s2n_true'] = imd['s2n']
+        self._print_res(res)
 
-            res['psf_flux'] = psf_flux_res['psf_flux']
-            res['psf_flux_err'] = psf_flux_res['psf_flux_err']
-            res['psf_flux_s2n'] = res['psf_flux']/res['psf_flux_err']
+        if self['make_plots']:
+            self._make_plots(fitter,key)
 
-            self._print_res(res)
-
-            reslist.append(res)
-
-            if self['make_plots']:
-                self._make_plots(fitter,key)
-
-        return reslist
-
+        return res
 
     def get_data(self):
         """
@@ -152,6 +159,9 @@ class FitterBase(dict):
         Check and set the configurations
         """
 
+        self['nrand'] = self.get('nrand',1)
+        if self['nrand'] is None:
+            self['nrand']=1
 
         if self.sim['name'] != run_conf['sim']:
             err="sim name in run config '%s' doesn't match sim name '%s'"
@@ -284,7 +294,9 @@ class FitterBase(dict):
         """
 
         dt=self._get_dtype()
-        self.data=numpy.zeros(self['npairs']*2, dtype=dt)
+
+        ntot = self['ngal']*self['nrand']
+        self.data=numpy.zeros(ntot, dtype=dt)
 
 class SimpleFitterBase(FitterBase):
 
@@ -530,6 +542,7 @@ class MaxFitter(SimpleFitterBase):
             # set outside of fitter
             d['ntry'][i] = res['ntry']
 
+
 class MaxMetacalFitter(MaxFitter):
     """
     metacal with a maximum likelihood fit
@@ -592,9 +605,10 @@ class MaxMetacalFitter(MaxFitter):
             if mconf['pars']['method']=='lm':
                 boot.try_replace_cov(mconf['cov_pars'])
 
-            mres=boot.get_max_fitter().get_result()
-            extra_noise = self.get('extra_noise',None)
+
+            extra_noise=self.get('extra_noise',None)
             print("    adding extra noise:",extra_noise)
+
             boot.fit_metacal_max(ppars['model'],
                                  self['fit_model'],
                                  mconf['pars'],
@@ -705,37 +719,7 @@ class MaxMetacalFitter(MaxFitter):
 
 class MaxMetacalFitterDegrade(MaxMetacalFitter):
     """
-    This class is to do the noise-degrated metacalibration measurement.
-    There is a nominal high s/n and the metacal is done on the degraded
-    s/n images, both of which should have the same noise image added
-
-    Here is the big plan
-
-    - We have a template image at some high s/n.
-
-        - We do metacal on it to get +/- sheared images
-        - Record pars_noshear at high s/n
-        - We add noise to reach some target s/n, same noise for all sheared
-        images.   Noise should be >> original noise.
-        - For noisy version we measure some estimator, record the pars_noshear
-        and sensitivity
-
-
-    - Then for independent, lower s/n data 
-        - apply same metacal reconvolution
-        - measure pars_noshear.
-    
-    - Then apply a mean sensitivity correction.
-
-    How best to get mean sensitivity?
-    
-    - for this sim we know the template set will very closely match the
-    lower s/n set, so we can just derive a mean correction
-
-    - In more realistic data, we could map the sensitivity vs measured noisy
-    T,F for the templates (and s/n for non-uniform data) and then match the
-    independent, lower s/n data to these templates by measured T/F and average
-    the sensitivity
+    degrade the images
     """
 
     def _setup(self, *args, **kw):
@@ -756,6 +740,7 @@ class MaxMetacalFitterDegradeGS(MaxMetacalFitterDegrade):
     to do our work (which is in obs.image_nonoise).
 
     """
+
     def _do_fits(self, obs):
         """
         we pull out the nonoise image and work with that
@@ -795,6 +780,22 @@ class MaxMetacalFitterDegradeGS(MaxMetacalFitterDegrade):
             self['extra_noise'] = extra_noise
 
         print("    adding noise to zero noise image:",self['extra_noise'])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -17,7 +17,6 @@ import argparse
 parser=argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 parser.add_argument('run',help='run to average')
-parser.add_argument('is2n',type=int,help='s2n index')
 
 parser.add_argument('--gfield',default='mcal_g',
                   help="the field to use for g")
@@ -42,8 +41,7 @@ def get_dtype(fobj, model, args):
     names=data.dtype.names
 
     dt =data.dtype.descr
-    dt += [('s2n_matched','f8'),
-           ('s2n_w_sum','f8'),
+    dt += [('s2n_w_sum','f8'),
            ('wsum','f8'),
            ('g_sum','f8',2),
            ('g_sens','f8',(2,2)),
@@ -296,7 +294,6 @@ def get_averaged(conf, deep_data, args):
         dt= get_dtype(fobj,model,args)
 
         d=zeros(1, dtype=dt)
-        d['s2n_matched'] = conf['s2n_matched']
 
         do_sums_bychunk(conf, fobj, d, deep_data, args)
 
@@ -308,19 +305,18 @@ def get_averaged(conf, deep_data, args):
 def main():
     args = parser.parse_args()
 
+    is2n=0
     conf = nsim.files.read_config(args.run)
     conf['simc'] = nsim.files.read_config(conf['sim'])
 
-    s2n_vals    = conf['s2n_vals']
 
-    conf['s2n_matched'] = s2n_vals[args.is2n]
-    conf['fname']=nsim.files.get_output_url(args.run, 0, args.is2n)
+    conf['fname']=nsim.files.get_output_url(args.run, 0, is2n)
 
     deep_data=nsim.files.read_output(conf['deep_data']['run'], 0)
 
     output = get_averaged(conf, deep_data, args)
 
-    out_fname=nsim.files.get_averaged_url(args.run, is2n=args.is2n)
+    out_fname=nsim.files.get_averaged_url(args.run, is2n=is2n)
 
     print('writing:',out_fname)
     fitsio.write(out_fname, output, clobber=True)

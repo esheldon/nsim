@@ -253,7 +253,9 @@ at slac I'm installing new version of galsim at slac now
 
 - run-ggnr02zmcal-degrade03
     - first of new style sim
-    - forgot to save noshear g
+- run-ggrn02mcal-t03
+    meas: 0.0352673 +/- 0.000113649, -0.0005973 +/- 0.000105899
+    fracdiff: 7.64e-03 +/- 3.25e-03
 
 
 

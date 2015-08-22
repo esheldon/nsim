@@ -261,17 +261,18 @@ at slac I'm installing new version of galsim at slac now
         - more nrand?
 - run-ggnr02zmcal-degrade04
     - smaller run with nrand=100
-- run-ggnr02zmcal-degrade05
-    - smaller run still with nrand=40
-    - start fac of 1000 instead of 10, still 40 randomizations
 
-- run-ggnr02zmcal-degrade06
-    - smaller run still with nrand=40
-    - what mean ellipticity should we use? Probably the one averaged
-        over the 4 sheared galaxy images
+- run-ggnr02zmcal-degrade05
+    - smaller run with nrand=40
+    - start fac of 1000 instead of 10, still 40 randomizations
     - I was averaging ellipticity with noshear in there too.  Could this
         make a difference at the few in ten thousand level?
 
+
+- run-ggnr02zmcal-degrade06?
+    - smaller run still with nrand=40
+    - what mean ellipticity should we use? Probably the one averaged
+        over the 4 sheared galaxy images
 
 - run-ggnr02zmcal-degrade-diffn01
     - same_noise: False

@@ -606,7 +606,7 @@ def get_gal_nsplit(c):
     time_hours = ngal_per*sec_per/3600.0
 
     print("ngal requested:",ngal,"nrand:",nrand)
-    print('seconds per:',c['sec_per'],"with rand:",sec_per)
+    print('seconds per image:',c['sec_per'],"sec per with rand:",sec_per)
     print('nsplit:',nsplit,'ngal per:',ngal_per,'time (hours):',time_hours)
 
 

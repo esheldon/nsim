@@ -1,0 +1,226 @@
+#!/usr/bin/env python
+"""
+    %prog system run
+"""
+from __future__ import print_function
+import sys
+import os
+from math import ceil
+import numpy
+
+import nsim
+
+from argparse import ArgumentParser
+parser=ArgumentParser(__doc__)
+
+parser.add_argument('system',help='batch system')
+parser.add_argument('run',help='sim run')
+
+parser.add_argument('--missing',action='store_true',
+                    help='write wq job files for the missing files')
+
+
+MAXTIME_HOURS=3.0
+
+_wq_combine_psample_template="""
+command: |
+
+    #source $HOME/.bashrc
+    . $HOME/shell_scripts/nsim2-prepare.sh
+
+    command=nsim-combine-psample-trial
+    run=%(run)s
+    is2n=%(is2n)s
+    itrial=%(itrial)s
+    ${command} ${run} ${is2n} ${itrial}
+    
+job_name: "%(job_name)s"
+"""
+
+
+
+_wq_template="""
+command: |
+
+    #source $HOME/.bashrc
+    . $HOME/shell_scripts/nsim2-prepare.sh
+
+    command=%(master_script)s
+    ngal=%(ngal)s
+    output="%(output)s"
+    logfile="%(logfile)s"
+    ${command} ${ngal} ${output} ${logfile}
+    
+job_name: "%(job_name)s"
+"""
+
+
+_master_template="""#!/bin/bash
+function runsim {
+    echo "host: $(hostname)"
+    echo "will write to file: $output"
+
+    command=%(command)s
+    ${command} ${run} 9999 ${ngal} ${output}
+    status=$?
+
+    echo "time: $SECONDS"
+
+    if [[ $status != "0" ]]; then
+        echo "error running sim: $status"
+    fi
+
+    return $status
+}
+
+
+ngal=$1
+output=$2
+logfile=$3
+
+run=%(run)s
+
+tmpdir=$TMPDIR
+cd $tmpdir
+
+tmplog=$(basename $logfile)
+
+runsim &> ${tmplog}
+status=$?
+
+echo "moving log file ${tmplog} -> ${logfile}" >> ${tmplog}
+
+# errors go to the jobs stderr
+mv -fv "${tmplog}" "${logfile}" 1>&2
+status2=$?
+
+if [[ $status2 != "0" ]]; then
+    # this error message will go to main error file
+    echo "error ${status2} moving log to: ${logfile}" 1>&2
+
+    status=$status2
+fi
+
+exit $status
+"""
+
+
+def get_command():
+    dir=os.environ['NSIM_DIR']
+    cmd = os.path.join(dir, 'bin/nsim-run')
+    return cmd
+
+class MakerBase(dict):
+    def __init__(self, conf):
+        self.update(conf)
+
+    def go(self):
+        self.make_some_dirs()
+        self.write_master()
+
+        self.write_batch_files()
+
+    def write_batch_files(self):
+        overall_name = '-'.join( (self['run'].split('-'))[1:] )
+
+        if self['missing']:
+            overall_name += 'missing'
+
+        njobs=0
+        ngal_tot=0
+
+        filenum=0
+
+        ngal_per, nsplit = nsim.files.get_gal_nsplit(self)
+
+        for isplit in xrange(nsplit):
+            ngal_tot += ngal_per
+            output = nsim.files.get_output_url(self['run'], 0, 0, itrial=isplit)
+            do_write=True
+            if self['missing'] and os.path.exists(output):
+                do_write=False
+
+            if do_write:
+                
+                logfile = output.replace('.fits','.log')
+                job_name='%s-%05d' % (overall_name,isplit)
+
+                self.write_script(ngal_per, output, logfile, job_name, filenum)
+
+                njobs += 1
+                filenum += 1
+
+
+        print('total jobs: ',njobs)
+        print('total gals:',ngal_tot)
+
+
+class WQMaker(MakerBase):
+    def make_some_dirs(self):
+        run=self['run']
+
+        d = nsim.files.get_wq_dir(run)
+        outd = nsim.files.get_output_dir(run, sub='bytrial')
+
+        if not os.path.exists(d):
+            os.makedirs(d)
+
+        if not os.path.exists(outd):
+            os.makedirs(outd)
+
+        tmpdir='/data/esheldon/tmp'
+        if not os.path.exists(tmpdir):
+            os.makedirs(tmpdir)
+
+    def write_master(self):
+        master_url=nsim.files.get_wq_master_url(self['run'])
+        d=os.path.dirname(master_url)
+        if not os.path.exists(d):
+            os.makedirs(d)
+
+        print(master_url)
+        with open(master_url,'w') as fobj:
+            fobj.write(_master_template % self)
+        print()
+
+        os.system('chmod 755 %s' % master_url)
+
+        self['master_script'] = master_url
+
+    def get_job_url(self, filenum):
+        job_url=nsim.files.get_wq_job_url(self['run'],
+                                          filenum,
+                                          missing=self['missing'])
+        return job_url
+
+    def write_script(self, ngal_per, output, logfile, job_name, filenum):
+        job_url=self.get_job_url(filenum)
+
+        qdata=_wq_template % dict(master_script=self['master_script'],
+                                  ngal=ngal_per,
+                                  output=output,
+                                  logfile=logfile,
+                                  job_name=job_name)
+        with open(job_url,'w') as fobj:
+            fobj.write(qdata)
+
+
+def main():
+    args = parser.parse_args()
+
+    system=args.system
+    run=args.run
+
+    c = nsim.files.read_config(run)
+    c['simc'] = nsim.files.read_config(c['sim'])
+    c['command'] = get_command()
+
+    c['missing'] = args.missing
+
+    if system=='wq':
+        maker=WQMaker(c)
+    else:
+        raise ValueError("bad queue system: '%s'" % system)
+    maker.go()
+
+main()

@@ -107,7 +107,9 @@ using galsim to do Gary's bulge+disk sim
         4.51e-03 +/- 1.93e-03
 
 - run-bd04zmcal-degrade02
+    - see aug 19 at slac and aug 20 at bnl
 - run-bd04mcal-t02
+    - bnl
     - accidentally ran with prior g sigma 0.3 in both
         the degrade and normal run
     - I had modified it back but did not install it

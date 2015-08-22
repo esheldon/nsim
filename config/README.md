@@ -34,10 +34,11 @@ using galsim to do Gary's bulge+disk sim
     - run-bd01mcal-t01
         - short run with frac err aimed to be ~0.0035
     - run-bd01mcal-t02
+        - bnl
         meas: 0.0352182 +/- 0.000116463, 0.000519263 +/- 0.000115394
         fracdiff: 6.24e-03 +/- 3.33e-03
 
-        additive is back
+        some additive is back
 
         sensitivity is much broader than bd02-04.  Either due to
         psf or due to centroid shift
@@ -118,14 +119,27 @@ using galsim to do Gary's bulge+disk sim
         meas: 0.0352601 +/- 0.000116722, -0.000132118 +/- 0.000123185
         fracdiff: 7.43e-03 +/- 3.33e-03
     - additive seems to be gone now...
-        - these were both slac runs with old galsim
 
 - run-bd04zmcal-degrade03
+    - same as run-bd04zmcal-degrade02
     - running at bnl to see if we recover additive
     - short run 100,000
     - I used start_noise_factor of 100, guessing this was
         what I used before.
     - Yes, the psf sens. is recovered
+    - why not recovered in some other runs?
+        - slac vs bnl?
+        - galsim versions?
+            - I'm on master (1.4) at bnl and recovered it with 03
+        - start noise?
+            - tested with 10 times less start noise, in run-bd04zmcal-degrade04
+            - looks similar
+        - g prior width 0.3 instead of 0.2
+            - run-bd04zmcal-degrade03 also detects and it was 0.2
+
+- run-bd04zmcal-degrade04
+    - same as run-bd04zmcal-degrade02 but start noise factor 1000
+    - looks similar
 
 #  trying integration
 - run-bd04zmcal-degint01
@@ -197,13 +211,16 @@ using galsim to do Gary's bulge+disk sim
                 running the degrade again at slac to see if suddenly the
                 additive term appears.
 
-- ARGH it is a galsim version difference!  I was using master at bnl and 1.3 at slac
-- I'm installing new version of galsim at slac now
+- ARGH the galsim versions were different!  I was using master at bnl and 1.3
+at slac I'm installing new version of galsim at slac now
 
 - run-ggnr02zmcal-degrade02
     - run at slac with new galsim
 - run-ggnr02mcal-t01
     - run at slac with new galsim
+    - still additive problems
+        meas: 0.035124 +/- 0.000111447, 0.00210291 +/- 0.000111993
+        fracdiff: 3.54e-03 +/- 3.18e-03
 
 
 - ideas

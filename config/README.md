@@ -108,6 +108,7 @@ using galsim to do Gary's bulge+disk sim
 
 - run-bd04zmcal-degrade02
     - see aug 19 at slac and aug 20 at bnl
+    - the aug 20 run at bnl shows detection of Rpsf in the deep
 - run-bd04mcal-t02
     - bnl
     - accidentally ran with prior g sigma 0.3 in both
@@ -118,6 +119,9 @@ using galsim to do Gary's bulge+disk sim
         fracdiff: 7.43e-03 +/- 3.33e-03
     - additive seems to be gone now...
         - these were both slac runs with old galsim
+
+- run-bd04zmcal-degrade02
+    - running at bnl to see if we recover additive
 
 #  trying integration
 - run-bd04zmcal-degint01

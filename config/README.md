@@ -17,6 +17,8 @@ using galsim to do Gary's bulge+disk sim
                 images.  Mabye noise part is cancelling because it is not coherent
                 because I'm using the same noise
             - record the noshear too
+            - if we do not match noise but do many realizations then we can trust
+                the mean additive I suppose
 
     - trying to figure out why additive not accounted for in some sims
 
@@ -251,7 +253,7 @@ at slac I'm installing new version of galsim at slac now
 
 - run-ggnr02zmcal-degrade03
     - first of new style sim
-
+    - forgot to save noshear g
 
 
 

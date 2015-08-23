@@ -8,7 +8,7 @@ g_prior_during: True
 use_logpars: True
 
 deep_data:
-  run: "run-ggnr02zmcal-degrade06"
+  run: "run-ggnr02zmcal-degrade07"
 
 priors:
     cen:
@@ -52,3 +52,5 @@ desired_hours: 1.0
 sec_per: 0.33
 
 verbose: True
+
+#avg_s2n_r_range: [10,23]

@@ -8,19 +8,15 @@ using galsim to do Gary's bulge+disk sim
 - current state
     - in gauss-gauss sims I'm seeing additive in the measurement but not
         in Rpsf from the deep data
-        - noticed that mcal_g from  degraded run does agree! So it
-            is just not being picked up by the metacal psf sens
-        - maybe Rpsf is picking up model bias but not noise related bias
-            - backed up by the fact that high s/n g is unbiased but mcal_g is not
-                in the deep run
-            - idea: model bias is coherent for the mean g over the 4 metacal
-                images.  Mabye noise part is cancelling because it is not coherent
-                because I'm using the same noise
-            - record the noshear too
-            - if we do not match noise but do many realizations then we can trust
-                the mean additive I suppose
+        - was caused by not adding noise to the sheared psf images
+    - saw interesting result with 100,000 deep galaxies and 160
+        noise realizations.  Doing longer run
+    - if looks good, do sim-bd01 runs.  Use high shear for now, 0.08
 
-    - trying to figure out why additive not accounted for in some sims
+
+
+
+
 
 - deep data
     - run-bd01zmcal-degrade01

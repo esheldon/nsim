@@ -253,26 +253,36 @@ at slac I'm installing new version of galsim at slac now
 
 - run-ggnr02zmcal-degrade03
     - first of new style sim
+
 - run-ggrn02mcal-t03
-    meas: 0.0352673 +/- 0.000113649, -0.0005973 +/- 0.000105899
-    fracdiff: 7.64e-03 +/- 3.25e-03
-    - what to check with short run
-        - lowering start noise factor?
-        - more nrand?
+    - with deep data from run-ggnr02zmcal-degrade03
+        meas: 0.0352673 +/- 0.000113649, -0.0005973 +/- 0.000105899
+        fracdiff: 7.64e-03 +/- 3.25e-03
+    - raw g mean is 0.0250717, so would need R = 0.716335
+        - what to check with short run
+            - lowering start noise factor?
+            - more nrand?
+
 - run-ggnr02zmcal-degrade04
     - smaller run with nrand=100
+    - not enough stats, but looks generally good
+    - noticeably less wide than 05
 
 - run-ggnr02zmcal-degrade05
     - smaller run with nrand=40
     - start fac of 1000 instead of 10, still 40 randomizations
     - I was averaging ellipticity with noshear in there too.  Could this
         make a difference at the few in ten thousand level?
+    - not enough stats, but looks generally good
 
 
-- run-ggnr02zmcal-degrade06?
-    - smaller run still with nrand=40
-    - what mean ellipticity should we use? Probably the one averaged
-        over the 4 sheared galaxy images
+- run-ggnr02mcal-t04
+    - step 0.02
+- run-ggnr02zmcal-degrade06
+    - another short run just to see if width continues to decrease
+    - start-noise-factor 1000
+    - nrand 160
+    - step 0.02
 
 - run-ggnr02zmcal-degrade-diffn01
     - same_noise: False

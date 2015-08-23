@@ -589,8 +589,9 @@ class MaxMetacalFitter(MaxFitter):
 
 
             extra_noise=self.get('extra_noise',None)
+            same_noise=self.get('same_noise',True)
             print("    adding extra noise:",extra_noise,
-                  "nrand:",self['nrand'],"same:",self['same_noise'])
+                  "nrand:",self['nrand'],"same:",same_noise)
 
             boot.fit_metacal_max(ppars['model'],
                                  self['fit_model'],
@@ -600,7 +601,7 @@ class MaxMetacalFitter(MaxFitter):
                                  prior=self.prior,
                                  ntry=mconf['ntry'],
                                  extra_noise=extra_noise,
-                                 same_noise=self['same_noise'],
+                                 same_noise=same_noise,
                                  nrand=self['nrand'],
                                  verbose=False)
 
@@ -725,8 +726,6 @@ class MaxMetacalFitterDegrade(MaxMetacalFitter):
         self['noise_boost'] = self.sim['s2n_for_noise']/s2n_target
         self['extra_noise'] = self.sim['skysig']*self['noise_boost']
 
-        self['same_noise'] = self.get('same_noise',False)
-
         print("    boosting noise by",self['noise_boost'])
 
 class MaxMetacalFitterDegradeGS(MaxMetacalFitterDegrade):
@@ -774,8 +773,6 @@ class MaxMetacalFitterDegradeGS(MaxMetacalFitterDegrade):
         if 'extra_noise' not in self:
             extra_noise = sqrt(self.sim['skysig']**2 - self['start_noise']**2)
             self['extra_noise'] = extra_noise
-
-        self['same_noise'] = self.get('same_noise',False)
 
         print("    adding noise to zero noise image:",self['extra_noise'])
 

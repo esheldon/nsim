@@ -278,6 +278,10 @@ at slac I'm installing new version of galsim at slac now
 
 - run-ggnr02mcal-t04
     - step 0.02
+    - using run-ggnr02zmcal-degrade07
+        meas: 0.0350959 +/- 0.000110924, -0.000530868 +/- 0.000110397
+        fracdiff: 2.74e-03 +/- 3.17e-03
+    - worth longer run
 - run-ggnr02zmcal-degrade06
     - another short run just to see if width continues to decrease
     - start-noise-factor 1000
@@ -295,6 +299,9 @@ at slac I'm installing new version of galsim at slac now
     - way too big Rpsf 0.0042
     - way too small R 6.62088972e-01 (need 0.716) 
 
+- run-ggnr02mcal-01
+    - up to 40,000,00 from 4,000,000 in -t04
+    - error should be 0.001 in fracdev
 
 - ideas
     * look at high s/n

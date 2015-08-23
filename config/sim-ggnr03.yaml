@@ -1,0 +1,45 @@
+name: "sim-ggnr03"
+
+simulator: "galsim"
+
+# these sims are never rings
+do_ring: False
+
+shear: [0.08, 0.0]
+
+pixel_scale: 1.0
+
+skysig: 1.0
+
+stamp_size: [24,24]
+
+psf:
+    model: "gauss"
+    r50: 1.5 # pixels
+
+    s2n: 10000.0
+
+    shape: [0.0, 0.05]
+
+obj_model:
+
+    model: "gauss"
+
+    flux:
+        type: "lognormal"
+        mean: 76.0
+        sigma: 38.0
+
+    # both components get the same scale length and ellipticity
+    g:
+        type: "ba"
+        sigma: 0.2
+
+    r50:
+        type: "lognormal"
+        mean: 2.0
+        sigma: 0.5
+
+    cen_shift: null
+
+label: "gauss-gauss"

@@ -283,6 +283,10 @@ at slac I'm installing new version of galsim at slac now
     - start-noise-factor 1000
     - nrand 160
     - step 0.02
+    - not clear
+
+- run-ggnr02zmcal-degrade07
+    - longer version of 06
 
 - run-ggnr02zmcal-degrade-diffn01
     - same_noise: False

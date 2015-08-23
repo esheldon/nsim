@@ -81,6 +81,10 @@ def get_shear_stats(conf, data, deep_data, args):
         pcorr = deep_data[args.psf_sens_field].mean(axis=0)
         g -= pcorr
 
+        #print("        subtracting c")
+        #ccorr = deep_data['mcal_c'].mean(axis=0)
+        #g -= ccorr
+
     sfield=args.sens_field
 
     g_sens = numpy.zeros( (data.size, 2, 2) )
@@ -159,18 +163,37 @@ def do_sums_bychunk(conf, fobj, d, deep_data, args):
         print('    %s:%s of %s' % (beg,end,nrows))
         data = fobj[1][beg:end]
 
-        #data_keep, deep_keep =select(conf, data, deep_data)
-        data_keep, deep_keep = data, deep_data
+        data_keep, deep_keep =select(conf, data, deep_data)
+        #data_keep, deep_keep = data, deep_data
 
         do_sums(conf, data_keep, deep_keep, d, args)
 
 
 def select(conf, data, deep_data):
-
-    raise RuntimeError("implement select")
+    from esutil.numpy_util import between, where1
 
     logic = ones(data.size, dtype=bool)
+    deep_logic = ones(deep_data.size, dtype=bool)
     docut=False
+
+    if 'avg_s2n_r_range' in conf:
+        sr=conf['avg_s2n_r_range']
+        tlogic = between(data['mcal_s2n_r'], sr[0], sr[1])
+        tdlogic = between(deep_data['mcal_s2n_r'], sr[0], sr[1])
+
+        w=where1(tlogic)
+        if w.size < data.size:
+            print("keeping %d/%d from s2n_r logic" % (w.size, data.size))
+        w=where1(tdlogic)
+        if w.size < deep_data.size:
+            print("deep keeping %d/%d from s2n_r logic" % (w.size, deep_data.size))
+
+        logic = logic & tlogic
+        deep_logic = deep_logic & tdlogic
+
+        docut=True
+
+    '''
     if 'avg_min_arate' in conf:
         print("    selecting arate >",conf['avg_min_arate'])
         logic = logic & (data['arate'] > conf['avg_min_arate'])
@@ -194,6 +217,7 @@ def select(conf, data, deep_data):
         logic = logic & (Ts2n > conf['avg_min_Ts2n'])
         #logic = logic & (Ts2n > conf['avg_min_Ts2n']) & (Ts2n < 15)
         docut=True
+
 
     if 'avg_min_s2n' in conf:
         s2n = data['s2n_w']
@@ -267,22 +291,22 @@ def select(conf, data, deep_data):
                  & (sqrt(data['pcov_max'][:,3,3]) < conf['avg_max_gerr']) 
                 )
         docut=True
+    '''
 
     if docut:
-        do_ring=conf['simc'].get('do_ring',True)
-
-        if do_ring:
-            print("        pairing for ring")
-
-            w=nsim.util.ring_select(logic)
-        else:
-            w,=numpy.where(logic)
+        w=where1(logic)
+        wd=where1(deep_logic)
         
         frac=float(w.size)/data.size
-        print("        keeping %d/%d  %.3f" % (w.size,data.size,frac))
-        data=data[w]
+        print("        finally keeping %d/%d  %.3f" % (w.size,data.size,frac))
+        dfrac=float(wd.size)/deep_data.size
+        print("        deep finally keeping %d/%d  %.3f" % (wd.size,deep_data.size,dfrac))
 
-    return data
+        
+        data=data[w]
+        deep_data=deep_data[wd]
+
+    return data, deep_data
 
 def get_averaged(conf, deep_data, args):
 

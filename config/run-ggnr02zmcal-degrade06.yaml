@@ -48,7 +48,7 @@ metacal_pars:
 ngal: 10000
 nrand: 160
 
-desired_hours: 0.25
+desired_hours: 0.50
 
 # per image, so this times nrand is the total time
 sec_per: 0.38

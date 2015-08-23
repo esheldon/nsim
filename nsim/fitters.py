@@ -51,6 +51,8 @@ class FitterBase(dict):
         """
 
         self._start_timer()
+        self.tm_sim=0.0
+        self.tm_fit=0.0
 
         nprocessed=0
         for igal in xrange(self['ngal']):
@@ -62,9 +64,13 @@ class FitterBase(dict):
             while True:
                 try:
 
+                    tm0=time.time()
                     imdict = self.sim.get_image()
+                    self.tm_sim += time.time()-tm0
 
+                    tm0=time.time()
                     res=self.process_one(imdict)
+                    self.tm_fit += time.time()-tm0
 
                     self._copy_to_output(res, igal)
 
@@ -81,6 +87,8 @@ class FitterBase(dict):
 
         print('time minutes:',self.tm_minutes)
         print('time per image sec:',self.tm/nprocessed)
+        print('time to simulate:',self.tm_sim/nprocessed)
+        print('time to fit:',self.tm_fit/nprocessed)
 
     def process_one(self, imdict):
         """
@@ -347,6 +355,18 @@ class SimpleFitterBase(FitterBase):
         elif Tp['type']=='normal':
             Tpars=Tp['pars']
             fit_T_prior=ngmix.priors.Normal(Tpars[0], Tpars[1])
+
+        elif Tp['type']=='lognormal':
+
+            if self['use_logpars']:
+                print("    converting T prior to log")
+                logT_mean, logT_sigma=ngmix.priors.lognorm_convert(Tp['mean'],
+                                                                   Tp['sigma'])
+                fit_T_prior = ngmix.priors.Normal(logT_mean, logT_sigma)
+
+            else:
+                fit_T_prior = ngmix.priors.LogNormal(Tp['mean'],Tp['sigma'])
+
         elif Tp['type']=="two-sided-erf":
             T_prior_pars = Tp['pars']
             fit_T_prior=ngmix.priors.TwoSidedErf(*T_prior_pars)
@@ -368,6 +388,18 @@ class SimpleFitterBase(FitterBase):
 
             else:
                 fit_counts_prior = self.sim.counts_pdf
+
+        elif cp['type']=='lognormal':
+
+            if self['use_logpars']:
+                print("    converting counts prior to log")
+                logcounts_mean, logcounts_sigma=ngmix.priors.lognorm_convert(cp['mean'],
+                                                                   cp['sigma'])
+                fit_counts_prior = ngmix.priors.Normal(logcounts_mean, logcounts_sigma)
+
+            else:
+                fit_counts_prior = ngmix.priors.LogNormal(cp['mean'],cp['sigma'])
+
 
         elif cp['type']=='normal':
             cpars=cp['pars']

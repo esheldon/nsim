@@ -10,7 +10,8 @@ using galsim to do Gary's bulge+disk sim
         in Rpsf from the deep data
         - was caused by not adding noise to the sheared psf images
     - saw interesting result with 100,000 deep galaxies and 160
-        noise realizations.  Doing longer run
+        noise realizations (run-ggnr02mcal-t04).  Doing longer run
+        run-ggnr02mcal-01
     - if looks good, do sim-bd01 runs.  Use high shear for now, 0.08
 
 
@@ -298,6 +299,9 @@ at slac I'm installing new version of galsim at slac now
 - run-ggnr02mcal-01
     - up to 40,000,00 from 4,000,000 in -t04
     - error should be 0.001 in fracdev
+    - using run-ggnr02zmcal-degrade07 as deep dataset
+        meas: 0.0351135 +/- 3.49411e-05, -0.000425756 +/- 3.44229e-05
+        fracdiff: 3.24e-03 +/- 9.98e-04
 
 - ideas
     * look at high s/n

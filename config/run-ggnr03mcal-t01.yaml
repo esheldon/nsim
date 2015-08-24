@@ -47,6 +47,7 @@ max_pars:
 metacal_pars:
     step: 0.01
 
+# this gave error 2.14e-03
 ngal: 2000000
 
 desired_hours: 0.5

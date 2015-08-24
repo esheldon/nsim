@@ -36,9 +36,12 @@ new style simgs
 - run-ggnr03mcal-t01
     - noise 1.0
     - 2,000,000
+        meas: 0.0798909 +/- 0.000171054, -8.26837e-05 +/- 0.000168065
+        fracdiff: -1.36e-03 +/- 2.14e-03
+
 - run-ggnr03mcal-01
     - noise 1.0
-    - 8,000,000
+    - 20,000,000
 
 - deep data
     - run-bd01zmcal-degrade01

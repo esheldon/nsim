@@ -38,11 +38,12 @@ _lsf_template="""#!/bin/bash
 echo "working on host: $(hostname)"
 
 command=%(master_script)s
+skysig=%(skysig)g
 ngal=%(ngal_per)s
 output="%(output)s"
 logfile="%(logfile)s"
 
-${command} ${ngal} ${output} ${logfile}
+${command} ${skysig} ${ngal} ${output} ${logfile}
 """
 
 
@@ -53,7 +54,7 @@ function runsim {
     echo "will write to file: $output"
 
     command=%(command)s
-    ${command} ${run} 9999 ${ngal} ${output}
+    ${command} ${run} ${skysig} ${ngal} ${output}
     status=$?
 
     echo "time: $SECONDS"
@@ -65,10 +66,10 @@ function runsim {
     return $status
 }
 
-
-ngal=$1
-output=$2
-logfile=$3
+skysig=$1
+ngal=$2
+output=$3
+logfile=$4
 
 run=%(run)s
 
@@ -110,6 +111,7 @@ command: |
     . $HOME/shell_scripts/nsim2-prepare.sh
 
     command=%(master_script)s
+    skysig=%(skysig)g
     ngal=%(ngal_per)s
     output="%(output)s"
     logfile="%(logfile)s"
@@ -125,7 +127,7 @@ function runsim {
     echo "will write to file: $output"
 
     command=%(command)s
-    ${command} ${run} 9999 ${ngal} ${output}
+    ${command} ${run} ${skysig} ${ngal} ${output}
     status=$?
 
     echo "time: $SECONDS"
@@ -138,9 +140,10 @@ function runsim {
 }
 
 
-ngal=$1
-output=$2
-logfile=$3
+skysig=$1
+ngal=$2
+output=$3
+logfile=$4
 
 run=%(run)s
 

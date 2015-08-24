@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-    %prog run s2n npairs output_file
+    %prog run s2n_or_noise npairs output_file
 
 for some sims npair might just be ngal
 """
@@ -47,14 +47,14 @@ def cleanup_checkpoint(checkpoint_file):
         print('removing checkpoint file',checkpoint_file)
         os.remove(checkpoint_file)
 
-def profile_sim(sim_conf,run_conf,s2n,npairs,output_file,options):
+def profile_sim(sim_conf,run_conf,s2n_or_noise,npairs,output_file,options):
     # don't want to see the JIT
     import cProfile
     import pstats
 
     import ngmix
 
-    cProfile.runctx('run_sim(sim_conf,run_conf,s2n,npairs,output_file,options)',
+    cProfile.runctx('run_sim(sim_conf,run_conf,s2n_or_noise,npairs,output_file,options)',
                     globals(),locals(),
                     'profile_stats')
     
@@ -62,7 +62,7 @@ def profile_sim(sim_conf,run_conf,s2n,npairs,output_file,options):
     p.sort_stats('time').print_stats()
 
 
-def profile_sim_pycallgraph(sim_conf,run_conf,s2n,npairs,output_file,options):
+def profile_sim_pycallgraph(sim_conf,run_conf,s2n_or_noise,npairs,output_file,options):
     # pycallgraph doesn't like it when the JIT starts up
     import ngmix
 
@@ -77,12 +77,12 @@ def profile_sim_pycallgraph(sim_conf,run_conf,s2n,npairs,output_file,options):
     config=pycallgraph.Config(groups=False)
 
     with PyCallGraph(config=config, output=graphviz):
-        run_sim(sim_conf,run_conf,s2n,npairs,output_file,options)
+        run_sim(sim_conf,run_conf,s2n_or_noise,npairs,output_file,options)
 
 
 def run_sim(sim_conf,
             run_conf,
-            s2n,
+            s2n_or_noise,
             npairs,
             output_file,
             options):
@@ -90,8 +90,12 @@ def run_sim(sim_conf,
 
     simtype=sim_conf.get('simulator','ngmix')
     if simtype=='ngmix':
-        sim=nsim.sim.NGMixSim(sim_conf, s2n)
+        sim=nsim.sim.NGMixSim(sim_conf, s2n_or_noise)
     else:
+
+        # in this case the parameter on the command line is the sky noise
+        sim_conf['noise'] = s2n_or_noise
+
         if sim_conf['obj_model']['model']=='bd':
             sim=nsim.simgs.SimBD(sim_conf)
         else:
@@ -176,7 +180,7 @@ def main():
         sys.exit(45)
 
     run=args[0]
-    s2n=float(args[1])
+    s2n_or_noise=float(args[1])
     npairs=int(args[2])
     output_file=args[3]
 
@@ -186,12 +190,12 @@ def main():
 
     if options.profile_image is not None:
         print('profiling sim with pycallgraph')
-        profile_sim_pycallgraph(sim_conf,run_conf,s2n,npairs,output_file,options)
+        profile_sim_pycallgraph(sim_conf,run_conf,s2n_or_noise,npairs,output_file,options)
     elif options.profile:
         print('profiling sim with cProfile')
-        profile_sim(sim_conf,run_conf,s2n,npairs,output_file,options)
+        profile_sim(sim_conf,run_conf,s2n_or_noise,npairs,output_file,options)
     else:
         print('running sim')
-        run_sim(sim_conf,run_conf,s2n,npairs,output_file,options)
+        run_sim(sim_conf,run_conf,s2n_or_noise,npairs,output_file,options)
 
 main()

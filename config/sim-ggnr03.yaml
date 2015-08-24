@@ -9,8 +9,6 @@ shear: [0.08, 0.0]
 
 pixel_scale: 1.0
 
-skysig: 1.0
-
 stamp_size: [24,24]
 
 psf:

@@ -16,8 +16,29 @@ using galsim to do Gary's bulge+disk sim
 
 
 
+new style simgs
+=================
 
+- specify distribution of flux not s2n
+- noise specified in the run not the sim
 
+- sim-ggnr03
+- sim-ggnr03z
+    - shear [0.08,0]
+    - psf shape [0,0.05]
+    - adjusted so that, for noise=1.0, mean s2n is about 12.5 with
+        scatter 5
+
+- run-ggnr03zmcal-degrade01
+    - noise 0.001
+    - nrand 360
+
+- run-ggnr03mcal-t01
+    - noise 1.0
+    - 2,000,000
+- run-ggnr03mcal-01
+    - noise 1.0
+    - 8,000,000
 
 - deep data
     - run-bd01zmcal-degrade01

@@ -115,7 +115,7 @@ command: |
     ngal=%(ngal_per)s
     output="%(output)s"
     logfile="%(logfile)s"
-    ${command} ${ngal} ${output} ${logfile}
+    ${command} ${noise} ${ngal} ${output} ${logfile}
     
 job_name: "%(job_name)s"
 """

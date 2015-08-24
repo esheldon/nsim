@@ -15,7 +15,6 @@ deep_data:
 
 noise: 0.001
 target_noise: 1.0
-same_noise: True
 
 priors:
     cen:

@@ -9,8 +9,6 @@ shear: [0.08, 0.0]
 
 pixel_scale: 1.0
 
-skysig: 1.0
-
 stamp_size: [24,24]
 
 psf:
@@ -27,7 +25,7 @@ obj_model:
 
     flux:
         type: "lognormal"
-        mean: 76.0
+        mean: 95.0
         sigma: 38.0
 
     # both components get the same scale length and ellipticity

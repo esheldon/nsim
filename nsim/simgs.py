@@ -164,7 +164,7 @@ class SimGS(dict):
 
     def _add_noise(self, im0):
         nim = numpy.random.normal(loc=0.0,
-                                  scale=self['skysig'],
+                                  scale=self['noise'],
                                   size=im0.shape)
         noisy_image = im0 + nim
         return noisy_image
@@ -184,7 +184,7 @@ class SimGS(dict):
         scaled_image = im0 * factor
 
         nim = numpy.random.normal(loc=0.0,
-                                  scale=self['skysig'],
+                                  scale=self['noise'],
                                   size=im0.shape)
         noisy_image = scaled_image + nim
 
@@ -397,7 +397,7 @@ class SimGS(dict):
 
     def _setup(self):
         self['pixel_scale'] = self.get('pixel_scale',1.0)
-        self['ivar'] = 1.0/self['skysig']**2
+        self['ivar'] = 1.0/self['noise']**2
         self['model'] = self['obj_model']['model']
         self._set_pdfs()
 

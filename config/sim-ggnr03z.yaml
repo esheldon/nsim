@@ -1,4 +1,4 @@
-# zero shear, low noise
+# zero shear
 name: "sim-ggnr03z"
 
 simulator: "galsim"
@@ -9,8 +9,6 @@ do_ring: False
 shear: [0.0, 0.0]
 
 pixel_scale: 1.0
-
-skysig: 0.001
 
 stamp_size: [24,24]
 
@@ -28,7 +26,7 @@ obj_model:
 
     flux:
         type: "lognormal"
-        mean: 76.0
+        mean: 95.0
         sigma: 38.0
 
     # both components get the same scale length and ellipticity

@@ -380,8 +380,14 @@ class SimpleFitterBase(FitterBase):
             if self['use_logpars']:
 
                 print("    converting to log")
-                counts       = self.sim['obj_counts_mean']
-                counts_sigma = self.sim['obj_counts_sigma_frac']*counts
+                if self.sim['simulator']=="galsim":
+                    fluxspec=self.sim['obj_model']['flux']
+                    counts       = fluxspec['mean']
+                    counts_sigma = fluxspec['sigma']
+                else:
+                    counts       = self.sim['obj_counts_mean']
+                    counts_sigma = self.sim['obj_counts_sigma_frac']*counts
+
                 logc_mean, logc_sigma=ngmix.priors.lognorm_convert(counts,
                                                                    counts_sigma)
                 fit_counts_prior = ngmix.priors.Normal(logc_mean, logc_sigma)
@@ -756,11 +762,53 @@ class MaxMetacalFitterDegrade(MaxMetacalFitter):
 
         s2n_target = float(self['s2n_target'][0])
         self['noise_boost'] = self.sim['s2n_for_noise']/s2n_target
-        self['extra_noise'] = self.sim['skysig']*self['noise_boost']
+        self['extra_noise'] = self.sim['noise']*self['noise_boost']
 
         print("    boosting noise by",self['noise_boost'])
 
 class MaxMetacalFitterDegradeGS(MaxMetacalFitterDegrade):
+    """
+
+    this version we simulate a low-s2n object but we use the zero noise version
+    to do our work (which is in obs.image_nonoise).
+
+    """
+
+    def _do_fits(self, obs):
+        """
+        we pull out the nonoise image and work with that
+        """
+        import copy
+
+        print("    degrading noise")
+        im0 = obs.image
+
+        # start with just a little noise
+        noise_im = numpy.random.normal(loc=0.0,
+                                       scale=self['extra_noise'],
+                                       size=im0.shape)
+
+        im_noisy = im0 + noise_im
+        weight = obs.weight*0 + 1.0/self['target_noise']**2
+
+        nobs = copy.deepcopy(obs)
+
+        nobs.image = im_noisy
+        nobs.set_weight(weight)
+
+        return super(MaxMetacalFitterDegradeGS,self)._do_fits(nobs)
+
+    def _setup(self, *args, **kw):
+        super(MaxMetacalFitterDegrade,self)._setup(*args, **kw)
+
+        extra_noise = sqrt(self['target_noise']**2 - self['noise']**2)
+        self['extra_noise'] = extra_noise
+
+        print("    adding noise to zero noise image:",self['extra_noise'])
+
+
+
+class MaxMetacalFitterDegradeGSOld(MaxMetacalFitterDegrade):
     """
 
     this version we simulate a low-s2n object but we use the zero noise version
@@ -800,14 +848,13 @@ class MaxMetacalFitterDegradeGS(MaxMetacalFitterDegrade):
     def _setup(self, *args, **kw):
         super(MaxMetacalFitterDegrade,self)._setup(*args, **kw)
 
-        self['start_noise'] = self.sim['skysig']/self['start_noise_factor']
+        self['start_noise'] = self.sim['noise']/self['start_noise_factor']
 
         if 'extra_noise' not in self:
-            extra_noise = sqrt(self.sim['skysig']**2 - self['start_noise']**2)
+            extra_noise = sqrt(self.sim['noise']**2 - self['start_noise']**2)
             self['extra_noise'] = extra_noise
 
         print("    adding noise to zero noise image:",self['extra_noise'])
-
 
 
 
@@ -858,13 +905,13 @@ class AdmomMetacalFitter(MaxMetacalFitter):
                 res=admom.wrappers.admom_1psf(obs.image, rowguess, colguess,
                                      psfres['Irr'],psfres['Irc'],psfres['Icc'],
                                      #0.0, 0.0, 0.0,
-                                     sigsky=self.sim['skysig'],
+                                     sigsky=self.sim['noise'],
                                      guess=Tguess/2.,
                                      **admompars)
 
             else:
                 res=admom.admom(obs.image, rowguess, colguess,
-                                sigsky=self.sim['skysig'],
+                                sigsky=self.sim['noise'],
                                 guess=Tguess/2.,
                                 **admompars)
 
@@ -956,7 +1003,7 @@ class MomMetacalFitter(MaxMetacalFitter):
         if res['flags'] != 0:
             raise TryAgainError("error getting weights: '%s'" % res['flagstr'])
 
-        skyvar=self.sim['skysig']**2
+        skyvar=self.sim['noise']**2
 
         #res['pars'][2] = res['pars'][2]/res['pars'][5]
         #res['pars'][3] = res['pars'][3]/res['pars'][5]
@@ -1020,8 +1067,8 @@ class MaxMetacalFitterModel(MaxMetacalFitter):
         #model_im=gm.make_image(imshape, jacobian=jacobian, nsub=1)
         #nim=obs.image-model_im
 
-        skysig=self.sim['skysig']
-        nim=numpy.random.normal(scale=skysig, size=imshape)
+        noise=self.sim['noise']
+        nim=numpy.random.normal(scale=noise, size=imshape)
 
         parsm=pars.copy()
         parsp=pars.copy()

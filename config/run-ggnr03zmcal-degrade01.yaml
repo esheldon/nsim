@@ -55,7 +55,7 @@ nrand: 160
 #nrand: 1
 
 desired_hours: 2.0
-sec_per: 0.24
+sec_per: 0.075
 
 verbose: True
 

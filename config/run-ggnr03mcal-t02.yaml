@@ -1,0 +1,58 @@
+run: "run-ggnr03mcal-t02"
+sim: "sim-ggnr03"
+
+fitter: "metacal-max"
+fit_model: "gauss"
+
+g_prior_during: True
+use_logpars: True
+
+deep_data:
+  run: "run-ggnr03zmcal-degrade01"
+
+# this gives mean s2n of ~10 with scatter 5 for the flux distribution in
+# the sim
+noise: 1.0
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+    T:
+        type: "lognormal"
+        mean: 5.79 # conversion from r50=2.0
+        sigma: 0.362 # conversion from r50 sigma=0.5
+
+    counts:
+        type: "truth"
+
+    g:
+        type: "ba"
+        sigma: 0.2
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+metacal_pars:
+    step: 0.01
+
+# this gave error 2.14e-03
+ngal: 2000000
+
+desired_hours: 0.5
+sec_per: 0.24
+
+verbose: True
+
+#avg_s2n_r_range: [10,23]

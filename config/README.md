@@ -46,6 +46,9 @@ new style simgs
         fracdiff: -7.05e-03 +/- 6.56e-04
     - this is 2.7 sigma from the previous one
 
+- run-ggnr03mcal-t02
+    - run at slac and see if we get a bias
+
 - deep data
     - run-bd01zmcal-degrade01
         - shows significant e2, along direction of psf ellipticity

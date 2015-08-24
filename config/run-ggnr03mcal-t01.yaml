@@ -21,8 +21,8 @@ priors:
 
     counts:
         type: "lognormal"
-        mean: 50.0
-        sigma: 25.5
+        mean: 76.0
+        sigma: 38.0
 
     g:
         type: "ba"

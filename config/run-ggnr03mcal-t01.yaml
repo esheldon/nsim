@@ -24,9 +24,7 @@ priors:
         sigma: 0.362 # conversion from r50 sigma=0.5
 
     counts:
-        type: "lognormal"
-        mean: 50.0
-        sigma: 25.5
+        type: "truth"
 
     g:
         type: "ba"
@@ -53,7 +51,7 @@ metacal_pars:
 ngal: 40000000
 
 desired_hours: 2.0
-sec_per: 0.33
+sec_per: 0.24
 
 verbose: True
 

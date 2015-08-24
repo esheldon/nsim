@@ -380,8 +380,14 @@ class SimpleFitterBase(FitterBase):
             if self['use_logpars']:
 
                 print("    converting to log")
-                counts       = self.sim['obj_counts_mean']
-                counts_sigma = self.sim['obj_counts_sigma_frac']*counts
+                if self.sim['simulator']=="galsim":
+                    fluxspec=self.sim['obj_model']['flux']
+                    counts       = fluxspec['mean']
+                    counts_sigma = fluxspec['sigma']
+                else:
+                    counts       = self.sim['obj_counts_mean']
+                    counts_sigma = self.sim['obj_counts_sigma_frac']*counts
+
                 logc_mean, logc_sigma=ngmix.priors.lognorm_convert(counts,
                                                                    counts_sigma)
                 fit_counts_prior = ngmix.priors.Normal(logc_mean, logc_sigma)

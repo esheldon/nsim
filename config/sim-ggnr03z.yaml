@@ -26,7 +26,7 @@ obj_model:
 
     flux:
         type: "lognormal"
-        mean: 76.0
+        mean: 95.0
         sigma: 38.0
 
     # both components get the same scale length and ellipticity

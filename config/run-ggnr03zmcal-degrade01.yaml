@@ -27,9 +27,7 @@ priors:
         sigma: 0.362 # conversion from r50 sigma=0.5
 
     counts:
-        type: "lognormal"
-        mean: 50.0
-        sigma: 25.5
+        type: "truth"
 
     g:
         type: "ba"

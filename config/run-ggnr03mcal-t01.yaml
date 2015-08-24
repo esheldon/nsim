@@ -47,11 +47,9 @@ max_pars:
 metacal_pars:
     step: 0.01
 
-# we used 40,000,000 for the 0.035 sim
-# we can get same precision with ~ 4.e7*(0.035/0.08)**2 ~ 8,000,000
-ngal: 8000000
+ngal: 2000000
 
-desired_hours: 1.0
+desired_hours: 0.5
 sec_per: 0.24
 
 verbose: True

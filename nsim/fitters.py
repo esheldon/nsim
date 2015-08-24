@@ -774,30 +774,6 @@ class MaxMetacalFitterDegradeGS(MaxMetacalFitterDegrade):
 
     """
 
-    def _do_fits(self, obs):
-        """
-        we pull out the nonoise image and work with that
-        """
-        import copy
-
-        print("    degrading noise")
-        im0 = obs.image
-
-        # start with just a little noise
-        noise_im = numpy.random.normal(loc=0.0,
-                                       scale=self['extra_noise'],
-                                       size=im0.shape)
-
-        im_noisy = im0 + noise_im
-        weight = obs.weight*0 + 1.0/self['target_noise']**2
-
-        nobs = copy.deepcopy(obs)
-
-        nobs.image = im_noisy
-        nobs.set_weight(weight)
-
-        return super(MaxMetacalFitterDegradeGS,self)._do_fits(nobs)
-
     def _setup(self, *args, **kw):
         super(MaxMetacalFitterDegrade,self)._setup(*args, **kw)
 

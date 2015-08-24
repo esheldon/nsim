@@ -42,6 +42,9 @@ new style simgs
 - run-ggnr03mcal-01
     - noise 1.0
     - 20,000,000
+        meas: 0.0794356 +/- 5.24952e-05, -0.000139687 +/- 5.5112e-05
+        fracdiff: -7.05e-03 +/- 6.56e-04
+    - this is 2.7 sigma from the previous one
 
 - deep data
     - run-bd01zmcal-degrade01

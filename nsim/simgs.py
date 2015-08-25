@@ -96,10 +96,12 @@ class SimGS(dict):
         for psfs, send s2n=
         """
 
-        dims = self['stamp_size']
-        gsimage = galsim.ImageD(dims[0], dims[1])
 
-        gs_obj.drawImage(gsimage, scale=self['pixel_scale'])
+        nrows,ncols=self['stamp_size']
+        gsimage = gs_obj.drawImage(nx=ncols,
+                                   ny=nrows,
+                                   scale=1.0,
+                                   dtype=numpy.float64)
 
         im0 = gsimage.array
         if s2n is not None:
@@ -198,7 +200,7 @@ class SimGS(dict):
         row,col = fitter.get_gmix().get_cen()
         #print("    row,col:",row,col)
 
-        scale=self['pixel_scale']
+        scale=1.0
         return ngmix.Jacobian(row, col,
                               scale,
                               0.0,
@@ -232,7 +234,6 @@ class SimGS(dict):
 
         cenoff = pars['cenoff']
 
-        # we will scale the flux to get a requested s/n later
         if pars['model']=='gauss':
             gal = galsim.Gaussian(flux=flux, half_light_radius=r50)
         elif pars['model']=='exp':
@@ -336,6 +337,7 @@ class SimGS(dict):
         g1,g2 = self.g_pdf.sample2d()
 
         flux = self.flux_pdf.sample()
+        # this is the round r50
         r50 = self.r50_pdf.sample()
 
         pars = {'model':self['model'],
@@ -396,7 +398,6 @@ class SimGS(dict):
 
 
     def _setup(self):
-        self['pixel_scale'] = self.get('pixel_scale',1.0)
         self['ivar'] = 1.0/self['noise']**2
         self['model'] = self['obj_model']['model']
         self._set_pdfs()

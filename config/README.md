@@ -98,12 +98,18 @@ new style simgs
     - bnl (git not working at slac)
     - noise 1.0
     - broader T prior
-- run-ggnr03mcal-t05
+
+- run-ggnr03mcal-t06
     - bnl
     - noise 1.0
     - broader T prior
+        meas: 0.0800078 +/- 0.00016898, -8.85498e-05 +/- 0.00017174
+        fracdiff: 9.75e-05 +/- 2.11e-03
+    seems too good to be true
 
-
+- run-ggnr03mcal-02
+    - bnl
+    - longer run
 
 
 

@@ -50,6 +50,24 @@ new style simgs
     - run at slac and see if we get a bias
     - whoops, ran t01 instead
         - yep, much bigger bias. What happened?
+- run-ggnr03mcal-t02
+    - at bnl
+
+    meas: 0.0793634 +/- 0.00017042, -0.000232593 +/- 0.00017038
+    fracdiff: -7.96e-03 +/- 2.13e-03
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 - deep data
     - run-bd01zmcal-degrade01

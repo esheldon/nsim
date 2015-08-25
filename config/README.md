@@ -56,8 +56,11 @@ new style simgs
     meas: 0.0793634 +/- 0.00017042, -0.000232593 +/- 0.00017038
     fracdiff: -7.96e-03 +/- 2.13e-03
 
+- had a bug in the prior, assumed linear transformation between
+    r50 and T but there is a square
 
-
+- run-ggnr03zmcal-degrade03
+- run-ggnr03mcal-t04
 
 
 

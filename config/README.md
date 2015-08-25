@@ -95,9 +95,12 @@ new style simgs
     predict
 
 - run-ggnr03zmcal-degrade04
+    - bnl (git not working at slac)
+    - noise 1.0
     - broader T prior
 - run-ggnr03mcal-t05
     - bnl
+    - noise 1.0
     - broader T prior
 
 

@@ -7,8 +7,6 @@ do_ring: False
 
 shear: [0.08, 0.0]
 
-pixel_scale: 1.0
-
 stamp_size: [24,24]
 
 psf:

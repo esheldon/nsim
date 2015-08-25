@@ -56,13 +56,43 @@ new style simgs
     meas: 0.0793634 +/- 0.00017042, -0.000232593 +/- 0.00017038
     fracdiff: -7.96e-03 +/- 2.13e-03
 
+- low s/n runs
+    - noise 0.1 
+    - run-ggnr03zmcal-degrade02
+    - run-ggnr03mcal-t03
+        meas: 0.0799988 +/- 0.000129255, -0.000120184 +/- 0.00011995
+        fracdiff: -1.55e-05 +/- 1.62e-03
+
+    - I was surprised that the mean came out fracdiff -0.0258 before
+        correction, at <s/n>=125.  Maybe related to the prior bug?
+
 - had a bug in the prior, assumed linear transformation between
     r50 and T but there is a square
+    - still, metacal should have fixed it.  Maybe the priors
+        need to be broader
+    - or maybe the "same noise" feature of the deep data only
+        works if the priors are accurate
+    - maybe will need to do not-same-noise deep data, with even
+        more randoms. can try 160 for now but note it will be much slower,
+        since we are limited by the metacal step ( for same noise we add noise
+        to the metacal'd images).
 
 - run-ggnr03zmcal-degrade03
+    - still noise=0.1
+    - slac
 - run-ggnr03mcal-t04
+    - still noise=0.1
+    - bnl
+    - the T distribution is wrong, pushed to higher values
+
+- run-ggnr03mcal-t05
+    - noise=0.001
+    - broad T prior
+    - bnl
 
 
+- easiest thing would be to try broader priors
+    - take true mean at 6.1314 but insted of width 3.2117 use 50% bigger
 
 
 

@@ -46,8 +46,10 @@ new style simgs
         fracdiff: -7.05e-03 +/- 6.56e-04
     - this is 2.7 sigma from the previous one
 
-- run-ggnr03mcal-t02
+- run-ggnr03mcal-t01 revisit
     - run at slac and see if we get a bias
+    - whoops, ran t01 instead
+        - yep, much bigger bias. What happened?
 
 - deep data
     - run-bd01zmcal-degrade01

@@ -90,10 +90,15 @@ new style simgs
     - broad T prior
     - bnl
 
+- forgot that galsim takes the size of the *round* object!  This is
+    why the measured values at high s/n are different than I would
+    predict
 
-- easiest thing would be to try broader priors
-    - take true mean at 6.1314 but insted of width 3.2117 use 50% bigger
-
+- run-ggnr03zmcal-degrade04
+    - broader T prior
+- run-ggnr03mcal-t05
+    - bnl
+    - broader T prior
 
 
 

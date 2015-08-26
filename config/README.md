@@ -16,6 +16,14 @@ todo
             the psf
         - so it is somehow "in between"?
 
+- try bd again, no bulge offsets
+    - need a reasonable prior on T
+
+- maybe look at galsim for fitting
+    - advantage is all the same conventions
+    - disadvantage is it will be 5 times slower to calculate
+        a likelihood, and need to figure out centroid stuff
+
 REAL METACAL
 --------------
 

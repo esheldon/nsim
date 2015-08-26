@@ -117,6 +117,9 @@ new style simgs
         meas: 0.0797925 +/- 5.2574e-05, -2.88243e-05 +/- 5.28331e-05
         fracdiff: -2.59e-03 +/- 6.57e-04
 
+- run-ggnr03mcal-02
+    - bnl
+    - prior ba width 0.3
 
 
 

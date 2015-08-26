@@ -117,12 +117,17 @@ new style simgs
         meas: 0.0797925 +/- 5.2574e-05, -2.88243e-05 +/- 5.28331e-05
         fracdiff: -2.59e-03 +/- 6.57e-04
 
-- run-ggnr03mcal-02
+- run-ggnr03mcal-03
     - bnl
     - prior ba width 0.3
 
-
-
+- idea instead of using deep data
+    - do metacal operations, get obs
+    - add noise*x
+    - make new obslist with x^2 images, so we recover the original
+        s/n
+    - fit that
+        - need to make new bootstrapper?
 
 
 - deep data

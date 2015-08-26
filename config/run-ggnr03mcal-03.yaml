@@ -1,20 +1,18 @@
-run: "run-ggnr03zmcal-degrade04"
-sim: "sim-ggnr03z"
+run: "run-ggnr03mcal-03"
+sim: "sim-ggnr03"
 
-fitter: "metacal-max-degrade"
+fitter: "metacal-max"
 fit_model: "gauss"
 
 g_prior_during: True
 use_logpars: True
 
 deep_data:
-  run: null
+  run: "run-ggnr03zmcal-degrade04"
 
-# noise=1.0 gives mean s2n of ~10 with scatter 5 for the flux distribution in
+# 1.0 gives mean s2n of ~12.5 with scatter 5 for the flux distribution in
 # the sim
-
-noise: 0.001
-target_noise: 1.0
+noise: 1.0
 
 priors:
     cen:
@@ -23,9 +21,7 @@ priors:
 
     T:
         type: "lognormal"
-
-        # conversion from r50=2.0, but note the shear will shift it
-        mean: 6.1314
+        mean: 6.1314 # conversion from r50=2.0
 
         # broader, partly because shear shifts/broadens the distribution, also
         # to prevent instability of the fit
@@ -38,7 +34,7 @@ priors:
 
     g:
         type: "ba"
-        sigma: 0.2
+        sigma: 0.3
 
 psf_pars:
     model: "gauss"
@@ -57,12 +53,10 @@ max_pars:
 metacal_pars:
     step: 0.01
 
-ngal: 100000
-nrand: 160
-#nrand: 1
+ngal: 20000000
 
-desired_hours: 1.1
-sec_per: 0.075
+desired_hours: 4.50
+sec_per: 0.24
 
 verbose: True
 

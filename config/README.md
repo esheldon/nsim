@@ -65,6 +65,7 @@ new style simgs
 
     - I was surprised that the mean came out fracdiff -0.0258 before
         correction, at <s/n>=125.  Maybe related to the prior bug?
+        - yes I did a deep run and it was OK (sens=1)
 
 - had a bug in the prior, assumed linear transformation between
     r50 and T but there is a square
@@ -98,16 +99,35 @@ new style simgs
     - bnl (git not working at slac)
     - noise 1.0
     - broader T prior
-- run-ggnr03mcal-t05
+
+- run-ggnr03mcal-t06
     - bnl
     - noise 1.0
     - broader T prior
+        meas: 0.0800078 +/- 0.00016898, -8.85498e-05 +/- 0.00017174
+        fracdiff: 9.75e-05 +/- 2.11e-03
+- run-ggnr03mcal-t07
+    - same as t06
+    meas: 0.0798671 +/- 0.000159583, 0.000103818 +/- 0.000167474
+    fracdiff: -1.66e-03 +/- 1.99e-03
 
+- run-ggnr03mcal-02
+    - bnl
+    - same as run-ggnr03mcal-t06 but longer run
+        meas: 0.0797925 +/- 5.2574e-05, -2.88243e-05 +/- 5.28331e-05
+        fracdiff: -2.59e-03 +/- 6.57e-04
 
+- run-ggnr03mcal-03
+    - bnl
+    - prior ba width 0.3
 
-
-
-
+- idea instead of using deep data
+    - do metacal operations, get obs
+    - add noise*x
+    - make new obslist with x^2 images, so we recover the original
+        s/n
+    - fit that
+        - need to make new bootstrapper?
 
 
 - deep data

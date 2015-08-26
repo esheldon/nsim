@@ -61,7 +61,7 @@ ngal: 100000
 nrand: 160
 #nrand: 1
 
-desired_hours: 1.1
+desired_hours: 1.3
 sec_per: 0.075
 
 verbose: True

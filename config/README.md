@@ -1,3 +1,21 @@
+todo
+----
+
+- do a low noise test with metacal, deep data, ggnr03
+    - never pushed this error down.  Might be there is just a bias
+        in here due to something (high shear?)
+
+- is there anything to this averaging g and mcal_g?
+    - both of these runs are unbiased when averaging
+        run-ggnr03mcal-02
+        run-ggnr03mcal-03
+    - there might be.
+        - g is no mucking with noise or psf
+        - mcal_g is mucking with noise and psf
+        - deep data has no mucking with noise but does have mucking with
+            the psf
+        - so it is somehow "in between"?
+
 REAL METACAL
 --------------
 
@@ -101,30 +119,35 @@ new style simgs
     - broader T prior
 
 - run-ggnr03mcal-t06
+    - using deep run-ggnr03zmcal-degrade04
     - bnl
     - noise 1.0
     - broader T prior
         meas: 0.0800078 +/- 0.00016898, -8.85498e-05 +/- 0.00017174
         fracdiff: 9.75e-05 +/- 2.11e-03
 - run-ggnr03mcal-t07
+    - using deep run-ggnr03zmcal-degrade04
     - same as t06
     meas: 0.0798671 +/- 0.000159583, 0.000103818 +/- 0.000167474
     fracdiff: -1.66e-03 +/- 1.99e-03
 
 - run-ggnr03mcal-02
     - bnl
+    - using deep run-ggnr03zmcal-degrade04
     - same as run-ggnr03mcal-t06 but longer run
         meas: 0.0797925 +/- 5.2574e-05, -2.88243e-05 +/- 5.28331e-05
         fracdiff: -2.59e-03 +/- 6.57e-04
       weighting according to mcal_s2n_r
         meas: 0.0797679 +/- 5.25903e-05, 2.58094e-05 +/- 5.28812e-05
         fracdiff: -2.90e-03 +/- 6.57e-04
-
+    - averaging g and mcal_g
+        fracdiff 6.09e-04 +/- 6.57e-04
 
 - run ggnr03zmcal-degrade05
     - bnl
     - prior ba width 0.3
 - run-ggnr03mcal-03
+    - deep ggnr03zmcal-degrade05
     - bnl
     - prior ba width 0.3
         meas: 0.0798205 +/- 5.29889e-05, 3.27795e-05 +/- 5.25502e-05
@@ -133,7 +156,8 @@ new style simgs
 
         meas: 0.0798439 +/- 5.29084e-05, 2.167e-05 +/- 5.24354e-05
         fracdiff: -1.95e-03 +/- 6.61e-04
-
+    - averaging g and mcal_g
+        fracdiff 4.46e-05 +/- 6.61e-04
 
 - idea instead of using deep data
     - do metacal operations, get obs
@@ -145,10 +169,16 @@ new style simgs
 
 - run-ggnr03mn-t01
     - first metanoise run
+    - noise 0.1
     - nrand 100 -> noise_target sqrt(100)=10 times original noise
     - expect this is ten times more noisy than the degrade version
+    - frac error about 0.007 
+- run-ggnr03mn-t04
+    - 10 times more
+    - intended noise was 1.0
+        whoops, ran with 0.1. Biased anyway
 
-
+moments
 - run-ggnr03mn-t02
     - moments, with metanoise
 - run-ggnr03mn-t03

@@ -131,6 +131,16 @@ new style simgs
     - fit that
         - need to make new bootstrapper?
 
+- run-ggnr03mn-t01
+    - first metanoise run
+    - nrand 100 -> noise_target sqrt(100)=10 times original noise
+    - expect this is ten times more noisy than the degrade version
+
+- run-ggnr03mn-t02
+    - moments, with metanoise
+- run-ggnr03mn-t03
+    - moments, just very high s/n but no metanoise
+    - ran this first
 
 - deep data
     - run-bd01zmcal-degrade01

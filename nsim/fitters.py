@@ -97,7 +97,7 @@ class FitterBase(dict):
 
         print("    ",imdict['obs'].image.shape)
 
-        fitter, psf_flux_res=self._dofit(imdict)
+        fitter=self._dofit(imdict)
 
         res=fitter.get_result()
         if res['flags'] != 0:
@@ -107,10 +107,6 @@ class FitterBase(dict):
         res['pars_true'] = imdict['pars']
         res['model_true'] = imdict['model']
         res['s2n_true'] = imdict['s2n']
-
-        res['psf_flux'] = psf_flux_res['psf_flux']
-        res['psf_flux_err'] = psf_flux_res['psf_flux_err']
-        res['psf_flux_s2n'] = res['psf_flux']/res['psf_flux_err']
 
         self._print_res(res)
 
@@ -296,10 +292,6 @@ class SimpleFitterBase(FitterBase):
 
         d=self.data
 
-        d['psf_flux'][i] = res['psf_flux']
-        d['psf_flux_err'][i] = res['psf_flux_err']
-        d['psf_flux_s2n'][i] = res['psf_flux_s2n']
-
         d['pars'][i,:] = res['pars']
         d['pcov'][i,:,:] = res['pars_cov']
 
@@ -445,9 +437,6 @@ class SimpleFitterBase(FitterBase):
 
         dt=super(SimpleFitterBase,self)._get_dtype()
         dt += [
-            ('psf_flux','f8'),
-            ('psf_flux_err','f8'),
-            ('psf_flux_s2n','f8'),
             ('pars','f8',npars),
             ('pcov','f8',(npars,npars)),
             ('g','f8',2),
@@ -486,9 +475,8 @@ class MaxFitter(SimpleFitterBase):
             raise TryAgainError("failed to fit galaxy")
 
         fitter=boot.get_max_fitter() 
-        psf_flux_res = boot.get_psf_flux_result()
 
-        return fitter, psf_flux_res
+        return fitter
 
     def _print_res(self,res):
         """
@@ -579,12 +567,11 @@ class MaxMetacalFitter(MaxFitter):
         obs=imdict['obs']
         mdict = self._do_fits(obs)
         res=mdict['res']
-        psf_flux_res=mdict['psf_flux_res']
         fitter=mdict['fitter']
 
         self.fitter=fitter
 
-        return fitter, psf_flux_res
+        return fitter
 
     def _do_fits(self, obs):
         """
@@ -652,12 +639,9 @@ class MaxMetacalFitter(MaxFitter):
         mres = boot.get_metacal_max_result()
         res.update(mres)
 
-        psf_flux_res = boot.get_psf_flux_result()
-
         return {'fitter':fitter,
                 'boot':boot,
-                'res':res,
-                'psf_flux_res':psf_flux_res}
+                'res':res}
 
     def _print_res(self,res):
         """
@@ -774,12 +758,101 @@ class MaxMetacalFitterDegradeGS(MaxMetacalFitterDegrade):
     def _setup(self, *args, **kw):
         super(MaxMetacalFitterDegrade,self)._setup(*args, **kw)
 
-        extra_noise = sqrt(self['target_noise']**2 - self['noise']**2)
+        noise = self.sim['noise']
+
+        extra_noise = sqrt(self['target_noise']**2 - noise**2)
         self['extra_noise'] = extra_noise
 
         print("    adding noise to zero noise image:",self['extra_noise'])
 
 
+class MaxMetacalMetanoiseFitter(MaxMetacalFitter):
+    """
+    degrade the images
+    """
+
+    def _setup(self, *args, **kw):
+        super(MaxMetacalMetanoiseFitter,self)._setup(*args, **kw)
+
+        print("nrand:",self['nrand'])
+        assert self['nrand'] >= 1,"bad nrand: %s" % self['nrand']
+
+        noise = self.sim['noise']
+        target_noise = noise*sqrt(self['nrand'])
+
+        extra_noise = sqrt(target_noise**2 - noise**2)
+        self['extra_noise'] = extra_noise
+
+        print("    original noise:",self['noise'])
+        print("    adding noise to zero noise image:",self['extra_noise'])
+
+    def _do_fits(self, obs):
+        """
+        the basic fitter for this class
+        """
+        step = self['metacal_pars']['step']
+
+        intpars=self.get('intpars',None) 
+
+        boot=ngmix.Bootstrapper(obs, use_logpars=self['use_logpars'],intpars=intpars)
+
+        psf_Tguess=self.sim.get('psf_T',4.0)
+        ppars=self['psf_pars']
+
+        psf_fit_pars = ppars.get('fit_pars',None)
+    
+        try:
+            boot.fit_psfs(ppars['model'], psf_Tguess, ntry=ppars['ntry'],fit_pars=psf_fit_pars)
+        except BootPSFFailure:
+            raise TryAgainError("failed to fit psf")
+
+        if False:
+            self._compare_psf_obs_fit(boot.mb_obs_list[0][0].psf,
+                                      label1='psf',label2='model')
+
+        maxfit_conf=self['max_pars']
+
+        try:
+            boot.fit_max(self['fit_model'],
+                         maxfit_conf['pars'],
+                         prior=self.prior,
+                         ntry=maxfit_conf['ntry'])
+
+
+            if maxfit_conf['pars']['method']=='lm':
+                boot.try_replace_cov(maxfit_conf['cov_pars'])
+
+            print("    adding extra noise:",
+                  self['extra_noise'], "nrand:",self['nrand'])
+
+            boot.fit_metacal_metanoise_max(ppars['model'],
+                                           self['fit_model'],
+                                           maxfit_conf['pars'],
+                                           psf_Tguess,
+                                           self['extra_noise'],
+                                           self['nrand'],
+                                           psf_fit_pars=psf_fit_pars,
+                                           step=step,
+                                           prior=self.prior,
+                                           ntry=maxfit_conf['ntry'],
+                                           psf_ntry=ppars['ntry'],
+                                           verbose=False)
+
+
+        except BootPSFFailure:
+            raise TryAgainError("failed to fit metacal psfs")
+        except BootGalFailure:
+            raise TryAgainError("failed to fit metacal metanoise galaxy")
+
+        fitter=boot.get_max_fitter() 
+        res=fitter.get_result()
+
+        mres = boot.get_metacal_metanoise_max_result()
+        res.update(mres)
+
+        return {'fitter':fitter,
+                'boot':boot,
+                'res':res}
 
 class MaxMetacalFitterDegradeGSOld(MaxMetacalFitterDegrade):
     """
@@ -915,13 +988,8 @@ class AdmomMetacalFitter(MaxMetacalFitter):
 
         res['s2n_w'] = res['s2n']
 
-        psf_flux_res={'psf_flux':-9999.0,
-                      'psf_flux_err':9999.0}
-
         reswrap=MomWrapper(res)
-        return {'fitter':reswrap,
-                'res':res,
-                'psf_flux_res':psf_flux_res}
+        return {'fitter':reswrap, 'res':res}
 
     def _fit_psf(self, obs):
         import admom
@@ -954,7 +1022,181 @@ class AdmomMetacalFitter(MaxMetacalFitter):
     #    super(SimpleFitterBase,self)._copy_to_output(res, i)
 
 
-class MomMetacalFitter(MaxMetacalFitter):
+class MomMetacalMetanoiseFitter(MaxMetacalFitter):
+    def _setup(self, *args, **kw):
+        super(MomMetacalMetanoiseFitter,self)._setup(*args, **kw)
+
+        print("nrand:",self['nrand'])
+        assert self['nrand'] >= 1,"bad nrand: %s" % self['nrand']
+
+        noise = self.sim['noise']
+        target_noise = noise*sqrt(self['nrand'])
+
+        extra_noise = sqrt(target_noise**2 - noise**2)
+        self['extra_noise'] = extra_noise
+
+        print("    original noise:",self['noise'])
+        print("    adding noise to zero noise image:",self['extra_noise'])
+
+    def _do_fits(self, obs_orig):
+
+        jacobian = obs_orig.jacobian
+
+        res={'flags':0}
+        # first do a fit with em to the original obs
+        fitter = self._do_em_fit(obs_orig, ntry=10)
+
+        gm = fitter.get_gmix()
+        gm.set_psum(obs_orig.image_nonoise.sum())
+        emres=fitter.get_result()
+
+        gmround = gm.make_round()
+
+        res['s2n_w'] = gm.get_model_s2n(obs_orig)
+        res['mcal_s2n_r'] = gmround.get_model_s2n(obs_orig)
+        res['mcal_T_r'] = gmround.get_T()
+
+        cen=gm.get_cen()
+        e1,e2,T=gm.get_e1e2T()
+        res['pars'] = array([cen[0],cen[1],e1,e2,T,1.0])
+        res['pars_cov'] = zeros( (6,6) ) - 9999.0
+        res['pars_err'] = zeros(6) - 9999.0
+        res['g'] = array([e1,e2])
+        res['g_cov'] = -9999.0
+        res['nfev'] = emres['numiter']
+        res['ntry'] = emres['ntry']
+
+        boot=ngmix.Bootstrapper(obs_orig)
+
+        step=self['metacal_pars']['step']
+        
+        if self['nrand'] is None:
+            print("no rand, faking")
+            obs_dict0=boot.get_metacal_obsdict(obs_orig,step)
+            obs_dict={}
+            for key in obs_dict0:
+                obslist=ngmix.ObsList()
+                obslist.append(obs_dict0[key])
+                obs_dict[key]=obslist
+        else:
+            obs_dict,obs_dict0 = boot.get_metanoise_obsdict(self['nrand'],
+                                                            self['extra_noise'],
+                                                            step)
+
+        psf_fitter = self._do_em_fit(obs_dict['1p'][0].psf, ntry=10)
+        psf_gmix = psf_fitter.get_gmix()
+        psf_gmix_round = psf_gmix.make_round()
+        res['mcal_psf_T_r'] = psf_gmix_round.get_T()
+        psf_e1,psf_e2,psf_T = psf_gmix.get_e1e2T()
+
+        # get centers from the dict0 (no noise added)
+        usum=0.0
+        vsum=0.0
+        Isum=0.0
+        cen_dict={}
+        for key in obs_dict0: 
+            obs = obs_dict0[key]
+
+            momres=gm.get_weighted_mom_sums(obs,find_cen=True)
+            if momres['flags'] != 0:
+                raise TryAgainError("could not find centers mom")
+
+            pars=momres['pars']
+            usum = pars[0]
+            vsum = pars[1]
+            Isum = pars[5]
+
+            if Isum ==0.0:
+                raise TryAgainError("zero Isum")
+
+            cen_dict[key] = (usum/Isum, vsum/Isum)
+        
+        gmuse = gm.copy()
+        pars={}
+
+        # average over randomizations
+        for key in obs_dict: 
+            im = 0.0*obs_dict[key][0].image
+
+            for obs in obs_dict[key]:
+                im += obs.image
+        
+            cen = cen_dict[key]
+            gmuse.set_cen(cen[0], cen[1])
+
+            nobs = Observation(im, jacobian=jacobian)
+            momres=gmuse.get_weighted_mom_sums(nobs,find_cen=False)
+            pars_sum = momres['pars']
+
+            wsum = momres['wsum']
+            Tsum = pars_sum[4] 
+            Isum = pars_sum[5]
+            if wsum==0.0 or Tsum == 0.0 or Isum==0.0:
+                raise TryAgainError("zero sums")
+            
+            pars_sum[0:0+2] *= (1.0/Isum)
+            pars_sum[2:2+2] *= (1.0/Tsum)
+            pars_sum[4] *= (1.0/Isum)
+            pars_sum[5] *= (1.0/wsum)
+ 
+            pars[key] = pars_sum
+
+        pars_mean = (pars['1p']+
+                     pars['1m']+
+                     pars['2p']+
+                     pars['2m'])/4.0
+        pars_cov_mean= zeros( (6,6) ) + -9999.0
+        pars_noshear = pars['noshear']
+
+        c = pars_mean[2:2+2] - pars_noshear[2:2+2]
+
+        R = zeros( (2,2) )
+        Rpsf = zeros(2) 
+
+        fac = 1.0/(2.0*step)
+        R[0,0] = (pars['1p'][2]-pars['1m'][2])*fac
+        R[0,1] = (pars['1p'][3]-pars['1m'][3])*fac
+        R[1,0] = (pars['2p'][2]-pars['2m'][2])*fac
+        R[1,1] = (pars['2p'][3]-pars['2m'][3])*fac
+
+        Rpsf[0] = (pars['1p_psf'][2]-pars['1m_psf'][2])*fac
+        Rpsf[1] = (pars['2p_psf'][3]-pars['2m_psf'][3])*fac
+
+        Rpsf[0] *= psf_e1
+        Rpsf[1] *= psf_e2
+
+        tres = {'mcal_pars_mean':pars_mean,
+                'mcal_pars_mean_cov':pars_cov_mean,
+                'mcal_g_mean':pars_mean[2:2+2],
+                'mcal_g_cov':pars_cov_mean[2:2+2, 2:2+2],
+                'mcal_pars_noshear':pars_noshear,
+                'mcal_c':c,
+                'mcal_g_sens':R,
+                'mcal_psf_sens':Rpsf}
+
+        res.update(tres)
+
+        reswrap=MomWrapper(res)
+        return {'fitter':reswrap, 'boot':None, 'res':res}
+
+    def _do_em_fit(self, obs, ntry=10):
+        from ngmix.bootstrap import EMRunner
+
+        empars={'maxiter':4000, 'tol':1.0e-6}
+        Tguess=8.0*(1.0 + 0.1*srandu())
+        ngauss=1
+        runner=EMRunner(obs, Tguess, ngauss, empars)
+
+        runner.go(ntry=ntry)
+
+        fitter=runner.get_fitter()
+        res=fitter.get_result()
+        if res['flags'] != 0:
+            raise TryAgainError("em gal failed")
+
+        return fitter
+
+
     def _do_one_fit(self, obs, ntry=None, **kw):
         """
         note guess= is ignored
@@ -991,19 +1233,22 @@ class MomMetacalFitter(MaxMetacalFitter):
 
         res['s2n_w'] = res['pars'][5]/res['pars_err'][5]
 
-        psf_flux_res={'psf_flux':-9999.0,
-                      'psf_flux_err':9999.0}
 
         reswrap=MomWrapper(res)
-        return {'fitter':reswrap,
-                'res':res,
-                'psf_flux_res':psf_flux_res}
+        return {'fitter':reswrap, 'res':res}
 
     def _get_sensitivity_model(self, obs, fitter):
         return zeros(2)-9999.0
 
     #def _copy_to_output(self, res, i):
     #    super(SimpleFitterBase,self)._copy_to_output(res, i)
+
+class MomMetacalFitter(MomMetacalMetanoiseFitter):
+    def _setup(self, *args, **kw):
+        super(MomMetacalMetanoiseFitter,self)._setup(*args, **kw)
+
+        self['nrand']=None
+        self['extra_noise']=None
 
 
 class MomWrapper(object):
@@ -1129,10 +1374,9 @@ class ISampleMetacalFitter(MaxMetacalFitter):
         res=fitter.get_result()
         res.update(sdict)
 
-        psf_flux_res=mdict['psf_flux_res']
         self.fitter=fitter
 
-        return fitter, psf_flux_res
+        return fitter
 
     def _do_one_fit(self, obs, ntry=None, **kw):
         mconf=self['max_pars']
@@ -1141,7 +1385,6 @@ class ISampleMetacalFitter(MaxMetacalFitter):
 
         # this does the max like fit only
         mdict = super(ISampleMetacalFitter,self)._do_one_fit(obs, ntry=ntry)
-        psf_flux_res = mdict['psf_flux_res']
         boot= mdict['boot']
 
         ipars=self['isample_pars']
@@ -1163,8 +1406,7 @@ class ISampleMetacalFitter(MaxMetacalFitter):
 
         return {'fitter':sampler,
                 'boot':boot,
-                'res':res,
-                'psf_flux_res':psf_flux_res}
+                'res':res}
 
     def _do_one_fit_old(self, obs, ntry=None, **kw):
         """
@@ -1218,8 +1460,6 @@ class ISampleMetacalFitterNearest(MaxMetacalFitter):
         obs=imdict['obs']
         mobs = self._get_metacal_obs_noshear(obs)
 
-        # first fit original data
-        #sampler, psf_flux_res = self._do_one_fit(obs)
 
         # now convolved by dilated psf
         sampler_mcal, pres_mcal = self._do_one_fit(mobs)
@@ -1255,8 +1495,7 @@ class ISampleMetacalFitterNearest(MaxMetacalFitter):
         res['model'] = maxres['model']
         res['s2n_w'] = maxres['s2n_w']
 
-        psf_flux_res=mdict['psf_flux_res']
-        return sampler, psf_flux_res
+        return sampler
 
     def _get_metacal_obs_noshear(self, obs):
         """
@@ -1484,7 +1723,7 @@ class ISampleGaussMom(MaxFitter):
         mobs = self._get_metacal_obs_noshear(obs)
 
         # first fit original data
-        sampler, psf_flux_res = self._do_one_fit(obs)
+        sampler = self._do_one_fit(obs)
 
         # now convolved by dilated psf
         sampler_mcal, pres_mcal = self._do_one_fit(mobs)
@@ -1495,7 +1734,7 @@ class ISampleGaussMom(MaxFitter):
         res['pars_conv'] = mres['pars']
         res['pars_conv_cov'] = mres['pars_cov']
 
-        return sampler, psf_flux_res
+        return sampler
 
     def _do_one_fit(self, obs):
         """
@@ -1524,7 +1763,6 @@ class ISampleGaussMom(MaxFitter):
 
         mfitter=boot.get_max_fitter() 
         mres=mfitter.get_result()
-        psf_flux_res = boot.get_psf_flux_result()
 
         ipars=self['isample_pars']
 
@@ -1539,7 +1777,7 @@ class ISampleGaussMom(MaxFitter):
         res['model'] = mres['model']
         res['s2n_w'] = mres['s2n_w']
 
-        return sampler, psf_flux_res
+        return sampler
 
     def _get_metacal_obs_noshear(self, obs):
         """
@@ -1625,9 +1863,6 @@ class ISampleGaussMom(MaxFitter):
         npars=self['npars']
         dt=FitterBase._get_dtype(self)
         dt += [
-            ('psf_flux','f8'),
-            ('psf_flux_err','f8'),
-            ('psf_flux_s2n','f8'),
             ('pars','f8',npars),
             ('pcov','f8',(npars,npars)),
             ('pars_conv','f8',npars),
@@ -1643,10 +1878,6 @@ class ISampleGaussMom(MaxFitter):
         FitterBase._copy_to_output(self, res, i)
 
         d=self.data
-
-        d['psf_flux'][i] = res['psf_flux']
-        d['psf_flux_err'][i] = res['psf_flux_err']
-        d['psf_flux_s2n'][i] = res['psf_flux_s2n']
 
         d['pars'][i,:] = res['pars']
         d['pcov'][i,:,:] = res['pars_cov']
@@ -1672,7 +1903,7 @@ class ISampleGaussMomMetacal(ISampleGaussMom):
         obs=imdict['obs']
 
         # first fit original data
-        sampler, psf_flux_res = self._do_one_fit(obs)
+        sampler = self._do_one_fit(obs)
 
         sres = self._get_sensitivity(obs)
 
@@ -1683,7 +1914,7 @@ class ISampleGaussMomMetacal(ISampleGaussMom):
         res['sens'] = sres['sens']
         print_pars(res['sens'], front="        sensitivity:")
 
-        return sampler, psf_flux_res
+        return sampler
 
     def _get_sensitivity(self, obs):
         """
@@ -1746,9 +1977,6 @@ class ISampleGaussMomMetacal(ISampleGaussMom):
         npars=self['npars']
         dt=FitterBase._get_dtype(self)
         dt += [
-            ('psf_flux','f8'),
-            ('psf_flux_err','f8'),
-            ('psf_flux_s2n','f8'),
             ('pars','f8',npars),
             ('pcov','f8',(npars,npars)),
             ('pars_noshear','f8',npars),
@@ -1764,10 +1992,6 @@ class ISampleGaussMomMetacal(ISampleGaussMom):
         super(SimpleFitterBase,self)._copy_to_output(res, i)
 
         d=self.data
-
-        d['psf_flux'][i] = res['psf_flux']
-        d['psf_flux_err'][i] = res['psf_flux_err']
-        d['psf_flux_s2n'][i] = res['psf_flux_s2n']
 
         d['pars'][i,:] = res['pars']
         d['pcov'][i,:,:] = res['pars_cov']
@@ -1830,7 +2054,6 @@ class PSampleGaussMom(ISampleGaussMom):
 
         mfitter=boot.get_max_fitter() 
         mres=mfitter.get_result()
-        psf_flux_res = boot.get_psf_flux_result()
 
         ipars=self['isample_pars']
 
@@ -1852,7 +2075,7 @@ class PSampleGaussMom(ISampleGaussMom):
         res['model'] = mres['model']
         res['s2n_w'] = mres['s2n_w']
 
-        return sampler, psf_flux_res
+        return sampler
 
 
     def _add_mcmc_stats(self, sampler):
@@ -1943,9 +2166,6 @@ class PSampleGaussMom(ISampleGaussMom):
         npars=self['npars']
         dt=FitterBase._get_dtype(self)
         dt += [
-            ('psf_flux','f8'),
-            ('psf_flux_err','f8'),
-            ('psf_flux_s2n','f8'),
             ('pars','f8',npars),
             ('pcov','f8',(npars,npars)),
             ('s2n_w','f8'),
@@ -1965,10 +2185,6 @@ class PSampleGaussMom(ISampleGaussMom):
 
         d=self.data
 
-        d['psf_flux'][i] = res['psf_flux']
-        d['psf_flux_err'][i] = res['psf_flux_err']
-        d['psf_flux_s2n'][i] = res['psf_flux_s2n']
-
         d['pars'][i,:] = res['pars']
         d['pcov'][i,:,:] = res['pars_cov']
 
@@ -1982,21 +2198,50 @@ class PSampleGaussMom(ISampleGaussMom):
 
 
 class EMMetacalFitter(MaxMetacalFitter):
+    """
+    this is not finished
+    """
+    def _setup(self, *args, **kw):
+        super(EMMetacalFitter,self)._setup(*args, **kw)
+
+        print("nrand:",self['nrand'])
+        assert self['nrand'] >= 1,"bad nrand: %s" % self['nrand']
+
+        noise = self.sim['noise']
+        target_noise = noise*sqrt(self['nrand'])
+
+        extra_noise = sqrt(target_noise**2 - noise**2)
+        self['extra_noise'] = extra_noise
+
+        print("    original noise:",self['noise'])
+        print("    adding noise to zero noise image:",self['extra_noise'])
+
+
+    def _do_fits(self, obs):
+        boot=ngmix.Bootstrapper(obs)
+
+        step=self['metacal_pars']['step']
+        mcal_obs_dict = boot.get_metanoise_obsdict(self['nrand'],
+                                                   self['extra_noise'],
+                                                   step)
+
+
+    def _do_em_fit(self, obs, guess=None):
+        if guess is None:
+            dims=numpy.array(obs.image.shape)
+            cen= (dims-1)/2.0
+            g1,g2 = 0.05*srandu(2)
+            T = 4.0*(1.0 + 0.1*srandu())
+            p = 1.0 + 0.1*srandu()
+            guess = ngmix.GMixModel([cen[0],cen[1],g1,g2,T,p],"gauss")
+        
+        fitter = ngmix.em.fit_em(obs, guess, maxiter=4000)
 
     def _do_one_fit(self, obs, guess=None, ntry=None):
         from ngmix.em import GMixEM, prep_image
         from ngmix.bootstrap import EMRunner
 
         boot=None
-        psf_flux_res={'psf_flux':-9999.0,
-                      'psf_flux_err':9999.0}
-
-        #if guess is not None:
-        #    raise RuntimeError("support geuss")
-        #    mdict = self._do_one_fit_with_guess(obs, guess)
-        #    fitter=mdict['fitter']
-        #    if ok:
-        #        return boot, fitter, psf_flux_res
 
         emconf = self['em_pars']
         ngauss = emconf['ngauss']
@@ -2021,8 +2266,7 @@ class EMMetacalFitter(MaxMetacalFitter):
 
         return {'boot':boot,
                 'fitter':fitter,
-                'res':res,
-                'psf_flux_res':psf_flux_res}
+                'res':res}
 
     def _do_one_fit_with_guess(self, obs, guess):
         from ngmix.em import GMixEM, prep_image

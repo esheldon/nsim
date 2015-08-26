@@ -120,6 +120,8 @@ new style simgs
 - run-ggnr03mcal-03
     - bnl
     - prior ba width 0.3
+- run ggnr03zmcal-degrade05
+    - to go with above
 
 - idea instead of using deep data
     - do metacal operations, get obs

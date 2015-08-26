@@ -363,7 +363,7 @@ def write_fits(filename, data):
 
     return success
 
-def get_weights(data,SN=0.24,type='noise'):
+def get_weights(data,SN=0.24,field='g_cov',type='noise'):
     """
     Using Ts2n weights seems to  help when there is a mixture
     of exp and dev, essentially downweighting dev
@@ -373,10 +373,21 @@ def get_weights(data,SN=0.24,type='noise'):
         print("using SN:",SN)
         denom = (
             2*SN**2
-            + data['g_cov'][:,0,0]
-            + 2*data['g_cov'][:,0,1]
-            + data['g_cov'][:,1,1]
+            + data[field][:,0,0]
+            + 2*data[field][:,0,1]
+            + data[field][:,1,1]
         )
+        wts = 1.0/denom
+
+    elif type == 's2n':
+        # this should be tuned for different data sets
+        #y = p0*x + p1
+        p0 = -0.00386877854321
+        p1 = 0.143829528032
+
+        err_per_component = p0*data[field] + p1
+
+        denom = ( 2*SN**2 + 2*err_per_component**2 )
         wts = 1.0/denom
 
     elif type is None:

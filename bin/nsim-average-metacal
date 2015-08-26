@@ -3,7 +3,7 @@ from __future__ import print_function
 import sys
 import os
 import numpy
-from numpy import sqrt, array, diag, ones, zeros, where
+from numpy import sqrt, array, diag, ones, zeros, where, newaxis
 
 import fitsio
 
@@ -24,6 +24,9 @@ parser.add_argument('--sens-field',default='mcal_g_sens',
                   help="the field to use for sensitivity")
 parser.add_argument('--psf-sens-field',default='mcal_psf_sens',
                   help="the field to use for psf sensitivity")
+
+parser.add_argument('--weights', help="use the specified weighting")
+
 
 
 parser.add_argument('--show',action='store_true',
@@ -62,7 +65,24 @@ def get_chunk_info(nrows):
     return nchunks
 
 def get_shear_stats(conf, data, deep_data, args):
+    from nsim.util import get_weights
 
+    SN2=0.24**2
+
+    if args.weights == 'noise':
+        weights = get_weights(data, field='mcal_g_cov', type=args.weights)
+        dweights = get_weights(deep_data, field='mcal_g_cov', type=args.weights)
+    elif args.weights == 's2n':
+        weights = get_weights(data, field='mcal_s2n_r', type=args.weights)
+        dweights = get_weights(deep_data, field='mcal_s2n_r', type=args.weights)
+    elif args.weights is None:
+        weights = ones(data.size)
+        dweights = ones(deep_data.size)
+    else:
+        raise ValueError("bad weights: '%s'" % args.weights)
+
+    wsum=weights.sum()
+    dwsum=dweights.sum()
 
     npair=data.size/2
     #jchunksize = npair/1000
@@ -78,7 +98,8 @@ def get_shear_stats(conf, data, deep_data, args):
     g = data[args.gfield].copy()
     if args.psf_sens_field in deep_data.dtype.names:
         print("        subtracting psf sensitivity")
-        pcorr = deep_data[args.psf_sens_field].mean(axis=0)
+        #pcorr = deep_data[args.psf_sens_field].mean(axis=0)
+        pcorr = (dweights[:,newaxis]*deep_data[args.psf_sens_field]).sum(axis=0)/dwsum
         g -= pcorr
 
         #print("        subtracting c")
@@ -87,16 +108,20 @@ def get_shear_stats(conf, data, deep_data, args):
 
     sfield=args.sens_field
 
+    #smean = deep_data[sfield].mean(axis=0)
+    smean = (dweights[:,newaxis,newaxis]*deep_data[sfield]).sum(axis=0)/dwsum
+
     g_sens = numpy.zeros( (data.size, 2, 2) )
-    g_sens[:,0, 0] = deep_data[sfield][:, 0, 0].mean()
-    g_sens[:,0, 1] = deep_data[sfield][:, 0, 1].mean()
-    g_sens[:,1, 0] = deep_data[sfield][:, 1, 0].mean()
-    g_sens[:,1, 1] = deep_data[sfield][:, 1, 1].mean()
+    g_sens[:,0, 0] = smean[0,0]
+    g_sens[:,0, 1] = smean[0,1]
+    g_sens[:,1, 0] = smean[1,0]
+    g_sens[:,1, 1] = smean[1,1]
 
 
     res = ngmix.metacal.jackknife_shear(g,
                                         g_sens,
                                         chunksize=jchunksize,
+                                        weights=weights,
                                         do_ring=do_ring)
 
 

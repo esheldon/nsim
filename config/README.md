@@ -116,12 +116,24 @@ new style simgs
     - same as run-ggnr03mcal-t06 but longer run
         meas: 0.0797925 +/- 5.2574e-05, -2.88243e-05 +/- 5.28331e-05
         fracdiff: -2.59e-03 +/- 6.57e-04
+      weighting according to mcal_s2n_r
+        meas: 0.0797679 +/- 5.25903e-05, 2.58094e-05 +/- 5.28812e-05
+        fracdiff: -2.90e-03 +/- 6.57e-04
 
+
+- run ggnr03zmcal-degrade05
+    - bnl
+    - prior ba width 0.3
 - run-ggnr03mcal-03
     - bnl
     - prior ba width 0.3
-- run ggnr03zmcal-degrade05
-    - to go with above
+        meas: 0.0798205 +/- 5.29889e-05, 3.27795e-05 +/- 5.25502e-05
+        fracdiff: -2.24e-03 +/- 6.62e-04
+      weighting according to mcal_s2n_r
+
+        meas: 0.0798439 +/- 5.29084e-05, 2.167e-05 +/- 5.24354e-05
+        fracdiff: -1.95e-03 +/- 6.61e-04
+
 
 - idea instead of using deep data
     - do metacal operations, get obs
@@ -136,11 +148,13 @@ new style simgs
     - nrand 100 -> noise_target sqrt(100)=10 times original noise
     - expect this is ten times more noisy than the degrade version
 
+
 - run-ggnr03mn-t02
     - moments, with metanoise
 - run-ggnr03mn-t03
     - moments, just very high s/n but no metanoise
     - ran this first
+        - horrible
 
 - deep data
     - run-bd01zmcal-degrade01

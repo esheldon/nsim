@@ -780,6 +780,91 @@ class MaxMetacalFitterDegradeGS(MaxMetacalFitterDegrade):
         print("    adding noise to zero noise image:",self['extra_noise'])
 
 
+class MaxMetacalMetanoiseFitter(MaxMetacalFitter):
+    """
+    degrade the images
+    """
+
+    def _setup(self, *args, **kw):
+        super(MaxMetacalMetanoiseFitter,self)._setup(*args, **kw)
+
+
+
+        s2n_target = float(self['s2n_target'][0])
+        self['noise_boost'] = self.sim['s2n_for_noise']/s2n_target
+        self['extra_noise'] = self.sim['noise']*self['noise_boost']
+
+        print("    boosting noise by",self['noise_boost'])
+
+    def _do_fits(self, obs):
+        """
+        the basic fitter for this class
+        """
+        intpars=self.get('intpars',None) 
+
+        boot=ngmix.Bootstrapper(obs, use_logpars=self['use_logpars'],intpars=intpars)
+
+        psf_Tguess=self.sim.get('psf_T',4.0)
+        ppars=self['psf_pars']
+
+        psf_fit_pars = ppars.get('fit_pars',None)
+    
+        try:
+            boot.fit_psfs(ppars['model'], psf_Tguess, ntry=ppars['ntry'],fit_pars=psf_fit_pars)
+        except BootPSFFailure:
+            raise TryAgainError("failed to fit psf")
+
+        if False:
+            self._compare_psf_obs_fit(boot.mb_obs_list[0][0].psf,
+                                      label1='psf',label2='model')
+
+        maxfit_conf=self['max_pars']
+
+        try:
+            #print("    doing fit max")
+            boot.fit_max(self['fit_model'],
+                         maxfit_conf['pars'],
+                         prior=self.prior,
+                         ntry=maxfit_conf['ntry'])
+
+
+            if maxfit_conf['pars']['method']=='lm':
+                boot.try_replace_cov(maxfit_conf['cov_pars'])
+
+            print("    adding extra noise:",
+                  self['extra_noise'], "nrand:",self['nrand'])
+
+            boot.fit_metacal_metanoise_max(ppars['model'],
+                                           self['fit_model'],
+                                           maxfit_conf['pars'],
+                                           psf_Tguess,
+                                           self['extra_noise'],
+                                           self['nrand'],
+                                           psf_fit_pars=psf_fit_pars,
+                                           step=self['step'],
+                                           prior=self.prior,
+                                           ntry=maxfit_conf['ntry'],
+                                           psf_ntry=ppars['ntry'],
+                                           verbose=False)
+
+
+        except BootPSFFailure:
+            raise TryAgainError("failed to fit metacal psfs")
+        except BootGalFailure:
+            raise TryAgainError("failed to fit galaxy")
+
+        fitter=boot.get_max_fitter() 
+        res=fitter.get_result()
+
+        mres = boot.get_metacal_metanoise_max_result()
+        res.update(mres)
+
+        psf_flux_res = boot.get_psf_flux_result()
+
+        return {'fitter':fitter,
+                'boot':boot,
+                'res':res,
+                'psf_flux_res':psf_flux_res}
 
 class MaxMetacalFitterDegradeGSOld(MaxMetacalFitterDegrade):
     """

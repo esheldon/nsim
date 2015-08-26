@@ -4,7 +4,8 @@ todo
 - do a low noise test with metacal, deep data, ggnr03
     - never pushed this error down.  Might be there is just a bias
         in here due to something (high shear?)
-
+- do a degrade run with noise=0.1
+    - same as degrade05 but with more noise
 - is there anything to this averaging g and mcal_g?
     - both of these runs are unbiased when averaging
         run-ggnr03mcal-02

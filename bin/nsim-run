@@ -133,8 +133,25 @@ def run_sim(sim_conf,
         else:
             fitclass=nsim.fitters.MaxMetacalFitterDegrade
 
+    elif ftype=='metacal-metanoise-max':
+        if simtype=='galsim':
+            fitclass=nsim.fitters.MaxMetacalMetanoiseFitter
+        else:
+            raise RuntimeError("don't have metanoise for ngmix sim yet")
+
+    elif ftype=='metacal-metanoise-mom':
+        if simtype=='galsim':
+            fitclass=nsim.fitters.MomMetacalMetanoiseFitter
+        else:
+            raise RuntimeError("don't have metanoise for ngmix sim yet")
+
+
+
     elif ftype=='metacal-mom':
-        fitclass=nsim.fitters.MomMetacalFitter
+        if simtype=='galsim':
+            fitclass=nsim.fitters.MomMetacalFitter
+        else:
+            raise RuntimeError("don't have mom metacal for ngmix sim yet")
 
     elif ftype=='metacal-admom':
         fitclass=nsim.fitters.AdmomMetacalFitter

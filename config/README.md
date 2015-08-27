@@ -33,14 +33,7 @@ sim-bd01 and sim-bd01z
 using galsim to do Gary's bulge+disk sim
 
 - current state
-    - in gauss-gauss sims I'm seeing additive in the measurement but not
-        in Rpsf from the deep data
-        - was caused by not adding noise to the sheared psf images
-    - saw interesting result with 100,000 deep galaxies and 160
-        noise realizations (run-ggnr02mcal-t04).  Doing longer run
-        run-ggnr02mcal-01
-    - if looks good, do sim-bd01 runs.  Use high shear for now, 0.08
-
+    - using noise 0.1 in deep fields brings the calibrations closer
 
 
 new style simgs
@@ -56,148 +49,174 @@ new style simgs
     - adjusted so that, for noise=1.0, mean s2n is about 12.5 with
         scatter 5
 
-- run-ggnr03zmcal-degrade01
-    - noise 0.001
-    - nrand 360
+    - run-ggnr03zmcal-degrade01
+        - noise 0.001
+        - nrand 360
 
-- run-ggnr03mcal-t01
-    - noise 1.0
-    - 2,000,000
-        meas: 0.0798909 +/- 0.000171054, -8.26837e-05 +/- 0.000168065
-        fracdiff: -1.36e-03 +/- 2.14e-03
+    - run-ggnr03mcal-t01
+        - noise 1.0
+        - 2,000,000
+            meas: 0.0798909 +/- 0.000171054, -8.26837e-05 +/- 0.000168065
+            fracdiff: -1.36e-03 +/- 2.14e-03
 
-- run-ggnr03mcal-01
-    - noise 1.0
-    - 20,000,000
-        meas: 0.0794356 +/- 5.24952e-05, -0.000139687 +/- 5.5112e-05
-        fracdiff: -7.05e-03 +/- 6.56e-04
-    - this is 2.7 sigma from the previous one
+    - run-ggnr03mcal-01
+        - noise 1.0
+        - 20,000,000
+            meas: 0.0794356 +/- 5.24952e-05, -0.000139687 +/- 5.5112e-05
+            fracdiff: -7.05e-03 +/- 6.56e-04
+        - this is 2.7 sigma from the previous one
 
-- run-ggnr03mcal-t01 revisit
-    - run at slac and see if we get a bias
-    - whoops, ran t01 instead
-        - yep, much bigger bias. What happened?
-- run-ggnr03mcal-t02
-    - at bnl
+    - run-ggnr03mcal-t01 revisit
+        - run at slac and see if we get a bias
+        - whoops, ran t01 instead
+            - yep, much bigger bias. What happened?
+    - run-ggnr03mcal-t02
+        - at bnl
 
-    meas: 0.0793634 +/- 0.00017042, -0.000232593 +/- 0.00017038
-    fracdiff: -7.96e-03 +/- 2.13e-03
+        meas: 0.0793634 +/- 0.00017042, -0.000232593 +/- 0.00017038
+        fracdiff: -7.96e-03 +/- 2.13e-03
 
-- low s/n runs
-    - noise 0.1 
-    - run-ggnr03zmcal-degrade02
-    - run-ggnr03mcal-t03
-        meas: 0.0799988 +/- 0.000129255, -0.000120184 +/- 0.00011995
-        fracdiff: -1.55e-05 +/- 1.62e-03
+    - low s/n runs
+        - noise 0.1 
+        - run-ggnr03zmcal-degrade02
+        - run-ggnr03mcal-t03
+            meas: 0.0799988 +/- 0.000129255, -0.000120184 +/- 0.00011995
+            fracdiff: -1.55e-05 +/- 1.62e-03
 
-    - I was surprised that the mean came out fracdiff -0.0258 before
-        correction, at <s/n>=125.  Maybe related to the prior bug?
-        - yes I did a deep run and it was OK (sens=1)
+        - I was surprised that the mean came out fracdiff -0.0258 before
+            correction, at <s/n>=125.  Maybe related to the prior bug?
+            - yes I did a deep run and it was OK (sens=1)
 
-- had a bug in the prior, assumed linear transformation between
-    r50 and T but there is a square
-    - still, metacal should have fixed it.  Maybe the priors
-        need to be broader
-    - or maybe the "same noise" feature of the deep data only
-        works if the priors are accurate
-    - maybe will need to do not-same-noise deep data, with even
-        more randoms. can try 160 for now but note it will be much slower,
-        since we are limited by the metacal step ( for same noise we add noise
-        to the metacal'd images).
+    - had a bug in the prior, assumed linear transformation between
+        r50 and T but there is a square
+        - still, metacal should have fixed it.  Maybe the priors
+            need to be broader
+        - or maybe the "same noise" feature of the deep data only
+            works if the priors are accurate
+        - maybe will need to do not-same-noise deep data, with even
+            more randoms. can try 160 for now but note it will be much slower,
+            since we are limited by the metacal step ( for same noise we add noise
+            to the metacal'd images).
 
-- run-ggnr03zmcal-degrade03
-    - still noise=0.1
-    - slac
-- run-ggnr03mcal-t04
-    - still noise=0.1
-    - bnl
-    - the T distribution is wrong, pushed to higher values
+    - run-ggnr03zmcal-degrade03
+        - still noise=0.1
+        - slac
+    - run-ggnr03mcal-t04
+        - still noise=0.1
+        - bnl
+        - the T distribution is wrong, pushed to higher values
 
-- run-ggnr03mcal-t05
-    - noise=0.001
-    - broad T prior
-    - bnl
+    - run-ggnr03mcal-t05
+        - noise=0.001
+        - broad T prior
+        - bnl
 
-- forgot that galsim takes the size of the *round* object!  This is
-    why the measured values at high s/n are different than I would
-    predict
+    - forgot that galsim takes the size of the *round* object!  This is
+        why the measured values at high s/n are different than I would
+        predict
 
-- run-ggnr03zmcal-degrade04
-    - bnl (git not working at slac)
-    - noise 1.0
-    - broader T prior
+    - run-ggnr03zmcal-degrade04
+        - bnl (git not working at slac)
+        - noise 1.0
+        - broader T prior
 
-- run-ggnr03mcal-t06
-    - using deep run-ggnr03zmcal-degrade04
-    - bnl
-    - noise 1.0
-    - broader T prior
-        meas: 0.0800078 +/- 0.00016898, -8.85498e-05 +/- 0.00017174
-        fracdiff: 9.75e-05 +/- 2.11e-03
-- run-ggnr03mcal-t07
-    - using deep run-ggnr03zmcal-degrade04
-    - same as t06
-    meas: 0.0798671 +/- 0.000159583, 0.000103818 +/- 0.000167474
-    fracdiff: -1.66e-03 +/- 1.99e-03
+    - run-ggnr03mcal-t06
+        - using deep run-ggnr03zmcal-degrade04
+        - bnl
+        - noise 1.0
+        - broader T prior
+            meas: 0.0800078 +/- 0.00016898, -8.85498e-05 +/- 0.00017174
+            fracdiff: 9.75e-05 +/- 2.11e-03
+    - run-ggnr03mcal-t07
+        - using deep run-ggnr03zmcal-degrade04
+        - same as t06
+        meas: 0.0798671 +/- 0.000159583, 0.000103818 +/- 0.000167474
+        fracdiff: -1.66e-03 +/- 1.99e-03
 
-- run-ggnr03mcal-02
-    - bnl
-    - using deep run-ggnr03zmcal-degrade04
-    - same as run-ggnr03mcal-t06 but longer run
-        meas: 0.0797925 +/- 5.2574e-05, -2.88243e-05 +/- 5.28331e-05
-        fracdiff: -2.59e-03 +/- 6.57e-04
-      weighting according to mcal_s2n_r
-        meas: 0.0797679 +/- 5.25903e-05, 2.58094e-05 +/- 5.28812e-05
-        fracdiff: -2.90e-03 +/- 6.57e-04
-    - averaging g and mcal_g
-        fracdiff 6.09e-04 +/- 6.57e-04
+    - run-ggnr03mcal-02
+        - bnl
+        - using deep run-ggnr03zmcal-degrade04
+        - same as run-ggnr03mcal-t06 but longer run
+            meas: 0.0797925 +/- 5.2574e-05, -2.88243e-05 +/- 5.28331e-05
+            fracdiff: -2.59e-03 +/- 6.57e-04
+          weighting according to mcal_s2n_r
+            meas: 0.0797679 +/- 5.25903e-05, 2.58094e-05 +/- 5.28812e-05
+            fracdiff: -2.90e-03 +/- 6.57e-04
+        - averaging g and mcal_g
+            fracdiff 6.09e-04 +/- 6.57e-04
 
-- run ggnr03zmcal-degrade05
-    - bnl
-    - prior ba width 0.3
-- run-ggnr03mcal-03
-    - bnl
-    - prior ba width 0.3
+    - run ggnr03zmcal-degrade05
+        - bnl
+        - prior ba width 0.3
+    - run-ggnr03mcal-03
+        - bnl
+        - prior ba width 0.3
 
-    - using deep ggnr03zmcal-degrade05
-        meas: 0.0798205 +/- 5.29889e-05, 3.27795e-05 +/- 5.25502e-05
-        fracdiff: -2.24e-03 +/- 6.62e-04
-      weighting according to mcal_s2n_r
+        - using deep ggnr03zmcal-degrade05
+            meas: 0.0798205 +/- 5.29889e-05, 3.27795e-05 +/- 5.25502e-05
+            fracdiff: -2.24e-03 +/- 6.62e-04
+          weighting according to mcal_s2n_r
 
-        meas: 0.0798439 +/- 5.29084e-05, 2.167e-05 +/- 5.24354e-05
-        fracdiff: -1.95e-03 +/- 6.61e-04
-    - averaging g and mcal_g
-        fracdiff 4.46e-05 +/- 6.61e-04
+            meas: 0.0798439 +/- 5.29084e-05, 2.167e-05 +/- 5.24354e-05
+            fracdiff: -1.95e-03 +/- 6.61e-04
+        - averaging g and mcal_g
+            fracdiff 4.46e-05 +/- 6.61e-04
 
-    - using deep ggnr03zmcal-degrade06 with 0.1 noise
+        - using deep ggnr03zmcal-degrade06 with 0.1 noise
 
-        meas: 0.0799327 +/- 5.30626e-05, -0.000135928 +/- 5.26465e-05
-        fracdiff: -8.41e-04 +/- 6.63e-04
+            meas: 0.0799327 +/- 5.30626e-05, -0.000135928 +/- 5.26465e-05
+            fracdiff: -8.41e-04 +/- 6.63e-04
 
-      interesting.  And I used a factor of ten like this in my
-      other sims too, so maybe that helps.  But note the additive
-      blew up!  Maybe additive is better measured starting with less
-      noise?
-    - with mcal_s2n_r weights
+          interesting.  And I used a factor of ten like this in my
+          other sims too, so maybe that helps.  But note the additive
+          blew up!  Maybe additive is better measured starting with less
+          noise?
+        - with mcal_s2n_r weights
 
-        meas: 0.0799583 +/- 5.29835e-05, -0.000145665 +/- 5.25334e-05
-        fracdiff: -5.21e-04 +/- 6.62e-04
+            meas: 0.0799583 +/- 5.29835e-05, -0.000145665 +/- 5.25334e-05
+            fracdiff: -5.21e-04 +/- 6.62e-04
 
-- run-ggnr03mcal-04
-    - same as run-ggnr03mcal-03 to get more stats
+    - run-ggnr03mcal-04
+        - same as run-ggnr03mcal-03 to get more stats
+
+        - using deep ggnr03zmcal-degrade05
+            - no weights
+                meas: 0.0798354 +/- 5.36289e-05, 1.65783e-05 +/- 5.37265e-05
+                fracdiff: -2.06e-03 +/- 6.70e-04
+
+        - using deep ggnr03zmcal-degrade06 with 0.1 noise
+            - no weights
+
+            meas: 0.0799476 +/- 5.37044e-05, -0.000152168 +/- 5.38255e-05
+            fracdiff: -6.55e-04 +/- 6.71e-04
+
+            - mcal_s2n_r based weights
+                meas: 0.0799773 +/- 5.3624e-05, -0.000162499 +/- 5.37394e-05
+                fracdiff: -2.84e-04 +/- 6.70e-04
+
+    - combine 03 and 04
+        - weights
+        fracdiff: -4.03e-04 +/- 4.71e-04
+
+
+- sim-bd06
+- sim-bd06z
+    - elliptical gauss psf
+    - no shifts of center or bulge
+
+    - run-bd06max-lownoise01    
+        - for getting T prior
 
 
 
 
 
 
-- idea instead of using deep data
-    - do metacal operations, get obs
-    - add noise*x
-    - make new obslist with x^2 images, so we recover the original
-        s/n
-    - fit that
-        - need to make new bootstrapper?
+
+
+
+
+
 
 - run-ggnr03mn-t01
     - first metanoise run

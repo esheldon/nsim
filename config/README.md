@@ -221,9 +221,13 @@ the psf shape to [0,0.025]
             - intentionally broad prior
         - run-bd06mcal-t02
             - intentionally broad prior
+                meas: 0.0798944 +/- 0.000130532, 0.000160121 +/- 0.000123722
+                fracdiff: -1.32e-03 +/- 1.63e-03
 
     - the response will be slightly different in the zero shear sim because it has
       different ellipticities (not sheared!) and different sizes (not sheared!)
+        - we expect the sensitivity to be overestimated, since less ellip.
+            in the deep sims.
         - so the right thing to do in this unrealistic, constant shear situation
             is to shear the sim used to calculate the response
         - in a realistic sim with variable shear, we would also  have a deep field

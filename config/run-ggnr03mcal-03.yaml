@@ -8,7 +8,8 @@ g_prior_during: True
 use_logpars: True
 
 deep_data:
-  run: "run-ggnr03zmcal-degrade05"
+  run: "run-ggnr03zmcal-degrade06"
+  #run: "run-ggnr03zmcal-degrade05"
 
 # 1.0 gives mean s2n of ~12.5 with scatter 5 for the flux distribution in
 # the sim

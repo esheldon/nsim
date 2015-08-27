@@ -119,7 +119,7 @@ class SimGS(dict):
         # monkey patching
         obs.image_nonoise = image_nonoise
 
-        if False:
+        if False and s2n is None:
             self._compare_images(image_nonoise,image,label1='im',label2='noisy')
 
         return obs
@@ -253,6 +253,9 @@ class SimGS(dict):
         # if it matters
         if cenoff is not None:
             gal = gal.shift(dx=cenoff[0], dy=cenoff[1])
+
+        tup=(r50,cenoff)
+        print("    r50: %g cenoff: %s" % tup)
 
         return gal, pars
 
@@ -504,6 +507,9 @@ class SimBD(SimGS):
         if cenoff is not None:
             gal = gal.shift(dx=cenoff[0], dy=cenoff[1])
 
+        tup=(r50,fracdev,dev_offset,cenoff)
+        print("    r50: %g fracdev: %g dev_offset: %s cenoff: %s" % tup)
+
         return gal, pars
     '''
     def _get_gal_obj(self):
@@ -576,7 +582,7 @@ class SimBD(SimGS):
         super(SimBD,self)._set_pdfs()
 
         self._set_dev_offset_pdf()
-        self._set_fracdev_psf()
+        self._set_fracdev_pdf()
 
     def _set_dev_offset_pdf(self):
         ds_spec=self['obj_model']['dev_shift']

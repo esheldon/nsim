@@ -21,7 +21,10 @@ def main():
     run=args[0]
     conf = nsim.files.read_config(run)
 
-    ns2n = len(conf['s2n_vals'])
+    if 's2n_vals' in conf:
+        ns2n = len(conf['s2n_vals'])
+    else:
+        ns2n=1
 
     for is2n in xrange(ns2n):
         fname=nsim.files.get_averaged_url(run, is2n=is2n)

@@ -12,7 +12,7 @@ deep_data:
 
 # 1.0 gives mean s2n of ~12.3 with scatter 5 for the flux distribution in
 # the sim
-noise: 0.001
+noise: 0.01
 
 priors:
     cen:

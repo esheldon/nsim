@@ -156,9 +156,10 @@ new style simgs
     - bnl
     - prior ba width 0.3
 - run-ggnr03mcal-03
-    - deep ggnr03zmcal-degrade05
     - bnl
     - prior ba width 0.3
+
+    - using deep ggnr03zmcal-degrade05
         meas: 0.0798205 +/- 5.29889e-05, 3.27795e-05 +/- 5.25502e-05
         fracdiff: -2.24e-03 +/- 6.62e-04
       weighting according to mcal_s2n_r
@@ -167,6 +168,22 @@ new style simgs
         fracdiff: -1.95e-03 +/- 6.61e-04
     - averaging g and mcal_g
         fracdiff 4.46e-05 +/- 6.61e-04
+
+    - using deep ggnr03zmcal-degrade06 with 0.1 noise
+
+        meas: 0.0799327 +/- 5.30626e-05, -0.000135928 +/- 5.26465e-05
+        fracdiff: -8.41e-04 +/- 6.63e-04
+
+      interesting.  And I used a factor of ten like this in my
+      other sims too, so maybe that helps.  But note the additive
+      blew up.
+    - with mcal_s2n_r weights
+
+        meas: 0.0799583 +/- 5.29835e-05, -0.000145665 +/- 5.25334e-05
+        fracdiff: -5.21e-04 +/- 6.62e-04
+
+- run-ggnr03mcal-04
+    - same as run-ggnr03mcal-03 to get more stats
 
 - idea instead of using deep data
     - do metacal operations, get obs

@@ -222,9 +222,17 @@ the psf shape to [0,0.025]
         - run-bd06mcal-t02
             - intentionally broad prior
 
+    - the response will be slightly different in the zero shear sim because it has
+      different ellipticities (not sheared!) and different sizes (not sheared!)
+        - so the right thing to do in this unrealistic, constant shear situation
+            is to shear the sim used to calculate the response
+        - in a realistic sim with variable shear, we would also  have a deep field
+            with random variable shear and all would work out
+        - the whole noise adjustment thing was probably really making up
+            for this fact
 
-
-
+    - run-bd06mcal-degrade01
+        - this one using sheared sim
 
 
 

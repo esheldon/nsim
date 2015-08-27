@@ -1,0 +1,61 @@
+# this version uses sheared sim
+run: "run-bd06zmcal-degrade02"
+sim: "sim-bd06"
+
+fitter: "metacal-max-degrade"
+fit_model: "exp"
+
+g_prior_during: True
+use_logpars: True
+
+# 1.0 gives mean s2n of ~12.3 with scatter 5 for the flux distribution in
+# the sim
+
+noise: 0.001
+target_noise: 0.01
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    T:
+        # intentionally broader than reality
+        type: "lognormal"
+        mean: 7.7
+        sigma: 5.0
+
+    counts:
+        # we can use truth, no magnification is applied
+        type: "truth"
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+metacal_pars:
+    step: 0.01
+
+ngal: 100000
+nrand: 160
+
+desired_hours: 1.0
+sec_per: 0.11
+
+verbose: True
+
+#avg_s2n_r_range: [10,23]

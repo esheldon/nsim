@@ -1,5 +1,5 @@
 # this version uses sheared sim
-run: "run-bd06zmcal-degrade02"
+run: "run-bd06zmcal-degrade01"
 sim: "sim-bd06"
 
 fitter: "metacal-max-degrade"

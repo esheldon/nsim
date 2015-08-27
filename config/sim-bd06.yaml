@@ -20,7 +20,8 @@ psf:
 
     s2n: 10000.0
 
-    shape: [0.00, 0.05]
+    # gary used 0.05 in e, so 0.025 in g
+    shape: [0.00, 0.025]
 
 obj_model:
 

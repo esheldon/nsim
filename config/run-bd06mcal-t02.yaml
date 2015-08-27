@@ -52,7 +52,7 @@ metacal_pars:
 
 ngal: 2000000
 
-desired_hours: 0.5
+desired_hours: 0.70
 sec_per: 0.33
 
 verbose: True

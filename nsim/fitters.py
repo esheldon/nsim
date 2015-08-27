@@ -344,6 +344,13 @@ class SimpleFitterBase(FitterBase):
 
             else:
                 fit_T_prior = self.sim.T_pdf
+
+        elif Tp['type']=="gmixnd":
+
+            fit_T_prior=ngmix.gmix.GMixND()
+            fname=files.get_fitprior_url(Tp['run'], 0)
+            fit_T_prior.load_mixture(fname)
+
         elif Tp['type']=='normal':
             Tpars=Tp['pars']
             fit_T_prior=ngmix.priors.Normal(Tpars[0], Tpars[1])

@@ -198,15 +198,19 @@ new style simgs
         - weights
         fracdiff: -4.03e-04 +/- 4.71e-04
 
-
+Now for a tougher test
 - sim-bd06
 - sim-bd06z
     - elliptical gauss psf
     - no shifts of center or bulge
 
     - run-bd06max-lownoise01    
+        - exp
         - for getting T prior
 
+    - high s/n runs
+        - run-bd06zmcal-degrade01
+        - run-bd06mcal-t01
 
 
 

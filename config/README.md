@@ -176,7 +176,8 @@ new style simgs
 
       interesting.  And I used a factor of ten like this in my
       other sims too, so maybe that helps.  But note the additive
-      blew up.
+      blew up!  Maybe additive is better measured starting with less
+      noise?
     - with mcal_s2n_r weights
 
         meas: 0.0799583 +/- 5.29835e-05, -0.000145665 +/- 5.25334e-05
@@ -184,6 +185,11 @@ new style simgs
 
 - run-ggnr03mcal-04
     - same as run-ggnr03mcal-03 to get more stats
+
+
+
+
+
 
 - idea instead of using deep data
     - do metacal operations, get obs

@@ -95,7 +95,7 @@ class FitterBase(dict):
         perform the fit
         """
 
-        print("    ",imdict['obs'].image.shape)
+        print("   ",imdict['obs'].image.shape)
 
         fitter=self._dofit(imdict)
 

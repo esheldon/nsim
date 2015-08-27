@@ -2,7 +2,7 @@ run: "run-bd06max-lownoise01"
 sim: "sim-bd06"
 
 fitter: "max"
-fit_model: "gauss"
+fit_model: "exp"
 
 g_prior_during: True
 use_logpars: True
@@ -10,8 +10,6 @@ use_logpars: True
 deep_data:
   run: null
 
-# 1.0 gives mean s2n of ~12.5 with scatter 5 for the flux distribution in
-# the sim
 noise: 0.001
 
 priors:
@@ -51,7 +49,7 @@ metacal_pars:
 ngal: 2000000
 
 desired_hours: 0.1
-sec_per: 0.03
+sec_per: 0.04
 
 verbose: True
 

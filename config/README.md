@@ -199,6 +199,8 @@ new style simgs
         fracdiff: -4.03e-04 +/- 4.71e-04
 
 Now for a tougher test
+But since gary used e not g for psf, I have set
+the psf shape to [0,0.025]
 - sim-bd06
 - sim-bd06z
     - elliptical gauss psf
@@ -207,13 +209,18 @@ Now for a tougher test
     - run-bd06max-lownoise01    
         - exp
         - for getting T prior
+        - used bad prior
 
     - high s/n runs
-        - run-bd06zmcal-degrade01
-        - run-bd06mcal-t01
+        x run-bd06zmcal-degrade01
+            - don't use
+        x run-bd06mcal-t01
+            - don't use
 
-
-
+        - run-bd06zmcal-degrade02
+            - intentionally broad prior
+        - run-bd06mcal-t02
+            - intentionally broad prior
 
 
 

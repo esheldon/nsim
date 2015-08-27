@@ -228,6 +228,9 @@ the psf shape to [0,0.025]
       different ellipticities (not sheared!) and different sizes (not sheared!)
         - we expect the sensitivity to be overestimated, since less ellip.
             in the deep sims.
+        (- or I could have it completely backward: the reason we can't use the
+            sensitivities from the regular data is because it is sheared)
+        - might be somewhat overcome but using broad priors?  Not sure.
         - so the right thing to do in this unrealistic, constant shear situation
             is to shear the sim used to calculate the response
         - in a realistic sim with variable shear, we would also  have a deep field
@@ -236,7 +239,9 @@ the psf shape to [0,0.025]
             for this fact
 
     - run-bd06mcal-degrade01
-        - this one using sheared sim
+        - this one using sheared sim, noise 0.001 target 0.01
+    - run-bd06mcal-degrade02
+        - this one using sheared sim, noise 0.0001 target 0.01
 
 
 

@@ -9,6 +9,7 @@ use_logpars: True
 
 deep_data:
   run: "run-bd06zmcal-degrade02"
+  #run: "run-bd06mcal-degrade02"
 
 # 1.0 gives mean s2n of ~12.3 with scatter 5 for the flux distribution in
 # the sim

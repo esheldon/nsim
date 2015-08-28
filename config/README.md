@@ -221,8 +221,19 @@ the psf shape to [0,0.025]
             - intentionally broad prior
         - run-bd06mcal-t02
             - intentionally broad prior
+            - using run-bd06zmcal-degrade02
                 meas: 0.0798944 +/- 0.000130532, 0.000160121 +/- 0.000123722
                 fracdiff: -1.32e-03 +/- 1.63e-03
+                weighting (but note noise not tuned for this sim/gal model etc)
+                meas: 0.080089 +/- 0.000193841, 0.000230507 +/- 0.000192006
+                fracdiff: 1.11e-03 +/- 2.42e-03
+
+            - using run-bd06mcal-degrade01
+                meas: 0.0803432 +/- 0.000131261, 0.000111218 +/- 0.000122873
+                fracdiff: 4.29e-03 +/- 1.64e-03
+            - using run-bd06mcal-degrade02
+                meas: 0.0803638 +/- 0.000131301, 0.000180534 +/- 0.000122859
+                fracdiff: 4.55e-03 +/- 1.64e-03
 
     - the response will be slightly different in the zero shear sim because it has
       different ellipticities (not sheared!) and different sizes (not sheared!)
@@ -237,13 +248,19 @@ the psf shape to [0,0.025]
             with random variable shear and all would work out
         - the whole noise adjustment thing was probably really making up
             for this fact
+        - maybe shears of 0.08 but different random directions would be better?
 
     - run-bd06mcal-degrade01
         - this one using sheared sim, noise 0.001 target 0.01
     - run-bd06mcal-degrade02
         - this one using sheared sim, noise 0.0001 target 0.01
 
-
+    - low s/n runs
+        - run-bd06zmcal-degrade03
+            - 0.1 target 1.0
+        - run-bd06mcal-t03
+            - noise 1.0
+            - using deep run-bd06zmcal-degrade03
 
 
 - run-ggnr03mn-t01

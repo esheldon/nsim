@@ -69,15 +69,15 @@ def get_shear_stats(conf, data, deep_data, args):
 
     SN = conf.get('SN',0.24)
 
-    if args.weights == 'noise':
-        weights = get_weights(data, SN=SN, field='mcal_g_cov', type=args.weights)
-        dweights = get_weights(deep_data, SN=SN, field='mcal_g_cov', type=args.weights)
-    elif args.weights == 's2n':
-        weights = get_weights(data, SN=SN, field='mcal_s2n_r', type=args.weights)
-        dweights = get_weights(deep_data, SN=SN, field='mcal_s2n_r', type=args.weights)
-    elif args.weights is None:
+    if args.weights is None:
         weights = ones(data.size)
         dweights = ones(deep_data.size)
+    elif args.weights == 'noise':
+        weights = get_weights(data, SN=SN, field='mcal_g_cov', type=args.weights)
+        dweights = get_weights(deep_data, SN=SN, field='mcal_g_cov', type=args.weights)
+    elif 's2n' in args.weights:
+        weights = get_weights(data, SN=SN, field='mcal_s2n_r', type=args.weights)
+        dweights = get_weights(deep_data, SN=SN, field='mcal_s2n_r', type=args.weights)
     else:
         raise ValueError("bad weights: '%s'" % args.weights)
 

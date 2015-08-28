@@ -57,4 +57,6 @@ sec_per: 0.33
 
 verbose: True
 
-#avg_s2n_r_range: [10,23]
+#SN: 0.18
+SN: 0.24
+#avg_s2n_r_range: [8,1000]

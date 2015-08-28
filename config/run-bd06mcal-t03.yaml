@@ -50,9 +50,9 @@ max_pars:
 metacal_pars:
     step: 0.01
 
-ngal: 2000000
+ngal: 20000000
 
-desired_hours: 0.70
+desired_hours: 7.0
 sec_per: 0.33
 
 verbose: True

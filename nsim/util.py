@@ -370,7 +370,7 @@ def get_weights(data,SN=0.24,field='g_cov',type='noise'):
     """
 
     if type=='noise':
-        print("using SN:",SN)
+        #print('field:',field,'SN:',SN)
         denom = (
             2*SN**2
             + data[field][:,0,0]
@@ -380,7 +380,23 @@ def get_weights(data,SN=0.24,field='g_cov',type='noise'):
         wts = 1.0/denom
 
     elif type == 's2n':
-        # this should be tuned for different data sets
+        # fit to run-bd06zmcal-degrade03 
+        fitcoeff=numpy.array([ 0.05676219, -0.36838486,  0.92523771, -1.07835695,  0.49725526])
+        ply=numpy.poly1d(fitcoeff)
+
+        #print('field:',field,'SN:',SN)
+        #print(ply)
+
+        logs2n = numpy.log10(data[field])
+        var_per_component = ply(logs2n)
+
+        #denom = ( 2*SN**2 + 2*var_per_component )
+        denom = ( 2*SN**2 + 2*var_per_component*2 )
+        wts = 1.0/denom
+
+        '''
+        # these are crazy (I messed up actually) but they always work, maybe
+        # effectively applying a biasing cut that pushes the value up
         #y = p0*x + p1
         p0 = -0.00386877854321
         p1 = 0.143829528032
@@ -389,6 +405,8 @@ def get_weights(data,SN=0.24,field='g_cov',type='noise'):
 
         denom = ( 2*SN**2 + 2*err_per_component**2 )
         wts = 1.0/denom
+        '''
+
 
     elif type is None:
         wts = ones(data.size)

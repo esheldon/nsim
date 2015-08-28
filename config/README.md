@@ -279,7 +279,15 @@ the psf shape to [0,0.025]
                     fracdiff: 9.66e-04 +/- 7.80e-04
         - run-bd06mcal-02
             - same as run-bd06mcal-01 for more stats
-            * running at SLAC
+            - SLAC
+                meas: 0.0798913 +/- 6.16718e-05, 8.2801e-05 +/- 6.24919e-05
+                fracdiff: -1.36e-03 +/- 7.71e-04
+        - combined run-bd06mcal-01, run-bd06mcal02
+            fracdiff: -9.11e-04 +/- 5.50e-04
+            with reasonable weighting
+            fracdiff: 6.98e-04 +/- 5.48e-04
+            with the crazy weighting
+            fracdiff: -6.83e-04 +/- 5.47e-04
 
 
 - sim-bd07
@@ -295,7 +303,15 @@ the psf shape to [0,0.025]
         - run-bd07mcal-t01
             - relatively small sim
             - noise 0.01
-            * running at bnl
+            - ran at bnl, copied to slac 
+            - using deep from run-bd07zmcal-degrade01
+                meas: 0.0800917 +/- 0.000126313, 0.000522912 +/- 0.000124464
+                fracdiff: 1.15e-03 +/- 1.58e-03
+    - low s/n
+        - run-bd07zmcal-degrade02
+            0.1 target 1.0
+        - run-bd07mcal-01
+            1.0
 
 
 - run-ggnr03mn-t01

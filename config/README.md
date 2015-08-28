@@ -285,12 +285,15 @@ the psf shape to [0,0.025]
 - sim-bd07z
     - elliptical moffat psf
     - no shifts of center or bulge
+    - fitting 3 gauss is considerably slower
 
     - high s/n
         - run-bd07zmcal-degrade01
             - noise 0.001, target 0.01
         - run-bd07mcal-t01
+            - relatively small sim
             - noise 0.01
+            * running at bnl
 
 
 - run-ggnr03mn-t01

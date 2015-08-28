@@ -279,6 +279,7 @@ the psf shape to [0,0.025]
                     fracdiff: 9.66e-04 +/- 7.80e-04
         - run-bd06mcal-02
             - same as run-bd06mcal-01 for more stats
+            * running at SLAC
 
 
 - sim-bd07

@@ -252,15 +252,33 @@ the psf shape to [0,0.025]
 
     - run-bd06mcal-degrade01
         - this one using sheared sim, noise 0.001 target 0.01
+            - doesn't work
     - run-bd06mcal-degrade02
         - this one using sheared sim, noise 0.0001 target 0.01
+            - doesn't work
 
     - low s/n runs
         - run-bd06zmcal-degrade03
             - 0.1 target 1.0
-        - run-bd06mcal-t03
+        - run-bd06mcal-01
             - noise 1.0
             - using deep run-bd06zmcal-degrade03
+                no weights
+                    meas: 0.0799629 +/- 6.27301e-05, 0.000105573 +/- 6.25775e-05
+                    fracdiff: -4.64e-04 +/- 7.84e-04
+                old messed up weights
+                    These weights don't even make sense
+                    meas: 0.0799822 +/- 6.24348e-05, 9.36009e-05 +/- 6.22417e-05
+                    fracdiff: -2.22e-04 +/- 7.80e-04
+                new mcal_s2n_r weights
+                    SN=0.18
+                    meas: 0.0800931 +/- 6.25695e-05, 5.39724e-05 +/- 6.21891e-05
+                    fracdiff: 1.16e-03 +/- 7.82e-04
+                    SN=0.24 (a bit high)
+                    meas: 0.0800773 +/- 6.23675e-05, 6.94577e-05 +/- 6.20595e-05
+                    fracdiff: 9.66e-04 +/- 7.80e-04
+        - run-bd06mcal-02
+            - same as run-bd06mcal-01 for more stats
 
 
 - run-ggnr03mn-t01

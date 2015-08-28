@@ -62,6 +62,7 @@ class FitterBase(dict):
                 continue
 
             while True:
+                nprocessed += 1
                 try:
 
                     tm0=time.time()
@@ -81,10 +82,10 @@ class FitterBase(dict):
                 except TryAgainError as err:
                     print(str(err))
 
-            nprocessed += 1
 
         self._set_elapsed_time()
 
+        print("nprocessed (including failures):",nprocessed)
         print('time minutes:',self.tm_minutes)
         print('time per image sec:',self.tm/nprocessed)
         print('time to simulate:',self.tm_sim/nprocessed)

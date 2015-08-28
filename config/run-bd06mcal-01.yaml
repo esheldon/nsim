@@ -1,4 +1,4 @@
-run: "run-bd06mcal-t03"
+run: "run-bd06mcal-01"
 sim: "sim-bd06"
 
 fitter: "metacal-max"

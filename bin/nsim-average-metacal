@@ -67,14 +67,14 @@ def get_chunk_info(nrows):
 def get_shear_stats(conf, data, deep_data, args):
     from nsim.util import get_weights
 
-    SN2=0.24**2
+    SN = conf.get('SN',0.24)
 
     if args.weights == 'noise':
-        weights = get_weights(data, field='mcal_g_cov', type=args.weights)
-        dweights = get_weights(deep_data, field='mcal_g_cov', type=args.weights)
+        weights = get_weights(data, SN=SN, field='mcal_g_cov', type=args.weights)
+        dweights = get_weights(deep_data, SN=SN, field='mcal_g_cov', type=args.weights)
     elif args.weights == 's2n':
-        weights = get_weights(data, field='mcal_s2n_r', type=args.weights)
-        dweights = get_weights(deep_data, field='mcal_s2n_r', type=args.weights)
+        weights = get_weights(data, SN=SN, field='mcal_s2n_r', type=args.weights)
+        dweights = get_weights(deep_data, SN=SN, field='mcal_s2n_r', type=args.weights)
     elif args.weights is None:
         weights = ones(data.size)
         dweights = ones(deep_data.size)
@@ -206,12 +206,11 @@ def select(conf, data, deep_data):
         tlogic = between(data['mcal_s2n_r'], sr[0], sr[1])
         tdlogic = between(deep_data['mcal_s2n_r'], sr[0], sr[1])
 
+        print("        applying s2n_r range:",sr)
         w=where1(tlogic)
-        if w.size < data.size:
-            print("keeping %d/%d from s2n_r logic" % (w.size, data.size))
+        print("            keeping %d/%d" % (w.size, data.size))
         w=where1(tdlogic)
-        if w.size < deep_data.size:
-            print("deep keeping %d/%d from s2n_r logic" % (w.size, deep_data.size))
+        print("            deep keeping %d/%d" % (w.size, deep_data.size))
 
         logic = logic & tlogic
         deep_logic = deep_logic & tdlogic

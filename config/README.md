@@ -281,6 +281,18 @@ the psf shape to [0,0.025]
             - same as run-bd06mcal-01 for more stats
 
 
+- sim-bd07
+- sim-bd07z
+    - elliptical moffat psf
+    - no shifts of center or bulge
+
+    - high s/n
+        - run-bd07zmcal-degrade01
+            - noise 0.001, target 0.01
+        - run-bd07mcal-t01
+            - noise 0.01
+
+
 - run-ggnr03mn-t01
     - first metanoise run
     - noise 0.1

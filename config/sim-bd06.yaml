@@ -1,5 +1,5 @@
 # galsim bulge-disk
-# round gaussian psf
+# elliptical gaussian psf
 # no shifts to center or bulge
 name: "sim-bd06"
 
@@ -9,8 +9,6 @@ simulator: "galsim"
 do_ring: False
 
 shear: [0.08, 0.0]
-
-skysig: 1.0
 
 stamp_size: [48,48]
 

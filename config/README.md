@@ -291,6 +291,7 @@ the psf shape to [0,0.025]
     - high s/n
         - run-bd07zmcal-degrade01
             - noise 0.001, target 0.01
+            * running at SLAC
         - run-bd07mcal-t01
             - relatively small sim
             - noise 0.01

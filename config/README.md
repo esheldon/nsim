@@ -313,6 +313,14 @@ the psf shape to [0,0.025]
         - run-bd07mcal-01
             1.0
 
+noise prior is probably wrong, since it is for the real profile and
+we are using explicitly the wrong profile.  might want to broaden it
+
+do a sim or two with realistic flux distribution
+    - i put one here lensing/shapesim/extra_files/great-des-fdist.fits but
+        may want to adjust the parameters a bit so that for noise 1 the
+        lower bound is at s/n ~ 10 or whatever I choose
+
 
 - run-ggnr03mn-t01
     - first metanoise run

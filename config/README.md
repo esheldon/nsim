@@ -294,7 +294,7 @@ the psf shape to [0,0.025]
 - sim-bd07z
     - elliptical moffat psf
     - no shifts of center or bulge
-    - fitting 3 gauss is considerably slower
+    - 3 gauss psf is considerably slower
 
     - high s/n
         - run-bd07zmcal-degrade01
@@ -309,11 +309,21 @@ the psf shape to [0,0.025]
                 fracdiff: 1.15e-03 +/- 1.58e-03
     - low s/n
         - run-bd07zmcal-degrade02
-            0.1 target 1.0
+            - noise 0.1 target 1.0
         - run-bd07mcal-01
-            1.0
+            -noise 1.0
+            - using run-bd07zmcal-degrade02
+                meas: 0.0798003 +/- 6.31235e-05, 0.000269427 +/- 6.43947e-05
+                fracdiff: -2.50e-03 +/- 0.79e-03
+            - noise bias undercorrected?  Maybe because the deep run has
+                more uniform noise?
 
-noise prior is probably wrong, since it is for the real profile and
+        - run-bd07zmax-lownoise01
+            - to get T and flux priors
+        * run-bd07zmcal-degrade02
+            - will use new priors
+
+flux prior is probably wrong, since it is for the real profile and
 we are using explicitly the wrong profile.  might want to broaden it
 
 do a sim or two with realistic flux distribution

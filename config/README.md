@@ -329,6 +329,12 @@ the psf shape to [0,0.025]
                 meas: 0.0796824 +/- 0.000207188, 0.000277947 +/- 0.000194573
                 fracdiff: -3.97e-03 +/- 2.59e-03
 
+        - run-bd07zmcal-degrade04
+            - whiten same seed
+            - slac
+        - run-bd07mcal-t03
+            - whiten same seed
+            - bnl
 
 flux prior is probably wrong, since it is for the real profile and
 we are using explicitly the wrong profile.  might want to broaden it

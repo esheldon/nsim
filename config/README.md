@@ -318,10 +318,12 @@ the psf shape to [0,0.025]
             - noise bias undercorrected?  Maybe because the deep run has
                 more uniform noise?
 
-        - run-bd07zmax-lownoise01
+        - run-bd07max-lownoise01
             - to get T and flux priors
-        * run-bd07zmcal-degrade02
-            - will use new priors
+
+        - run-bd07zmcal-degrade03
+            - wide priors from run-bd07max-lownoise01
+            - noise 0.1 target 1.0
 
 flux prior is probably wrong, since it is for the real profile and
 we are using explicitly the wrong profile.  might want to broaden it

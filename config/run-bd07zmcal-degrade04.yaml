@@ -1,4 +1,4 @@
-run: "run-bd07zmcal-degrade03"
+run: "run-bd07zmcal-degrade04"
 sim: "sim-bd07z"
 
 fitter: "metacal-max-degrade"

@@ -1,4 +1,4 @@
-run: "run-bd07mcal-t02"
+run: "run-bd07mcal-t03"
 sim: "sim-bd07"
 
 fitter: "metacal-max"
@@ -8,7 +8,7 @@ g_prior_during: True
 use_logpars: True
 
 deep_data:
-  run: "run-bd07zmcal-degrade03"
+  run: "run-bd07zmcal-degrade04"
 
 # 1.0 gives mean s2n of ~12.3 with scatter 5 for the flux distribution in
 # the sim
@@ -57,7 +57,8 @@ metacal_pars:
 ngal: 2000000
 
 desired_hours: 1.2
-sec_per: 0.70
+# whitening adds time
+sec_per: 0.90
 
 verbose: True
 

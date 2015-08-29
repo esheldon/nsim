@@ -600,6 +600,7 @@ class MaxMetacalFitter(MaxFitter):
         """
         the basic fitter for this class
         """
+
         intpars=self.get('intpars',None) 
 
         boot=ngmix.Bootstrapper(obs, use_logpars=self['use_logpars'],intpars=intpars)
@@ -647,6 +648,7 @@ class MaxMetacalFitter(MaxFitter):
                                  prior=self.prior,
                                  ntry=mconf['ntry'],
                                  extra_noise=extra_noise,
+                                 metacal_pars=self['metacal_pars'],
                                  nrand=self['nrand'],
                                  verbose=False)
 

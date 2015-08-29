@@ -11,7 +11,7 @@ from argparse import ArgumentParser
 parser=ArgumentParser(__doc__)
 
 parser.add_argument('run',help='sim run')
-parser.add_argument('field',help='var to fit, T or flux',choices=['T','flux'])
+parser.add_argument('field',help='var to fit, T or flux',choices=['log_T','log_flux'])
 parser.add_argument('ngauss',type=int,help='number of gaussians to fit')
 
 
@@ -24,12 +24,13 @@ class PriorFitter(object):
     def go(self):
         self.read_data()
         self.fit_prior()
+        self.make_plot()
         self.write_prior()
 
     def fit_prior(self):
         from ngmix.gmix import GMixND
 
-        print("fitting",self.ngauss,"to",self.field)
+        print("fitting",self.ngauss,"gaussians to",self.field)
 
         gm = GMixND()
 
@@ -44,13 +45,38 @@ class PriorFitter(object):
         print("writing to:",url)
         self.prior.save_mixture(url)
 
-    def read_data(self):
-        data=nsim.files.read_output(self.run,0)
+    def make_plot(self):
+        import biggles
+        eps = nsim.files.get_fitprior_url(self.run,
+                                          0,
+                                          extra=self.field,
+                                          ext='eps')
+        
+        r=self.prior.sample(1000000)
 
-        if self.field=='T':
-            fdata = data['mcal_pars'][:,4]
-        elif self.field=='flux':
-            fdata = data['mcal_pars'][:,5]
+        h=biggles.make_histc(self.data, nbin=100, ylog=True, norm=1)
+        hr=biggles.make_histc(r, nbin=100, ylog=True, color='red', norm=1)
+
+        h.label='data'
+        hr.label='model'
+
+        key=biggles.PlotKey(0.9,0.9,[h,hr], halign='right')
+
+        plt=biggles.FramedPlot()
+        plt.xlabel=self.field
+        plt.add(h, hr, key)
+
+        print("writing plot:",eps)
+        plt.write_eps(eps)
+
+
+    def read_data(self):
+        data=nsim.files.read_output(self.run,0)#, rows=numpy.arange(10000))
+
+        if self.field=='log_T':
+            fdata = data['pars'][:,4]
+        elif self.field=='log_flux':
+            fdata = data['pars'][:,5]
         else:
             raise ValueError("bad field: '%s'" % self.field)
 

@@ -17,6 +17,7 @@ scripts=['nsim-average-outputs',
          'nsim-make-batch',
          'nsim-make-lsf',
          'nsim-make-slr',
+         'nsim-fit-prior',
          'nsim-plot',
          'nsim-make-paper-plots',
          'nsim-run']

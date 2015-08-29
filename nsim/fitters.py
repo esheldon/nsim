@@ -349,8 +349,13 @@ class SimpleFitterBase(FitterBase):
         elif Tp['type']=="gmixnd":
 
             fit_T_prior=ngmix.gmix.GMixND()
-            fname=files.get_fitprior_url(Tp['run'], 0)
+            extra=Tp['extra']
+            fname=files.get_fitprior_url(Tp['run'], 0, extra=extra)
             fit_T_prior.load_mixture(fname)
+
+            if 'cov_factor' in Tp:
+                print("    using cov factor:",Tp['cov_factor'])
+                fit_T_prior.covars *= Tp['cov_factor']
 
         elif Tp['type']=='normal':
             Tpars=Tp['pars']
@@ -394,6 +399,17 @@ class SimpleFitterBase(FitterBase):
 
             else:
                 fit_counts_prior = self.sim.counts_pdf
+
+        elif cp['type']=="gmixnd":
+
+            fit_counts_prior=ngmix.gmix.GMixND()
+            extra=cp['extra']
+            fname=files.get_fitprior_url(cp['run'], 0, extra=extra)
+            fit_counts_prior.load_mixture(fname)
+
+            if 'cov_factor' in cp:
+                print("    using cov factor:",cp['cov_factor'])
+                fit_counts_prior.covars *= cp['cov_factor']
 
         elif cp['type']=='lognormal':
 

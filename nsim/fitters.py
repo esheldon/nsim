@@ -586,7 +586,6 @@ class MaxMetacalFitter(MaxFitter):
 
         self.imdict=imdict
 
-        mpars=self['metacal_pars']
 
         obs=imdict['obs']
         mdict = self._do_fits(obs)

@@ -1,0 +1,56 @@
+run: "run-bd07max-lownoise01"
+sim: "sim-bd07"
+
+fitter: "max"
+fit_model: "exp"
+
+g_prior_during: True
+use_logpars: True
+
+deep_data:
+  run: null
+
+noise: 0.001
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    T:
+        type: "two-sided-erf"
+        pars: [0.0, 1.0, 5.0, 1.0]
+
+    counts:
+        type: "two-sided-erf"
+        pars: [2.4, 1.0, 6.4, 1.0]
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+metacal_pars:
+    step: 0.01
+
+ngal: 2000000
+
+desired_hours: 0.1
+sec_per: 0.05
+
+verbose: True
+
+#avg_s2n_r_range: [10,23]

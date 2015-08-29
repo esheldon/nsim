@@ -326,6 +326,9 @@ the psf shape to [0,0.025]
             - noise 0.1 target 1.0
         - run-bd07mcal-t02
             - relatively short run for quick test of broad priors
+                meas: 0.0796824 +/- 0.000207188, 0.000277947 +/- 0.000194573
+                fracdiff: -3.97e-03 +/- 2.59e-03
+
 
 flux prior is probably wrong, since it is for the real profile and
 we are using explicitly the wrong profile.  might want to broaden it

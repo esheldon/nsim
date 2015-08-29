@@ -1,0 +1,69 @@
+#!/usr/bin/env python
+"""
+    %prog run field ngauss
+"""
+from __future__ import print_function
+import numpy
+import ngmix
+import nsim
+
+from argparse import ArgumentParser
+parser=ArgumentParser(__doc__)
+
+parser.add_argument('run',help='sim run')
+parser.add_argument('field',help='var to fit, T or flux',choices=['T','flux'])
+parser.add_argument('ngauss',type=int,help='number of gaussians to fit')
+
+
+class PriorFitter(object):
+    def __init__(self, run, field, ngauss):
+        self.run=run
+        self.field=field
+        self.ngauss=ngauss
+
+    def go(self):
+        self.read_data()
+        self.fit_prior()
+        self.write_prior()
+
+    def fit_prior(self):
+        from ngmix.gmix import GMixND
+
+        print("fitting",self.ngauss,"to",self.field)
+
+        gm = GMixND()
+
+        gm.fit(self.data, self.ngauss)
+
+        self.prior = gm
+
+    def write_prior(self):
+        url = nsim.files.get_fitprior_url(self.run,
+                                          0,
+                                          extra=self.field)
+        print("writing to:",url)
+        self.prior.save_mixture(url)
+
+    def read_data(self):
+        data=nsim.files.read_output(self.run,0)
+
+        if self.field=='T':
+            fdata = data['mcal_pars'][:,4]
+        elif self.field=='flux':
+            fdata = data['mcal_pars'][:,5]
+        else:
+            raise ValueError("bad field: '%s'" % self.field)
+
+        self.data = fdata
+
+def main():
+    args = parser.parse_args()
+
+    run=args.run
+    field=args.field
+    ngauss=args.ngauss
+
+    fitter=PriorFitter(args.run, args.field, args.ngauss)
+    fitter.go()
+
+main()

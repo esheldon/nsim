@@ -324,6 +324,8 @@ the psf shape to [0,0.025]
         - run-bd07zmcal-degrade03
             - wide priors from run-bd07max-lownoise01
             - noise 0.1 target 1.0
+        - run-bd07mcal-t02
+            - relatively short run for quick test of broad priors
 
 flux prior is probably wrong, since it is for the real profile and
 we are using explicitly the wrong profile.  might want to broaden it

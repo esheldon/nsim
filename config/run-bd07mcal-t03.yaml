@@ -56,7 +56,7 @@ metacal_pars:
 
 ngal: 2000000
 
-desired_hours: 1.2
+desired_hours: 1.6
 # whitening adds time
 sec_per: 0.90
 

@@ -19,16 +19,17 @@ priors:
         sigma: 1.0
 
     T:
-        # intentionally broader than reality
-        type: "lognormal"
-        mean: 7.7
-        sigma: 5.0
+        type: "gmixnd"
+        run: "run-bd07max-lownoise01"
+        extra: "log_T"
+        cov_factor: 2.0
+
 
     counts:
-        # intionally broad
-        type: "lognormal"
-        mean: 102.0
-        sigma: 60.0
+        type: "gmixnd"
+        run: "run-bd07max-lownoise01"
+        extra: "log_flux"
+        cov_factor: 2.0
 
     g:
         type: "ba"
@@ -55,8 +56,8 @@ ngal: 100000
 nrand: 160
 
 desired_hours: 1.0
-# at slac
-sec_per: 0.2
+# at slac, per random
+sec_per: 0.3
 
 verbose: True
 

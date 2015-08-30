@@ -350,7 +350,13 @@ the psf shape to [0,0.025]
         - logF that spike is not going to play well with the max like fitter.
             - maybe try the flat prior for flux?
     - run-bd08zmcal-degrade01
+        - running slac
+        - used two-sided-erf prior on counts
+        - used slightly wider than lownoise prior on T
     - run-bd08mcal-t01
+        - running bnl
+        - used two-sided-erf prior on counts
+        - used slightly wider than lownoise prior on T
 
 flux prior is probably wrong, since it is for the real profile and
 we are using explicitly the wrong profile.  might want to broaden it

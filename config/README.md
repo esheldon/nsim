@@ -344,6 +344,8 @@ the psf shape to [0,0.025]
     - no shifts of center or bulge
     - 3 gauss psf is considerably slower
     
+    - run-bd08zmax-lownoise01
+        - for priors
     - run-bd08zmcal-degrade01
     - run-bd08mcal-t01
 

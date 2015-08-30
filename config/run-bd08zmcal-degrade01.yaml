@@ -20,15 +20,24 @@ priors:
 
     T:
         type: "gmixnd"
-        run: "run-bd07max-lownoise01"
+        run: "run-bd08zmax-lownoise01"
         extra: "log_T"
-        cov_factor: 2.0
+        cov_factor: 1.1
 
+
+    #counts:
+    #    type: "gmixnd"
+    #    run: "run-bd08zmax-lownoise01"
+    #    extra: "log_flux"
+    #    cov_factor: 1.1
 
     counts:
-        type: "gmixnd"
-        file: "great-des-fdist-shift.fits"
-        cov_factor: 1.5
+        type: "two-sided-erf"
+        # used for lownoise
+        #pars: [2.0, 1.0, 12, 1.0]
+        # a bit stricter
+        pars: [3.0, 1.0, 11, 1.0]
+
 
     g:
         type: "ba"

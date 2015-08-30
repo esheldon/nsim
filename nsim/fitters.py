@@ -686,7 +686,7 @@ class MaxMetacalFitter(MaxFitter):
         """
 
         super(MaxMetacalFitter,self)._print_res(res)
-        print("    mcal s2n_r:",res['mcal_s2n_r'])
+        print("    mcal s2n_r:",res['mcal_s2n_r'],'mcal s2n_pix:',res['mcal_s2n_pix'])
         print_pars(res['mcal_pars_mean'],      front='    mcal pars: ')
         print_pars(res['mcal_pars_noshear'],   front=' pars noshear: ')
         print_pars(res['mcal_g_sens'].ravel(), front='         sens: ')
@@ -709,6 +709,7 @@ class MaxMetacalFitter(MaxFitter):
             ('mcal_g_noshear','f8',2),
             ('mcal_c','f8',2),
             ('mcal_s2n_r','f8'),
+            ('mcal_s2n_pix','f8'),
             ('mcal_g_sens','f8',(2,2)),
             ('mcal_psf_sens','f8',2),
         ]
@@ -728,6 +729,7 @@ class MaxMetacalFitter(MaxFitter):
         d['mcal_g'][i] = res['mcal_g_mean']
         d['mcal_g_cov'][i] = res['mcal_g_cov']
         d['mcal_s2n_r'][i] = res['mcal_s2n_r']
+        d['mcal_s2n_pix'][i] = res['mcal_s2n_pix']
 
         d['mcal_g_noshear'][i] = res['mcal_pars_noshear'][2:2+2]
         d['mcal_c'][i] = res['mcal_c']

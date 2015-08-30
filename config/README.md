@@ -346,6 +346,9 @@ the psf shape to [0,0.025]
     
     - run-bd08zmax-lownoise01
         - for priors
+        - logT looks good with 10 gauss
+        - logF that spike is not going to play well with the max like fitter.
+            - maybe try the flat prior for flux?
     - run-bd08zmcal-degrade01
     - run-bd08mcal-t01
 

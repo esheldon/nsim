@@ -11,7 +11,7 @@ import ngmix
 from . import sim as ngmixsim
 from .sim import srandu
 
-from .util import TryAgainError
+from .util import TryAgainError, load_gmixnd
 
 try:
     import galsim
@@ -340,6 +340,9 @@ class SimGS(dict):
         g1,g2 = self.g_pdf.sample2d()
 
         flux = self.flux_pdf.sample()
+        if self.flux_is_in_log:
+            flux = numpy.exp(flux)
+
         # this is the round r50
         r50 = self.r50_pdf.sample()
 
@@ -455,11 +458,17 @@ class SimGS(dict):
     def _set_flux_pdf(self):
         fluxspec = self['obj_model']['flux']
 
+        self.flux_is_in_log = fluxspec.get('is_in_log',False)
+        if self.flux_is_in_log:
+            print("Flux pdf is log")
+
         if fluxspec['type']=='uniform':
             flux_r = fluxspec['range']
             self.flux_pdf=ngmix.priors.FlatPrior(flux_r[0], flux_r[1])
         elif fluxspec['type']=='lognormal':
             self.flux_pdf=ngmix.priors.LogNormal(fluxspec['mean'],fluxspec['sigma'])
+        elif fluxspec['type']=='gmixnd':
+            self.flux_pdf=load_gmixnd(fluxspec)
         else:
             raise ValueError("bad flux pdf type: '%s'" % fluxspec['type'])
 
@@ -476,6 +485,7 @@ class SimBD(SimGS):
         pars=self._get_galaxy_pars()
 
         flux = pars['flux']
+
         r50 = pars['r50']
 
         g1,g2=pars['g']

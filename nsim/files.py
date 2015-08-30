@@ -246,6 +246,15 @@ def get_fitprior_url(run, is2n, itrial=None, fs=None, extra=None, ext='fits'):
     url = url.replace('.%s' % ext,'-%s.%s' % (end,ext))
     return url
 
+def get_extra_url(bname):
+    """
+    return the url for the file named {simdir}/bname
+    """
+    d=get_simdir()
+    f=os.path.join(d,'extra_files',bname)
+
+    return f
+
 def get_averaged_url(run, is2n=None, fs=None, ext='fits'):
     """
     send is2n= for the split one

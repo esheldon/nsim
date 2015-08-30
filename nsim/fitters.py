@@ -23,7 +23,7 @@ from ngmix.shape import Shape
 from ngmix.gexceptions import BootPSFFailure, BootGalFailure
 
 from .sim import NGMixSim
-from .util import write_fits, TryAgainError
+from .util import write_fits, TryAgainError, load_gmixnd
 from . import files
 
 # minutes
@@ -347,15 +347,25 @@ class SimpleFitterBase(FitterBase):
                 fit_T_prior = self.sim.T_pdf
 
         elif Tp['type']=="gmixnd":
+            fit_T_prior = load_gmixnd(Tp)
 
-            fit_T_prior=ngmix.gmix.GMixND()
-            extra=Tp['extra']
-            fname=files.get_fitprior_url(Tp['run'], 0, extra=extra)
-            fit_T_prior.load_mixture(fname)
+            '''
+            if 'run' in Tp:
+                extra=Tp['extra']
+                fname=files.get_fitprior_url(Tp['run'], 0, extra=extra)
+            else:
+                fname=files.get_extra_url(Tp['file'])
+
+            fit_T_prior=ngmix.gmix.GMixND(file=fname)
 
             if 'cov_factor' in Tp:
                 print("    using cov factor:",Tp['cov_factor'])
                 fit_T_prior.covars *= Tp['cov_factor']
+
+            if 'mean_shift' in Tp:
+                print("    using mean shift:",Tp['mean_shift'])
+                fit_T_prior.means += Tp['mean_shift']
+            '''
 
         elif Tp['type']=='normal':
             Tpars=Tp['pars']
@@ -401,7 +411,9 @@ class SimpleFitterBase(FitterBase):
                 fit_counts_prior = self.sim.counts_pdf
 
         elif cp['type']=="gmixnd":
+            fit_counts_prior = load_gmixnd(Tp)
 
+            '''
             fit_counts_prior=ngmix.gmix.GMixND()
             extra=cp['extra']
             fname=files.get_fitprior_url(cp['run'], 0, extra=extra)
@@ -410,7 +422,7 @@ class SimpleFitterBase(FitterBase):
             if 'cov_factor' in cp:
                 print("    using cov factor:",cp['cov_factor'])
                 fit_counts_prior.covars *= cp['cov_factor']
-
+            '''
         elif cp['type']=='lognormal':
 
             if self['use_logpars']:

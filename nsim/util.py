@@ -5,6 +5,8 @@ from numpy import exp, log, zeros, ones, sqrt, newaxis
 import ngmix
 from esutil.random import srandu
 
+from . import files
+
 class TryAgainError(Exception):
     """
     signal to skip this image(s) and try a new one
@@ -424,7 +426,6 @@ def fit_prior(run, is2n=0, field='pars_noshear',show=False):
     import esutil as eu
     from sklearn.mixture import GMM
     import fitsio
-    from . import files
     gm=ngmix.gmix.GMixND()
 
     alldata=files.read_output(run, is2n)
@@ -544,3 +545,18 @@ def fit_prior(run, is2n=0, field='pars_noshear',show=False):
         biggles.configure('screen','width',1200)
         biggles.configure('screen','height',700)
         tab.show()
+
+def load_gmixnd(spec):
+    if 'run' in spec:
+        extra=spec['extra']
+        fname=files.get_fitprior_url(spec['run'], 0, extra=extra)
+    else:
+        fname=files.get_extra_url(spec['file'])
+
+    pdf=ngmix.gmix.GMixND(file=fname)
+
+    if 'cov_factor' in spec:
+        print("    using cov factor:",spec['cov_factor'])
+        pdf.covars *= spec['cov_factor']
+
+    return pdf

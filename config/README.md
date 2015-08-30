@@ -335,6 +335,17 @@ the psf shape to [0,0.025]
         - run-bd07mcal-t03
             - whiten same seed
             - bnl
+                terrible
+
+- sim-bd08
+- sim-bd08z
+    - reasonable flux/s2n distribution
+    - elliptical moffat psf
+    - no shifts of center or bulge
+    - 3 gauss psf is considerably slower
+    
+    - run-bd08zmcal-degrade01
+    - run-bd08mcal-t01
 
 flux prior is probably wrong, since it is for the real profile and
 we are using explicitly the wrong profile.  might want to broaden it

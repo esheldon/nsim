@@ -372,9 +372,10 @@ the psf shape to [0,0.025]
     - any calibration issues we see are apparently not from psf modeling
     - but the additive persists
 
-    ? also should do one with lower noise in deep, since are still
-        seeing additive
-    ? should do a deep run with the simple s/n so we can try weights
+    - run-bd08zmcal-degrade02
+        - doing a run with less starting noise to see if leakage improves
+        - leakage blew up when I went to moffat...
+        - will include simple s/n
 
 - sim-bd09
 - sim-bd09z
@@ -387,6 +388,8 @@ the psf shape to [0,0.025]
         - bnl
             meas: 0.0798043 +/- 0.00016482, 0.000741121 +/- 0.000162534
             fracdiff: -2.45e-03 +/- 2.06e-03
+
+            additive even higher
     - run-bd09mcal-01
         * slac 
 

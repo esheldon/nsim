@@ -25,13 +25,6 @@ priors:
         extra: "log_T"
         cov_factor: 1.1
 
-
-    #counts:
-    #    type: "gmixnd"
-    #    run: "run-bd08zmax-lownoise01"
-    #    extra: "log_flux"
-    #    cov_factor: 1.1
-
     counts:
         type: "two-sided-erf"
         # used for lownoise

@@ -366,6 +366,10 @@ the psf shape to [0,0.025]
             meas: 0.0800246 +/- 4.97376e-05, 0.000327837 +/- 5.18478e-05
             fracdiff: 3.07e-04 +/- 6.22e-04
 
+    - 01 and02 combined
+        meas: 0.0800049 +/- 3.58018e-05, 0.000323148 +/- 3.67486e-05
+        fracdiff: 6.11e-05 +/- 4.48e-04
+
     - also should do one with lower noise in deep, since are still
         seeing additive
     - should do a deep run with the simple s/n so we can try weights

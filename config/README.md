@@ -364,6 +364,10 @@ the psf shape to [0,0.025]
     - run-bd08mcal-02
         - same as -01, looking for repeatability
 
+    - also should do one with lower noise in deep, since are still
+        seeing additive
+    - should do a deep run with the simple s/n so we can try weights
+
 flux prior is probably wrong, since it is for the real profile and
 we are using explicitly the wrong profile.  might want to broaden it
 

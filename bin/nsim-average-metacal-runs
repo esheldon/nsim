@@ -45,6 +45,7 @@ def do_avg(conf, data):
         sh=data['shear'][is2n]
         sherr=sqrt(diag(data['shear_cov'][is2n]))
 
+        print("meas: %g +/- %g, %g +/- %g" % (sh[0],sherr[0],sh[1],sherr[1]))
         if shtrue[1] != 0.0:
             fracdiff=sh/shtrue-1.0
             fracdiff_err=sherr/shtrue

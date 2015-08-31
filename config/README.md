@@ -369,10 +369,12 @@ the psf shape to [0,0.025]
     - 01 and02 combined
         meas: 0.0800049 +/- 3.58018e-05, 0.000323148 +/- 3.67486e-05
         fracdiff: 6.11e-05 +/- 4.48e-04
+    - any calibration issues we see are apparently not from psf modeling
+    - but the additive persists
 
-    - also should do one with lower noise in deep, since are still
+    ? also should do one with lower noise in deep, since are still
         seeing additive
-    - should do a deep run with the simple s/n so we can try weights
+    ? should do a deep run with the simple s/n so we can try weights
 
 - sim-bd09
 - sim-bd09z
@@ -382,8 +384,12 @@ the psf shape to [0,0.025]
     - run-bd09zmcal-degrade01
         - need to run, probably at slac
     - run-bd09mcal-t01
-        - running bnl
-   
+        - bnl
+            meas: 0.0798043 +/- 0.00016482, 0.000741121 +/- 0.000162534
+            fracdiff: -2.45e-03 +/- 2.06e-03
+    - run-bd09mcal-01
+        * slac 
+
 flux prior is probably wrong, since it is for the real profile and
 we are using explicitly the wrong profile.  might want to broaden it
 

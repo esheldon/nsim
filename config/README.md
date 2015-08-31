@@ -368,6 +368,16 @@ the psf shape to [0,0.025]
         seeing additive
     - should do a deep run with the simple s/n so we can try weights
 
+- sim-bd09
+- sim-bd09z
+    - same as sim-bd08* but added dev offset
+    - run-bd09zmax-lownoise01
+        - for priors
+    - run-bd09zmcal-degrade01
+        * need to run, probably at slac
+    - run-bd09mcal-t01
+        - running bnl
+   
 flux prior is probably wrong, since it is for the real profile and
 we are using explicitly the wrong profile.  might want to broaden it
 

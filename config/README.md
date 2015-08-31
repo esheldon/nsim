@@ -363,6 +363,8 @@ the psf shape to [0,0.025]
             fracdiff: -1.85e-04 +/- 6.45e-04
     - run-bd08mcal-02
         - same as -01, looking for repeatability
+            meas: 0.0800246 +/- 4.97376e-05, 0.000327837 +/- 5.18478e-05
+            fracdiff: 3.07e-04 +/- 6.22e-04
 
     - also should do one with lower noise in deep, since are still
         seeing additive
@@ -374,7 +376,7 @@ the psf shape to [0,0.025]
     - run-bd09zmax-lownoise01
         - for priors
     - run-bd09zmcal-degrade01
-        * need to run, probably at slac
+        - need to run, probably at slac
     - run-bd09mcal-t01
         - running bnl
    

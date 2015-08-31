@@ -357,6 +357,12 @@ the psf shape to [0,0.025]
         - running bnl
         - used two-sided-erf prior on counts
         - used slightly wider than lownoise prior on T
+    - run-bd08mcal-01
+        - larger run but same settings
+            meas: 0.0799852 +/- 5.15758e-05, 0.000318454 +/- 5.20944e-05
+            fracdiff: -1.85e-04 +/- 6.45e-04
+    - run-bd08mcal-02
+        - same as -01, looking for repeatability
 
 flux prior is probably wrong, since it is for the real profile and
 we are using explicitly the wrong profile.  might want to broaden it

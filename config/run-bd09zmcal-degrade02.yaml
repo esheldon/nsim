@@ -52,9 +52,9 @@ metacal_pars:
 ngal: 100000
 nrand: 160
 
-desired_hours: 5.0
+desired_hours: 1.5
 # at slac, per random
-sec_per: 0.3
+sec_per: 0.33
 
 verbose: True
 

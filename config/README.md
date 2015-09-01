@@ -361,6 +361,12 @@ the psf shape to [0,0.025]
         - larger run but same settings
             meas: 0.0799852 +/- 5.15758e-05, 0.000318454 +/- 5.20944e-05
             fracdiff: -1.85e-04 +/- 6.45e-04
+              ran different deep with starting noise 0.001
+                  (run-bd08zmcal-degrade02)
+                  meas: 0.0799569 +/- 5.15575e-05, 0.000382788 +/- 5.21092e-05
+                  fracdiff: -5.39e-04 +/- 6.44e-04
+              consistent, so that doesn't help leakage
+
     - run-bd08mcal-02
         - same as -01, looking for repeatability
             meas: 0.0800246 +/- 4.97376e-05, 0.000327837 +/- 5.18478e-05
@@ -383,7 +389,6 @@ the psf shape to [0,0.025]
     - run-bd09zmax-lownoise01
         - for priors
     - run-bd09zmcal-degrade01
-        - need to run, probably at slac
     - run-bd09mcal-t01
         - bnl
             meas: 0.0798043 +/- 0.00016482, 0.000741121 +/- 0.000162534
@@ -391,15 +396,31 @@ the psf shape to [0,0.025]
 
             additive even higher
     - run-bd09mcal-01
-        * slac 
+        - slac 
+            meas: 0.0800187 +/- 4.8071e-05, 0.000606897 +/- 4.93815e-05
+            fracdiff: 2.34e-04 +/- 6.01e-04
 
-flux prior is probably wrong, since it is for the real profile and
-we are using explicitly the wrong profile.  might want to broaden it
+        - try cuts or weights to help with leakage. Don't expect it
+            to help because bright galaxies are no bigger!
 
-do a sim or two with realistic flux distribution
-    - i put one here lensing/shapesim/extra_files/great-des-fdist.fits but
-        may want to adjust the parameters a bit so that for noise 1 the
-        lower bound is at s/n ~ 10 or whatever I choose
+            - cutting on noisy s2n_simple
+                meas: 0.07887 +/- 5.09448e-05, 0.000597759 +/- 5.21425e-05
+                fracdiff: -1.41e-02 +/- 6.37e-04
+              note the deep did not get the same fraction removed, so
+              something is fishy
+            - weighting using s2n_simple
+                meas: 0.0795862 +/- 5.17067e-05, 0.000672205 +/- 5.23488e-05
+                fracdiff: -5.17e-03 +/- 6.46e-04
+
+    - run-bd09zmcal-degrade02
+        - using coellip4
+    - run-bd09mcal-t02
+        - using coellip4
+
+
+
+
+
 
 
 - run-ggnr03mn-t01

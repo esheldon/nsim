@@ -396,16 +396,9 @@ def get_weights(data,SN=0.24,field='g_cov',type='noise'):
         denom = ( 2*SN**2 + 2*var_per_component*2 )
         wts = 1.0/denom
 
-    elif type=='s2n-crazy':
-        print("doing crazy s2n weights")
-        # these are crazy (I messed up actually) but they always work, maybe
-        # effectively applying a biasing cut that pushes the value up
-        #y = p0*x + p1
-        p0 = -0.00386877854321
-        p1 = 0.143829528032
+    elif type=='s2n_simple':
 
-        err_per_component = p0*data[field] + p1
-
+        err_per_component = 1.0/data[field]
         denom = ( 2*SN**2 + 2*err_per_component**2 )
         wts = 1.0/denom
 

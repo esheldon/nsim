@@ -61,3 +61,5 @@ sec_per: 0.80
 #sec_per: 0.80
 
 verbose: True
+
+#avg_s2n_simple_range: [1.88, 1.0e+09]

@@ -314,12 +314,33 @@ class SimGS(dict):
         else:
             raise ValueError("bad psf model: '%s'" % model)
 
-        psf = psf.shear(g1=pspec['shape'][0], g2=pspec['shape'][1])
+        psf_g1, psf_g2 = self._get_psf_shape()
+        psf = psf.shear(g1=psf_g1, g2=psf_g2)
 
         if cenoff is not None:
             psf = psf.shift(dx=cenoff[0], dy=cenoff[1])
 
         return psf
+
+    def _get_psf_shape(self):
+        pspec = self['psf']
+
+        if 'randomized_orientation' in pspec:
+            ro=pspec['randomized_orientation']
+            if ro["dist"]=="uniform":
+                angle = numpy.random.random()*2*numpy.pi
+                psf_shape = ngmix.Shape(ro['magnitude'], 0.0)
+                psf_shape.rotate(angle)
+                psf_g1 = psf_shape.g1
+                psf_g2 = psf_shape.g2
+                print("    psf shape: %g %g" % (psf_g1, psf_g2))
+            else:
+                raise ValueError("only uniform randomized psf orientation for now")
+        else:
+            psf_g1=pspec['shape'][0]
+            psf_g2=pspec['shape'][1]
+
+        return psf_g1, psf_g2
 
     def _get_galaxy_pars(self):
         """

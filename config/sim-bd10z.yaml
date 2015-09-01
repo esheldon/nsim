@@ -1,0 +1,58 @@
+# realistic flux distribution
+# galsim bulge-disk
+# elliptical moffat psf, random orientation
+# shifts to bulge
+# no shifts to center of primary
+name: "sim-bd10z"
+
+simulator: "galsim"
+
+# these sims are never rings
+do_ring: False
+
+shear: [0.0, 0.0]
+
+stamp_size: [48,48]
+
+psf:
+    model: "moffat"
+    beta: 3.5
+    r50: 1.5 # pixels
+
+    s2n: 10000.0
+
+    randomized_orientation:
+        magnitude: 0.025
+        dist: "uniform"
+
+obj_model:
+
+    model: "bd"
+
+    flux:
+        type: "gmixnd"
+        file: "great-des-fdist-shift.fits"
+        is_in_log: True
+
+    # both components get the same scale length and ellipticity
+    g:
+        type: "ba"
+        sigma: 0.2
+
+    r50:
+        type: "lognormal"
+        mean: 2.0
+        sigma: 0.5
+
+    fracdev:
+        type: "uniform"
+        range: [0.0, 1.0]
+
+    dev_shift:
+        type: "uniform"
+        # in units of r50
+        radius: 1.0
+
+    cen_shift: null
+
+label: "$bulge-disk$"

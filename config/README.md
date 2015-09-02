@@ -418,8 +418,17 @@ the psf shape to [0,0.025]
         - using coellip4
 
 
+- sim-bd10
+- sim-bd10z
+    - random orientation for psf
+- run-bd10mcal-01
+    - slac
+        meas: 0.0800402 +/- 4.95431e-05, 0.000352045 +/- 4.76393e-05
+        fracdiff: 5.03e-04 +/- 6.19e-04
 
-
+    - bootstrapping responses
+        meas: 0.0800415 +/- 5.21545e-05, 0.000362052 +/- 5.23894e-05
+        fracdiff: 5.19e-04 +/- 6.52e-04
 
 
 

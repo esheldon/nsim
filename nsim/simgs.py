@@ -306,11 +306,13 @@ class SimGS(dict):
         pspec = self['psf']
 
         model=pspec['model']
+
+        r50 = self._get_psf_r50()
+
         if model=='moffat':
-            psf = galsim.Moffat(beta=pspec['beta'],
-                                half_light_radius=pspec['r50'])
+            psf = galsim.Moffat(beta=pspec['beta'], half_light_radius=r50)
         elif model=='gauss':
-            psf = galsim.Gaussian(half_light_radius=pspec['r50'])
+            psf = galsim.Gaussian(half_light_radius=r50)
         else:
             raise ValueError("bad psf model: '%s'" % model)
 
@@ -322,10 +324,22 @@ class SimGS(dict):
 
         return psf
 
+    def _get_psf_r50(self):
+        if self.psf_r50_pdf is not None:
+            r50 = self.psf_r50_pdf.sample()
+            print("    psf (pdf) r50: %g" % r50)
+        else:
+            r50 = self['psf']['r50']
+        return r50
+
     def _get_psf_shape(self):
         pspec = self['psf']
 
-        if 'randomized_orientation' in pspec:
+        if self.psf_ellip_pdf is not None:
+            psf_g1, psf_g2 = self.psf_ellip_pdf.sample()
+            print("    psf (pdf) shape: %g %g" % (psf_g1, psf_g2))
+
+        elif 'randomized_orientation' in pspec:
             ro=pspec['randomized_orientation']
             if ro["dist"]=="uniform":
                 angle = numpy.random.random()*2*numpy.pi
@@ -333,7 +347,7 @@ class SimGS(dict):
                 psf_shape.rotate(angle)
                 psf_g1 = psf_shape.g1
                 psf_g2 = psf_shape.g2
-                print("    psf shape: %g %g" % (psf_g1, psf_g2))
+                print("    psf rand orient. shape: %g %g" % (psf_g1, psf_g2))
             else:
                 raise ValueError("only uniform randomized psf orientation for now")
         else:
@@ -434,10 +448,33 @@ class SimGS(dict):
         Set all the priors
         """
 
+        self._set_psf_pdf()
         self._set_flux_pdf()
         self._set_g_pdf()
         self._set_r50_pdf()
         self._set_cen_pdf()
+
+    def _set_psf_pdf(self):
+        pspec = self['psf']
+
+        if isinstance(pspec['r50'], dict):
+            r50pdf = pspec['r50']
+            assert r50pdf['type']=="lognormal","r50 pdf log normal for now"
+
+            self.psf_r50_pdf = ngmix.priors.LogNormal(r50pdf['mean'],
+                                                      r50pdf['sigma'])
+        else:
+            self.psf_r50_pdf=None
+
+        if isinstance(pspec['shape'],dict):
+            ppdf=pspec['shape']
+            assert ppdf['type']=="normal2d"
+            self.psf_ellip_pdf=ngmix.priors.SimpleGauss2D(ppdf['cen'][0],
+                                                          ppdf['cen'][1],
+                                                          ppdf['sigma'][0],
+                                                          ppdf['sigma'][1])
+        else:
+            self.psf_ellip_pdf=None
 
     def _set_g_pdf(self):
         g_spec=self['obj_model']['g']

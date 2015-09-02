@@ -18,12 +18,15 @@ parser=argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpForm
 
 parser.add_argument('run',help='run to average')
 
+parser.add_argument('--boot-sens',action='store_true',
+                  help="bootstrap over the deep sensitivities")
+
 parser.add_argument('--gfield',default='mcal_g',
                   help="the field to use for g")
 parser.add_argument('--sens-field',default='mcal_g_sens',
                   help="the field to use for sensitivity")
-parser.add_argument('--psf-sens-field',default='mcal_psf_sens',
-                  help="the field to use for psf sensitivity")
+
+parser.add_argument('--psf-sens-field', help="using the indicated field for psf sensitivity")
 
 parser.add_argument('--weights', help="use the specified weighting")
 
@@ -70,8 +73,10 @@ def get_shear_stats(conf, data, deep_data, args):
     SN = conf.get('SN',0.24)
 
     if args.weights is None:
-        weights = ones(data.size)
-        dweights = ones(deep_data.size)
+        weights=None
+        dweights=None
+        #weights=ones( data.size )
+        #dweights=ones( deep_data.size )
     elif args.weights == 'noise':
         field='mcal_g_cov'
         weights = get_weights(data, SN=SN, field=field, type=args.weights)
@@ -88,9 +93,6 @@ def get_shear_stats(conf, data, deep_data, args):
     else:
         raise ValueError("bad weights: '%s'" % args.weights)
 
-    wsum=weights.sum()
-    dwsum=dweights.sum()
-
     npair=data.size/2
     #jchunksize = npair/1000
     jchunksize = npair/100
@@ -98,39 +100,83 @@ def get_shear_stats(conf, data, deep_data, args):
     if jchunksize < 1:
         jchunksize=1
 
-    do_ring=conf['simc'].get('do_ring',True)
+    print('    jackknife chunksize:',jchunksize)
 
-    print('    jackknife chunksize:',jchunksize,"ring:",do_ring)
 
     g = data[args.gfield].copy()
-    if args.psf_sens_field in deep_data.dtype.names:
-        print("        subtracting psf sensitivity")
-        #pcorr = deep_data[args.psf_sens_field].mean(axis=0)
-        pcorr = (dweights[:,newaxis]*deep_data[args.psf_sens_field]).sum(axis=0)/dwsum
-        g -= pcorr
-
-        #print("        subtracting c")
-        #ccorr = deep_data['mcal_c'].mean(axis=0)
-        #g -= ccorr
-
     sfield=args.sens_field
+    if weights is not None:
+        print("    using weights")
+        wsum=weights.sum()
+        dwsum=dweights.sum()
 
-    #smean = deep_data[sfield].mean(axis=0)
-    smean = (dweights[:,newaxis,newaxis]*deep_data[sfield]).sum(axis=0)/dwsum
+        if args.psf_sens_field in deep_data.dtype.names:
+            print("        subtracting psf sensitivity")
+            #pcorr = deep_data[args.psf_sens_field].mean(axis=0)
+            pcorr = (dweights[:,newaxis]*deep_data[args.psf_sens_field]).sum(axis=0)/dwsum
+            g -= pcorr
 
-    g_sens = numpy.zeros( (data.size, 2, 2) )
-    g_sens[:,0, 0] = smean[0,0]
-    g_sens[:,0, 1] = smean[0,1]
-    g_sens[:,1, 0] = smean[1,0]
-    g_sens[:,1, 1] = smean[1,1]
+            #print("        subtracting c")
+            #ccorr = deep_data['mcal_c'].mean(axis=0)
+            #g -= ccorr
 
 
-    res = ngmix.metacal.jackknife_shear(g,
-                                        g_sens,
-                                        chunksize=jchunksize,
-                                        weights=weights,
-                                        do_ring=do_ring)
+        #smean = deep_data[sfield].mean(axis=0)
+        smean = (dweights[:,newaxis,newaxis]*deep_data[sfield]).sum(axis=0)/dwsum
 
+        g_sens = numpy.zeros( (data.size, 2, 2) )
+        g_sens[:,0, 0] = smean[0,0]
+        g_sens[:,0, 1] = smean[0,1]
+        g_sens[:,1, 0] = smean[1,0]
+        g_sens[:,1, 1] = smean[1,1]
+
+
+        res = ngmix.metacal.jackknife_shear_weighted(g,
+                                                     g_sens,
+                                                     weights,
+                                                     chunksize=jchunksize)
+    else:
+        ndata=data.size
+
+        psf_sens=None
+        do_psf_sens=False
+        if args.psf_sens_field is not None:
+            do_psf_sens=True
+
+        if args.boot_sens:
+            # with replacement
+            print("bootstrapping sensitivities")
+            rind = numpy.random.randint(0, deep_data.size, ndata)
+
+            g_sens = zeros( (ndata, 2, 2) )
+
+            g_sens[:,:,:] = deep_data[sfield][rind,:,:]
+
+            if do_psf_sens:
+                print("    doing psf sens")
+                psf_sens = zeros( (ndata, 2) )
+                psf_sens[:,:] = deep_data[args.psf_sens_field][rind, :]
+        else:
+            tg_sens = deep_data[sfield].mean(axis=0)
+            if do_psf_sens:
+                print("    doing psf sens")
+                tpsf_sens =deep_data[args.psf_sens_field].mean(axis=0)
+            
+            g_sens = zeros( (ndata, 2, 2) )
+            psf_sens = zeros( (ndata, 2) )
+
+            for i in [0,1]:
+                if do_psf_sens:
+                    psf_sens[:,i] = tpsf_sens[i]
+
+                for j in [0,1]:
+                    g_sens[:,i,j] = tg_sens[i,j]
+
+        res = ngmix.metacal.jackknife_shear(g,
+                                            g_sens,
+                                            Rpsf=psf_sens,
+                                            chunksize=jchunksize)
+        res['wsum'] = float(data.size)
 
     return res
 
@@ -146,8 +192,12 @@ def do_sums(conf, data, deep_data, d, args):
     shcov_inv = numpy.linalg.inv(res['shear_cov'])
     d['shear_cov_inv_sum'][0] += shcov_inv
 
-    d['wsum'][0] += res['wsum']
-    d['s2n_w_sum'][0] += (data['s2n_w']*res['weights']).sum()
+    if 'weights' in res:
+        d['wsum'][0] += res['wsum']
+        d['s2n_w_sum'][0] += (data['s2n_w']*res['weights']).sum()
+    else:
+        d['wsum'][0] = float(data.size)
+        d['s2n_w_sum'][0] += data['s2n_w'].sum()
 
 def do_avg(conf, d, args):
 

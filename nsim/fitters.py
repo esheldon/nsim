@@ -6,6 +6,8 @@ import os
 import time
 from pprint import pprint
 
+from copy import deepcopy
+
 import numpy
 from numpy import array, zeros, ones, log, log10, exp, sqrt, diag
 from numpy import where, isfinite
@@ -151,6 +153,9 @@ class FitterBase(dict):
         self['nrand'] = self.get('nrand',1)
         if self['nrand'] is None:
             self['nrand']=1
+
+        # some sub-classes may set this to one
+        self['nrand_infit'] = self['nrand']
 
         if self.sim['name'] != run_conf['sim']:
             err="sim name in run config '%s' doesn't match sim name '%s'"
@@ -601,7 +606,6 @@ class MaxMetacalFitter(MaxFitter):
 
         obs=imdict['obs']
         mdict = self._do_fits(obs)
-        res=mdict['res']
         fitter=mdict['fitter']
 
         self.fitter=fitter
@@ -650,7 +654,8 @@ class MaxMetacalFitter(MaxFitter):
 
 
             extra_noise=self.get('extra_noise',None)
-            print("    adding extra noise:",extra_noise, "nrand:",self['nrand'])
+            nrand=self['nrand_infit']
+            print("    adding extra noise:",extra_noise, "nrand:",nrand)
 
             boot.fit_metacal_max(ppars['model'],
                                  self['fit_model'],
@@ -661,7 +666,7 @@ class MaxMetacalFitter(MaxFitter):
                                  ntry=mconf['ntry'],
                                  extra_noise=extra_noise,
                                  metacal_pars=self['metacal_pars'],
-                                 nrand=self['nrand'],
+                                 nrand=nrand,
                                  verbose=False)
 
 
@@ -803,6 +808,185 @@ class MaxMetacalFitterDegradeGS(MaxMetacalFitterDegrade):
         self['extra_noise'] = extra_noise
 
         print("    adding noise to zero noise image:",self['extra_noise'])
+
+class MaxMetacalFitterDegradeSepGS(MaxMetacalFitterDegrade):
+    """
+
+    this version we simulate a low-s2n object but we use the zero noise version
+    to do our work (which is in obs.image_nonoise).
+
+    """
+
+    def go(self):
+        """
+        process the requested number of simulated galaxies
+        """
+
+        self._start_timer()
+
+        nprocessed=0
+        itot = 0
+        for igal in xrange(self['ngal']):
+            print('%s/%s' % (igal+1,self['ngal']) )
+
+            if self.data['processed'][itot]:
+                continue
+
+            nprocessed += 1
+            reslist=[]
+
+            while True:
+                try:
+
+                    # we will add noise to this many times
+                    imdict = self.sim.get_image()
+
+                    reslist=self.process_rand(imdict)
+                    break
+
+                except TryAgainError as err:
+                    print(str(err))
+
+            for res in reslist:
+                self._copy_to_output(res, itot)
+                itot += 1
+
+            self._set_elapsed_time()
+            self._try_checkpoint()
+
+        self._set_elapsed_time()
+
+        print("nprocessed (including failures):",nprocessed)
+        print('time minutes:',self.tm_minutes)
+        print('time per image sec:',self.tm/nprocessed)
+
+    def process_rand(self, imdict):
+        """
+        perform the fit
+        """
+
+        print("   ",imdict['obs'].image.shape)
+
+        reslist=self._do_metacal_fits(imdict['obs'])
+
+        for res in reslist:
+            res['pars_true'] = imdict['pars']
+            res['model_true'] = imdict['model']
+            res['s2n_true'] = imdict['s2n']
+
+            self._print_res(res)
+
+        if self['make_plots']:
+            self._make_plots(self.fitter,key)
+
+        return reslist
+
+    def _do_metacal_fits(self, obs):
+        """
+        the basic fitter for this class
+        """
+
+
+        boot=ngmix.Bootstrapper(obs, use_logpars=self['use_logpars'])
+
+        Tguess=self.sim.get('psf_T',4.0)
+        ppars=self['psf_pars']
+
+        psf_fit_pars = ppars.get('fit_pars',None)
+    
+        try:
+            boot.fit_psfs(ppars['model'], Tguess, ntry=ppars['ntry'],fit_pars=psf_fit_pars)
+        except BootPSFFailure:
+            raise TryAgainError("failed to fit psf")
+
+        if False:
+            self._compare_psf_obs_fit(boot.mb_obs_list[0][0].psf,
+                                      label1='psf',label2='model')
+
+        mconf=self['max_pars']
+
+        try:
+            boot.fit_max(self['fit_model'],
+                         mconf['pars'],
+                         prior=self.prior,
+                         ntry=mconf['ntry'])
+
+            fitter=boot.get_max_fitter() 
+            maxres=fitter.get_result()
+
+
+            if False:
+                self._compare_gal_obs_fit(boot.mb_obs_list[0][0],
+                                          boot.get_max_fitter().get_convolved_gmix(),
+                                          label1='gal',label2='model')
+
+            if mconf['pars']['method']=='lm':
+                boot.try_replace_cov(mconf['cov_pars'])
+
+
+            extra_noise=self.get('extra_noise',None)
+            print("    adding extra noise:",extra_noise, "nrand:",self['nrand'])
+
+            # we re-use the metacalibration images for each randomization
+            reslist=[]
+            metacal_obs=None
+            while len(reslist) < self['nrand']:
+                print("    %d/%d rand" % (len(reslist)+1,self['nrand']))
+                try:
+                    metacal_obs=boot.fit_metacal_max(ppars['model'],
+                                                     self['fit_model'],
+                                                     mconf['pars'],
+                                                     Tguess,
+                                                     psf_fit_pars=psf_fit_pars,
+                                                     prior=self.prior,
+                                                     ntry=mconf['ntry'],
+                                                     extra_noise=extra_noise,
+                                                     metacal_obs=metacal_obs,
+                                                     metacal_pars=self['metacal_pars'],
+                                                     nrand=1,
+                                                     verbose=False)
+                    metacal_res = boot.get_metacal_max_result()
+
+                    res = deepcopy(maxres)
+                    res.update(metacal_res)
+                    reslist.append(res)
+
+                except BootPSFFailure as err:
+                    print(str(err))
+                except BootGalFailure as err:
+                    print(str(err))
+
+
+        except BootPSFFailure:
+            raise TryAgainError("failed to fit metacal psfs")
+        except BootGalFailure:
+            raise TryAgainError("failed to fit galaxy")
+
+        self.fitter=fitter
+
+        return reslist
+
+
+    def _setup(self, *args, **kw):
+        super(MaxMetacalFitterDegrade,self)._setup(*args, **kw)
+
+        noise = self.sim['noise']
+
+        extra_noise = sqrt(self['target_noise']**2 - noise**2)
+        self['extra_noise'] = extra_noise
+
+        print("    adding noise to zero noise image:",self['extra_noise'])
+
+        self['nrand_infit'] = 1
+
+    def _make_struct(self):
+        """
+        Make the output array
+        """
+
+        dt=self._get_dtype()
+        self.data=numpy.zeros(self['ngal']*self['nrand'], dtype=dt)
+
 
 
 class MaxMetacalMetanoiseFitter(MaxMetacalFitter):

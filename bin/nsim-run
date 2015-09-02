@@ -133,6 +133,13 @@ def run_sim(sim_conf,
         else:
             fitclass=nsim.fitters.MaxMetacalFitterDegrade
 
+    elif ftype=='metacal-max-degrade-sep':
+        if simtype=='galsim':
+            fitclass=nsim.fitters.MaxMetacalFitterDegradeSepGS
+        else:
+            raise RuntimeError("no ngmix fitter for sep")
+
+
     elif ftype=='metacal-metanoise-max':
         if simtype=='galsim':
             fitclass=nsim.fitters.MaxMetacalMetanoiseFitter

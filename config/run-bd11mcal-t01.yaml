@@ -53,7 +53,7 @@ metacal_pars:
 
 ngal: 2000000
 
-desired_hours: 1.0
+desired_hours: 0.5
 # at bnl
 #sec_per: 0.80
 # at slac

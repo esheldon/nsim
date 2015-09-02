@@ -430,7 +430,13 @@ the psf shape to [0,0.025]
         meas: 0.0800415 +/- 5.21545e-05, 0.000362052 +/- 5.23894e-05
         fracdiff: 5.19e-04 +/- 6.52e-04
 
+- sim-bd11
+- sim-bd11z
+    - realistic psf ellip distribution from DES
 
+- also making it so we keep all the random realizations
+    - this should help with non-shape-biasing selections (those which don't
+        select ellipticity in the absence of noise)
 
 - run-ggnr03mn-t01
     - first metanoise run

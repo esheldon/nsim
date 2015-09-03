@@ -433,6 +433,13 @@ the psf shape to [0,0.025]
 - sim-bd11
 - sim-bd11z
     - realistic psf ellip distribution from DES
+    - run-bd11zmcal-degrade01
+    - run-bd11mcal-01
+        - not quite finished
+
+        meas: 0.0800112 +/- 4.93152e-05, -4.05726e-06 +/- 5.00538e-05
+        fracdiff: 1.40e-04 +/- 6.16e-04
+
 
 - also making it so we keep all the random realizations
     - this should help with non-shape-biasing selections (those which don't

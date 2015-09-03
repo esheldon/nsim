@@ -454,7 +454,9 @@ the psf shape to [0,0.025]
             fracdiff: 2.46e-04 +/- 6.28e-04
             meas: 0.0800049 +/- 5.04376e-05, -5.59096e-06 +/- 4.98377e-05
             fracdiff: 6.14e-05 +/- 6.30e-04
-
+    - run-bd11mcal-02
+        - not running with small update in ngmix to allow metacal obs sent
+        - check repeatability and get more stats
 
 - run-ggnr03mn-t01
     - first metanoise run

@@ -430,6 +430,30 @@ the psf shape to [0,0.025]
         meas: 0.0800415 +/- 5.21545e-05, 0.000362052 +/- 5.23894e-05
         fracdiff: 5.19e-04 +/- 6.52e-04
 
+- sim-bd11
+    - draw psf ellip from des-like distribution.  for des we see
+        roughly a double gaussian
+        psf g1 ~ -0.005 +/- 0.018
+        psf g2 ~  0.007 +/- 0.018
+      for this case I set the g1 offset to zero so we study primarily
+      calibrations in g1 (shear is [0.08, 0.00]) and leakage in
+      g2
+    - run-bd11zmcal-degrade01
+    - run-bd11mcal-01
+        - straight averaging of signal, and using only the mean of
+            sensitivities
+
+            meas: 0.080009 +/- 4.86838e-05, 6.03224e-06 +/- 4.9374e-05
+            fracdiff: 1.12e-04 +/- 6.09e-04
+
+        - bootstrapping sensitivities (will be different for different bootstraps)
+
+            meas: 0.0799963 +/- 5.03505e-05, -1.21533e-05 +/- 4.96312e-05
+            fracdiff: -4.66e-05 +/- 6.29e-04
+            meas: 0.0800196 +/- 5.02606e-05, 1.11246e-05 +/- 4.9608e-05
+            fracdiff: 2.46e-04 +/- 6.28e-04
+            meas: 0.0800049 +/- 5.04376e-05, -5.59096e-06 +/- 4.98377e-05
+            fracdiff: 6.14e-05 +/- 6.30e-04
 
 
 - run-ggnr03mn-t01

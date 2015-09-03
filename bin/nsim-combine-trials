@@ -56,7 +56,16 @@ def combine_trials_new(run, allow_missing=False, allow_mismatch=False):
 
             if not allow_mismatch:
                 if t.size != ngal_per:
-                    raise ValueError("%s expected %d, got %d" % (f,ngal_per,t.size))
+                    if 'nrand' in c:
+                        if t.size != ngal_per*c['nrand']:
+                            bad=True
+                        else:
+                            bad=False
+                    else:
+                        bad=True
+
+                    if bad:
+                        raise ValueError("%s expected %d, got %d" % (f,ngal_per,t.size))
 
             if first:
                 output.write(t)

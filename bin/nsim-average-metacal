@@ -18,6 +18,11 @@ parser=argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpForm
 
 parser.add_argument('run',help='run to average')
 
+parser.add_argument('--deep-run',
+                    help=('use this run for corrections rather '
+                          'than that listed in the config file') )
+
+
 parser.add_argument('--boot-sens',action='store_true',
                   help="bootstrap over the deep sensitivities")
 
@@ -135,6 +140,10 @@ def get_shear_stats(conf, data, deep_data, args):
                                                      g_sens,
                                                      weights,
                                                      chunksize=jchunksize)
+
+    #elif args.bootstrap:
+    #    # do a full bootstrap of both the deep and regular data
+    #    pass
     else:
         ndata=data.size
 
@@ -171,7 +180,8 @@ def get_shear_stats(conf, data, deep_data, args):
 
                 for j in [0,1]:
                     g_sens[:,i,j] = tg_sens[i,j]
-
+            #g_sens[:,0,1]=0
+            #g_sens[:,1,0]=0
         res = ngmix.metacal.jackknife_shear(g,
                                             g_sens,
                                             Rpsf=psf_sens,
@@ -423,6 +433,20 @@ def get_averaged(conf, deep_data, args):
 
     return d
 
+def read_deep_data(conf, args):
+    columns=['mcal_g_sens',
+             'mcal_psf_sens',
+             'mcal_s2n_r',
+             'mcal_s2n_simple']
+
+    if args.deep_run is not None:
+        run=args.deep_run
+    else:
+        run = conf['deep_data']['run']
+    deep_data=nsim.files.read_output(run,
+                                     0,
+                                     columns=columns)
+    return deep_data
 
 def main():
     args = parser.parse_args()
@@ -434,7 +458,7 @@ def main():
 
     conf['fname']=nsim.files.get_output_url(args.run, 0, is2n)
 
-    deep_data=nsim.files.read_output(conf['deep_data']['run'], 0)
+    deep_data = read_deep_data(conf, args)
 
     output = get_averaged(conf, deep_data, args)
 

@@ -446,6 +446,10 @@ the psf shape to [0,0.025]
             meas: 0.080009 +/- 4.86838e-05, 6.03224e-06 +/- 4.9374e-05
             fracdiff: 1.12e-04 +/- 6.09e-04
 
+        - full bootstrap of both shallow and deep data simultaneously
+            meas: 0.080009 +/- 5.17099e-05, 6.03224e-06 +/- 4.91699e-05
+            fracdiff: 1.12e-04 +/- 6.46e-04
+
         - bootstrapping sensitivities (will be different for different bootstraps)
 
             meas: 0.0799963 +/- 5.03505e-05, -1.21533e-05 +/- 4.96312e-05

@@ -447,8 +447,8 @@ the psf shape to [0,0.025]
             fracdiff: 1.12e-04 +/- 6.09e-04
 
         - full bootstrap of both shallow and deep data simultaneously
-            meas: 0.080009 +/- 5.17099e-05, 6.03224e-06 +/- 4.91699e-05
-            fracdiff: 1.12e-04 +/- 6.46e-04
+            meas: 0.080009 +/- 5.03164e-05, 6.03224e-06 +/- 4.85065e-05
+            fracdiff: 1.12e-04 +/- 6.29e-04
 
         - bootstrapping sensitivities (will be different for different bootstraps)
 
@@ -461,6 +461,15 @@ the psf shape to [0,0.025]
     - run-bd11mcal-02
         - not running with small update in ngmix to allow metacal obs sent
         - check repeatability and get more stats
+            meas: 0.0800639 +/- 4.93544e-05, 0.000108922 +/- 4.9364e-05
+            fracdiff: 7.99e-04 +/- 6.17e-04
+        - full bootstrap of both shallow and deep data simultaneously
+            meas: 0.0800639 +/- 5.04824e-05, 0.000108922 +/- 4.89934e-05
+            fracdiff: 7.99e-04 +/- 6.31e-04
+
+    - combined 01 and 02
+        meas: 0.0800526 +/- 4.10215e-05, 4.56466e-05 +/- 3.92758e-05
+        fracdiff: 6.57e-04 +/- 5.13e-04
 
 - run-ggnr03mn-t01
     - first metanoise run

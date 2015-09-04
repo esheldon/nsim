@@ -467,9 +467,13 @@ the psf shape to [0,0.025]
             meas: 0.0800639 +/- 5.04824e-05, 0.000108922 +/- 4.89934e-05
             fracdiff: 7.99e-04 +/- 6.31e-04
 
-    - combined 01 and 02
+    - combined 01 and 02 (bootstrapped)
         meas: 0.0800526 +/- 4.10215e-05, 4.56466e-05 +/- 3.92758e-05
         fracdiff: 6.57e-04 +/- 5.13e-04
+
+    - run-bd11mcal-03
+        - as bit as 01 and 02 combined
+
 
 - run-ggnr03mn-t01
     - first metanoise run

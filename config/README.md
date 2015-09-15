@@ -472,8 +472,17 @@ the psf shape to [0,0.025]
         fracdiff: 6.57e-04 +/- 5.13e-04
 
     - run-bd11mcal-03
-        - as bit as 01 and 02 combined
+        - as big as 01 and 02 combined
+        - normal jackknifing
+            meas: 0.0799976 +/- 3.47912e-05, 9.19536e-05 +/- 3.49262e-05
+            fracdiff: -2.95e-05 +/- 4.35e-04
+        - full bootstrap
+            meas: 0.0799976 +/- 3.65297e-05, 9.19536e-05 +/- 3.5082e-05
+            fracdiff: -2.95e-05 +/- 4.57e-04
 
+     - combined 01,02,03 (bootstrapped)
+         meas: 0.0800172 +/- 2.55075e-05, 7.45221e-05 +/- 2.4586e-05
+         fracdiff: 2.16e-04 +/- 3.19e-04
 
 - run-ggnr03mn-t01
     - first metanoise run

@@ -489,7 +489,9 @@ class MaxFitter(SimpleFitterBase):
         Fit according to the requested method
         """
 
-        boot=ngmix.Bootstrapper(imdict['obs'], use_logpars=self['use_logpars'])
+        boot=ngmix.Bootstrapper(imdict['obs'],
+                                use_logpars=self['use_logpars'],
+                                verbose=False)
 
         Tguess=self.sim.get('psf_T',4.0)
         ppars=self['psf_pars']
@@ -615,7 +617,10 @@ class MaxMetacalFitter(MaxFitter):
 
         intpars=self.get('intpars',None) 
 
-        boot=ngmix.Bootstrapper(obs, use_logpars=self['use_logpars'],intpars=intpars)
+        boot=ngmix.Bootstrapper(obs,
+                                use_logpars=self['use_logpars'],
+                                intpars=intpars,
+                                verbose=False)
 
         Tguess=self.sim.get('psf_T',4.0)
         ppars=self['psf_pars']
@@ -661,8 +666,7 @@ class MaxMetacalFitter(MaxFitter):
                                  ntry=mconf['ntry'],
                                  extra_noise=extra_noise,
                                  metacal_pars=self['metacal_pars'],
-                                 nrand=self['nrand'],
-                                 verbose=False)
+                                 nrand=self['nrand'])
 
 
         except BootPSFFailure:
@@ -687,12 +691,11 @@ class MaxMetacalFitter(MaxFitter):
 
         super(MaxMetacalFitter,self)._print_res(res)
         print("    mcal s2n_r:",res['mcal_s2n_r'],'mcal s2n_simple:',res['mcal_s2n_simple'])
-        print_pars(res['mcal_pars_mean'],      front='    mcal pars: ')
-        print_pars(res['mcal_pars_noshear'],   front=' pars noshear: ')
-        print_pars(res['mcal_g_sens'].ravel(), front='         sens: ')
-        print_pars(res['mcal_psf_sens'],       front='     psf sens: ')
+        print_pars(res['mcal_pars'],       front='    mcal pars: ')
+        print_pars(res['mcal_R'].ravel(),  front='    mcal R:    ')
+        print_pars(res['mcal_Rpsf'],       front='    mcal Rpsf: ')
 
-        print("     mcal c:",res['mcal_c'][0], res['mcal_c'][1])
+        print("    mcal c:",res['mcal_c'][0], res['mcal_c'][1])
 
     def _get_dtype(self):
         """
@@ -710,8 +713,9 @@ class MaxMetacalFitter(MaxFitter):
             ('mcal_c','f8',2),
             ('mcal_s2n_r','f8'),
             ('mcal_s2n_simple','f8'),
-            ('mcal_g_sens','f8',(2,2)),
-            ('mcal_psf_sens','f8',2),
+            ('mcal_R','f8',(2,2)),
+            ('mcal_Rpsf','f8',2),
+            ('mcal_gpsf','f8',2),
         ]
         return dt
 
@@ -724,9 +728,9 @@ class MaxMetacalFitter(MaxFitter):
 
         d=self.data
 
-        d['mcal_pars'][i] = res['mcal_pars_mean']
-        d['mcal_pars_cov'][i] = res['mcal_pars_mean_cov']
-        d['mcal_g'][i] = res['mcal_g_mean']
+        d['mcal_pars'][i] = res['mcal_pars']
+        d['mcal_pars_cov'][i] = res['mcal_pars_cov']
+        d['mcal_g'][i] = res['mcal_g']
         d['mcal_g_cov'][i] = res['mcal_g_cov']
         d['mcal_s2n_r'][i] = res['mcal_s2n_r']
         d['mcal_s2n_simple'][i] = res['mcal_s2n_simple']
@@ -734,8 +738,9 @@ class MaxMetacalFitter(MaxFitter):
         d['mcal_g_noshear'][i] = res['mcal_pars_noshear'][2:2+2]
         d['mcal_c'][i] = res['mcal_c']
 
-        d['mcal_g_sens'][i] = res['mcal_g_sens']
-        d['mcal_psf_sens'][i] = res['mcal_psf_sens']
+        d['mcal_R'][i] = res['mcal_R']
+        d['mcal_Rpsf'][i] = res['mcal_Rpsf']
+        d['mcal_gpsf'][i] = res['mcal_gpsf']
 
     def _compare_psf_obs_fit(self, obs, **keys):
         gm = obs.get_gmix()
@@ -805,79 +810,36 @@ class MaxMetacalFitterDegradeGS(MaxMetacalFitterDegrade):
         print("    adding noise to zero noise image:",self['extra_noise'])
 
 
-class MaxMetacalMetanoiseFitter(MaxMetacalFitter):
+class MaxMetanoiseFitter(MaxMetacalFitter):
     """
     degrade the images
     """
-
-    def _setup(self, *args, **kw):
-        super(MaxMetacalMetanoiseFitter,self)._setup(*args, **kw)
-
-        print("nrand:",self['nrand'])
-        assert self['nrand'] >= 1,"bad nrand: %s" % self['nrand']
-
-        noise = self.sim['noise']
-        target_noise = noise*sqrt(self['nrand'])
-
-        extra_noise = sqrt(target_noise**2 - noise**2)
-        self['extra_noise'] = extra_noise
-
-        print("    original noise:",self['noise'])
-        print("    adding noise to zero noise image:",self['extra_noise'])
 
     def _do_fits(self, obs):
         """
         the basic fitter for this class
         """
-        step = self['metacal_pars']['step']
 
-        intpars=self.get('intpars',None) 
+        rdict=super(MaxMetanoiseFitter,self)._do_fits(obs)
+        boot=rdict['boot']
 
-        boot=ngmix.Bootstrapper(obs, use_logpars=self['use_logpars'],intpars=intpars)
+        print("doing metanoise")
 
-        psf_Tguess=self.sim.get('psf_T',4.0)
         ppars=self['psf_pars']
-
+        mconf=self['max_pars']
+        Tguess=self.sim.get('psf_T',4.0)
         psf_fit_pars = ppars.get('fit_pars',None)
-    
-        try:
-            boot.fit_psfs(ppars['model'], psf_Tguess, ntry=ppars['ntry'],fit_pars=psf_fit_pars)
-        except BootPSFFailure:
-            raise TryAgainError("failed to fit psf")
-
-        if False:
-            self._compare_psf_obs_fit(boot.mb_obs_list[0][0].psf,
-                                      label1='psf',label2='model')
-
-        maxfit_conf=self['max_pars']
 
         try:
-            boot.fit_max(self['fit_model'],
-                         maxfit_conf['pars'],
-                         prior=self.prior,
-                         ntry=maxfit_conf['ntry'])
-
-
-            if maxfit_conf['pars']['method']=='lm':
-                boot.try_replace_cov(maxfit_conf['cov_pars'])
-
-            print("    adding extra noise:",
-                  self['extra_noise'], "nrand:",self['nrand'])
-
-            boot.fit_metacal_metanoise_max(ppars['model'],
-                                           self['fit_model'],
-                                           maxfit_conf['pars'],
-                                           psf_Tguess,
-                                           self['extra_noise'],
-                                           self['nrand'],
-                                           psf_fit_pars=psf_fit_pars,
-                                           step=step,
-                                           prior=self.prior,
-                                           ntry=maxfit_conf['ntry'],
-                                           psf_ntry=ppars['ntry'],
-                                           verbose=False)
-
-
+            boot.fit_metanoise_max(ppars['model'],
+                                   self['fit_model'],
+                                   mconf['pars'],
+                                   Tguess,
+                                   self['metanoise_pars']['nrand'],
+                                   psf_fit_pars=psf_fit_pars,
+                                   prior=self.prior,
+                                   ntry=mconf['ntry'],
+                                   metacal_pars=self['metacal_pars'])
         except BootPSFFailure:
             raise TryAgainError("failed to fit metacal psfs")
         except BootGalFailure:
@@ -886,12 +848,72 @@ class MaxMetacalMetanoiseFitter(MaxMetacalFitter):
         fitter=boot.get_max_fitter() 
         res=fitter.get_result()
 
-        mres = boot.get_metacal_metanoise_max_result()
-        res.update(mres)
+        mnres = boot.get_metanoise_max_result()
+        res.update(mnres)
 
         return {'fitter':fitter,
                 'boot':boot,
                 'res':res}
+
+    def _print_res(self,res):
+        """
+        print some stats
+        """
+
+        super(MaxMetanoiseFitter,self)._print_res(res)
+        print("    mnoise s2n_r:",res['mnoise_s2n_r'],'mnoise s2n_simple:',res['mnoise_s2n_simple'])
+        print_pars(res['mnoise_pars'],       front='    mnoise pars: ')
+        print_pars(res['mnoise_R'].ravel(),  front='    mnoise R:    ')
+        print_pars(res['mnoise_Rpsf'],       front='    mnoise Rpsf: ')
+
+        print("    mnoise c:",res['mnoise_c'][0], res['mnoise_c'][1])
+
+
+    def _get_dtype(self):
+        """
+        get the dtype for the output struct
+        """
+        dt=super(MaxMetanoiseFitter,self)._get_dtype()
+
+        npars=self['npars']
+        dt += [
+            ('mnoise_pars','f8',npars),
+            ('mnoise_pars_cov','f8',(npars,npars)),
+            ('mnoise_g','f8',2),
+            ('mnoise_g_cov','f8', (2,2) ),
+            ('mnoise_g_noshear','f8',2),
+            ('mnoise_c','f8',2),
+            ('mnoise_s2n_r','f8'),
+            ('mnoise_s2n_simple','f8'),
+            ('mnoise_R','f8',(2,2)),
+            ('mnoise_Rpsf','f8',2),
+            ('mnoise_gpsf','f8',2),
+        ]
+        return dt
+
+
+    def _copy_to_output(self, res, i):
+        """
+        copy parameters specific to this class
+        """
+        super(MaxMetanoiseFitter,self)._copy_to_output(res, i)
+
+        d=self.data
+
+        d['mnoise_pars'][i] = res['mnoise_pars']
+        d['mnoise_pars_cov'][i] = res['mnoise_pars_cov']
+        d['mnoise_g'][i] = res['mnoise_g']
+        d['mnoise_g_cov'][i] = res['mnoise_g_cov']
+        d['mnoise_s2n_r'][i] = res['mnoise_s2n_r']
+        d['mnoise_s2n_simple'][i] = res['mnoise_s2n_simple']
+
+        d['mnoise_g_noshear'][i] = res['mnoise_pars_noshear'][2:2+2]
+        d['mnoise_c'][i] = res['mnoise_c']
+
+        d['mnoise_R'][i] = res['mnoise_R']
+        d['mnoise_Rpsf'][i] = res['mnoise_Rpsf']
+        d['mnoise_gpsf'][i] = res['mnoise_gpsf']
+
 
 class MaxMetacalFitterDegradeGSOld(MaxMetacalFitterDegrade):
     """
@@ -958,419 +980,7 @@ class MaxMetacalFitterDegradeGSOld(MaxMetacalFitterDegrade):
 
 
 
-class AdmomMetacalFitter(MaxMetacalFitter):
-    def _do_one_fit(self, obs, **kw):
-        """
-        note guess= and ntry= are ignored
-        """
-        import admom
-        admompars=self['admom_pars']
-        ntry=admompars['ntry']
 
-        gm=self.imdict['gm']
-
-        row0,col0=obs.jacobian.get_cen()
-        row,col=gm.get_cen()
-        row += row0
-        col += col0
-
-        T=gm.get_T()
-
-        dopsf=admompars['dopsf']
-        if dopsf:
-            psfres=self._fit_psf(obs)
-
-        #print("fitting gal")
-        for i in xrange(ntry):
-            rowguess=row + 0.1*srandu()
-            colguess=col + 0.1*srandu()
-            Tguess=T*(1.0 + 0.1*srandu())
-
-            if dopsf:
-                res=admom.wrappers.admom_1psf(obs.image, rowguess, colguess,
-                                     psfres['Irr'],psfres['Irc'],psfres['Icc'],
-                                     #0.0, 0.0, 0.0,
-                                     sigsky=self.sim['noise'],
-                                     guess=Tguess/2.,
-                                     **admompars)
-
-            else:
-                res=admom.admom(obs.image, rowguess, colguess,
-                                sigsky=self.sim['noise'],
-                                guess=Tguess/2.,
-                                **admompars)
-
-            res['flags']=res['whyflag']
-            if res['flags']==0:
-                break
-
-        if res['flags'] != 0:
-            raise TryAgainError("admom error '%s'" % res['whystr'])
-
-        res['pars'] = array([res['wrow']-row0,
-                             res['wcol']-col0,
-                             res['e1'],
-                             res['e2'],
-                             #res['Icc']-res['Irr'],
-                             #2*res['Irc'],
-                             #(res['Icc']-res['Irr'])*res['Isum'],
-                             #2*res['Irc']*res['Isum'],
-                             res['Irr']+res['Icc'],
-                             1.0])
-
-        res['pars_err']=res['pars']*0 - 9999
-
-        res['pars_cov'] = diag( res['pars']*0 - 9999 )
-
-        res['g'] = res['pars'][2:2+2].copy()
-        res['g_cov'] = res['pars_cov'][2:2+2, 2:2+2].copy()
-
-        res['s2n_w'] = res['s2n']
-
-        reswrap=MomWrapper(res)
-        return {'fitter':reswrap, 'res':res}
-
-    def _fit_psf(self, obs):
-        import admom
-        #print("fitting psf")
-        gm=self.sim.psf_gmix_true
-
-        row0,col0=obs.psf.jacobian.get_cen()
-        row,col=gm.get_cen()
-
-        row += row0
-        col += col0
-
-        T=gm.get_T()
-
-        admompars=self['admom_pars']
-        res=admom.admom(obs.psf.image, row, col,
-                        sigsky=1.0e-6,
-                        guess=T/2.,
-                        **admompars)
-
-        if res['whyflag'] != 0:
-            raise TryAgainError("admom psf error '%s'" % res['whystr'])
-
-        return res
-
-    def _get_sensitivity_model(self, obs, fitter):
-        return zeros(2)-9999.0
-
-    #def _copy_to_output(self, res, i):
-    #    super(SimpleFitterBase,self)._copy_to_output(res, i)
-
-
-class MomMetacalMetanoiseFitter(MaxMetacalFitter):
-    def _setup(self, *args, **kw):
-        super(MomMetacalMetanoiseFitter,self)._setup(*args, **kw)
-
-        print("nrand:",self['nrand'])
-        assert self['nrand'] >= 1,"bad nrand: %s" % self['nrand']
-
-        noise = self.sim['noise']
-        target_noise = noise*sqrt(self['nrand'])
-
-        extra_noise = sqrt(target_noise**2 - noise**2)
-        self['extra_noise'] = extra_noise
-
-        print("    original noise:",self['noise'])
-        print("    adding noise to zero noise image:",self['extra_noise'])
-
-    def _do_fits(self, obs_orig):
-
-        jacobian = obs_orig.jacobian
-
-        res={'flags':0}
-        # first do a fit with em to the original obs
-        fitter = self._do_em_fit(obs_orig, ntry=10)
-
-        gm = fitter.get_gmix()
-        gm.set_psum(obs_orig.image_nonoise.sum())
-        emres=fitter.get_result()
-
-        gmround = gm.make_round()
-
-        res['s2n_w'] = gm.get_model_s2n(obs_orig)
-        res['mcal_s2n_r'] = gmround.get_model_s2n(obs_orig)
-        res['mcal_T_r'] = gmround.get_T()
-
-        cen=gm.get_cen()
-        e1,e2,T=gm.get_e1e2T()
-        res['pars'] = array([cen[0],cen[1],e1,e2,T,1.0])
-        res['pars_cov'] = zeros( (6,6) ) - 9999.0
-        res['pars_err'] = zeros(6) - 9999.0
-        res['g'] = array([e1,e2])
-        res['g_cov'] = -9999.0
-        res['nfev'] = emres['numiter']
-        res['ntry'] = emres['ntry']
-
-        boot=ngmix.Bootstrapper(obs_orig)
-
-        step=self['metacal_pars']['step']
-        
-        if self['nrand'] is None:
-            print("no rand, faking")
-            obs_dict0=boot.get_metacal_obsdict(obs_orig,step)
-            obs_dict={}
-            for key in obs_dict0:
-                obslist=ngmix.ObsList()
-                obslist.append(obs_dict0[key])
-                obs_dict[key]=obslist
-        else:
-            obs_dict,obs_dict0 = boot.get_metanoise_obsdict(self['nrand'],
-                                                            self['extra_noise'],
-                                                            step)
-
-        psf_fitter = self._do_em_fit(obs_dict['1p'][0].psf, ntry=10)
-        psf_gmix = psf_fitter.get_gmix()
-        psf_gmix_round = psf_gmix.make_round()
-        res['mcal_psf_T_r'] = psf_gmix_round.get_T()
-        psf_e1,psf_e2,psf_T = psf_gmix.get_e1e2T()
-
-        # get centers from the dict0 (no noise added)
-        usum=0.0
-        vsum=0.0
-        Isum=0.0
-        cen_dict={}
-        for key in obs_dict0: 
-            obs = obs_dict0[key]
-
-            momres=gm.get_weighted_mom_sums(obs,find_cen=True)
-            if momres['flags'] != 0:
-                raise TryAgainError("could not find centers mom")
-
-            pars=momres['pars']
-            usum = pars[0]
-            vsum = pars[1]
-            Isum = pars[5]
-
-            if Isum ==0.0:
-                raise TryAgainError("zero Isum")
-
-            cen_dict[key] = (usum/Isum, vsum/Isum)
-        
-        gmuse = gm.copy()
-        pars={}
-
-        # average over randomizations
-        for key in obs_dict: 
-            im = 0.0*obs_dict[key][0].image
-
-            for obs in obs_dict[key]:
-                im += obs.image
-        
-            cen = cen_dict[key]
-            gmuse.set_cen(cen[0], cen[1])
-
-            nobs = Observation(im, jacobian=jacobian)
-            momres=gmuse.get_weighted_mom_sums(nobs,find_cen=False)
-            pars_sum = momres['pars']
-
-            wsum = momres['wsum']
-            Tsum = pars_sum[4] 
-            Isum = pars_sum[5]
-            if wsum==0.0 or Tsum == 0.0 or Isum==0.0:
-                raise TryAgainError("zero sums")
-            
-            pars_sum[0:0+2] *= (1.0/Isum)
-            pars_sum[2:2+2] *= (1.0/Tsum)
-            pars_sum[4] *= (1.0/Isum)
-            pars_sum[5] *= (1.0/wsum)
- 
-            pars[key] = pars_sum
-
-        pars_mean = (pars['1p']+
-                     pars['1m']+
-                     pars['2p']+
-                     pars['2m'])/4.0
-        pars_cov_mean= zeros( (6,6) ) + -9999.0
-        pars_noshear = pars['noshear']
-
-        c = pars_mean[2:2+2] - pars_noshear[2:2+2]
-
-        R = zeros( (2,2) )
-        Rpsf = zeros(2) 
-
-        fac = 1.0/(2.0*step)
-        R[0,0] = (pars['1p'][2]-pars['1m'][2])*fac
-        R[0,1] = (pars['1p'][3]-pars['1m'][3])*fac
-        R[1,0] = (pars['2p'][2]-pars['2m'][2])*fac
-        R[1,1] = (pars['2p'][3]-pars['2m'][3])*fac
-
-        Rpsf[0] = (pars['1p_psf'][2]-pars['1m_psf'][2])*fac
-        Rpsf[1] = (pars['2p_psf'][3]-pars['2m_psf'][3])*fac
-
-        Rpsf[0] *= psf_e1
-        Rpsf[1] *= psf_e2
-
-        tres = {'mcal_pars_mean':pars_mean,
-                'mcal_pars_mean_cov':pars_cov_mean,
-                'mcal_g_mean':pars_mean[2:2+2],
-                'mcal_g_cov':pars_cov_mean[2:2+2, 2:2+2],
-                'mcal_pars_noshear':pars_noshear,
-                'mcal_c':c,
-                'mcal_g_sens':R,
-                'mcal_psf_sens':Rpsf}
-
-        res.update(tres)
-
-        reswrap=MomWrapper(res)
-        return {'fitter':reswrap, 'boot':None, 'res':res}
-
-    def _do_em_fit(self, obs, ntry=10):
-        from ngmix.bootstrap import EMRunner
-
-        empars={'maxiter':4000, 'tol':1.0e-6}
-        Tguess=8.0*(1.0 + 0.1*srandu())
-        ngauss=1
-        runner=EMRunner(obs, Tguess, ngauss, empars)
-
-        runner.go(ntry=ntry)
-
-        fitter=runner.get_fitter()
-        res=fitter.get_result()
-        if res['flags'] != 0:
-            raise TryAgainError("em gal failed")
-
-        return fitter
-
-
-    def _do_one_fit(self, obs, ntry=None, **kw):
-        """
-        note guess= is ignored
-        """
-
-        mompars=self['mom_pars']
-
-        wtype=mompars['weight_type']
-        if wtype =="truth":
-            gm_weight = self.imdict['gm'].copy()
-            # weight should always have center 0,0, coinciding
-            # with jacobian center of coordinates.
-            gm_weight.set_cen(0.0, 0.0)
-        else:
-            raise RuntimeError("bad weight type: '%s'" % wtype)
-
-        res=gm_weight.get_weighted_mom_sums(obs, **mompars)
-
-        if res['flags'] != 0:
-            raise TryAgainError("error getting weights: '%s'" % res['flagstr'])
-
-        skyvar=self.sim['noise']**2
-
-        #res['pars'][2] = res['pars'][2]/res['pars'][5]
-        #res['pars'][3] = res['pars'][3]/res['pars'][5]
-        #res['pars'][2] = res['pars'][2]/res['pars'][4]
-        #res['pars'][3] = res['pars'][3]/res['pars'][4]
-
-        res['pars_var'] *= skyvar
-        res['pars_cov'] *= skyvar
-        res['pars_err'] = sqrt(res['pars_var'])
-        res['g'] = res['pars'][2:2+2].copy()
-        res['g_cov'] = res['pars_cov'][2:2+2, 2:2+2].copy()
-
-        res['s2n_w'] = res['pars'][5]/res['pars_err'][5]
-
-
-        reswrap=MomWrapper(res)
-        return {'fitter':reswrap, 'res':res}
-
-    def _get_sensitivity_model(self, obs, fitter):
-        return zeros(2)-9999.0
-
-    #def _copy_to_output(self, res, i):
-    #    super(SimpleFitterBase,self)._copy_to_output(res, i)
-
-class MomMetacalFitter(MomMetacalMetanoiseFitter):
-    def _setup(self, *args, **kw):
-        super(MomMetacalMetanoiseFitter,self)._setup(*args, **kw)
-
-        self['nrand']=None
-        self['extra_noise']=None
-
-
-class MomWrapper(object):
-    def __init__(self, res):
-        self._result=res
-    def get_result(self):
-        return self._result
-
-class MaxMetacalFitterModel(MaxMetacalFitter):
-    def __init__(self, *args, **keys):
-        super(MaxMetacalFitterModel,self).__init__(*args,**keys)
-        mpars=self['metacal_pars']
-        if mpars['mean_from'] != 'orig':
-            raise ValueError("mean_from must be orig")
-
-    def _get_sensitivity(self, obs):
-        """
-        just simulate the model at different shears
-
-        would only correct noise bias I think
-        """
-        mpars=self['metacal_pars']
-
-        im=obs.image
-        imshape=im.shape
-        jacobian=obs.jacobian
-
-        res=self.fitter.get_result()
-        model=res['model']
-
-        pars=self.fitter.get_band_pars(res['pars'], band=0)
-        #gm0=ngmix.GMixModel(pars,model)
-        #gm=gm0.convolve(obs.psf.gmix)
-        #model_im=gm.make_image(imshape, jacobian=jacobian, nsub=1)
-        #nim=obs.image-model_im
-
-        noise=self.sim['noise']
-        nim=numpy.random.normal(scale=noise, size=imshape)
-
-        parsm=pars.copy()
-        parsp=pars.copy()
-
-        shm=ngmix.Shape(parsm[2], parsm[3])
-        shp=ngmix.Shape(parsp[2], parsp[3])
-        
-        step=mpars['step']
-        shm.shear(-step, 0.0)
-        shp.shear( step, 0.0)
-
-        parsm[2],parsm[3]=shm.g1, shm.g2
-        parsp[2],parsp[3]=shp.g1, shp.g2
-
-        gmm0=ngmix.GMixModel(parsm,model)
-        gmp0=ngmix.GMixModel(parsp,model)
-
-        gmm=gmm0.convolve(obs.psf.gmix)
-        gmp=gmp0.convolve(obs.psf.gmix)
-
-        imm=gmm.make_image(imshape, jacobian=jacobian, nsub=1)
-        imp=gmp.make_image(imshape, jacobian=jacobian, nsub=1)
-
-
-        imm += nim
-        imp += nim
-        
-        R_obs_1m = _make_new_obs(obs, imm)
-        R_obs_1p = _make_new_obs(obs, imp)
-
-        mdict_1m = self._do_one_fit(R_obs_1m)
-        mdict_1p = self._do_one_fit(R_obs_1p)
-        res_1m = mdict_1m['res']
-        res_1p = mdict_1p['res']
-
-        pars_1m=res_1m['pars']
-        pars_1p=res_1p['pars']
-        g_1m=pars_1m[2:2+2]
-        g_1p=pars_1p[2:2+2]
-
-        g_sens1 = (g_1p[0] - g_1m[0])/(2*step)
-
-        g_sens = array( [g_sens1]*2 )
-
-        return None, g_sens
 
 def _make_new_obs(obs, im):
     """
@@ -1559,7 +1169,7 @@ class ISampleMetacalFitterNearest(MaxMetacalFitter):
         Calculate some stats
 
         The result dict internal to the sampler is modified to include
-        g_sens and P,Q,R
+        R and P,Q,R
 
         call calc_result before calling this method
         """
@@ -1579,8 +1189,8 @@ class ISampleMetacalFitterNearest(MaxMetacalFitter):
         else:
             sens_vals = self.interp(samples[:,2:])
 
-        g_sens_model = (iweights*sens_vals).sum()/iweights.sum()
-        g_sens_model = array([g_sens_model]*2)
+        R_model = (iweights*sens_vals).sum()/iweights.sum()
+        R_model = array([R_model]*2)
 
         # fake the other dimension
         response=zeros( g_vals.shape )
@@ -1592,7 +1202,7 @@ class ISampleMetacalFitterNearest(MaxMetacalFitter):
                                             g_prior,
                                             weights=iweights,
                                             remove_prior=self.remove_prior)
-        g_sens = ls.get_g_sens()
+        R = ls.get_R()
 
 
         lsr=ngmix.lensfit.LensfitSensitivity(g_vals,
@@ -1600,15 +1210,15 @@ class ISampleMetacalFitterNearest(MaxMetacalFitter):
                                             weights=iweights,
                                             response=response,
                                             remove_prior=self.remove_prior)
-        g_sens_r = lsr.get_g_sens()
+        R_r = lsr.get_R()
 
-        print("        sens model:",g_sens_model)
-        print("        sens response:",g_sens_r)
+        print("        sens model:",R_model)
+        print("        sens response:",R_r)
 
-        res['g_sens_model'] = g_sens_model
+        res['R_model'] = R_model
 
-        res['g_sens'] = g_sens
-        res['g_sens_r'] = g_sens_r
+        res['R'] = R
+        res['R_r'] = R_r
         res['nuse'] = ls.get_nuse()
 
         pqrobj=ngmix.pqr.PQR(g_vals, g_prior,
@@ -1634,10 +1244,10 @@ class ISampleMetacalFitterNearest(MaxMetacalFitter):
                                             g_prior,
                                             weights=weights,
                                             remove_prior=self.remove_prior)
-        g_sens = ls.get_g_sens()
+        R = ls.get_R()
 
         res=sampler.get_result()
-        res['g_sens'] = g_sens
+        res['R'] = R
         res['nuse'] = ls.get_nuse()
 
         pqrobj=ngmix.pqr.PQR(g_vals, g_prior,
@@ -1705,10 +1315,10 @@ class ISampleMetacalFitterNearest(MaxMetacalFitter):
         else:
             pars=data['pars_noshear'][:,2:].copy()
 
-        # not g_sens (the sens from metacal) not g_sens_model
+        # not R (the sens from metacal) not R_model
         # which means something else for max like fitting
         self.interp = NearestNDInterpolator(pars,
-                                            data['g_sens'][:,0],
+                                            data['R'][:,0],
                                             rescale=True)
 
     def _get_dtype(self):
@@ -1719,9 +1329,9 @@ class ISampleMetacalFitterNearest(MaxMetacalFitter):
         dt=MaxFitter._get_dtype(self)
         dt += [
             ('neff','f4'),
-            ('g_sens','f8',2),
-            ('g_sens_r','f8',2),
-            ('g_sens_model','f8',2),
+            ('R','f8',2),
+            ('R_r','f8',2),
+            ('R_model','f8',2),
             ('P','f8'),
             ('Q','f8',2),
             ('R','f8',(2,2)),
@@ -1738,9 +1348,9 @@ class ISampleMetacalFitterNearest(MaxMetacalFitter):
         d=self.data
 
         d['neff'][i] = res['neff']
-        d['g_sens'][i] = res['g_sens']
-        d['g_sens_r'][i] = res['g_sens_r']
-        d['g_sens_model'][i] = res['g_sens_model']
+        d['R'][i] = res['R']
+        d['R_r'][i] = res['R_r']
+        d['R_model'][i] = res['R_model']
         d['P'][i] = res['P']
         d['Q'][i] = res['Q']
         d['R'][i] = res['R']

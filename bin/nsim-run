@@ -133,9 +133,9 @@ def run_sim(sim_conf,
         else:
             fitclass=nsim.fitters.MaxMetacalFitterDegrade
 
-    elif ftype=='metacal-metanoise-max':
+    elif ftype=='metanoise-max':
         if simtype=='galsim':
-            fitclass=nsim.fitters.MaxMetacalMetanoiseFitter
+            fitclass=nsim.fitters.MaxMetanoiseFitter
         else:
             raise RuntimeError("don't have metanoise for ngmix sim yet")
 

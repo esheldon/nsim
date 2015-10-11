@@ -19,16 +19,9 @@ parser.add_argument('run',help='sim run')
 parser.add_argument('--missing',action='store_true',
                     help='write wq job files for the missing files')
 
-parser.add_argument('-q','--queue',default='medium',
-                    help='lsf queue, default %default')
-parser.add_argument('-w','--walltime',default='02:00',
-                    help='lsf queue, default %default')
-
-
 MAXTIME_HOURS=3.0
 
 _lsf_template="""#!/bin/bash
-#BSUB -q %(queue)s
 #BSUB -J %(job_name)s
 #BSUB -n 1
 #BSUB -oo ./%(job_name)s.oe
@@ -211,8 +204,11 @@ class MakerBase(dict):
 
         filenum=0
 
-        ngal_per, nsplit = nsim.files.get_gal_nsplit(self)
+        ngal_per, nsplit, time_hours = nsim.files.get_gal_nsplit(self)
         self['ngal_per'] = ngal_per
+
+        walltime = int(2.0 + time_hours)
+        self['walltime'] = '%02d:00' % walltime
 
         for isplit in xrange(nsplit):
             ngal_tot += ngal_per
@@ -337,9 +333,6 @@ def main():
     if system=='wq':
         maker=WQMaker(c)
     elif system=='lsf':
-        c['queue'] = args.queue
-        c['walltime'] = args.walltime
-
         maker=LSFMaker(c)
     else:
         raise ValueError("bad queue system: '%s'" % system)

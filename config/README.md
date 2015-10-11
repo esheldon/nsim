@@ -484,6 +484,12 @@ the psf shape to [0,0.025]
          meas: 0.0800172 +/- 2.55075e-05, 7.45221e-05 +/- 2.4586e-05
          fracdiff: 2.16e-04 +/- 3.19e-04
 
+- run-bd11mcal-t02
+    - fix in metacal, wasn't taking abs value of shear
+
+- run-bd11mcal-t03
+    - fix in metacal, don't interpolate twice
+
 - run-ggnr03mn-t01
     - first metanoise run
     - noise 0.1

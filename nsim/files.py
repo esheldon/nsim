@@ -626,4 +626,4 @@ def get_gal_nsplit(c):
     print('nsplit:',nsplit,'ngal per:',ngal_per,'time (hours):',time_hours)
 
 
-    return ngal_per, nsplit
+    return ngal_per, nsplit, time_hours

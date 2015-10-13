@@ -294,7 +294,7 @@ class SimpleFitterBase(FitterBase):
         d=self.data
 
         d['pars'][i,:] = res['pars']
-        d['pcov'][i,:,:] = res['pars_cov']
+        d['pars_cov'][i,:,:] = res['pars_cov']
 
         d['g'][i,:] = res['g']
         d['g_cov'][i,:,:] = res['g_cov']
@@ -474,7 +474,7 @@ class SimpleFitterBase(FitterBase):
         dt=super(SimpleFitterBase,self)._get_dtype()
         dt += [
             ('pars','f8',npars),
-            ('pcov','f8',(npars,npars)),
+            ('pars_cov','f8',(npars,npars)),
             ('g','f8',2),
             ('g_cov','f8',(2,2)),
             ('s2n_w','f8')

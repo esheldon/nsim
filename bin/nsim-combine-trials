@@ -37,7 +37,7 @@ def combine_trials_new(run, allow_missing=False, allow_mismatch=False):
     c = nsim.files.read_config(run)
     c['simc'] = nsim.files.read_config(c['sim'])
 
-    ngal_per,nsplit = nsim.files.get_gal_nsplit(c)
+    ngal_per,nsplit,hrs = nsim.files.get_gal_nsplit(c)
 
     outfile=nsim.files.get_output_url(run, 0, is2n, fs=fs, ext='fits')
     tmpfile=get_tmp_file(outfile)

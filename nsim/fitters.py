@@ -294,7 +294,7 @@ class SimpleFitterBase(FitterBase):
         d=self.data
 
         d['pars'][i,:] = res['pars']
-        d['pcov'][i,:,:] = res['pars_cov']
+        d['pars_cov'][i,:,:] = res['pars_cov']
 
         d['g'][i,:] = res['g']
         d['g_cov'][i,:,:] = res['g_cov']
@@ -474,7 +474,7 @@ class SimpleFitterBase(FitterBase):
         dt=super(SimpleFitterBase,self)._get_dtype()
         dt += [
             ('pars','f8',npars),
-            ('pcov','f8',(npars,npars)),
+            ('pars_cov','f8',(npars,npars)),
             ('g','f8',2),
             ('g_cov','f8',(2,2)),
             ('s2n_w','f8')
@@ -932,59 +932,95 @@ def _make_new_obs(obs, im):
 
 
 
-class EMMetacalFitter(MaxMetacalFitter):
+class EMMetacalFitter(SimpleFitterBase):
     """
     this is not finished
     """
-    def _setup(self, *args, **kw):
-        super(EMMetacalFitter,self)._setup(*args, **kw)
-
-        print("nrand:",self['nrand'])
-        assert self['nrand'] >= 1,"bad nrand: %s" % self['nrand']
-
-        noise = self.sim['noise']
-        target_noise = noise*sqrt(self['nrand'])
-
-        extra_noise = sqrt(target_noise**2 - noise**2)
-        self['extra_noise'] = extra_noise
-
-        print("    original noise:",self['noise'])
-        print("    adding noise to zero noise image:",self['extra_noise'])
 
 
-    def _do_fits(self, obs):
+    def _dofit(self, imdict):
+
+        obs = imdict['obs']
+        resdict = self._do_one_fit(obs)
+        psf_resdict = self._do_one_fit(obs.psf)
+
+        res=resdict['res']
+        res['epsf'] = psf_resdict['res']['e']
+
         boot=ngmix.Bootstrapper(obs)
 
-        step=self['metacal_pars']['step']
-        mcal_obs_dict = boot.get_metanoise_obsdict(self['nrand'],
-                                                   self['extra_noise'],
-                                                   step)
+        mcal_pars = self['metacal_pars']
+        mcal_obs_dict = boot.get_metacal_obsdict(obs, mcal_pars)
+
+        epsf = zeros( (4,2) )
+        ipsf=0
+
+        pars_dict = {}
+        for key in mcal_obs_dict:
+            tobs = mcal_obs_dict[key]
+
+            psfd = self._do_one_fit(tobs.psf, type='psf')
+            rd = self._do_one_fit(tobs)
+
+            if 'psf' not in key and 'noshear' not in key:
+                epsf[ipsf,:] = psfd['res']['e']
+                ipsf+=1
+
+            pars_dict[key] = rd['res']['pars']
 
 
-    def _do_em_fit(self, obs, guess=None):
-        if guess is None:
-            dims=numpy.array(obs.image.shape)
-            cen= (dims-1)/2.0
-            g1,g2 = 0.05*srandu(2)
-            T = 4.0*(1.0 + 0.1*srandu())
-            p = 1.0 + 0.1*srandu()
-            guess = ngmix.GMixModel([cen[0],cen[1],g1,g2,T,p],"gauss")
-        
-        fitter = ngmix.em.fit_em(obs, guess, maxiter=4000)
+        Rres=self._calc_R(pars_dict)
 
-    def _do_one_fit(self, obs, guess=None, ntry=None):
-        from ngmix.em import GMixEM, prep_image
+        res.update(Rres)
+        res['mcal_epsf'] = epsf.mean(axis=0)
+
+        return resdict['fitter']
+
+    def _calc_R(self, pars):
+
+        step = self['metacal_pars']['step']
+
+        pars_mean = (pars['1p']+
+                     pars['1m']+
+                     pars['2p']+
+                     pars['2m'])/4.0
+
+
+        R=zeros( (2,2) ) 
+        Rpsf=zeros(2)
+
+        fac = 1.0/(2.0*step)
+
+        R[0,0] = (pars['1p'][2]-pars['1m'][2])*fac
+        R[0,1] = (pars['1p'][3]-pars['1m'][3])*fac
+        R[1,0] = (pars['2p'][2]-pars['2m'][2])*fac
+        R[1,1] = (pars['2p'][3]-pars['2m'][3])*fac
+
+        Rpsf[0] = (pars['1p_psf'][2]-pars['1m_psf'][2])*fac
+        Rpsf[1] = (pars['2p_psf'][3]-pars['2m_psf'][3])*fac
+
+        pars_noshear = pars['noshear']
+
+        c = pars_mean[2:2+2] - pars_noshear[2:2+2]
+
+        res = {'mcal_pars':pars_mean,
+               'mcal_e':pars_mean[2:2+2],
+               'mcal_R':R,
+               'mcal_Rpsf':Rpsf,
+               'mcal_e_noshear':pars_noshear[2:2+2].copy(),
+               'mcal_c':c}
+        return res
+
+
+    def _do_one_fit(self, obs, type='gal'):
         from ngmix.bootstrap import EMRunner
-
-        boot=None
 
         emconf = self['em_pars']
         ngauss = emconf['ngauss']
 
-        if ntry is None:
-            ntry = emconf['ntry']
+        ntry = emconf['ntry']
  
-        Tguess=self._get_Tguess(ngauss)
+        Tguess=self._get_Tguess(ngauss, type)
         empars = emconf['pars']
         runner=EMRunner(obs, Tguess, ngauss, empars)
 
@@ -992,103 +1028,110 @@ class EMMetacalFitter(MaxMetacalFitter):
 
         fitter=runner.get_fitter()
         res=fitter.get_result()
-        res['model'] = 'gauss'
 
         if res['flags'] != 0:
             raise TryAgainError("em gal failed")
 
+        res=fitter.get_result()
+        res['model'] = self['fit_model']
+
         self._convert2pars(fitter)
 
-        return {'boot':boot,
+        return {'boot':None,
                 'fitter':fitter,
                 'res':res}
-
-    def _do_one_fit_with_guess(self, obs, guess):
-        from ngmix.em import GMixEM, prep_image
-
-        image=obs.image
-        imsky,sky=prep_image(image)
-
-        sky_obs = Observation(imsky, jacobian=obs.jacobian)
-
-        fitter=GMixEM(sky_obs)
-
-        empars=self['em_pars']['pars']
-        tol=empars['tol']
-        maxiter=empars['maxiter']
- 
-        fitter.go(guess, sky,
-                  tol=empars['tol'],
-                  maxiter=empars['maxiter'])
-
-        res=fitter.get_result()
-        res['ntry'] = 1
-        if res['flags']==0:
-            self._convert2pars(fitter)
-            ok=True
-        else:
-            ok=False
-
-        return fitter, ok
 
     def _convert2pars(self, fitter):
         """
         convert em gauss to pars
         """
         gm=fitter.get_gmix()
-        pars=gm.get_full_pars()
 
-        T=pars[3]+pars[5]
-        e1 = (pars[5]-pars[3])/T
-        e2 = 2*pars[4]/T
-        #g1,g2=e1,e2
-        try:
-            g1,g2=ngmix.shape.e1e2_to_g1g2(e1,e2)
-        except GMixRangeError:
-            raise TryAgainError("bad e1,e2")
+        cen1,cen2=gm.get_cen()
+        e1,e2,T = gm.get_e1e2T()
 
-        tpars=array([pars[1],pars[2], g1, g2, T, 1.0])
+        pars=array([cen1,cen2, e1, e2, T, 1.0])
 
         res=fitter.get_result()
-        res['g']=array([g1,g2])
-        res['g_cov']=diag([9999.0,9999.0])
-        res['pars']=tpars
-        res['pars_err']=pars*0 + 9999.0
-        res['pars_cov']=diag(pars*0 + 9999)
-        res['s2n_w']=-9999.0
-        res['nfev']=res['numiter']
+        res['pars']=pars
+        res['e']=array([e1,e2])
 
-    def _get_Tguess(self, ngauss):
+    def _get_Tguess(self, ngauss, type):
         """
         Get the starting guess.
         """
-        from .sim import srandu
 
-        pt=self.sim.psf_gmix_true
-        ngauss_true=len(pt)
-        if ngauss is None or ngauss==ngauss_true:
-            # we can just use the "truth" as a guess
-            Tguess=pt.get_T()*(1.0 + 0.1*srandu())
+        if type=='gal':
+            Tguess=6.0
         else:
-            # more generic guess
-            Tguess = pt.get_T()
+            Tguess=4.0
+        return Tguess*(1.0 + 0.05*srandu())
 
-            if ngauss==2:
-                p1 = 0.6*(1.0 + 0.05*srandu() )
-                p2 = 0.4*(1.0 + 0.05*srandu() )
-                T1 = T*0.4*(1.0 + 0.1*srandu() )
-                T2 = T*0.6*(1.0 + 0.1*srandu() )
+    def _set_prior(self):
+        """
+        Set all the priors
+        """
+        pass
+ 
+    def _print_res(self,res):
+        """
+        print some stats
+        """
 
-                Tguess = (p1*T1 +p2*T2)/(p1+p2)
+        mess="    ntry: %d  numiter: %d"
+        mess = mess % (res['ntry'],res['numiter'])
+        print(mess)
 
-            else: 
-                raise ValueError("support ngauss > 2")
-            
-        return Tguess
+        print_pars(res['pars'],            front='    pars: ')
+
+        print_pars(res['mcal_pars'],       front='    mcal pars: ')
+        print_pars(res['mcal_R'].ravel(),  front='    mcal R:    ')
+        print_pars(res['mcal_Rpsf'],       front='    mcal Rpsf: ')
+
+        print("    mcal c:",res['mcal_c'][0], res['mcal_c'][1])
 
 
-    def _get_sensitivity_model(self, obs, fitter):
-        return zeros(2)-9999.0
+
+    def _copy_to_output(self, res, i):
+
+        super(SimpleFitterBase,self)._copy_to_output(res, i)
+
+        d=self.data
+
+        for f in ['pars','e','epsf','numiter','fdiff']:
+            d[f][i] = res[f]
+
+        for f in ['pars','e','epsf','e_noshear',
+                  'R','Rpsf','c']:
+
+            f = 'mcal_%s' % f
+            d[f][i] = res[f]
+
+        
+
+    def _get_dtype(self):
+        """
+        get the dtype for the output struct
+        """
+        dt=super(SimpleFitterBase,self)._get_dtype()
+
+        npars=self['npars']
+        dt += [
+            ('pars','f8',npars),
+            ('e','f8',2),
+            ('epsf','f8',2),
+            ('numiter','i4'),
+            ('fdiff','f8'),
+            ('mcal_pars','f8',npars),
+            ('mcal_e','f8',2),
+            ('mcal_epsf','f8',2),
+            ('mcal_e_noshear','f8',2),
+            ('mcal_R','f8',(2,2)),
+            ('mcal_Rpsf','f8',2),
+            ('mcal_c','f8',2)
+        ]
+        return dt
+
 
 def make_sheared_pars(pars, shear_g1, shear_g2):
     from ngmix import Shape

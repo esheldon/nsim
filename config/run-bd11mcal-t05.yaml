@@ -2,7 +2,8 @@
 run: "run-bd11mcal-t05"
 sim: "sim-bd11"
 
-fitter: "metacal-max"
+#fitter: "metacal-max"
+fitter: "metacal-max-degrade"
 fit_model: "exp"
 
 g_prior_during: True
@@ -14,6 +15,8 @@ deep_data:
 # 1.0 gives mean s2n of ~12.3 with scatter 5 for the flux distribution in
 # the sim
 noise: 1.0
+target_noise: 3.3333
+nrand: 10
 
 priors:
     cen:

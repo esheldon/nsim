@@ -73,6 +73,8 @@ class FitterBase(dict):
                     res=self.process_one(imdict)
                     self.tm_fit += time.time()-tm0
 
+                    res['shear_true'] = imdict['gal_info']['shear']
+                    res['shear_index'] = imdict['gal_info']['shear_index']
                     self._copy_to_output(res, igal)
 
                     self._set_elapsed_time()
@@ -142,6 +144,9 @@ class FitterBase(dict):
         d['model_true'][i] = res['model_true']
         d['s2n_true'][i] = res['s2n_true']
         d['pars_true'][i,:] = res['pars_true']
+
+        d['shear_true'][i] = res['shear_true'].g1,res['shear_true'].g2
+        d['shear_index'][i] = res['shear_index']
 
     def _setup(self, run_conf, **keys):
         """
@@ -273,6 +278,8 @@ class FitterBase(dict):
             ('model_true','S3'),
             ('s2n_true','f8'),
             ('pars_true','f8',self['npars_true']),
+            ('shear_true','f8',2),
+            ('shear_index','i4'),
            ]
 
         return dt
@@ -1013,6 +1020,9 @@ class EMMetacalFitter(SimpleFitterBase):
 
 
     def _do_one_fit(self, obs, type='gal'):
+        """
+        this is EM specific
+        """
         from ngmix.bootstrap import EMRunner
 
         emconf = self['em_pars']
@@ -1093,6 +1103,9 @@ class EMMetacalFitter(SimpleFitterBase):
 
 
     def _copy_to_output(self, res, i):
+        """
+        this is EM specific due to numiter, fdiff
+        """
 
         super(SimpleFitterBase,self)._copy_to_output(res, i)
 
@@ -1111,7 +1124,7 @@ class EMMetacalFitter(SimpleFitterBase):
 
     def _get_dtype(self):
         """
-        get the dtype for the output struct
+        this is EM specific due to numiter, fdiff
         """
         dt=super(SimpleFitterBase,self)._get_dtype()
 

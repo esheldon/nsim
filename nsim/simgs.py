@@ -65,29 +65,6 @@ class SimGS(dict):
                 'gal_info':gal_pars,
                 'pars':save_pars}
 
-    '''
-    def get_image(self):
-        """
-        get a randomized galaxy image
-        """
-
-        s2n = self.s2n_pdf.sample()
-        print("    s2n: %g" % s2n)
-
-        gal, gal_pars, psf = self._get_galsim_objects()
-
-        psf_obs = self._make_obs(psf, self['psf']['s2n'])
-        gal_obs = self._make_obs(gal, s2n)
-
-        gal_obs.set_psf(psf_obs)
-
-        save_pars=[gal_pars['r50'], gal_obs.image_flux]
-        return {'obs':gal_obs,
-                's2n':s2n,
-                'model':self['model'],
-                'gal_info':gal_pars,
-                'pars':save_pars}
-    '''
 
     def _make_obs(self, gs_obj, s2n=None):
         """
@@ -124,35 +101,6 @@ class SimGS(dict):
 
         return obs
 
-    '''
-    def _make_obs(self, gs_obj, s2n):
-        """
-        get an ngmix Observation
-        """
-
-        dims = self['stamp_size']
-        gsimage = galsim.ImageD(dims[0], dims[1])
-
-        gs_obj.drawImage(gsimage, scale=self['pixel_scale'])
-
-        im0 = gsimage.array
-        image_nonoise, image, flux = self._scale_and_add_noise(im0, s2n)
-
-        jacob = self._get_jacobian(image_nonoise)
-
-        weight = numpy.zeros( image.shape ) + self['ivar']
-
-        obs = ngmix.Observation(image, weight=weight, jacobian=jacob)
-
-        # monkey patching
-        obs.image_nonoise = image_nonoise
-        obs.image_flux = flux
-
-        if False:
-            self._compare_images(image_nonoise,image,label1='im',label2='noisy')
-
-        return obs
-    '''
 
     def _compare_images(self, im1, im2, **keys):
         import images
@@ -230,7 +178,9 @@ class SimGS(dict):
         r50 = pars['r50']
 
         g1,g2=pars['g']
-        s1,s2=self['shear']
+        shear,shindex = self.shear_pdf.get_shear()
+        pars['shear'] = shear
+        pars['shear_index'] = shindex
 
         cenoff = pars['cenoff']
 
@@ -247,7 +197,7 @@ class SimGS(dict):
         gal = gal.shear(g1=g1, g2=g2)
 
         # now shear it
-        gal = gal.shear(g1=s1, g2=s2)
+        gal = gal.shear(g1=shear.g1, g2=shear.g2)
 
         # in the demos, the shift was always applied after the shear, not sure
         # if it matters
@@ -259,44 +209,6 @@ class SimGS(dict):
 
         return gal, pars
 
-    '''
-    def _get_gal_obj(self):
-        """
-        get the galsim object for the galaxy model
-        """
-
-        pars=self._get_galaxy_pars()
-
-        r50 = pars['r50']
-
-        g1,g2=pars['g']
-        s1,s2=self['shear']
-
-        cenoff = pars['cenoff']
-
-        # we will scale the flux to get a requested s/n later
-        if pars['model']=='gauss':
-            gal = galsim.Gaussian(flux=1.0, half_light_radius=r50)
-        elif pars['model']=='exp':
-            gal = galsim.Exponential(flux=1.0, half_light_radius=r50)
-        elif pars['model']=='dev':
-            gal = galsim.DeVaucouleurs(flux=1.0, half_light_radius=r50)
-        else:
-            raise ValueError("bad galaxy model: '%s'" % self['model'])
-
-        # first give it an intrinsic shape
-        gal = gal.shear(g1=g1, g2=g2)
-
-        # now shear it
-        gal = gal.shear(g1=s1, g2=s2)
-
-        # in the demos, the shift was always applied after the shear, not sure
-        # if it matters
-        if cenoff is not None:
-            gal = gal.shift(dx=cenoff[0], dy=cenoff[1])
-
-        return gal, pars
-    '''
 
     def _get_psf_obj(self, cenoff):
         """
@@ -453,6 +365,17 @@ class SimGS(dict):
         self._set_g_pdf()
         self._set_r50_pdf()
         self._set_cen_pdf()
+        self._set_shear_pdf()
+
+    def _set_shear_pdf(self):
+        from .shearpdf import ConstShearGenerator
+        shconf = self['shear']
+        if shconf['type'] == 'const':
+            pdf = ConstShearGenerator(shconf['shears'])
+        else:
+            raise ValueError("only shear 'const' for now")
+
+        self.shear_pdf=pdf
 
     def _set_psf_pdf(self):
         pspec = self['psf']
@@ -530,7 +453,6 @@ class SimGS(dict):
         else:
             raise ValueError("bad flux pdf type: '%s'" % fluxspec['type'])
 
-
 class SimBD(SimGS):
     """
     specific sim to deal with complications of a bulge+disk model
@@ -547,7 +469,10 @@ class SimBD(SimGS):
         r50 = pars['r50']
 
         g1,g2=pars['g']
-        s1,s2=self['shear']
+        shear, shindex = self.shear_pdf.get_shear()
+        pars['shear'] = shear
+        pars['shear_index'] = shindex
+
 
         cenoff = pars['cenoff']
 
@@ -570,7 +495,7 @@ class SimBD(SimGS):
         # combine them and shear that
         gal = galsim.Add([disk, bulge])
 
-        gal = gal.shear(g1=s1, g2=s2)
+        gal = gal.shear(g1=shear.g1, g2=shear.g2)
 
         if cenoff is not None:
             gal = gal.shift(dx=cenoff[0], dy=cenoff[1])
@@ -579,48 +504,6 @@ class SimBD(SimGS):
         print("    r50: %g fracdev: %g dev_offset: %s cenoff: %s" % tup)
 
         return gal, pars
-    '''
-    def _get_gal_obj(self):
-        """
-        get the galsim object for the galaxy model
-        """
-
-        pars=self._get_galaxy_pars()
-
-        r50 = pars['r50']
-
-        g1,g2=pars['g']
-        s1,s2=self['shear']
-
-        cenoff = pars['cenoff']
-
-        fracdev = pars['fracdev']
-        disk_flux = 1.0 - fracdev
-        bulge_flux = fracdev
-
-        disk = galsim.Exponential(flux=disk_flux, half_light_radius=r50)
-        bulge = galsim.DeVaucouleurs(flux=bulge_flux, half_light_radius=r50)
-
-        # both disk and bulge get same overall shape
-        disk  = disk.shear(g1=g1, g2=g2)
-        bulge = bulge.shear(g1=g1, g2=g2)
-
-        # the bulge can be offset from the disk
-        dev_offset = pars['dev_offset']
-        if dev_offset is not None:
-            bulge = bulge.shift(dx=dev_offset[0], dy=dev_offset[1])
-
-        # combine them and shear that
-        gal = galsim.Add([disk, bulge])
-
-        gal = gal.shear(g1=s1, g2=s2)
-
-        if cenoff is not None:
-            gal = gal.shift(dx=cenoff[0], dy=cenoff[1])
-
-        return gal, pars
-    '''
-
 
     def _get_galaxy_pars(self):
         """

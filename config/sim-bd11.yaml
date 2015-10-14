@@ -10,7 +10,9 @@ simulator: "galsim"
 # these sims are never rings
 do_ring: False
 
-shear: [0.08, 0.0]
+shear:
+  type: 'const'
+  shears: [ [0.08, 0.0] ]
 
 stamp_size: [48,48]
 

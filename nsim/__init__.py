@@ -6,3 +6,4 @@ from . import fwhm
 from . import util
 from . import sample
 from . import psample
+from . import shearpdf

@@ -5,6 +5,7 @@ from distutils.core import setup
 scripts=['nsim-average-outputs',
          'nsim-average-outputs-lm',
          'nsim-average-metacal',
+         'nsim-fit-m-c',
          'nsim-combine-averaged',
          'nsim-average-runs',
          'nsim-average-metacal-runs',

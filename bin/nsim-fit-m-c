@@ -1,0 +1,220 @@
+#!/usr/bin/env python
+from __future__ import print_function
+import sys
+import os
+import numpy
+from numpy import sqrt, array, diag, ones, zeros, where, newaxis
+
+import fitsio
+
+import ngmix
+import nsim
+
+import argparse
+
+
+fclass=argparse.ArgumentDefaultsHelpFormatter
+parser=argparse.ArgumentParser(formatter_class=fclass)
+
+parser.add_argument('run',help='run to average')
+
+parser.add_argument('--R-field',default='mcal_R',
+                  help="the field to use for R")
+parser.add_argument('--Rpsf-field',default='mcal_Rpsf',
+                  help="the field to use for Rpsf")
+
+
+parser.add_argument('--refrun',
+                    help=('use this run for corrections rather '
+                          'than that listed in the config file') )
+
+parser.add_argument('--boot',action='store_true',
+                  help="bootstrap instead of jackknife")
+parser.add_argument('--nboot',type=int,default=100,
+                  help="number of bootstraps")
+
+parser.add_argument('--show',action='store_true',
+                  help="show plots")
+
+def get_shear_stats(g, gpsf, R, Rpsf, args):
+
+
+    if args.boot:
+        res=ngmix.metacal.bootstrap_shear(g,gpsf,R,Rpsf,nboot)
+    else:
+        pass
+
+    print("        shear:",res['shear'],"shear_mean:",res['shear_mean'])
+
+    return res
+
+def doplot(data, fits):
+    import biggles
+
+    tab=biggles.Table(1,2)
+    tab.aspect_ratio=0.5
+    yrange=[-0.015,0.015]
+
+    diff = data['shear'] - data['shear_true']
+
+    plts=[]
+    for i in [0,1]:
+
+        x = data['shear_true'][:,i]
+        plt =biggles.plot(x,
+                          diff[:,i],
+                          #yerr=data['shear_err'][:,i],
+                          xlabel='shear%d true' % (i+1,),
+                          ylabel='shear%d diff' % (i+1,),
+                          yrange=yrange,
+                          visible=False)
+        tfits=fits[i]
+        yfit=tfits['m']*x + tfits['c']
+
+        c=biggles.Curve(x, yfit, color='red')
+        z=biggles.Curve(x, x*0, color='black')
+        plt.add(c,z)
+
+        tab[0,i] = plt
+
+    tab.show(width=1000, height=1000)
+
+def fit_m_c(data):
+    import fitting
+    import mcmc
+    import esutil as eu
+
+    strue = data['shear_true']
+    sdiff = data['shear'] - data['shear_true']
+    serr = data['shear_err']
+
+    fmt = 's%d m: %.3e +/- %.3e c: %.3e +/- %.3e'
+
+    fits=[]
+    for i in [0,1]:
+        w,=numpy.where(strue[:,i] != 0.0)
+        if w.size == 0:
+            print("shear is zero, mean for all is")
+            m,e=eu.stat.wmom(data['shear'][:,i],
+                             1.0/data['shear_err'][:,i]**2,
+                             calc_err=True)
+            print("s%d: %.3e +/- %.3e" % (i+1,m,e))
+        else:
+            fit = fitting.fit_line(strue[:,i],
+                                   sdiff[:,i],
+                                   yerr=serr[:,i])
+            res = fit.get_result()
+            p=res['pars']
+            perr=res['perr']
+
+            print(fmt % (i+1,p[0],perr[0],p[1],perr[1]))
+
+            '''
+            fitter=mcmc.PolyFitter(1,
+                                   strue[:,i],
+                                   sdiff[:,i],
+                                   200,
+                                   1000,
+                                   1000,
+                                   yerr=serr[:,i],
+                                   guess=p)
+            #fitter.plot_trials()
+            res=fitter.get_result()
+            p=res['pars']
+            perr=res['perr']
+
+
+            print(fmt % (i+1,p[0],perr[0],p[1],perr[1]))
+            '''
+            fitpars={'m':p[0],
+                     'merr':perr[0],
+                     'c':p[1],
+                     'cerr':perr[1]}
+            fits.append(fitpars)
+
+
+    return fits
+
+def get_averages(conf, args):
+
+    data = read_data(conf)
+    refdata = read_refdata(conf, args)
+
+    use_mean_Rpsf=True
+    #if args.refrun is not None:
+    #    if args.refrun == args.run:
+    #        use_mean_Rpsf=False
+
+    R = refdata[args.R_field].mean(axis=0)
+    Rinv = numpy.linalg.inv(R)
+    Rpsf = refdata[args.Rpsf_field].mean(axis=0)
+
+    uind = numpy.unique(data['shear_index'])
+    nind = uind.size
+    dt=[('shear','f8',2),
+        ('shear_true','f8',2),
+        ('shear_err','f8',2)]
+
+    means = numpy.zeros(nind, dtype=dt)
+
+    for i,ind in enumerate(uind):
+        w,=numpy.where(data['shear_index'] == ind)
+
+        tdata = data[w].copy()
+
+        psf_corr = tdata['mcal_gpsf'].mean(axis=0)*Rpsf
+
+        gmean = tdata['mcal_g'].mean(axis=0)
+
+        shear = numpy.dot(Rinv, gmean-psf_corr)
+        shear_err=tdata['mcal_g'].std(axis=0)/numpy.sqrt(w.size)
+        shear_err = numpy.dot(Rinv, shear_err)
+
+        means['shear'][i] = shear
+        means['shear_err'][i] = shear_err
+        means['shear_true'][i] = data['shear_true'][w[0]]
+
+        mess="  %d: %d  %g +/- %g  %g +/- %g"
+        tup=(ind, w.size, shear[0],shear_err[0], shear[1],shear_err[1])
+        print(mess % tup)
+
+    return means
+
+def read_data(conf):
+    columns=['mcal_g','mcal_gpsf','shear_index','shear_true']
+    data=nsim.files.read_output(conf['run'], 0, columns=columns)
+    return data
+
+
+def read_refdata(conf, args):
+    columns=[args.R_field, args.Rpsf_field]
+
+    if args.refrun is not None:
+        run=args.refrun
+    else:
+        run = conf['deep_data']['run']
+
+    refdata=nsim.files.read_output(run,
+                                     0,
+                                     columns=columns)
+    return refdata
+
+def main():
+    args = parser.parse_args()
+
+    is2n=0
+    conf = nsim.files.read_config(args.run)
+    conf['simc'] = nsim.files.read_config(conf['sim'])
+
+
+    conf['fname']=nsim.files.get_output_url(args.run, 0, is2n)
+
+
+    means=get_averages(conf, args)
+
+    fits=fit_m_c(means)
+    if args.show:
+        doplot(means, fits)
+
+
+main()

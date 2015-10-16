@@ -493,6 +493,11 @@ the psf shape to [0,0.025]
 - run-bd11mcal-t05
     - currently for random tests
 
+- run-bd11mcal-t06
+    - new metacal fixes
+    - ref run is bd12zmcal-degrade01
+
+
 - run-ggnr03mn-t01
     - first metanoise run
     - noise 0.1

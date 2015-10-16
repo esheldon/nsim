@@ -35,25 +35,19 @@ parser.add_argument('--nboot',type=int,default=100,
 
 parser.add_argument('--show',action='store_true',
                   help="show plots")
+parser.add_argument('--yrange', help="yrange of plot")
 
-def get_shear_stats(g, gpsf, R, Rpsf, args):
 
-
-    if args.boot:
-        res=ngmix.metacal.bootstrap_shear(g,gpsf,R,Rpsf,nboot)
-    else:
-        pass
-
-    print("        shear:",res['shear'],"shear_mean:",res['shear_mean'])
-
-    return res
-
-def doplot(data, fits):
+def doplot(data, fits, args):
     import biggles
+
+    if args.yrange is not None:
+        yrange=[float(r) for r in args.yrange.split(',')]
+    else:
+        yrange=[-0.01,0.01]
 
     tab=biggles.Table(1,2)
     tab.aspect_ratio=0.5
-    yrange=[-0.015,0.015]
 
     diff = data['shear'] - data['shear_true']
 
@@ -123,9 +117,9 @@ def fit_m_c(data):
             p=res['pars']
             perr=res['perr']
 
-
             print(fmt % (i+1,p[0],perr[0],p[1],perr[1]))
             '''
+
             fitpars={'m':p[0],
                      'merr':perr[0],
                      'c':p[1],
@@ -140,33 +134,39 @@ def get_averages(conf, args):
     data = read_data(conf)
     refdata = read_refdata(conf, args)
 
-    use_mean_Rpsf=True
-    #if args.refrun is not None:
-    #    if args.refrun == args.run:
-    #        use_mean_Rpsf=False
+    if args.boot:
+        means=get_averages_boot(data, refdata, args)
+    else:
+        means=get_averages_straight(data, refdata, args)
 
+    return means
+
+def get_averages_straight(data, refdata, args):
     R = refdata[args.R_field].mean(axis=0)
     Rinv = numpy.linalg.inv(R)
     Rpsf = refdata[args.Rpsf_field].mean(axis=0)
+    #psf_corr_all = data['mcal_gpsf'].mean(axis=0)*Rpsf
 
     uind = numpy.unique(data['shear_index'])
     nind = uind.size
-    dt=[('shear','f8',2),
-        ('shear_true','f8',2),
-        ('shear_err','f8',2)]
 
-    means = numpy.zeros(nind, dtype=dt)
+    means=get_mean_struct(nind)
 
     for i,ind in enumerate(uind):
         w,=numpy.where(data['shear_index'] == ind)
 
-        tdata = data[w].copy()
+        wbad,=numpy.where(data['shear_true'][w,0] != data['shear_true'][w[0],0])
+        if wbad.size > 0:
+            raise RuntimeError("not all shears matched")
+
+        tdata = data[w]
 
         psf_corr = tdata['mcal_gpsf'].mean(axis=0)*Rpsf
 
         gmean = tdata['mcal_g'].mean(axis=0)
 
         shear = numpy.dot(Rinv, gmean-psf_corr)
+        #shear = numpy.dot(Rinv, gmean-psf_corr_all)
         shear_err=tdata['mcal_g'].std(axis=0)/numpy.sqrt(w.size)
         shear_err = numpy.dot(Rinv, shear_err)
 
@@ -174,10 +174,55 @@ def get_averages(conf, args):
         means['shear_err'][i] = shear_err
         means['shear_true'][i] = data['shear_true'][w[0]]
 
-        mess="  %d: %d  %g +/- %g  %g +/- %g"
-        tup=(ind, w.size, shear[0],shear_err[0], shear[1],shear_err[1])
-        print(mess % tup)
+        if (i % 10) == 0:
+            print_shear(ind, w.size, shear, shear_err)
 
+    return means
+
+
+def get_averages_boot(data, refdata, args):
+    uind = numpy.unique(data['shear_index'])
+    nind = uind.size
+    means=get_mean_struct(nind)
+
+    for i,ind in enumerate(uind):
+        w,=numpy.where(data['shear_index'] == ind)
+
+        wbad,=numpy.where(data['shear_true'][w,0] != data['shear_true'][w[0],0])
+        if wbad.size > 0:
+            raise RuntimeError("not all shears matched")
+
+        tdata = data[w]
+
+        res=ngmix.metacal.bootstrap_shear(tdata['mcal_g'],
+                                          tdata['mcal_gpsf'],
+                                          refdata[args.R_field],
+                                          refdata[args.Rpsf_field],
+                                          args.nboot)
+
+        shear=res['shear']
+        shear_err=res['shear_err']
+        means['shear'][i] = shear
+        means['shear_err'][i] = shear_err
+        means['shear_true'][i] = data['shear_true'][w[0]]
+
+        if (i % 10) == 0:
+            print_shear(ind, w.size, shear, shear_err)
+
+    return means
+
+def print_shear(ind, num, shear, shear_err):
+    mess="  %d: %d  %g +/- %g  %g +/- %g"
+    tup=(ind, num, shear[0],shear_err[0], shear[1],shear_err[1])
+    print(mess % tup)
+
+
+def get_mean_struct(n):
+    dt=[('shear','f8',2),
+        ('shear_true','f8',2),
+        ('shear_err','f8',2)]
+
+    means = numpy.zeros(n, dtype=dt)
     return means
 
 def read_data(conf):
@@ -214,7 +259,7 @@ def main():
 
     fits=fit_m_c(means)
     if args.show:
-        doplot(means, fits)
+        doplot(means, fits, args)
 
 
 main()

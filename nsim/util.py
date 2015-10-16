@@ -309,14 +309,19 @@ def fit_lnp_shear1d(simconf, runconf, lnp_shear):
 
     return fitter
 
-def get_true_shear(conf):
+def get_true_shear(conf, index=0):
     """
     if shear is constant, return that, otherwise sample it
     """
-    if isinstance(conf['shear'], dict):
-        shear=conf['shear']['mean']
+
+    shc=conf['shear']
+    if isinstance(shc, dict):
+        if 'shears' in shc:
+            shear=shc['shears'][index]
+        else:
+            shear=shc['mean']
     else:
-        shear=conf['shear']
+        shear=shc
 
     return shear
 

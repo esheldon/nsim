@@ -11,7 +11,7 @@ g_prior_during: True
 use_logpars: True
 
 deep_data:
-  run: "run-bd12zmcal-degrade02"
+  run: "run-bd12zmcal-degrade05"
 
 # 1.0 gives mean s2n of ~12.3 with scatter 5 for the flux distribution in
 # the sim
@@ -23,11 +23,10 @@ priors:
         sigma: 1.0
 
     T:
-        # can re-use bd09 training
         type: "gmixnd"
-        run: "run-bd09zmax-lownoise01"
+        run: "run-bd12zmax-lownoise01"
         extra: "log_T"
-        cov_factor: 1.1
+        cov_factor: 1.44
 
     counts:
         type: "two-sided-erf"

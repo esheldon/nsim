@@ -500,12 +500,18 @@ the psf shape to [0,0.025]
 - sim-bd12
     - same as bd11 but with multiple shears
 - run-bd12zmcal-degrade01
-- run-bd12zmcal-degrade02
-    - revert ngmix
 - run-bd12mcal-t01
     - using degrade01
         s1 m: -7.456e-03 +/- 7.441e-03 c: -2.801e-04 +/- 1.616e-04
         s2 m: -1.312e-02 +/- 6.685e-03 c: 4.028e-04 +/- 1.580e-04
+
+        s1 m: -3.942e-03 +/- 7.145e-03 c: 5.976e-05 +/- 1.552e-04
+        s2 m: 2.080e-03 +/- 6.406e-03 c: 2.326e-04 +/- 1.513e-04
+
+
+    - using run-bd12zmcal-degrade02
+        s1 m: -7.537e-04 +/- 7.161e-03 c: 6.191e-05 +/- 1.555e-04
+        s2 m: 7.234e-03 +/- 6.435e-03 c: 2.116e-04 +/- 1.520e-04
     - using degrade02
         s1 m: -4.312e-03 +/- 7.463e-03 c: -2.788e-04 +/- 1.621e-04
         s2 m: -8.049e-03 +/- 6.718e-03 c: 3.818e-04 +/- 1.588e-04
@@ -516,13 +522,27 @@ the psf shape to [0,0.025]
 
 - run-bd12mcal-t02
     - using reverted ngmix
+    - using run-bd12zmcal-degrade01
+        s1 m: -3.942e-03 +/- 7.145e-03 c: 5.976e-05 +/- 1.552e-04
+        s2 m: 2.080e-03 +/- 6.406e-03 c: 2.326e-04 +/- 1.513e-0
+    - using run-bd12zmcal-degrade02
         s1 m: -7.537e-04 +/- 7.161e-03 c: 6.191e-05 +/- 1.555e-04
         s2 m: 7.234e-03 +/- 6.435e-03 c: 2.116e-04 +/- 1.520e-04
-    - could be better
+    - using run-bd12zmcal-degrade03
+        s1 m: -3.159e-03 +/- 7.141e-03 c: 6.245e-05 +/- 1.551e-04
+        s2 m: 4.901e-03 +/- 6.422e-03 c: 2.230e-04 +/- 1.517e-04
+    - using run-bd12zmcal-degrade04
+        s1 m: -2.126e-03 +/- 7.159e-03 c: 5.961e-05 +/- 1.555e-04
+        s2 m: 6.146e-03 +/- 6.430e-03 c: 2.230e-04 +/- 1.519e-04
 
+
+- run-bd12zmcal-degrade02
+    - revert ngmix (5efd6b394eece17738fdb99d870e100bc133b17c, "remove print")
 - run-bd12zmcal-degrade03
     - ngmix 0649ad4ee7e319c44c768a4eb4b0e43868656df7
        "Merge pull request #23 from beckermr/master"
+       did not clean the target dir before installing....
+
 - run-bd12zmcal-degrade04
     - ngmix 858916e16359e89291a87d4da70dbd15b97fe442
         "fix bugs in symmetrize"
@@ -537,6 +557,13 @@ the psf shape to [0,0.025]
     - using degrade03
         s1 m: -4.364e-03 +/- 1.526e-03 c: 2.830e-05 +/- 3.316e-05
         s2 m: -3.118e-03 +/- 1.373e-03 c: 1.013e-04 +/- 3.247e-05
+    - using degrade04
+        s1 m: -3.342e-03 +/- 1.533e-03 c: 2.574e-05 +/- 3.329e-05
+        s2 m: -1.887e-03 +/- 1.375e-03 c: 1.011e-04 +/- 3.252e-05
+
+- run-bd12mcal-02
+    - reverted ngmix "remove print" 5efd6b394eece17738fdb99d870e100bc133b17c
+    - should go with run-bd12zmcal-degrade02
 
 - run-ggnr03mn-t01
     - first metanoise run

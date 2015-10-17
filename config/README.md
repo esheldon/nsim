@@ -497,6 +497,7 @@ the psf shape to [0,0.025]
     - new metacal fixes
     - ref run is bd12zmcal-degrade01
 
+
 - sim-bd12
     - same as bd11 but with multiple shears
 - run-bd12zmcal-degrade01
@@ -566,6 +567,25 @@ the psf shape to [0,0.025]
     - should go with run-bd12zmcal-degrade02
         s1 m: -2.693e-03 +/- 1.705e-03 c: -4.615e-05 +/- 3.703e-05
         s2 m: -2.562e-03 +/- 1.442e-03 c: -1.704e-05 +/- 3.410e-05
+
+
+- Using new T prior and reverted ngmix 
+    - ngmix "remove print" 5efd6b394eece17738fdb99d870e100bc133b17c
+    - T prior from run-bd12zmax-lownoise01
+
+    R run-bd12zmcal-degrade05
+
+    * run-bd12mcal-03
+        - T prior from run-bd12zmax-lownoise01
+        - run-bd12zmcal-degrade05
+
+    * run-bd11mcal-04
+        - reverted ngmix 5efd6b394eece17738fdb99d870e100bc133b17c
+            "remove print"
+        - pair with run-bd12zmcal-degrade05
+        - not yet run!
+
+
 
 - run-ggnr03mn-t01
     - first metanoise run

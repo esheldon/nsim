@@ -564,6 +564,8 @@ the psf shape to [0,0.025]
 - run-bd12mcal-02
     - reverted ngmix "remove print" 5efd6b394eece17738fdb99d870e100bc133b17c
     - should go with run-bd12zmcal-degrade02
+        s1 m: -2.693e-03 +/- 1.705e-03 c: -4.615e-05 +/- 3.703e-05
+        s2 m: -2.562e-03 +/- 1.442e-03 c: -1.704e-05 +/- 3.410e-05
 
 - run-ggnr03mn-t01
     - first metanoise run

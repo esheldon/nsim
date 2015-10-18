@@ -1,0 +1,67 @@
+# using btest
+run: "run-bd11mcal-t07"
+sim: "sim-bd11"
+
+fitter: "metacal-max"
+fit_model: "exp"
+
+g_prior_during: True
+use_logpars: True
+
+# same sim underneath for deep field, but using metacal
+# tweaks
+deep_data:
+  run: "run-bd12zmcal-degrade06"
+
+# 1.0 gives mean s2n of ~12.3 with scatter 5 for the flux distribution in
+# the sim
+noise: 1.0
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    T:
+        # can re-use bd09 training
+        type: "gmixnd"
+        run: "run-bd12zmax-lownoise01"
+        extra: "log_T"
+        cov_factor: 1.44
+
+    counts:
+        type: "two-sided-erf"
+        pars: [3.0, 1.0, 11, 1.0]
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+psf_pars:
+    model: "coellip3"
+    ntry: 10
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+metacal_pars:
+    step: 0.01
+
+ngal: 2000000
+
+desired_hours: 0.5
+# at bnl
+#sec_per: 0.80
+# at slac
+sec_per: 0.75
+
+verbose: True
+
+#avg_s2n_r_range: [10,23]

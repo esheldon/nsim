@@ -1,3 +1,16 @@
+tracking bug
+--------------
+ngmix/nsim branches btest. Basically master but stripped
+down bootstrapper
+
+- run-bd12zmcal-degrade06
+- run-bd11mcal-t07
+    meas: 0.0797489 +/- 0.000177108, -3.47196e-05 +/- 0.000148962
+    s1 fracdiff: -3.14e-03 +/- 2.21e-03
+- run-bd11mcal-t08
+    - same config
+
+
 todo
 ----
 

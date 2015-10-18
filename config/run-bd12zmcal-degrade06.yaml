@@ -1,4 +1,6 @@
 # using btest
+# ngmix btest 38f7108a68919f77ae46631620ab7220e7e29c27
+# nsim btest 258285cbe8fa0aeddbc74cc2a2d08cbbdf0ce553
 run: "run-bd12zmcal-degrade06"
 sim: "sim-bd12z"
 

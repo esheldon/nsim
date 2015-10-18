@@ -621,13 +621,14 @@ class MaxMetacalFitter(MaxFitter):
         """
         the basic fitter for this class
         """
+        from ngmix.btest import BootstrapperTest
 
         intpars=self.get('intpars',None) 
 
-        boot=ngmix.Bootstrapper(obs,
-                                use_logpars=self['use_logpars'],
-                                intpars=intpars,
-                                verbose=False)
+        boot=BootstrapperTest(obs,
+                              use_logpars=self['use_logpars'],
+                              intpars=intpars,
+                              verbose=False)
 
         Tguess=self.sim.get('psf_T',4.0)
         ppars=self['psf_pars']
@@ -639,31 +640,20 @@ class MaxMetacalFitter(MaxFitter):
         except BootPSFFailure:
             raise TryAgainError("failed to fit psf")
 
-        if False:
-            self._compare_psf_obs_fit(boot.mb_obs_list[0][0].psf,
-                                      label1='psf',label2='model')
-
         mconf=self['max_pars']
 
         try:
-            #print("    doing fit max")
             boot.fit_max(self['fit_model'],
                          mconf['pars'],
                          prior=self.prior,
                          ntry=mconf['ntry'])
 
-            if False:
-                self._compare_gal_obs_fit(boot.mb_obs_list[0][0],
-                                          boot.get_max_fitter().get_convolved_gmix(),
-                                          label1='gal',label2='model')
 
             if mconf['pars']['method']=='lm':
                 boot.try_replace_cov(mconf['cov_pars'])
 
-
-            extra_noise=self.get('extra_noise',None)
-            print("    adding extra noise:",extra_noise, "nrand:",self['nrand'])
-
+            self._do_metacal(boot)
+            '''
             boot.fit_metacal_max(ppars['model'],
                                  self['fit_model'],
                                  mconf['pars'],
@@ -671,10 +661,8 @@ class MaxMetacalFitter(MaxFitter):
                                  psf_fit_pars=psf_fit_pars,
                                  prior=self.prior,
                                  ntry=mconf['ntry'],
-                                 extra_noise=extra_noise,
-                                 metacal_pars=self['metacal_pars'],
-                                 nrand=self['nrand'])
-
+                                 metacal_pars=self['metacal_pars'])
+            '''
 
         except BootPSFFailure:
             raise TryAgainError("failed to fit metacal psfs")
@@ -690,6 +678,23 @@ class MaxMetacalFitter(MaxFitter):
         return {'fitter':fitter,
                 'boot':boot,
                 'res':res}
+
+    def _do_metacal(self, boot):
+
+        ppars=self['psf_pars']
+        mconf=self['max_pars']
+        Tguess=self.sim.get('psf_T',4.0)
+        psf_fit_pars = ppars.get('fit_pars',None)
+
+        boot.fit_metacal_max(ppars['model'],
+                             self['fit_model'],
+                             mconf['pars'],
+                             Tguess,
+                             psf_fit_pars=psf_fit_pars,
+                             prior=self.prior,
+                             ntry=mconf['ntry'],
+                             metacal_pars=self['metacal_pars'])
+
 
     def _print_res(self,res):
         """
@@ -800,10 +805,7 @@ class MaxMetacalFitterDegrade(MaxMetacalFitter):
 
 class MaxMetacalFitterDegradeGS(MaxMetacalFitterDegrade):
     """
-
-    this version we simulate a low-s2n object but we use the zero noise version
-    to do our work (which is in obs.image_nonoise).
-
+    Add extra noise to the image
     """
 
     def _setup(self, *args, **kw):
@@ -814,8 +816,87 @@ class MaxMetacalFitterDegradeGS(MaxMetacalFitterDegrade):
         extra_noise = sqrt(self['target_noise']**2 - noise**2)
         self['extra_noise'] = extra_noise
 
-        print("    adding noise to zero noise image:",self['extra_noise'])
+    def _do_metacal(self, boot):
 
+        ppars=self['psf_pars']
+        mconf=self['max_pars']
+        Tguess=self.sim.get('psf_T',4.0)
+        psf_fit_pars = ppars.get('fit_pars',None)
+
+        extra_noise=self['extra_noise']
+        nrand=self['nrand']
+        print("    adding extra noise:",extra_noise, "nrand:",nrand)
+
+        boot.fit_metacal_max_addnoise(
+            extra_noise,
+            nrand,
+            ppars['model'],
+            self['fit_model'],
+            mconf['pars'],
+            Tguess,
+            psf_fit_pars=psf_fit_pars,
+            prior=self.prior,
+            ntry=mconf['ntry'],
+            metacal_pars=self['metacal_pars'],
+        )
+
+    '''
+    def _do_fits(self, obs):
+        """
+        the basic fitter for this class
+        """
+        from ngmix.btest import BootstrapperTest
+
+        intpars=self.get('intpars',None) 
+
+        boot=BootstrapperTest(obs,
+                                    use_logpars=self['use_logpars'],
+                                    intpars=intpars,
+                                    verbose=False)
+
+        Tguess=self.sim.get('psf_T',4.0)
+        ppars=self['psf_pars']
+
+        psf_fit_pars = ppars.get('fit_pars',None)
+    
+        try:
+            boot.fit_psfs(ppars['model'],
+                          Tguess,
+                          ntry=ppars['ntry'],
+                          fit_pars=psf_fit_pars)
+        except BootPSFFailure:
+            raise TryAgainError("failed to fit psf")
+
+
+        mconf=self['max_pars']
+
+        try:
+            boot.fit_max(self['fit_model'],
+                         mconf['pars'],
+                         prior=self.prior,
+                         ntry=mconf['ntry'])
+
+
+            if mconf['pars']['method']=='lm':
+                boot.try_replace_cov(mconf['cov_pars'])
+
+            self._do_metacal(boot)
+
+        except BootPSFFailure:
+            raise TryAgainError("failed to fit metacal psfs")
+        except BootGalFailure:
+            raise TryAgainError("failed to fit galaxy")
+
+        fitter=boot.get_max_fitter() 
+        res=fitter.get_result()
+
+        mres = boot.get_metacal_max_result()
+        res.update(mres)
+
+        return {'fitter':fitter,
+                'boot':boot,
+                'res':res}
+    '''
 
 class MaxMetanoiseFitter(MaxMetacalFitter):
     """

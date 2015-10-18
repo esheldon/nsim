@@ -573,17 +573,14 @@ the psf shape to [0,0.025]
     - ngmix "remove print" 5efd6b394eece17738fdb99d870e100bc133b17c
     - T prior from run-bd12zmax-lownoise01
 
-    R run-bd12zmcal-degrade05
+    - run-bd12zmcal-degrade05
 
-    * run-bd12mcal-03
+    R run-bd12mcal-03
         - T prior from run-bd12zmax-lownoise01
         - run-bd12zmcal-degrade05
 
-    * run-bd11mcal-04
-        - reverted ngmix 5efd6b394eece17738fdb99d870e100bc133b17c
-            "remove print"
-        - pair with run-bd12zmcal-degrade05
-        - not yet run!
+    R run-bd11mcal-04
+        - using run-bd12zmcal-degrade05
 
 
 

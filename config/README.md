@@ -579,7 +579,7 @@ the psf shape to [0,0.025]
         - T prior from run-bd12zmax-lownoise01
         - run-bd12zmcal-degrade05
 
-    R run-bd11mcal-04
+    - run-bd11mcal-04
         - using run-bd12zmcal-degrade05
 
 

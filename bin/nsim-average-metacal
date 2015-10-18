@@ -22,435 +22,90 @@ parser.add_argument('--refrun',
                     help=('use this run for corrections rather '
                           'than that listed in the config file') )
 
-parser.add_argument('--boot',action='store_true',
-                  help="bootstrap instead of jackknife")
 parser.add_argument('--nboot',type=int,default=100,
                   help="number of bootstraps")
 
-
-parser.add_argument('--boot-sens',action='store_true',
-                  help="bootstrap over the deep sensitivities in jackknife")
-
-parser.add_argument('--gfield',default='mcal_g',
+parser.add_argument('--g-field',default='mcal_g',
                   help="the field to use for g")
+parser.add_argument('--gpsf-field',default='mcal_gpsf',
+                  help="the field to use for gpsf")
+
 parser.add_argument('--R-field',default='mcal_R',
-                  help="the field to use for sensitivity")
+                  help="the field to use for response")
 
-parser.add_argument('--Rpsf-field', help="using the indicated field for psf sensitivity")
+parser.add_argument('--Rpsf-field', default='mcal_Rpsf',
+                    help="using the indicated field for psf response")
 
-parser.add_argument('--weights', help="use the specified weighting")
+def get_dtype():
 
-
-
-parser.add_argument('--show',action='store_true',
-                  help="show jackknife plots")
-
-
-CHUNKSIZE=1000000
-
-simple_models=['exp','dev','gauss']
-
-def get_dtype(fobj, model, args):
-
-    data = fobj[1][0:10]
-
-    names=data.dtype.names
-
-    dt =data.dtype.descr
-    dt += [('s2n_w_sum','f8'),
-           ('wsum','f8'),
-           ('g_sum','f8',2),
-           ('R','f8',(2,2)),
-           ('R_sum','f8',(2,2)),
-           ('shear','f8',2),
-           ('shear_cov','f8',(2,2)),
-           ('shear_cov_inv_sum','f8',(2,2))]
+    dt = [
+        ('shear_true','f8',2),
+        ('shear','f8',2),
+        ('shear_err','f8',2),
+        ('shear_cov','f8',(2,2)),
+        ('R','f8',(2,2)),
+        ('Rpsf','f8',2),
+        ('psf_corr','f8',2)
+    ]
 
     return dt
 
-def get_chunk_info(nrows):
-    nchunks=nrows//CHUNKSIZE
-
-    remain = nrows % CHUNKSIZE
-    if remain > 0:
-        nchunks += 1
-
-    return nchunks
-
 def get_shear_stats(conf, data, deep_data, args):
-    from nsim.util import get_weights
 
-    SN = conf.get('SN',0.24)
+    g    = data[args.g_field]
+    gpsf = data[args.gpsf_field]
+    R    = deep_data[args.R_field]
+    Rpsf = deep_data[args.Rpsf_field]
 
-    if args.weights is None:
-        weights=None
-        dweights=None
-        #weights=ones( data.size )
-        #dweights=ones( deep_data.size )
-    elif args.weights == 'noise':
-        field='mcal_g_cov'
-        weights = get_weights(data, SN=SN, field=field, type=args.weights)
-        dweights = get_weights(deep_data, SN=SN, field=field, type=args.weights)
-    elif args.weights=="s2n_r":
-        field='mcal_s2n_r'
-        weights = get_weights(data, SN=SN, field=field, type=args.weights)
-        dweights = get_weights(deep_data, SN=SN, field=field, type=args.weights)
-    elif args.weights=="s2n_simple":
-        field='mcal_s2n_simple'
-        weights = get_weights(data, SN=SN, field=field, type=args.weights)
-        dweights = get_weights(deep_data, SN=SN, field=field, type=args.weights)
-
-    else:
-        raise ValueError("bad weights: '%s'" % args.weights)
-
-    g = data[args.gfield].copy()
-    sfield=args.R_field
-
-    if args.boot:
-        # do a full bootstrap of both the deep and regular data
-
-        assert args.Rpsf_field is not None,"psf sens field required for boostrap"
-        assert args.weights is None,"no weights for bootstrap currently"
-
-        print("        bootstrapping:",args.nboot)
-        res=ngmix.metacal.bootstrap_shear(g,
-                                          deep_data[sfield],
-                                          deep_data[args.Rpsf_field],
-                                          args.nboot)
-        res['wsum'] = float(data.size)
-
-        print("        shear:",res['shear'],"shear_mean:",res['shear_mean'])
-
-    else:
-        npair=data.size/2
-        #jchunksize = npair/1000
-        jchunksize = npair/100
-
-        if jchunksize < 1:
-            jchunksize=1
-
-        print('    jackknife chunksize:',jchunksize)
-
-
-        if weights is not None:
-            print("    using weights")
-            wsum=weights.sum()
-            dwsum=dweights.sum()
-
-            if args.Rpsf_field in deep_data.dtype.names:
-                print("        subtracting psf sensitivity")
-                #pcorr = deep_data[args.Rpsf_field].mean(axis=0)
-                pcorr = (dweights[:,newaxis]*deep_data[args.Rpsf_field]).sum(axis=0)/dwsum
-                g -= pcorr
-
-                #print("        subtracting c")
-                #ccorr = deep_data['mcal_c'].mean(axis=0)
-                #g -= ccorr
-
-
-            #smean = deep_data[sfield].mean(axis=0)
-            smean = (dweights[:,newaxis,newaxis]*deep_data[sfield]).sum(axis=0)/dwsum
-
-            R = numpy.zeros( (data.size, 2, 2) )
-            R[:,0, 0] = smean[0,0]
-            R[:,0, 1] = smean[0,1]
-            R[:,1, 0] = smean[1,0]
-            R[:,1, 1] = smean[1,1]
-
-
-            res = ngmix.metacal.jackknife_shear_weighted(g,
-                                                         R,
-                                                         weights,
-                                                         chunksize=jchunksize)
-
-        else:
-            ndata=data.size
-
-            psf_sens=None
-            do_psf_sens=False
-            if args.Rpsf_field is not None:
-                do_psf_sens=True
-
-            if args.boot_sens:
-                # with replacement
-                print("bootstrapping sensitivities")
-                rind = numpy.random.randint(0, deep_data.size, ndata)
-
-                R = zeros( (ndata, 2, 2) )
-
-                R[:,:,:] = deep_data[sfield][rind,:,:]
-
-                if do_psf_sens:
-                    print("    doing psf sens")
-                    psf_sens = zeros( (ndata, 2) )
-                    psf_sens[:,:] = deep_data[args.Rpsf_field][rind, :]
-            else:
-                tR = deep_data[sfield].mean(axis=0)
-                if do_psf_sens:
-                    print("    doing psf sens")
-                    tpsf_sens =deep_data[args.Rpsf_field].mean(axis=0)
-                
-                R = zeros( (ndata, 2, 2) )
-                psf_sens = zeros( (ndata, 2) )
-
-                for i in [0,1]:
-                    if do_psf_sens:
-                        psf_sens[:,i] = tpsf_sens[i]
-
-                    for j in [0,1]:
-                        R[:,i,j] = tR[i,j]
-                #R[:,0,1]=0
-                #R[:,1,0]=0
-            res = ngmix.metacal.jackknife_shear(g,
-                                                R,
-                                                Rpsf=psf_sens,
-                                                chunksize=jchunksize)
-            res['wsum'] = float(data.size)
-
+    res=ngmix.metacal.bootstrap_shear(g,
+                                      gpsf,
+                                      R,
+                                      Rpsf,
+                                      args.nboot,
+                                      verbose=True)
     return res
-
-
-
-def do_sums(conf, data, deep_data, d, args):
-
-    res = get_shear_stats(conf, data, deep_data, args)
-
-    d['g_sum'][0] += res['g_sum']
-    d['R_sum'][0] += res['gsens_sum']
-
-    shcov_inv = numpy.linalg.inv(res['shear_cov'])
-    d['shear_cov_inv_sum'][0] += shcov_inv
-
-    if 'weights' in res:
-        d['wsum'][0] += res['wsum']
-        d['s2n_w_sum'][0] += (data['s2n_w']*res['weights']).sum()
-    else:
-        d['wsum'][0] = float(data.size)
-        d['s2n_w_sum'][0] += data['s2n_w'].sum()
-
-def do_avg(conf, d, args):
-
-    shtrue=array(nsim.util.get_true_shear(conf['simc']))
-
-    model=conf['fit_model']
-
-    d['s2n_w'][0] = d['s2n_w_sum'][0]/d['wsum'][0]
-
-    R_inv = numpy.linalg.inv(d['R_sum'][0])
-    sh = numpy.dot(R_inv, d['g_sum'][0])
-    #sh = d['g_sum'][0]/d['R_sum'][0]
-
-    d['R'][0] = d['R_sum'][0]/d['wsum'][0]
-
-    d['shear'][0] = sh
-    d['shear_cov'][0] = numpy.linalg.inv(d['shear_cov_inv_sum'][0])
-
-    sherr=sqrt(diag(d['shear_cov'][0]))
-
-    print("meas: %g +/- %g, %g +/- %g" % (sh[0],sherr[0],sh[1],sherr[1]))
-
-    if shtrue[1] != 0.0:
-        fracdiff=sh/shtrue-1.0
-        fracdiff_err=sherr/shtrue
-
-        mess='fracdiff: %.2e +/- %.2e  %.2e +/- %.2e'
-        print(mess % (fracdiff[0], fracdiff_err[0],fracdiff[1],fracdiff_err[1]))
-
-
-    else:
-        fracdiff=sh[0]/shtrue[0]-1.0
-        fracdiff_err=sherr[0]/shtrue[0]
-
-        print('fracdiff: %.2e +/- %.2e' % (fracdiff, fracdiff_err))
-
-
-def do_sums_bychunk(conf, fobj, d, deep_data, args):
-    nrows=fobj[1].get_nrows()
-    nchunks = get_chunk_info(nrows)
-
-    for i in xrange(nchunks):
-        beg = i*CHUNKSIZE
-        end = (i+1)*CHUNKSIZE
-        print('    %s:%s of %s' % (beg,end,nrows))
-        data = fobj[1][beg:end]
-
-        data_keep, deep_keep =select(conf, data, deep_data)
-        #data_keep, deep_keep = data, deep_data
-
-        do_sums(conf, data_keep, deep_keep, d, args)
-
-
-def select(conf, data, deep_data):
-    from esutil.numpy_util import between, where1
-
-    logic = ones(data.size, dtype=bool)
-    deep_logic = ones(deep_data.size, dtype=bool)
-    docut=False
-
-    if 'avg_s2n_r_range' in conf:
-        sr=conf['avg_s2n_r_range']
-        tlogic = between(data['mcal_s2n_r'], sr[0], sr[1])
-        tdlogic = between(deep_data['mcal_s2n_r'], sr[0], sr[1])
-
-        print("        applying s2n_r range:",sr)
-        w=where1(tlogic)
-        print("            keeping %d/%d" % (w.size, data.size))
-        w=where1(tdlogic)
-        print("            deep keeping %d/%d" % (w.size, deep_data.size))
-
-        logic = logic & tlogic
-        deep_logic = deep_logic & tdlogic
-
-        docut=True
-
-    if 'avg_s2n_simple_range' in conf:
-        sr=conf['avg_s2n_simple_range']
-        tlogic = between(data['mcal_s2n_simple'], sr[0], sr[1])
-        tdlogic = between(deep_data['mcal_s2n_simple'], sr[0], sr[1])
-
-        print("        applying s2n_simple range:",sr)
-        w=where1(tlogic)
-        print("            keeping %d/%d" % (w.size, data.size))
-        w=where1(tdlogic)
-        print("            deep keeping %d/%d" % (w.size, deep_data.size))
-
-        logic = logic & tlogic
-        deep_logic = deep_logic & tdlogic
-
-        docut=True
-
-
-    '''
-    if 'avg_min_arate' in conf:
-        print("    selecting arate >",conf['avg_min_arate'])
-        logic = logic & (data['arate'] > conf['avg_min_arate'])
-        docut=True
-
-    if 'avg_sens_range' in conf:
-        sr=tuple(conf['avg_sens_range'])
-        print("    selecting sens [%g,%g]" % sr)
-        sens=data['g_sens'][:,0]
-        logic = logic & (sens > sr[0]) & (sens < sr[1])
-        docut=True
-
-    if 'avg_min_Ts2n' in conf:
-        if conf['use_logpars']:
-            print("       Ts2n for logpars")
-            Ts2n = 1.0/sqrt( data['pcov'][:,4,4] )
-        else:
-            Ts2n = data['pars'][:,4]/sqrt( data['pcov'][:,4,4] )
-
-        print("    selecting Ts2n >",conf['avg_min_Ts2n'])
-        logic = logic & (Ts2n > conf['avg_min_Ts2n'])
-        #logic = logic & (Ts2n > conf['avg_min_Ts2n']) & (Ts2n < 15)
-        docut=True
-
-
-    if 'avg_min_s2n' in conf:
-        s2n = data['s2n_w']
-        s2n_min = conf['avg_min_s2n']
-        elogic = (s2n > s2n_min)
-        w,=where(elogic)
-        if w.size != data.size:
-            print("    kept %d/%d for s/n > %.1f" % (w.size,data.size,s2n_min))
-        logic = logic & elogic
-        docut=True
-
-    if 'avg_min_psf_flux_s2n' in conf:
-        s2n = data['psf_flux_s2n']
-        s2n_min = conf['avg_min_psf_flux_s2n']
-        elogic = (s2n > s2n_min)
-        w,=where(elogic)
-        if w.size != data.size:
-            print("    kept %d/%d for psf s/n > %.1f" % (w.size,data.size,s2n_min))
-        logic = logic & elogic
-        docut=True
-
-
-    if 'avg_min_Fs2n' in conf:
-        if conf['use_logpars']:
-            print("       Fs2n for logpars")
-            Fs2n = 1.0/sqrt( data['pcov'][:,5,5] )
-        else:
-            Fs2n = data['pars'][:,5]/sqrt( data['pcov'][:,5,5] )
-
-        print("    selecting Fs2n >",conf['avg_min_Fs2n'])
-        logic = logic & (Fs2n > conf['avg_min_Fs2n'])
-        docut=True
-
-    if 'avg_min_flux' in conf:
-        flux = data['pars'][:,5]
-
-        print("    selecting flux >",conf['avg_min_flux'])
-        logic = logic & (flux > conf['avg_min_flux'])
-        docut=True
-
-    if 'avg_min_T' in conf:
-        flux = data['pars'][:,4]
-        minval = conf['avg_min_T']
-
-        print("    selecting T >",minval)
-        logic = logic & (flux > minval)
-        docut=True
-
-
-    if 'avg_min_neff' in conf:
-        print("    selecting neff >",conf['avg_min_neff'])
-        logic = logic & (data['neff'] > conf['avg_min_neff'])
-        docut=True
-
-    if 'avg_min_fracuse' in conf:
-        print("    selecting fracuse >",conf['avg_min_fracuse'])
-        logic = logic & (data['fracuse'] > conf['avg_min_fracuse'])
-        docut=True
-
-    if 'avg_max_g' in conf:
-        print("    selecting g <",conf['avg_max_g'])
-        gmax=sqrt(data['pars_max'][:,2]**2 + data['pars_max'][:,3]**2)
-        logic = logic & (gmax < conf['avg_max_g'])
-        docut=True
-
-    if 'avg_max_gerr' in conf:
-        print("    selecting maxlike g err <",conf['avg_max_gerr'])
-        logic = (
-                 logic
-                 & (sqrt(data['pcov_max'][:,2,2]) < conf['avg_max_gerr'])
-                 & (sqrt(data['pcov_max'][:,3,3]) < conf['avg_max_gerr']) 
-                )
-        docut=True
-    '''
-
-    if docut:
-        w=where1(logic)
-        wd=where1(deep_logic)
-        
-        frac=float(w.size)/data.size
-        print("        finally keeping %d/%d  %.3f" % (w.size,data.size,frac))
-        dfrac=float(wd.size)/deep_data.size
-        print("        deep finally keeping %d/%d  %.3f" % (wd.size,deep_data.size,dfrac))
-
-        
-        data=data[w]
-        deep_data=deep_data[wd]
-
-    return data, deep_data
 
 def get_averaged(conf, deep_data, args):
 
     model=conf['fit_model']
 
     print(conf['fname'])
-    with fitsio.FITS(conf['fname']) as fobj:
+    columns=[args.g_field, args.gpsf_field]
 
-        dt= get_dtype(fobj,model,args)
+    data = fitsio.read(conf['fname'], columns=columns)
 
-        d=zeros(1, dtype=dt)
+    dt= get_dtype()
+    d=zeros(1, dtype=dt)
 
-        do_sums_bychunk(conf, fobj, d, deep_data, args)
+    res = get_shear_stats(conf, data, deep_data, args)
 
-    do_avg(conf, d, args)
+    shtrue=array(nsim.util.get_true_shear(conf['simc']))
+
+
+    d['shear_true'][0] = shtrue
+    d['shear'][0] = res['shear']
+    d['shear_err'][0] = res['shear_err']
+    d['shear_cov'][0] = res['shear_cov']
+
+    d['R'][0] = res['R']
+    d['Rpsf'][0] = res['Rpsf']
+    d['psf_corr'][0] = res['psf_corr']
+
+    sh=res['shear']
+    sherr=res['shear_err']
+    print("meas: %g +/- %g, %g +/- %g" % (sh[0],sherr[0],sh[1],sherr[1]))
+    for i in (0,1):
+        if shtrue[i] != 0.0:
+            
+
+            fracdiff=sh[i]/shtrue[i]-1.0
+            fracdiff_err=sherr[i]/shtrue[i]
+
+            mess='s%d fracdiff: %.2e +/- %.2e'
+            print(mess % (i+1,fracdiff, fracdiff_err))
 
     return d
+
 
 def read_deep_data(conf, args):
     import esutil as eu

@@ -1,8 +1,10 @@
 run: "run-bd12zmcal-degrade07"
 sim: "sim-bd12z"
 
+# note nsim hash differs from prior run due to fixing
+# bug in counts prior from gmixnd
 ngmix_hash: "38f7108a68919f77ae46631620ab7220e7e29c27"
-nsim_hash: "85e22ceb11ab65b073e053fc1c332b8812b6238d"
+nsim_hash: "8f844984b605ec7fcbabee558b8c615c3aa8589c"
 
 fitter: "metacal-max-degrade"
 fit_model: "exp"

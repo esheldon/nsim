@@ -1,6 +1,9 @@
 run: "run-bd11mcal-t08"
 sim: "sim-bd11"
 
+ngmix_hash: "38f7108a68919f77ae46631620ab7220e7e29c27"
+nsim_hash: ""
+
 fitter: "metacal-max"
 fit_model: "exp"
 
@@ -10,7 +13,7 @@ use_logpars: True
 # same sim underneath for deep field, but using metacal
 # tweaks
 deep_data:
-  run: "run-bd12zmcal-degrade06"
+  run: "run-bd12zmcal-degrade07"
 
 # 1.0 gives mean s2n of ~12.3 with scatter 5 for the flux distribution in
 # the sim
@@ -22,15 +25,16 @@ priors:
         sigma: 1.0
 
     T:
-        # can re-use bd09 training
         type: "gmixnd"
-        run: "run-bd12zmax-lownoise01"
+        run: "run-bd12zmax-lownoise02"
         extra: "log_T"
         cov_factor: 1.44
 
     counts:
-        type: "two-sided-erf"
-        pars: [3.0, 1.0, 11, 1.0]
+        type: "gmixnd"
+        run: "run-bd12zmax-lownoise02"
+        extra: "log_flux"
+        cov_factor: 1.44
 
     g:
         type: "ba"

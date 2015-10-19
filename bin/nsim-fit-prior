@@ -54,17 +54,24 @@ class PriorFitter(object):
         
         r=self.prior.sample(1000000)
 
+        pwide = ngmix.gmix.GMixND(weights=self.prior.weights.copy(),
+                                  means=self.prior.means.copy(),
+                                  covars=self.prior.covars.copy()*1.44)
+        rwide=pwide.sample(1000000)
+
         h=biggles.make_histc(self.data, nbin=100, ylog=True, norm=1)
-        hr=biggles.make_histc(r, nbin=100, ylog=True, color='red', norm=1)
+        hr=biggles.make_histc(r, nbin=100, ylog=True, color='blue', norm=1)
+        hwide=biggles.make_histc(rwide, nbin=100, ylog=True, color='red', norm=1)
 
         h.label='data'
         hr.label='model'
+        hwide.label='model*1.44'
 
-        key=biggles.PlotKey(0.9,0.9,[h,hr], halign='right')
+        key=biggles.PlotKey(0.9,0.9,[h,hr,hwide], halign='right')
 
         plt=biggles.FramedPlot()
         plt.xlabel=self.field
-        plt.add(h, hr, key)
+        plt.add(h, hr, hwide, key)
 
         print("writing plot:",eps)
         plt.write_eps(eps)

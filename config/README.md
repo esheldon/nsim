@@ -9,7 +9,11 @@ down bootstrapper
     s1 fracdiff: -3.14e-03 +/- 2.21e-03
 - run-bd11mcal-t08
     - same config
+    s1 fracdiff: -1.08e-03 +/- 2.10e-03
 
+
+- run-bd12zmax-lownoise02
+- run-bd12zmcal-degrade07
 
 todo
 ----
@@ -489,6 +493,12 @@ the psf shape to [0,0.025]
         - normal jackknifing
             meas: 0.0799976 +/- 3.47912e-05, 9.19536e-05 +/- 3.49262e-05
             fracdiff: -2.95e-05 +/- 4.35e-04
+            !!!! turns out the error is really 2.3e-3 !!!!
+            the bug in the dilate must have resulted in huge error in
+            the psf corr.  This propagates into the 01 and 02 as well,
+            and explains what seemed to be larger than calculated
+            variance
+
         - full bootstrap
             meas: 0.0799976 +/- 3.65297e-05, 9.19536e-05 +/- 3.5082e-05
             fracdiff: -2.95e-05 +/- 4.57e-04

@@ -1,0 +1,70 @@
+run: "run-bd11mcal-05"
+sim: "sim-bd11"
+
+ngmix_hash: "38f7108a68919f77ae46631620ab7220e7e29c27"
+nsim_hash: ""
+
+fitter: "metacal-max"
+fit_model: "exp"
+
+g_prior_during: True
+use_logpars: True
+
+# same sim underneath for deep field, but using metacal
+# tweaks
+deep_data:
+  run: "run-bd12zmcal-degrade07"
+
+# 1.0 gives mean s2n of ~12.3 with scatter 5 for the flux distribution in
+# the sim
+noise: 1.0
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    T:
+        type: "gmixnd"
+        run: "run-bd12zmax-lownoise02"
+        extra: "log_T"
+        cov_factor: 1.44
+
+    counts:
+        type: "gmixnd"
+        run: "run-bd12zmax-lownoise02"
+        extra: "log_flux"
+        cov_factor: 1.44
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+psf_pars:
+    model: "coellip3"
+    ntry: 10
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+metacal_pars:
+    step: 0.01
+
+ngal: 40000000
+
+desired_hours: 4.0
+# at bnl
+#sec_per: 0.80
+# at slac
+sec_per: 0.75
+
+verbose: True
+
+#avg_s2n_r_range: [10,23]

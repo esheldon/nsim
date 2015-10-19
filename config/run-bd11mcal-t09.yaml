@@ -2,7 +2,7 @@ run: "run-bd11mcal-t09"
 sim: "sim-bd11"
 
 ngmix_hash: "38f7108a68919f77ae46631620ab7220e7e29c27"
-nsim_hash: "3e9735600dce578544c466ab1ebd7b75d74703ac"
+nsim_hash: "4c8928197c830c2ddb737f6764bfa3f5be5ae79f"
 
 fitter: "metacal-max"
 fit_model: "exp"

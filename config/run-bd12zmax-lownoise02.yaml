@@ -1,0 +1,58 @@
+run: "run-bd12zmax-lownoise02"
+sim: "sim-bd12z"
+
+ngmix_hash: "38f7108a68919f77ae46631620ab7220e7e29c27"
+nsim_hash: "85e22ceb11ab65b073e053fc1c332b8812b6238d"
+
+fitter: "max"
+fit_model: "exp"
+
+g_prior_during: True
+use_logpars: True
+
+# 1.0 gives mean s2n of ~12.3 with scatter 5 for the flux distribution in
+# the sim
+
+noise: 0.001
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    T:
+        type: "two-sided-erf"
+        pars: [-0.5, 1.0, 5.0, 1.0]
+
+    counts:
+        type: "two-sided-erf"
+        pars: [2.0, 1.0, 12, 1.0]
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+psf_pars:
+    model: "coellip3"
+    ntry: 10
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+ngal: 2000000
+
+desired_hours: 0.50
+
+# at slac, per random
+sec_per: 0.3
+
+verbose: True
+
+#avg_s2n_r_range: [10,23]

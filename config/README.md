@@ -14,6 +14,7 @@ down bootstrapper
 
 - run-bd12zmax-lownoise02
 - run-bd12zmcal-degrade07
+- run-bd11mcal-t09
 
 todo
 ----

@@ -15,6 +15,11 @@ down bootstrapper
 - run-bd12zmax-lownoise02
 - run-bd12zmcal-degrade07
 - run-bd11mcal-t09
+    - small 2 million run
+    meas: 0.0798965 +/- 0.000168158, 0.000196409 +/- 0.000147272
+    s1 fracdiff: -1.29e-03 +/- 2.10e-03
+- run-bd11mcal-05
+    - 40 million
 
 todo
 ----

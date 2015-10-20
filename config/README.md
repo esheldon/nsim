@@ -20,6 +20,8 @@ down bootstrapper
     s1 fracdiff: -1.29e-03 +/- 2.10e-03
 - run-bd11mcal-05
     - 40 million
+        meas: 0.0798987 +/- 4.63937e-05, 0.000109258 +/- 3.36177e-05
+        s1 fracdiff: -1.27e-03 +/- 5.80e-04
 
 todo
 ----

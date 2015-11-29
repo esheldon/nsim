@@ -626,16 +626,6 @@ class MaxMetacalFitter(MaxFitter):
                 boot.try_replace_cov(mconf['cov_pars'])
 
             self._do_metacal(boot)
-            '''
-            boot.fit_metacal_max(ppars['model'],
-                                 self['fit_model'],
-                                 mconf['pars'],
-                                 Tguess,
-                                 psf_fit_pars=psf_fit_pars,
-                                 prior=self.prior,
-                                 ntry=mconf['ntry'],
-                                 metacal_pars=self['metacal_pars'])
-            '''
 
         except BootPSFFailure:
             raise TryAgainError("failed to fit metacal psfs")
@@ -652,7 +642,7 @@ class MaxMetacalFitter(MaxFitter):
                 'boot':boot,
                 'res':res}
 
-    def _do_metacal(self, boot):
+    def _do_metacal(self, boot, metacal_obs=None):
 
         ppars=self['psf_pars']
         mconf=self['max_pars']
@@ -666,7 +656,8 @@ class MaxMetacalFitter(MaxFitter):
                              psf_fit_pars=psf_fit_pars,
                              prior=self.prior,
                              ntry=mconf['ntry'],
-                             metacal_pars=self['metacal_pars'])
+                             metacal_pars=self['metacal_pars'],
+                             metacal_obs=metacal_obs)
 
 
     def _print_res(self,res):
@@ -759,6 +750,101 @@ class MaxMetacalFitter(MaxFitter):
         keys['height']=1000
         images.compare_images(im1, im2, **keys)
 
+
+class MaxMetacalSimnFitter(MaxMetacalFitter):
+
+    def _do_metacal(self, boot):
+
+        super(MaxMetacalSimnFitter,self)._do_metacal(boot)
+        print("    Calculating Rnoise")
+
+        mb_obs_list = boot.mb_obs_list
+
+        fitter = boot.get_max_fitter()
+        res = fitter.get_result()
+
+        gmix_list = [fitter.get_gmix(band=band)]
+
+        # for noise added *before* metacal steps
+        mobs_before = ngmix.simobs.simulate_obs(
+            gmix_list,
+            mb_obs_list,
+            add_noise=True,
+            convolve_psf=True
+        )
+        # for noise added *after* metacal steps
+        mobs_after = ngmix.simobs.simulate_obs(
+            gmix_list,
+            mb_obs_list,
+            add_noise=False,
+            convolve_psf=True
+        )
+
+        boot_model_before = self._get_bootstrapper(model,mobs_before)
+        boot_model_after = self._get_bootstrapper(model,mobs_after)
+
+        boot_model_before=ngmix.Bootstrapper(mobs_before,
+                                             use_logpars=self['use_logpars'],
+                                             verbose=False)
+        boot_model_after=ngmix.Bootstrapper(mobs_after,
+                                            use_logpars=self['use_logpars'],
+                                            verbose=False)
+
+
+        mcal_obs_after = boot_model_after.get_metacal_obsdict(
+            mobs_after[0][0],
+            self['metacal_pars']
+        )
+
+        # now add noise after creating the metacal observations
+        # using the same noise image!
+
+        noise = mobs_before[0][0].noise_image
+        for key in mcal_obs_after:
+            obs=mcal_obs_after[key]
+            obs.image = obs.image + noise
+
+        self._do_metacal(
+            boot_model_before
+        )
+        self._do_metacal(
+            boot_model_after,
+            metacal_obs=mcal_obs_after
+        )
+
+        res_before = boot_model_before.get_metacal_max_result()
+        res_after = boot_model_after.get_metacal_max_result()
+
+        Rnoise = res_before['mcal_R'] - res_after['mcal_R']
+        Rpsf_noise = res_before['mcal_Rpsf'] - res_after['mcal_Rpsf']
+
+        res['mcal_Rnoise'] = Rnoise
+        res['mcal_Rpsf_noise'] = Rpsf_noise
+
+
+    def _get_dtype(self):
+        """
+        get the dtype for the output struct
+        """
+        dt=super(MaxMetacalSimnFitter,self)._get_dtype()
+
+        dt += [
+            ('mcal_Rnoise','f8',(2,2)),
+            ('mcal_Rpsf_noise','f8',(2,2)),
+        ]
+        return dt
+
+    def _copy_to_output(self, res, i):
+        """
+        copy parameters specific to this class
+        """
+        super(MaxMetacalSimnFitter,self)._copy_to_output(res, i)
+
+        d=self.data
+        d['mcal_Rnoise'][i] = res['mcal_Rnoise']
+        d['mcal_Rpsf_noise'][i] = res['mcal_Rpsf_noise']
+
+ 
 class MaxMetacalFitterDegrade(MaxMetacalFitter):
     """
     degrade the images

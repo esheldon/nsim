@@ -2,7 +2,7 @@ run: "run-bd12mcal-04"
 sim: "sim-bd12"
 
 ngmix_hash: "f65bfd991bbd8d03b66e594aa237fb28f2b02eb4"
-nsim_hash: "7422ab22a891d5e38cd38ac3abb1a7d7c4c2be49"
+nsim_hash: "b47f64459548c912dfaa4b12ac30acd398d063af"
 
 fitter: "metacal-max-simn"
 fit_model: "exp"

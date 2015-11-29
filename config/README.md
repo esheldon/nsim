@@ -1,28 +1,3 @@
-tracking bug
---------------
-ngmix/nsim branches btest. Basically master but stripped
-down bootstrapper
-
-- run-bd12zmcal-degrade06
-- run-bd11mcal-t07
-    meas: 0.0797489 +/- 0.000177108, -3.47196e-05 +/- 0.000148962
-    s1 fracdiff: -3.14e-03 +/- 2.21e-03
-- run-bd11mcal-t08
-    - same config
-    s1 fracdiff: -1.08e-03 +/- 2.10e-03
-
-
-- run-bd12zmax-lownoise02
-- run-bd12zmcal-degrade07
-- run-bd11mcal-t09
-    - small 2 million run
-    meas: 0.0798965 +/- 0.000168158, 0.000196409 +/- 0.000147272
-    s1 fracdiff: -1.29e-03 +/- 2.10e-03
-- run-bd11mcal-05
-    - 40 million
-        meas: 0.0798987 +/- 4.63937e-05, 0.000109258 +/- 3.36177e-05
-        s1 fracdiff: -1.27e-03 +/- 5.80e-04
-
 todo
 ----
 
@@ -599,8 +574,12 @@ the psf shape to [0,0.025]
         s1 m: -2.693e-03 +/- 1.705e-03 c: -4.615e-05 +/- 3.703e-05
         s2 m: -2.562e-03 +/- 1.442e-03 c: -1.704e-05 +/- 3.410e-05
 
+- run-bd12mcal-t03
+    - using new Rnoise corrections
+    - 2 million
 - run-bd12mcal-04
     - using new Rnoise corrections
+    - ? 40 million ?
 
 - Using new T prior and reverted ngmix 
     - ngmix "remove print" 5efd6b394eece17738fdb99d870e100bc133b17c
@@ -617,6 +596,31 @@ the psf shape to [0,0.025]
     - run-bd11mcal-04
         - using run-bd12zmcal-degrade05
 
+
+tracking bug
+--------------
+ngmix/nsim branches btest. Basically master but stripped
+down bootstrapper
+
+- run-bd12zmcal-degrade06
+- run-bd11mcal-t07
+    meas: 0.0797489 +/- 0.000177108, -3.47196e-05 +/- 0.000148962
+    s1 fracdiff: -3.14e-03 +/- 2.21e-03
+- run-bd11mcal-t08
+    - same config
+    s1 fracdiff: -1.08e-03 +/- 2.10e-03
+
+
+- run-bd12zmax-lownoise02
+- run-bd12zmcal-degrade07
+- run-bd11mcal-t09
+    - small 2 million run
+    meas: 0.0798965 +/- 0.000168158, 0.000196409 +/- 0.000147272
+    s1 fracdiff: -1.29e-03 +/- 2.10e-03
+- run-bd11mcal-05
+    - 40 million
+        meas: 0.0798987 +/- 4.63937e-05, 0.000109258 +/- 3.36177e-05
+        s1 fracdiff: -1.27e-03 +/- 5.80e-04
 
 
 - run-ggnr03mn-t01

@@ -577,6 +577,23 @@ the psf shape to [0,0.025]
 - run-bd12mcal-t03
     - using new Rnoise corrections
     - 2 million
+    - using Rnoise
+      m1: 8.532e-03 +/- 7.185e-03 c1: 9.459e-05 +/- 1.561e-04  r1: 0.0404
+      m2: 3.866e-03 +/- 6.752e-03 c2: -4.637e-04 +/- 1.596e-04  r2: -0.0438
+      Q: 439
+
+    - using Rpsf_noise
+      m1: 9.164e-03 +/- 7.170e-03 c1: 9.248e-05 +/- 1.558e-04  r1: 0.0404
+      m2: 4.604e-03 +/- 6.719e-03 c2: -4.719e-04 +/- 1.589e-04  r2: -0.0438
+      Q: 410
+
+    - using mean of two
+      m1: 8.899e-03 +/- 7.173e-03 c1: 9.433e-05 +/- 1.558e-04  r1: 0.0404
+      m2: 4.305e-03 +/- 6.724e-03 c2: -4.685e-04 +/- 1.590e-04  r2: -0.0438
+      Q: 421.692
+
+
+
 - run-bd12mcal-04
     - using new Rnoise corrections
     - ? 40 million ?

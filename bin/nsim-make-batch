@@ -25,7 +25,7 @@ _lsf_template="""#!/bin/bash
 #BSUB -J %(job_name)s
 #BSUB -n 1
 #BSUB -oo ./%(job_name)s.oe
-#BSUB -W %(walltime)s
+#BSUB -W 12:00
 #BSUB -R "linux64 && rhel60 && scratch > 2"
 
 echo "working on host: $(hostname)"

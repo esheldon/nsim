@@ -587,7 +587,7 @@ def main():
     else:
 
         if args.cache:
-            data=read_cached_data(conf,args.run)
+            data=read_cached_data(conf)
         else:
             data=read_data(conf)
 

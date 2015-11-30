@@ -50,11 +50,11 @@ max_pars:
 metacal_pars:
     step: 0.01
 
-ngal: 40000000
+ngal: 100000000
 
-desired_hours: 4.0
-sec_per: 3.0
+desired_hours: 6.0
+sec_per: 4.0
 
-verbose: True
+verbose: False
 
 #avg_s2n_r_range: [10,23]

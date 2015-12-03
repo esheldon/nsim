@@ -1,0 +1,62 @@
+run: "run-gg12ncal-02"
+sim: "sim-gg12"
+
+ngmix_hash: "99567d85c8de224ac092051838e9f61e720e9c35"
+nsim_hash: "08ef030026080a777f0e9ae33078a2c56477b343"
+
+fitter: "ncal"
+fit_model: "gauss"
+
+g_prior_during: True
+use_logpars: True
+
+# 1.0 gives mean s2n of ~12.3 with scatter 5 for the flux distribution in
+# the sim
+noise: 1.0
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    T:
+        type: "gmixnd"
+        run: "run-gg12zmax-lownoise01"
+        extra: "log_T"
+        cov_factor: 1.44
+
+    counts:
+        type: "gmixnd"
+        run: "run-gg12zmax-lownoise01"
+        extra: "log_F"
+        cov_factor: 1.44
+
+    g:
+        type: "ba"
+        sigma: 0.2
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+ncal_pars:
+    step: 0.01
+
+ngal: 20000000
+
+desired_hours: 0.5
+sec_per: 0.1
+
+verbose: False
+
+#avg_s2n_r_range: [10,23]

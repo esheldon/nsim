@@ -326,7 +326,8 @@ class SimpleFitterBase(FitterBase):
         elif gp['type']=='great-des':
             self.g_prior = ngmix.priors.GPriorGreatDES(pars=gp['pars'],
                                                        gmax=1.0)
-
+        elif gp['type']=='flat':
+            self.g_prior = ngmix.priors.ZDisk2D(1.0)
         else:
             raise ValueError("implement other g prior")
 

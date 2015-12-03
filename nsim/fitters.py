@@ -1357,7 +1357,7 @@ class NCalFitter(MaxFitter):
 
             ndict[type] = sobs
 
-        if True:
+        if False:
             import images
             images.compare_images(oobs.image, sobs.image,
                                   label1='image',

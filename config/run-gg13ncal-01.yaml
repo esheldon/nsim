@@ -55,7 +55,7 @@ ncal_pars:
 
 ngal: 100000000
 
-desired_hours: 1.0
+desired_hours: 1.5
 sec_per: 0.05
 
 verbose: False

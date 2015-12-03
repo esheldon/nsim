@@ -165,6 +165,51 @@ exit $status
 """
 
 
+_slr_template="""#!/bin/bash
+#SBATCH --array=0-%(last_id)s
+#SBATCH -p shared
+#SBATCH -J %(job_name)s
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --mem=400M
+#SBATCH -o %(slr_log)s
+#SBATCH -t %(walltime)s
+#SBATCH --export=ALL
+#SBATCH -A bnl100
+
+echo "working on host: $(hostname)"
+
+slr_pad_id=$(printf '%%06d' $SLURM_ARRAY_TASK_ID)
+
+run=%(run)s
+noise=%(noise)s
+ngal=%(ngal_per)s
+output=%(output)s
+
+export TMPDIR=/scratch/$USER/$SLURM_JOB_ID
+echo "cd $TMPDIR"
+cd $TMPDIR
+
+echo "will write to file: $output"
+
+nsim-run           \\
+        $run       \\
+        $noise     \\
+        $ngal      \\
+        $output
+status=$?
+
+if [[ $status != "0" ]]; then
+    echo "error running sim: $status"
+fi
+
+cd $HOME
+
+exit $status
+"""
+
+
+
 def get_command():
     dir=os.environ['NSIM_DIR']
     cmd = os.path.join(dir, 'bin/nsim-run')
@@ -318,6 +363,84 @@ class LSFMaker(MakerBase):
                                            missing=self['missing'])
         return job_url
 
+class SLRMaker(MakerBase):
+    def get_tmpdir(self):
+        return None
+
+    def get_batch_dir(self):
+        return nsim.files.get_slr_dir(self['run'])
+
+    def write_master(self):
+        pass
+
+    def write_batch_files(self):
+        overall_name = '-'.join( (self['run'].split('-'))[1:] )
+
+        njobs=0
+        ngal_tot=0
+
+        filenum=0
+
+        ngal_per, nsplit, time_hours = nsim.files.get_gal_nsplit(self)
+        self['ngal_per'] = ngal_per
+        self['last_id'] = nsplit-1
+        self['job_name'] = overall_name+'-%A-%a'
+        self['slr_log'] = self['run']+'-%A-%a.out'
+
+        walltime = int(2.0 + time_hours)
+        self['walltime'] = '%02d:00:00' % walltime
+
+        toutput = nsim.files.get_output_url(self['run'], 0, 0, itrial=0)
+        output = toutput[0:-10]+'${slr_pad_id}.fits'
+
+        self['output']=output
+
+        self.write_script()
+
+        print('total jobs: ',nsplit)
+        print('total gals:',nsplit*ngal_per)
+
+    def write_script(self):
+        job_url=self.get_job_url()
+        
+        print("writing slurm script:",job_url)
+        with open(job_url,'w') as fobj:
+            text = self.get_job_text()
+            fobj.write(text)
+
+
+    def get_master_url(self):
+        raise RuntimeError("no master for slr")
+
+    def get_master_text(self):
+        raise RuntimeError("no master for slr")
+
+    def get_job_text(self):
+        return _slr_template % self
+
+    def get_job_url(self):
+        job_url=nsim.files.get_slr_job_url(self['run'])
+        return job_url
+
+    def make_some_dirs(self):
+
+        d=self.get_batch_dir()
+        outd = nsim.files.get_output_dir(self['run'], sub='bytrial')
+
+        print("dir:",d)
+
+        if not os.path.exists(d):
+            os.makedirs(d)
+
+        if not os.path.exists(outd):
+            os.makedirs(outd)
+
+        tmpdir=self.get_tmpdir()
+        if tmpdir is not None:
+            if not os.path.exists(tmpdir):
+                os.makedirs(tmpdir)
+
+
 def main():
     args = parser.parse_args()
 
@@ -334,6 +457,8 @@ def main():
         maker=WQMaker(c)
     elif system=='lsf':
         maker=LSFMaker(c)
+    elif system=='slr':
+        maker=SLRMaker(c)
     else:
         raise ValueError("bad queue system: '%s'" % system)
     maker.go()

@@ -158,21 +158,15 @@ def get_slr_dir(run):
     dir=path_join(dir, 'slr')
     return dir
 
-def get_slr_job_url(run, filenum, missing=False):
+def get_slr_job_url(run):
     d=get_slr_dir(run)
 
-    end = '-%06d' % filenum
-    if missing:
-        end='%s-missing' % end
-
-    fname='{run}{end}.slr'.format(run=run,end=end)
+    fname='%s.slr' % run
     return path_join(d,fname)
 
-def get_slr_master_url(run):
-    d=get_slr_dir(run)
-    return path_join(d,'%s.sh' % run)
-
-
+#def get_slr_master_url(run):
+#    d=get_slr_dir(run)
+#    return path_join(d,'%s.sh' % run)
 
 
 def get_output_dir(run, sub=None, fs=None):

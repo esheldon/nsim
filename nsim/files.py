@@ -189,7 +189,7 @@ def get_output_url(run, is2, is2n, itrial=None, fs=None, ext='fits'):
         if itrial == '*':
             f += '-*'
         else:
-            f += '-%05i' % itrial
+            f += '-%06d' % itrial
     f += '.%s' % ext
     return path_join(dir, f)
 

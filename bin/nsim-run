@@ -135,6 +135,9 @@ def run_sim(sim_conf,
         else:
             fitclass=nsim.fitters.MaxMetacalFitterDegrade
 
+    elif ftype=='ncal':
+        fitclass=nsim.fitters.NCalFitter
+
     elif ftype=='metanoise-max':
         if simtype=='galsim':
             fitclass=nsim.fitters.MaxMetanoiseFitter

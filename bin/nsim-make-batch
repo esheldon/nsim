@@ -391,7 +391,7 @@ class SLRMaker(MakerBase):
         self['walltime'] = '%02d:00:00' % walltime
 
         toutput = nsim.files.get_output_url(self['run'], 0, 0, itrial=0)
-        output = toutput[0:-10]+'${slr_pad_id}.fits'
+        output = toutput[0:-11]+'${slr_pad_id}.fits'
 
         self['output']=output
 

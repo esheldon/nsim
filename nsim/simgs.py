@@ -35,8 +35,8 @@ class SimGS(dict):
 
         self.update(sim_conf)
 
-        seed = ngmixsim.get_devrand_uint()
-        numpy.random.seed(seed)
+        #seed = ngmixsim.get_devrand_uint()
+        #numpy.random.seed(seed)
 
         self._setup()
 

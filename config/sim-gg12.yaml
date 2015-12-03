@@ -6,14 +6,14 @@ simulator: "galsim"
 do_ring: False
 
 
-stamp_size: [48,48]
+stamp_size: [32,32]
 
 psf:
     model: "gauss"
 
     s2n: 10000.0
 
-    r50: 1.5
+    r50: 1.67
 
     shape: [0.0, 0.0]
 
@@ -26,14 +26,13 @@ obj_model:
         file: "great-des-fdist-shift.fits"
         is_in_log: True
 
-    # both components get the same scale length and ellipticity
     g:
         type: "ba"
         sigma: 0.2
 
     r50:
         type: "lognormal"
-        mean: 2.0
+        mean: 3.0
         sigma: 0.5
 
     cen_shift: null

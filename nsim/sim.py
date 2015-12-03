@@ -47,7 +47,7 @@ class NGMixSim(dict):
         # seed a new MT random generator from devrand
         # and return the object
 
-        seed_global_devrand()
+        #seed_global_devrand()
 
         self._set_config(sim_conf)
 

@@ -19,6 +19,7 @@ from ngmix.gexceptions import GMixRangeError
 from ngmix.observation import Observation
 from ngmix.gexceptions import GMixMaxIterEM
 from ngmix.shape import Shape
+from ngmix.gmix import GMixModel
 
 from ngmix.gexceptions import BootPSFFailure, BootGalFailure
 
@@ -1227,6 +1228,211 @@ class EMMetacalFitter(SimpleFitterBase):
             ('mcal_c','f8',2)
         ]
         return dt
+
+
+
+class NCalFitter(MaxFitter):
+    def _dofit(self, imdict):
+        """
+        Fit according to the requested method
+        """
+
+        self.imdict=imdict
+
+
+        obs=imdict['obs']
+        mdict = self._do_fits(obs)
+
+
+        res=mdict['res']
+
+        nres=self._do_ncal(mdict['boot'])
+
+        res.update(nres)
+
+        fitter=mdict['fitter']
+        self.fitter=fitter
+
+        return fitter
+
+    def _do_fits(self, obs, fit_psfs=True):
+        """
+        the basic fitter for this class
+        """
+        from ngmix import Bootstrapper
+
+        boot=Bootstrapper(obs,
+                          use_logpars=self['use_logpars'],
+                          verbose=False)
+
+        if fit_psfs:
+            Tguess=self.sim.get('psf_T',4.0)
+            ppars=self['psf_pars']
+
+            psf_fit_pars = ppars.get('fit_pars',None)
+        
+            try:
+                boot.fit_psfs(ppars['model'],
+                              Tguess,
+                              ntry=ppars['ntry'],
+                              fit_pars=psf_fit_pars)
+            except BootPSFFailure:
+                raise TryAgainError("failed to fit psf")
+
+        mconf=self['max_pars']
+
+        try:
+            boot.fit_max(self['fit_model'],
+                         mconf['pars'],
+                         prior=self.prior,
+                         ntry=mconf['ntry'])
+
+
+            if mconf['pars']['method']=='lm':
+                boot.try_replace_cov(mconf['cov_pars'])
+
+
+        except BootPSFFailure:
+            raise TryAgainError("failed to fit ncal psfs")
+        except BootGalFailure:
+            raise TryAgainError("failed to fit ncal galaxy")
+
+        fitter=boot.get_max_fitter() 
+        res=fitter.get_result()
+
+        return {'fitter':fitter,
+                'boot':boot,
+                'res':res}
+
+    def _get_simulated_obs(self, boot):
+
+        oobs = boot.mb_obs_list[0][0]
+
+        mfitter=boot.get_max_fitter()
+        model = mfitter.model_name
+
+        mres=mfitter.get_result()
+        mpars = mres['pars'].copy()
+
+        if self['use_logpars']:
+            mpars[4] = exp(mpars[4])
+            mpars[5] = exp(mpars[5])
+
+        g1=mpars[2]
+        g2=mpars[3]
+        T0=mpars[4]
+
+        T0round = ngmix.moments.get_Tround(T0, g1, g2)
+
+        sh0 = Shape(g1,g2)
+
+        step = self['ncal_pars']['step']
+        typelist = [
+            ('1p', Shape( step,  0.0)),
+            ('1m', Shape(-step,  0.0)),
+            ('2p', Shape( 0.0,   step)),
+            ('2m', Shape( 0.0,  -step))
+        ]
+
+        noise_image = ngmix.simobs.get_noise_image(oobs.weight)
+
+        ndict={}
+        for i,t in enumerate(typelist):
+            type=t[0]
+            shear=t[1]
+
+            sh = sh0.get_sheared(shear) 
+            T  = ngmix.moments.get_T(T0round, sh.g1, sh.g2)
+
+            pars = mpars.copy()
+            pars[2] = sh.g1
+            pars[3] = sh.g2
+            pars[4] = T
+
+            gm = GMixModel(pars, model)
+            
+            sobs = ngmix.simobs.simulate_obs(gm, oobs, add_noise=False)
+
+            sobs.image = sobs.image + noise_image
+
+            ndict[type] = sobs
+
+        if True:
+            import images
+            images.compare_images(oobs.image, sobs.image,
+                                  label1='image',
+                                  label2='sim')
+
+            key=raw_input('hit a key: ')
+            if key=='q':
+                stop
+
+        return ndict
+
+    def _do_ncal(self, boot):
+
+        ndict = self._get_simulated_obs(boot)
+
+        pdict={}
+
+        for key in ndict:
+            tres = self._do_fits(ndict[key], fit_psfs=False)
+
+            tpars = tres['res']['pars']
+
+            pdict[key] = tpars
+
+        nres={}
+
+        R=zeros( (2,2) ) 
+        Rpsf=zeros(2)
+
+        step = self['ncal_pars']['step']
+        fac = 1.0/(2.0*step)
+
+        R[0,0] = (pdict['1p'][2]-pdict['1m'][2])*fac
+        R[0,1] = (pdict['1p'][3]-pdict['1m'][3])*fac
+        R[1,0] = (pdict['2p'][2]-pdict['2m'][2])*fac
+        R[1,1] = (pdict['2p'][3]-pdict['2m'][3])*fac
+
+        nres['ncal_R'] = R
+        nres['ncal_Rpsf'] = Rpsf
+
+        return nres
+
+    def _print_res(self,res):
+        """
+        print some stats
+        """
+
+        super(NCalFitter,self)._print_res(res)
+        print_pars(res['ncal_R'].ravel(),  front='    ncal R:    ')
+
+    def _get_dtype(self):
+        """
+        get the dtype for the output struct
+        """
+        dt=super(NCalFitter,self)._get_dtype()
+
+        npars=self['npars']
+        dt += [
+            ('ncal_R','f8',(2,2)),
+            ('ncal_Rpsf','f8',2),
+        ]
+        return dt
+
+
+    def _copy_to_output(self, res, i):
+        """
+        copy parameters specific to this class
+        """
+        super(NCalFitter,self)._copy_to_output(res, i)
+
+        d=self.data
+
+        d['ncal_R'][i] = res['ncal_R']
+        d['ncal_Rpsf'][i] = res['ncal_Rpsf']
+
 
 
 def make_sheared_pars(pars, shear_g1, shear_g2):

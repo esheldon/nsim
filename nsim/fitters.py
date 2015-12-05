@@ -844,6 +844,106 @@ class MaxMetacalSimnFitter(MaxMetacalFitter):
         d['mcal_Rnoise'][i] = res['mcal_Rnoise']
         d['mcal_Rpsf_noise'][i] = res['mcal_Rpsf_noise']
 
+
+class MaxMetacalAddnFitter(MaxMetacalFitter):
+    """
+    This Addn is different from reredux
+
+    This one we add a mean (n+ - n-) image to the original, so that
+    the calculated response is correct, since it is contaminated by
+    this
+
+    """
+    def _do_metacal(self, boot):
+        from ngmix import Bootstrapper
+
+        super(MaxMetacalSimnFitter,self)._do_metacal(boot)
+        print("    Calculating Rnoise")
+
+        mb_obs_list = boot.mb_obs_list
+
+        fitter = boot.get_max_fitter()
+        res = fitter.get_result()
+
+        gmix_list = [fitter.get_gmix()]
+
+        # for noise added *before* metacal steps
+        mobs_before = ngmix.simobs.simulate_obs(
+            gmix_list,
+            mb_obs_list,
+            add_noise=True,
+            convolve_psf=True
+        )
+        # for noise added *after* metacal steps
+        mobs_after = ngmix.simobs.simulate_obs(
+            gmix_list,
+            mb_obs_list,
+            add_noise=False,
+            convolve_psf=True
+        )
+
+        boot_model_before=ngmix.Bootstrapper(mobs_before,
+                                             use_logpars=self['use_logpars'],
+                                             verbose=False)
+        boot_model_after=ngmix.Bootstrapper(mobs_after,
+                                            use_logpars=self['use_logpars'],
+                                            verbose=False)
+
+
+        mcal_obs_after = boot_model_after.get_metacal_obsdict(
+            mobs_after[0][0],
+            self['metacal_pars']
+        )
+
+        # now add noise after creating the metacal observations
+        # using the same noise image!
+
+        noise = mobs_before[0][0].noise_image
+        for key in mcal_obs_after:
+            obs=mcal_obs_after[key]
+            obs.image = obs.image + noise
+
+        super(MaxMetacalSimnFitter,self)._do_metacal(
+            boot_model_before
+        )
+        super(MaxMetacalSimnFitter,self)._do_metacal(
+            boot_model_after,
+            metacal_obs=mcal_obs_after
+        )
+
+        res_before = boot_model_before.get_metacal_max_result()
+        res_after = boot_model_after.get_metacal_max_result()
+
+        Rnoise = res_before['mcal_R'] - res_after['mcal_R']
+        Rpsf_noise = res_before['mcal_Rpsf'] - res_after['mcal_Rpsf']
+
+        res['mcal_Rnoise'] = Rnoise
+        res['mcal_Rpsf_noise'] = Rpsf_noise
+
+
+    def _get_dtype(self):
+        """
+        get the dtype for the output struct
+        """
+        dt=super(MaxMetacalSimnFitter,self)._get_dtype()
+
+        dt += [
+            ('mcal_Rnoise','f8',(2,2)),
+            ('mcal_Rpsf_noise','f8',2),
+        ]
+        return dt
+
+    def _copy_to_output(self, res, i):
+        """
+        copy parameters specific to this class
+        """
+        super(MaxMetacalSimnFitter,self)._copy_to_output(res, i)
+
+        d=self.data
+        d['mcal_Rnoise'][i] = res['mcal_Rnoise']
+        d['mcal_Rpsf_noise'][i] = res['mcal_Rpsf_noise']
+
+
  
 class MaxMetacalFitterDegrade(MaxMetacalFitter):
     """

@@ -269,10 +269,10 @@ def get_arrays(conf, data):
 
     R = data[Rfield].copy()
 
-    if True:
+    if False:
         print("Using R")
         R -= data[Rnoise_field]
-    elif False:
+    elif True:
         print("Using mean of R and Rpsf")
         # different sign
         Rfix = data[Rpsf_noise_field].copy()

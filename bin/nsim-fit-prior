@@ -11,7 +11,7 @@ from argparse import ArgumentParser
 parser=ArgumentParser(__doc__)
 
 parser.add_argument('run',help='sim run')
-parser.add_argument('field',help='var to fit, T or flux',choices=['log_T','log_flux'])
+parser.add_argument('field',help='var to fit, T or flux',choices=['log_T','log_F'])
 parser.add_argument('ngauss',type=int,help='number of gaussians to fit')
 
 
@@ -73,16 +73,28 @@ class PriorFitter(object):
         plt.xlabel=self.field
         plt.add(h, hr, hwide, key)
 
+
         print("writing plot:",eps)
+        plt.write_eps(eps)
+
+        eps=eps.replace('.eps','-ylog.eps')
+        print("writing plot:",eps)
+        plt.ylog=True
         plt.write_eps(eps)
 
 
     def read_data(self):
-        data=nsim.files.read_output(self.run,0)#, rows=numpy.arange(10000))
+        data=nsim.files.read_output(self.run,0, rows=numpy.arange(100000))
+
+        #g = numpy.sqrt(data['g'][:,0]**2 + data['g'][:,1]**2)
+
+        #w,=numpy.where(g < 0.99)
+        #data=data[w]
+        #print("    kept %d/%d with g < 0.99" % w.size)
 
         if self.field=='log_T':
             fdata = data['pars'][:,4]
-        elif self.field=='log_flux':
+        elif self.field=='log_F':
             fdata = data['pars'][:,5]
         else:
             raise ValueError("bad field: '%s'" % self.field)

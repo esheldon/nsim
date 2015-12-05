@@ -27,6 +27,8 @@ from .sim import NGMixSim
 from .util import write_fits, TryAgainError, load_gmixnd
 from . import files
 
+import esutil as eu
+
 # minutes
 DEFAULT_CHECKPOINTS=[30,60,90,110]
 
@@ -847,7 +849,7 @@ class MaxMetacalSimnFitter(MaxMetacalFitter):
         d['mcal_Rpsf_noise'][i] = res['mcal_Rpsf_noise']
 
 
-class MaxMetacalAddnFitter(MaxMetacalFitter):
+class MaxMetacalFixRFitter(MaxMetacalFitter):
     """
     This Addn is different from reredux
 
@@ -856,66 +858,30 @@ class MaxMetacalAddnFitter(MaxMetacalFitter):
     this
 
     """
+
     def _do_metacal(self, boot):
         from ngmix import Bootstrapper
 
-        super(MaxMetacalSimnFitter,self)._do_metacal(boot)
-        print("    Calculating Rnoise")
+        super(MaxMetacalFixRFitter,self)._do_metacal(boot)
+        print("    Calculating mean noise term")
 
-        mb_obs_list = boot.mb_obs_list
+        fixR_mcal_obs = self._make_fixR_mcal_obs(boot)
 
-        fitter = boot.get_max_fitter()
-        res = fitter.get_result()
+        fixR_boot=ngmix.Bootstrapper(fixR_mcal_obs,
+                                     use_logpars=self['use_logpars'],
+                                     verbose=False)
 
-        gmix_list = [fitter.get_gmix()]
-
-        # for noise added *before* metacal steps
-        mobs_before = ngmix.simobs.simulate_obs(
-            gmix_list,
-            mb_obs_list,
-            add_noise=True,
-            convolve_psf=True
-        )
-        # for noise added *after* metacal steps
-        mobs_after = ngmix.simobs.simulate_obs(
-            gmix_list,
-            mb_obs_list,
-            add_noise=False,
-            convolve_psf=True
+        super(MaxMetacalFixRFitter,self)._do_metacal(
+            fixR_boot,
+            metacal_obs=fixR_mcal_obs,
         )
 
-        boot_model_before=ngmix.Bootstrapper(mobs_before,
-                                             use_logpars=self['use_logpars'],
-                                             verbose=False)
-        boot_model_after=ngmix.Bootstrapper(mobs_after,
-                                            use_logpars=self['use_logpars'],
-                                            verbose=False)
+        res = boot.get_metacal_max_result()
+        res_fixR = fixR_boot.get_metacal_max_result()
 
-
-        mcal_obs_after = boot_model_after.get_metacal_obsdict(
-            mobs_after[0][0],
-            self['metacal_pars']
-        )
-
-        # now add noise after creating the metacal observations
-        # using the same noise image!
-
-        noise = mobs_before[0][0].noise_image
-        for key in mcal_obs_after:
-            obs=mcal_obs_after[key]
-            obs.image = obs.image + noise
-
-        super(MaxMetacalSimnFitter,self)._do_metacal(
-            boot_model_before
-        )
-        super(MaxMetacalSimnFitter,self)._do_metacal(
-            boot_model_after,
-            metacal_obs=mcal_obs_after
-        )
-
-        res_before = boot_model_before.get_metacal_max_result()
-        res_after = boot_model_after.get_metacal_max_result()
-
+        # we keep R but use the "fixed" shapes
+        res['mcal_g'] = res_fixR['mcal_g']
+        res['mcal_g_cov'] = res_fixR['mcal_g_cov']
         Rnoise = res_before['mcal_R'] - res_after['mcal_R']
         Rpsf_noise = res_before['mcal_Rpsf'] - res_after['mcal_Rpsf']
 
@@ -923,28 +889,39 @@ class MaxMetacalAddnFitter(MaxMetacalFitter):
         res['mcal_Rpsf_noise'] = Rpsf_noise
 
 
-    def _get_dtype(self):
-        """
-        get the dtype for the output struct
-        """
-        dt=super(MaxMetacalSimnFitter,self)._get_dtype()
+    def _make_fixR_mcal_obs(self, boot):
+        from ngmix.metacal import get_all_metacal
+        mobs = boot.mb_obs_list
 
-        dt += [
-            ('mcal_Rnoise','f8',(2,2)),
-            ('mcal_Rpsf_noise','f8',2),
-        ]
-        return dt
+        nrand_noise=self['nrand_noise']
+        stamp_size=self.sim['stamp_size']
+        step=self['metacal_pars']['step']
 
-    def _copy_to_output(self, res, i):
-        """
-        copy parameters specific to this class
-        """
-        super(MaxMetacalSimnFitter,self)._copy_to_output(res, i)
+        for i in xrange(nrand_noise):
+            print(i)
+            # None means noise only
+            tmobs = ngmix.simobs.simulate_obs(None, mobs)
 
-        d=self.data
-        d['mcal_Rnoise'][i] = res['mcal_Rnoise']
-        d['mcal_Rpsf_noise'][i] = res['mcal_Rpsf_noise']
+            tmcal_obs = get_all_metacal(tmobs[0][0], step)
 
+            if i == 0:
+                im_1p_m_1m = tmcal_obs['1p'].image - tmcal_obs['1m'].image
+                im_2p_m_2m = tmcal_obs['2p'].image - tmcal_obs['2m'].image
+            else:
+                for key in mcal_obs:
+                    mcal_obs[key][0][0].image += tmcal_obs[key][0][0].image
+
+        for key in mcal_obs:
+            mcal_obs[key][0][0].image *= (1.0/nrand_noise)
+
+        if True:
+            import images
+            images.multiview(mcal_obs[key][0][0].image)
+            if raw_input("hit a key: ") == 'q':
+                stop
+
+
+        return mcal_obs
 
  
 class MaxMetacalFitterDegrade(MaxMetacalFitter):

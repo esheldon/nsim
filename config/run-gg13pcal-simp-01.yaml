@@ -57,6 +57,7 @@ ngal: 2000000
 
 desired_hours: 0.5
 sec_per: 0.40
+# got 1.16625496517 in actual run ??
 
 verbose: False
 

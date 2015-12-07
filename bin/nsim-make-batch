@@ -29,6 +29,7 @@ _lsf_template="""#!/bin/bash
 #BSUB -R "linux64 && rhel60 && scratch > 2"
 
 echo "working on host: $(hostname)"
+uptime
 
 command=%(master_script)s
 noise=%(noise)g

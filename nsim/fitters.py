@@ -1545,7 +1545,7 @@ class PostcalSimpFitter(PostcalFitter):
         print_pars(res['pcal_Rp'].ravel(),
                    front='    pcal Rp:    ')
         print_pars(res['pcal_gp'].ravel(),
-                   front='    pcal gnoise:    ')
+                   front='    pcal gp:    ')
 
 
     def _get_dtype(self):

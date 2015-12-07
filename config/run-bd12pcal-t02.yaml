@@ -1,0 +1,65 @@
+run: "run-bd12pcal-t02"
+sim: "sim-bd12"
+
+ngmix_hash: "?"
+nsim_hash: "?"
+
+fitter: "pcal-simp"
+fit_model: "exp"
+
+nrand_noise: 1000
+
+g_prior_during: True
+use_logpars: True
+
+# 1.0 gives mean s2n of ~12.3 with scatter 5 for the flux distribution in
+# the sim
+noise: 1.0
+
+postcal_pars:
+    step: 0.01
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    T:
+        type: "gmixnd"
+        run: "run-bd12zmax-lownoise01"
+        extra: "log_T"
+        cov_factor: 1.44
+
+    counts:
+        type: "gmixnd"
+        run: "run-bd12zmax-lownoise01"
+        extra: "log_F"
+        cov_factor: 1.44
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+psf_pars:
+    model: "coellip3"
+    ntry: 10
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+metacal_pars:
+    step: 0.01
+
+ngal: 2000000
+
+desired_hours: 1.0
+sec_per: 2.0
+
+verbose: False

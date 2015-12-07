@@ -27,6 +27,8 @@ from .sim import NGMixSim
 from .util import write_fits, TryAgainError, load_gmixnd
 from . import files
 
+from copy import deepcopy
+
 import esutil as eu
 
 # minutes
@@ -491,6 +493,11 @@ class MaxFitter(SimpleFitterBase):
                          prior=self.prior,
                          ntry=mconf['ntry'])
 
+            boot.set_round_s2n()
+            rres=boot.get_round_result()
+            res=boot.get_max_fitter().get_result()
+            res['s2n_r'] = rres['s2n_r']
+
             if mconf['pars']['method']=='lm':
                 boot.try_replace_cov(mconf['cov_pars'])
         except BootGalFailure:
@@ -555,6 +562,7 @@ class MaxFitter(SimpleFitterBase):
 
         dt=super(MaxFitter,self)._get_dtype()
         dt += [
+            ('s2n_r','f8'),
             ('nfev','i4'),
             ('ntry','i4')
         ]
@@ -568,6 +576,7 @@ class MaxFitter(SimpleFitterBase):
         d=self.data
 
         if 'nfev' in res:
+            d['s2n_r'][i] = res['s2n_r']
             d['nfev'][i] = res['nfev']
             # set outside of fitter
             d['ntry'][i] = res['ntry']
@@ -1082,6 +1091,490 @@ class MaxMetanoiseFitter(MaxMetacalFitter):
         d['mnoise_R'][i] = res['mnoise_R']
         d['mnoise_Rpsf'][i] = res['mnoise_Rpsf']
         d['mnoise_gpsf'][i] = res['mnoise_gpsf']
+
+
+
+class PostcalFitter(MaxFitter):
+    """
+    metacal with a maximum likelihood fit
+    """
+    def _dofit(self, imdict):
+        """
+        Fit according to the requested method
+        """
+
+        self.imdict=imdict
+
+
+        obs=imdict['obs']
+        mdict = self._do_fits(obs)
+        self.fitter=mdict['fitter']
+
+        postcal_res = self._do_postcal(obs)
+
+        res=mdict['res']
+        res.update( postcal_res )
+
+        return self.fitter
+
+    def _do_fits(self, obs):
+        """
+        the basic fitter for this class
+        """
+        from ngmix import Bootstrapper
+
+
+        boot=Bootstrapper(obs,
+                          use_logpars=self['use_logpars'],
+                          verbose=False)
+
+        Tguess=self.sim.get('psf_T',4.0)
+        ppars=self['psf_pars']
+
+        psf_fit_pars = ppars.get('fit_pars',None)
+    
+        try:
+            boot.fit_psfs(ppars['model'],
+                          Tguess,
+                          ntry=ppars['ntry'],
+                          fit_pars=psf_fit_pars)
+
+        except BootPSFFailure:
+            raise TryAgainError("failed to fit psf")
+
+        mconf=self['max_pars']
+
+        try:
+            boot.fit_max(self['fit_model'],
+                         mconf['pars'],
+                         prior=self.prior,
+                         ntry=mconf['ntry'])
+
+
+            boot.set_round_s2n()
+            rres=boot.get_round_result()
+            res=boot.get_max_fitter().get_result()
+            res['s2n_r']=rres['s2n_r']
+
+            if mconf['pars']['method']=='lm':
+                boot.try_replace_cov(mconf['cov_pars'])
+
+        except BootPSFFailure:
+            raise TryAgainError("failed to fit metacal psfs")
+        except BootGalFailure:
+            raise TryAgainError("failed to fit galaxy")
+
+        fitter=boot.get_max_fitter() 
+        res=fitter.get_result()
+
+        return {'fitter':fitter,
+                'boot':boot,
+                'res':res}
+
+    def _get_postcal_obsdict(self, obs):
+        import galsim
+
+        psf_obs = obs.psf
+
+        im = obs.image.copy()
+        psf_im = psf_obs.image.copy()
+        gs_im = galsim.Image(im, scale=1.0)
+        gs_psf = galsim.Image(psf_im, scale=1.0)
+
+        i_im = galsim.InterpolatedImage(gs_im)
+        i_psf = galsim.InterpolatedImage(gs_psf)
+
+        step=self['postcal_pars']['step']
+
+        shts = [('1p',Shape( step, 0.0)),
+                ('1m',Shape(-step, 0.0)),
+                ('2p',Shape( 0.0,  step)),
+                ('2m',Shape( 0.0, -step))]
+
+        odict={}
+        for t in shts:
+            name = t[0]
+            shear = t[1]
+
+            s_i_im = i_im.shear(g1=shear.g1, g2=shear.g2)
+            s_i_psf = i_psf.shear(g1=shear.g1, g2=shear.g2)
+
+            s_im = s_i_im.drawImage(ny=im.shape[0],
+                                    nx=im.shape[1],
+                                    scale=1.0,
+                                    method='no_pixel')
+            s_psf_im = s_i_psf.drawImage(ny=psf_im.shape[0],
+                                         nx=psf_im.shape[1],
+                                         scale=1.0,
+                                         method='no_pixel')
+
+            spsf_obs = Observation(
+                s_psf_im.array,
+                weight=psf_obs.weight.copy(),
+                jacobian=psf_obs.jacobian.copy()
+            )
+            sobs = Observation(
+                s_im.array,
+                weight=obs.weight.copy(),
+                jacobian=obs.jacobian.copy(),
+                psf=spsf_obs
+            )
+
+            odict[name] = sobs
+
+        return odict
+
+    def _do_postcal(self, obs, pcal_obs_dict=None):
+
+        if pcal_obs_dict is None:
+            pcal_obs_dict = self._get_postcal_obsdict(obs)
+
+        fits={}
+        for key in pcal_obs_dict:
+            tobs=pcal_obs_dict[key]
+
+            tmdict = self._do_fits(tobs)
+            fits[key] = tmdict['res']
+
+        res = self._extract_postcal_responses(fits)
+        return res
+
+    def _extract_postcal_responses(self, fits):
+        """
+        pars pars_cov gpsf, s2n_r, s2n_simple, T_r, psf_T_r required
+
+        expect the shape to be in pars[2] and pars[3]
+        """
+        step = self['postcal_pars']['step']
+
+        res1p = fits['1p']
+        res1m = fits['1m']
+        res2p = fits['2p']
+        res2m = fits['2m']
+
+        pars_mean = (res1p['pars']+
+                     res1m['pars']+
+                     res2p['pars']+
+                     res2m['pars'])/4.0
+
+        pars_cov_mean = (res1p['pars_cov']+
+                         res1m['pars_cov']+
+                         res2p['pars_cov']+
+                         res2m['pars_cov'])/4.0
+
+        pars_mean[2] = 0.5*(fits['1p']['pars'][2] + fits['1m']['pars'][2])
+        pars_mean[3] = 0.5*(fits['2p']['pars'][3] + fits['2m']['pars'][3])
+
+        s2n_r_mean = (res1p['s2n_r']
+                      + res1m['s2n_r']
+                      + res2p['s2n_r']
+                      + res2m['s2n_r'])/4.0
+
+        if self['verbose']:
+            print_pars(pars_mean, front='    parsmean:   ')
+
+        R=numpy.zeros( (2,2) ) 
+        Rpsf=numpy.zeros(2)
+
+        fac = 1.0/(2.0*step)
+
+        R[0,0] = (fits['1p']['pars'][2]-fits['1m']['pars'][2])*fac
+        R[0,1] = (fits['1p']['pars'][3]-fits['1m']['pars'][3])*fac
+        R[1,0] = (fits['2p']['pars'][2]-fits['2m']['pars'][2])*fac
+        R[1,1] = (fits['2p']['pars'][3]-fits['2m']['pars'][3])*fac
+
+        #Rpsf[0] = (pars['1p_psf'][2]-pars['1m_psf'][2])*fac
+        #Rpsf[1] = (pars['2p_psf'][3]-pars['2m_psf'][3])*fac
+
+
+        #gpsf_name = 'pcal_%spsf' % shape_type
+        #raw_gpsf_name = '%spsf' % shape_type
+        res = {
+            'pcal_pars':pars_mean,
+            'pcal_pars_cov':pars_cov_mean,
+            'pcal_g':pars_mean[2:2+2],
+            'pcal_g_cov':pars_cov_mean[2:2+2, 2:2+2],
+            'pcal_R':R,
+            #'pcal_Rpsf':Rpsf,
+            #'pcal_gpsf':fits['gpsf'],
+            'pcal_s2n_r':s2n_r_mean,
+            #'pcal_s2n_simple':fits['s2n_simple'],
+        }
+        return res
+
+
+
+
+    def _print_res(self,res):
+        """
+        print some stats
+        """
+
+        super(PostcalFitter,self)._print_res(res)
+        print_pars(res['pcal_pars'],       front='    pcal pars: ')
+        print_pars(res['pcal_R'].ravel(),  front='    pcal R:    ')
+
+    def _get_dtype(self):
+        """
+        get the dtype for the output struct
+        """
+        dt=super(PostcalFitter,self)._get_dtype()
+
+        npars=self['npars']
+        dt += [
+            ('pcal_pars','f8',npars),
+            ('pcal_pars_cov','f8',(npars,npars)),
+            ('pcal_g','f8',2),
+            ('pcal_g_cov','f8', (2,2) ),
+            ('pcal_R','f8',(2,2)),
+        ]
+        return dt
+
+
+    def _copy_to_output(self, res, i):
+        """
+        copy parameters specific to this class
+        """
+        super(PostcalFitter,self)._copy_to_output(res, i)
+
+        d=self.data
+
+        d['pcal_pars'][i] = res['pcal_pars']
+        d['pcal_pars_cov'][i] = res['pcal_pars_cov']
+        d['pcal_g'][i] = res['pcal_g']
+        d['pcal_g_cov'][i] = res['pcal_g_cov']
+
+        d['pcal_R'][i] = res['pcal_R']
+
+
+class PostcalSimnFitter(PostcalFitter):
+    def _do_postcal(self,obs):
+
+        res=super(PostcalSimnFitter,self)._do_postcal(obs)
+
+        print("    Calculating Rnoise")
+
+        gm = self.fitter.get_gmix()
+
+        # for noise added *before* metacal steps
+        obs_before = ngmix.simobs.simulate_obs(
+            gm,
+            obs,
+            add_noise=True,
+            convolve_psf=True
+        )
+        # for noise added *after* metacal steps
+        obs_after = ngmix.simobs.simulate_obs(
+            gm,
+            obs,
+            add_noise=False,
+            convolve_psf=True
+        )
+
+        pcal_obs_dict_after = self._get_postcal_obsdict(obs_after)
+
+        noise = obs_before.noise_image
+        for key in pcal_obs_dict_after:
+            obs=pcal_obs_dict_after[key]
+            obs.image = obs.image + noise
+
+        pres_before=super(PostcalSimnFitter,self)._do_postcal(
+            obs_before
+        )
+        pres_after=super(PostcalSimnFitter,self)._do_postcal(
+            obs_after,
+            pcal_obs_dict=pcal_obs_dict_after,
+        )
+
+        gnoise = pres_before['pcal_g'] - pres_after['pcal_g']
+        Rnoise = pres_before['pcal_R'] - pres_after['pcal_R']
+
+        res['pcal_gnoise'] = gnoise
+        res['pcal_Rnoise'] = Rnoise
+
+        return res
+
+    def _print_res(self,res):
+        """
+        print some stats
+        """
+
+        super(PostcalSimnFitter,self)._print_res(res)
+        print_pars(res['pcal_Rnoise'].ravel(),
+                   front='    pcal Rnoise:    ')
+        print_pars(res['pcal_gnoise'].ravel(),
+                   front='    pcal goise:    ')
+
+
+    def _get_dtype(self):
+        """
+        get the dtype for the output struct
+        """
+        dt=super(PostcalSimnFitter,self)._get_dtype()
+
+        dt += [
+            ('pcal_Rnoise','f8',(2,2)),
+            ('pcal_gnoise','f8',2),
+        ]
+        return dt
+
+
+
+    def _copy_to_output(self, res, i):
+        """
+        copy parameters specific to this class
+        """
+        super(PostcalSimnFitter,self)._copy_to_output(res, i)
+
+        d=self.data
+
+        d['pcal_Rnoise'][i] = res['pcal_Rnoise']
+        d['pcal_gnoise'][i] = res['pcal_gnoise']
+
+
+class PostcalSimpFitter(PostcalFitter):
+    def _simulate_obsp(self, obs, pars, noise=None):
+        """
+        simulate just shearing the galaxy model
+        """
+        step=self['postcal_pars']['step']
+
+        shts = [('1p',Shape( step, 0.0)),
+                ('1m',Shape(-step, 0.0)),
+                ('2p',Shape( 0.0,  step)),
+                ('2m',Shape( 0.0, -step))]
+
+        mshape = Shape(pars[2], pars[3])
+        mT = pars[4]
+        mTround = ngmix.moments.get_Tround(mT, mshape.g1, mshape.g2)
+
+        #psf_gm = obs.psf.gmix
+
+        odict={}
+        for t in shts:
+            name = t[0]
+            shear = t[1]
+
+            shp = mshape.get_sheared(shear)
+            T = ngmix.moments.get_T(mTround, shp.g1, shp.g2)
+
+            newpars = pars.copy()
+            newpars[2] = shp.g1
+            newpars[3] = shp.g2
+            newpars[4] = T
+
+            gm0 = ngmix.GMixModel(newpars, self['fit_model'])
+            #gm = gm0.convolve(psf_gm)
+
+            sobs = ngmix.simobs.simulate_obs(gm0, obs,
+                                             add_noise=False,
+                                             convolve_pfs=True)
+
+            '''
+            im = gm.make_image(obs.image.shape,
+                               jacobian=obs.jacobian)
+
+            if noise is not None:
+                im += noise
+
+            sobs = Observation(im,
+                               weight=obs.weight.copy(),
+                               jacobian=obs.jacobian.copy(),
+                               psf=deepcopy(obs.psf))
+            '''
+            odict[name] = sobs
+
+        return odict
+
+
+    def _do_postcal(self,obs):
+
+        fitter=self.fitter
+
+        res=super(PostcalSimpFitter,self)._do_postcal(obs)
+
+        print("    Calculating Rp")
+
+        gm = self.fitter.get_gmix()
+        pars=fitter.get_result()['pars'].copy()
+
+        if self['use_logpars']:
+            pars[4:4+2] = exp(pars[4:4+2])
+
+        # we will shear this one in image space
+        obsfull = ngmix.simobs.simulate_obs(
+            gm,
+            obs,
+            #add_noise=True,
+            add_noise=False,
+            convolve_psf=True
+        )
+
+        # do shearing of galaxy before convolving with psf
+        obsdict_p = self._simulate_obsp(
+            obs,
+            pars,
+            #noise=obsfull.noise_image
+        )
+
+        pres_p =super(PostcalSimpFitter,self)._do_postcal(
+            None,
+            pcal_obs_dict=obsdict_p
+        )
+        pres_full =super(PostcalSimpFitter,self)._do_postcal(
+            obsfull,
+        )
+
+
+        #print("Rfull:",pres_full['pcal_R'][0,0])
+        #print("Rp:",pres_p['pcal_R'][0,0])
+        gp = pres_full['pcal_g'] - pres_p['pcal_g']
+        Rp = pres_full['pcal_R'] - pres_p['pcal_R']
+
+        res['pcal_gp'] = gp
+        res['pcal_Rp'] = Rp
+
+        return res
+
+    def _print_res(self,res):
+        """
+        print some stats
+        """
+
+        super(PostcalSimpFitter,self)._print_res(res)
+        print_pars(res['pcal_Rp'].ravel(),
+                   front='    pcal Rp:    ')
+        print_pars(res['pcal_gp'].ravel(),
+                   front='    pcal gnoise:    ')
+
+
+    def _get_dtype(self):
+        """
+        get the dtype for the output struct
+        """
+        dt=super(PostcalSimpFitter,self)._get_dtype()
+
+        dt += [
+            ('pcal_Rp','f8',(2,2)),
+            ('pcal_gp','f8',2),
+        ]
+        return dt
+
+
+
+    def _copy_to_output(self, res, i):
+        """
+        copy parameters specific to this class
+        """
+        super(PostcalSimpFitter,self)._copy_to_output(res, i)
+
+        d=self.data
+
+        d['pcal_Rp'][i] = res['pcal_Rp']
+        d['pcal_gp'][i] = res['pcal_gp']
+
+
+
 
 def _make_new_obs(obs, im):
     """

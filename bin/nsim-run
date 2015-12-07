@@ -143,6 +143,15 @@ def run_sim(sim_conf,
     elif ftype=='ncal':
         fitclass=nsim.fitters.NCalFitter
 
+    elif ftype=='pcal':
+        fitclass=nsim.fitters.PostcalFitter
+    elif ftype=='pcal-simn':
+        fitclass=nsim.fitters.PostcalSimnFitter
+    elif ftype=='pcal-simp':
+        fitclass=nsim.fitters.PostcalSimpFitter
+
+
+
     elif ftype=='metanoise-max':
         if simtype=='galsim':
             fitclass=nsim.fitters.MaxMetanoiseFitter

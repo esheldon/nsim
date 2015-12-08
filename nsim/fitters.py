@@ -634,6 +634,10 @@ class MaxMetacalFitter(MaxFitter):
                          prior=self.prior,
                          ntry=mconf['ntry'])
 
+            boot.set_round_s2n()
+            rres=boot.get_round_result()
+            res=boot.get_max_fitter().get_result()
+            res['s2n_r'] = rres['s2n_r']
 
             if mconf['pars']['method']=='lm':
                 boot.try_replace_cov(mconf['cov_pars'])
@@ -1098,10 +1102,23 @@ class PostcalFitter(MaxFitter):
     """
     metacal with a maximum likelihood fit
     """
+    def __init__(self, *args, **kw):
+        super(PostcalFitter,self).__init__(*args, **kw)
+
+        step=self['postcal_pars']['step']
+        self.pcal_shears = [
+            ('1p',Shape( step, 0.0)),
+            ('1m',Shape(-step, 0.0)),
+            ('2p',Shape( 0.0,  step)),
+            ('2m',Shape( 0.0, -step))
+        ]
+
     def _dofit(self, imdict):
         """
         Fit according to the requested method
         """
+
+
 
         self.imdict=imdict
 
@@ -1184,15 +1201,9 @@ class PostcalFitter(MaxFitter):
         i_im = galsim.InterpolatedImage(gs_im)
         i_psf = galsim.InterpolatedImage(gs_psf)
 
-        step=self['postcal_pars']['step']
-
-        shts = [('1p',Shape( step, 0.0)),
-                ('1m',Shape(-step, 0.0)),
-                ('2p',Shape( 0.0,  step)),
-                ('2m',Shape( 0.0, -step))]
 
         odict={}
-        for t in shts:
+        for t in self.pcal_shears:
             name = t[0]
             shear = t[1]
 
@@ -1221,6 +1232,17 @@ class PostcalFitter(MaxFitter):
             )
 
             odict[name] = sobs
+
+            if False and name=='1p':
+                import images
+                images.compare_images(im,
+                                      s_im.array,
+                                      label1='im',
+                                      label2='sheared',
+                                      width=1000,
+                                      height=1000)
+                if raw_input('hit a key: ')=='q':
+                    stop
 
         return odict
 
@@ -1433,7 +1455,59 @@ class PostcalSimnFitter(PostcalFitter):
 
 
 class PostcalSimpFitter(PostcalFitter):
-    def _simulate_obsp(self, obs, noise=None):
+    def _simulate_obsp(self, obs, shear_psf=False, noise=None):
+        """
+        simulate just shearing the galaxy model
+        """
+
+        psfobs = obs.psf
+        psf_gm = psfobs.gmix
+
+        gm = self.fitter.get_gmix()
+
+        odict={}
+        for t in self.pcal_shears:
+            name = t[0]
+            shear = t[1]
+
+            gm_sheared0    = gm.get_sheared(shear)
+            if shear_psf:
+                psf_gm_use = psf_gm.get_sheared(shear)
+                pim = psf_gm_use.make_image(
+                    psfobs.image.shape,
+                    jacobian=psfobs.jacobian
+                )
+                psf_sobs = Observation(pim,
+                                       weight=psfobs.weight.copy(),
+                                       jacobian=psfobs.jacobian.copy())
+
+            else:
+                psf_gm_use = psf_gm.copy()
+                psf_sobs = deepcopy(psfobs)
+
+            gm_sheared = gm_sheared0.convolve(psf_gm_use)
+
+            im = gm_sheared.make_image(
+                obs.image.shape,
+                jacobian=obs.jacobian
+            )
+
+            if noise is not None:
+                im += noise
+
+            sobs = Observation(
+                im,
+                weight=obs.weight.copy(),
+                jacobian=obs.jacobian.copy(),
+                psf=psf_sobs
+            )
+            odict[name] = sobs
+
+        return odict
+
+
+
+    def _simulate_obsp_old(self, obs, noise=None):
         """
         simulate just shearing the galaxy model
         """
@@ -1443,19 +1517,12 @@ class PostcalSimpFitter(PostcalFitter):
         if self['use_logpars']:
             pars[4:4+2] = exp(pars[4:4+2])
 
-        step=self['postcal_pars']['step']
-
-        shts = [('1p',Shape( step, 0.0)),
-                ('1m',Shape(-step, 0.0)),
-                ('2p',Shape( 0.0,  step)),
-                ('2m',Shape( 0.0, -step))]
-
         mshape = Shape(pars[2], pars[3])
         mT = pars[4]
         mTround = ngmix.moments.get_Tround(mT, mshape.g1, mshape.g2)
 
         odict={}
-        for t in shts:
+        for t in self.pcal_shears:
             name = t[0]
             shear = t[1]
 
@@ -1504,7 +1571,6 @@ class PostcalSimpFitter(PostcalFitter):
         obsfull = ngmix.simobs.simulate_obs(
             gm,
             obs,
-            #add_noise=True,
             add_noise=False,
             convolve_psf=True
         )
@@ -1524,8 +1590,8 @@ class PostcalSimpFitter(PostcalFitter):
         )
 
 
-        #print("Rfull:",pres_full['pcal_R'][0,0])
-        #print("Rp:",pres_p['pcal_R'][0,0])
+        #print_pars(pres_full['pcal_R'].ravel(), front="Rfull:")
+        #print_pars(pres_p['pcal_R'].ravel(), front="Rp:")
         gp = pres_full['pcal_g'] - pres_p['pcal_g']
         Rp = pres_full['pcal_R'] - pres_p['pcal_R']
 
@@ -1573,43 +1639,56 @@ class PostcalSimpFitter(PostcalFitter):
 
 
 class PostcalSimShearpFitter(PostcalSimpFitter):
+
     def _simulate_obsp(self, obs, noise=None):
+        res=super(PostcalSimShearpFitter,self)._simulate_obsp(
+            obs,
+            noise=noise,
+            shear_psf=True
+        )
+        return res
+
+    def _simulate_obsp_old(self, obs, noise=None):
         """
         simulate just shearing the galaxy model
         """
 
+        psfobs = obs.psf
+
         gm = self.fitter.get_gmix()
 
-        step=self['postcal_pars']['step']
 
-        shts = [('1p',Shape( step, 0.0)),
-                ('1m',Shape(-step, 0.0)),
-                ('2p',Shape( 0.0,  step)),
-                ('2m',Shape( 0.0, -step))]
-
-
-        psf_gm = obs.psf.gmix
+        psf_gm = psfobs.gmix
 
         odict={}
-        for t in shts:
+        for t in self.pcal_shears:
             name = t[0]
             shear = t[1]
 
-            tgm0 = gm.get_sheared(shear)
-            tpsf_gm = psf_gm.get_sheared(shear)
+            gm_sheared0    = gm.get_sheared(shear)
+            psf_gm_sheared = psf_gm.get_sheared(shear)
 
-            tgm = gtm0.convolve(tpsf_gm)
+            gm_sheared = gm_sheared0.convolve(psf_gm_sheared)
 
-            im = tgm.make_image(obs.image.shape,
-                                jacobian=obs.jacobian)
+            pim = psf_gm_sheared.make_image(
+                psfobs.image.shape,
+                jacobian=psfobs.jacobian
+            )
+            im = gm_sheared.make_image(
+                obs.image.shape,
+                jacobian=obs.jacobian
+            )
 
             if noise is not None:
                 im += noise
 
+            psf_sobs = Observation(pim,
+                                   weight=psfobs.weight.copy(),
+                                   jacobian=psfobs.jacobian.copy())
             sobs = Observation(im,
                                weight=obs.weight.copy(),
                                jacobian=obs.jacobian.copy(),
-                               psf=deepcopy(obs.psf))
+                               psf=psf_sobs)
             odict[name] = sobs
 
         return odict

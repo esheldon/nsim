@@ -150,6 +150,9 @@ def run_sim(sim_conf,
     elif ftype=='pcal-simp':
         fitclass=nsim.fitters.PostcalSimpFitter
 
+    elif ftype=='pcal-sim-shearp':
+        fitclass=nsim.fitters.PostcalSimShearpFitter
+
 
 
     elif ftype=='metanoise-max':

@@ -1,30 +1,3 @@
-todo
-----
-
-- do a low noise test with metacal, deep data, ggnr03
-    - never pushed this error down.  Might be there is just a bias
-        in here due to something (high shear?)
-- do a degrade run with noise=0.1
-    - same as degrade05 but with more noise
-- is there anything to this averaging g and mcal_g?
-    - both of these runs are unbiased when averaging
-        run-ggnr03mcal-02
-        run-ggnr03mcal-03
-    - there might be.
-        - g is no mucking with noise or psf
-        - mcal_g is mucking with noise and psf
-        - deep data has no mucking with noise but does have mucking with
-            the psf
-        - so it is somehow "in between"?
-
-- try bd again, no bulge offsets
-    - need a reasonable prior on T
-
-- maybe look at galsim for fitting
-    - advantage is all the same conventions
-    - disadvantage is it will be 5 times slower to calculate
-        a likelihood, and need to figure out centroid stuff
-
 REAL METACAL
 --------------
 
@@ -1114,6 +1087,16 @@ sim-eg17
     - many s/n
     - wierd s/n=23 for BA, does't fit with
         others; more outlier stuff?
+
+
+
+ncal
+----
+see if we can fix noise bias if the model is correct
+
+- run-gg13ncal-01
+    - mode s/n ~ 12
+    - dumb weights
 
 ** gaussmomn
 - run-eg17zgmom01

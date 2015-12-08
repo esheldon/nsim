@@ -1433,10 +1433,16 @@ class PostcalSimnFitter(PostcalFitter):
 
 
 class PostcalSimpFitter(PostcalFitter):
-    def _simulate_obsp(self, obs, pars, noise=None):
+    def _simulate_obsp(self, obs, noise=None):
         """
         simulate just shearing the galaxy model
         """
+
+        pars=self.fitter.get_result()['pars'].copy()
+
+        if self['use_logpars']:
+            pars[4:4+2] = exp(pars[4:4+2])
+
         step=self['postcal_pars']['step']
 
         shts = [('1p',Shape( step, 0.0)),
@@ -1447,8 +1453,6 @@ class PostcalSimpFitter(PostcalFitter):
         mshape = Shape(pars[2], pars[3])
         mT = pars[4]
         mTround = ngmix.moments.get_Tround(mT, mshape.g1, mshape.g2)
-
-        #psf_gm = obs.psf.gmix
 
         odict={}
         for t in shts:
@@ -1464,7 +1468,6 @@ class PostcalSimpFitter(PostcalFitter):
             newpars[4] = T
 
             gm0 = ngmix.GMixModel(newpars, self['fit_model'])
-            #gm = gm0.convolve(psf_gm)
 
             sobs = ngmix.simobs.simulate_obs(gm0, obs,
                                              add_noise=False,
@@ -1496,10 +1499,6 @@ class PostcalSimpFitter(PostcalFitter):
         print("    Calculating Rp")
 
         gm = self.fitter.get_gmix()
-        pars=fitter.get_result()['pars'].copy()
-
-        if self['use_logpars']:
-            pars[4:4+2] = exp(pars[4:4+2])
 
         # we will shear this one in image space
         obsfull = ngmix.simobs.simulate_obs(
@@ -1513,7 +1512,6 @@ class PostcalSimpFitter(PostcalFitter):
         # do shearing of galaxy before convolving with psf
         obsdict_p = self._simulate_obsp(
             obs,
-            pars,
             #noise=obsfull.noise_image
         )
 
@@ -1573,6 +1571,48 @@ class PostcalSimpFitter(PostcalFitter):
         d['pcal_Rp'][i] = res['pcal_Rp']
         d['pcal_gp'][i] = res['pcal_gp']
 
+
+class PostcalSimShearpFitter(PostcalSimpFitter):
+    def _simulate_obsp(self, obs, noise=None):
+        """
+        simulate just shearing the galaxy model
+        """
+
+        gm = self.fitter.get_gmix()
+
+        step=self['postcal_pars']['step']
+
+        shts = [('1p',Shape( step, 0.0)),
+                ('1m',Shape(-step, 0.0)),
+                ('2p',Shape( 0.0,  step)),
+                ('2m',Shape( 0.0, -step))]
+
+
+        psf_gm = obs.psf.gmix
+
+        odict={}
+        for t in shts:
+            name = t[0]
+            shear = t[1]
+
+            tgm0 = gm.get_sheared(shear)
+            tpsf_gm = psf_gm.get_sheared(shear)
+
+            tgm = gtm0.convolve(tpsf_gm)
+
+            im = tgm.make_image(obs.image.shape,
+                                jacobian=obs.jacobian)
+
+            if noise is not None:
+                im += noise
+
+            sobs = Observation(im,
+                               weight=obs.weight.copy(),
+                               jacobian=obs.jacobian.copy(),
+                               psf=deepcopy(obs.psf))
+            odict[name] = sobs
+
+        return odict
 
 
 

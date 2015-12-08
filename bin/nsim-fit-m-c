@@ -23,15 +23,6 @@ parser.add_argument('--show',action='store_true',help='show plot')
 parser.add_argument('--yrange', help="yrange of plot")
 parser.add_argument('--xrange', help="xrange of plot")
 
-parser.add_argument('--boot',action='store_true',help='bootstrap fits')
-parser.add_argument('--nboot',type=int,
-                    default=100,help='number of bootstraps')
-
-parser.add_argument('--jack',action='store_true',help='do jackknife errors')
-parser.add_argument('--njack',type=int,
-                    default=100,help='number of jackknifes')
-
-
 parser.add_argument('--fit-only',action='store_true',
                     help='get the means from the written file')
 
@@ -47,8 +38,6 @@ def read_data(conf):
         'mcal_gpsf',
         'mcal_R',
         'mcal_Rpsf',
-        'mcal_Rnoise',
-        'mcal_Rpsf_noise',
         'shear_index']
 
     data=nsim.files.read_output(conf['run'], 0, columns=columns)
@@ -260,33 +249,11 @@ def get_arrays(conf, data):
     Rfield = 'mcal_R'
     Rpsf_field = 'mcal_Rpsf'
 
-    Rnoise_field = 'mcal_Rnoise'
-    Rpsf_noise_field = 'mcal_Rpsf_noise'
-
     g = data[gfield]
     gpsf = data[gpsf_field]
 
-
-    R = data[Rfield].copy()
-
-    if False:
-        print("Using R")
-        R -= data[Rnoise_field]
-    elif True:
-        print("Using mean of R and Rpsf")
-        # different sign
-        Rfix = data[Rpsf_noise_field].copy()
-        Rfix[:,0] = (data[Rnoise_field][:,0,0] - data[Rpsf_noise_field][:,0])*0.5
-        Rfix[:,1] = (data[Rnoise_field][:,1,1] - data[Rpsf_noise_field][:,1])*0.5
-        R[:,0,0] -= Rfix[:,0]
-        R[:,1,1] -= Rfix[:,1]
-    else:
-        print("Using Rpsf_noise")
-        R[:,0,0] += data[Rpsf_noise_field][:,0]
-        R[:,1,1] += data[Rpsf_noise_field][:,1]
-
-    Rpsf = data[Rpsf_field].copy()
-    #Rpsf -= data[Rpsf_noise_field]
+    R = data[Rfield]
+    Rpsf = data[Rpsf_field]
 
     return g, gpsf, R, Rpsf
 
@@ -391,189 +358,6 @@ def fit_m_c(data, doprint=True):
 
     return fits
 
-def fit_m_c_boot(fits, conf, data, nboot):
-
-    nd=data.size
-
-    mvals = numpy.zeros( (nboot,2) )
-    cvals = numpy.zeros( (nboot,2) )
-
-    for i in xrange(nboot):
-        print("bootstrap: %d/%d" % (i+1,nboot))
-
-        rind     = numpy.random.randint(0, nd, nd)
-
-        means = get_averages(conf, data[rind], show_progress=False)
-        tfits=fit_m_c(means, doprint=False)
-
-        mvals[i] = tfits['m']
-        cvals[i] = tfits['c']
-
-    mmean = mvals.mean(axis=0)
-    cmean = cvals.mean(axis=0)
-    merr = mvals.std(axis=0)
-    cerr = cvals.std(axis=0)
-
-    print("-"*70)
-    print("bootstrapped")
-    for i in [0,1]:
-        print_m_c(i+1, fits['m'][0,i], merr[i], fits['c'][0,i], cerr[i])
-
-    newfits = fits.copy()
-    newfits['merr'][0,:] = merr
-    newfits['cerr'][0,:] = cerr
-
-    return newfits
-
-def fit_m_c_jack_byobj(conf, data, njack):
-
-    sconf=conf['simc']
-    true_shears = sconf['shear']['shears']
-
-    g, gpsf, R, Rpsf = get_arrays(conf, data)
-
-    h,rev = eu.stat.histogram(data['shear_index'], rev=True)
-
-    nfield = h.size
-
-    g_sums = numpy.zeros( (nfield, 2) )
-    gpsf_sums = numpy.zeros( (nfield, 2) )
-    R_sums = numpy.zeros( (nfield, 2, 2) )
-    #Rpsf_sums = numpy.zeros( (nfield, 2) )
-    psf_corr_sums = numpy.zeros( (nfield, 2) )
-
-    means=get_mean_struct(nfield)
-    tmeans=get_mean_struct(nfield)
-    means['shear_true'] = true_shears
-    tmeans['shear_true'] = true_shears
-
-    print("getting overall sums")
-    # get overall sums and mean
-    for i in xrange(nfield):
-        print("shear index:",i)
-        w=rev[ rev[i]:rev[i+1] ]
-
-        g_sums[i]         = g[w].sum(axis=0)
-        gpsf_sums[i]      = gpsf[w].sum(axis=0)
-        R_sums[i]         = R[w].sum(axis=0)
-        psf_corr_sums[i]  = (gpsf[w]*Rpsf[w]).sum(axis=0)
-
-        gmean         = g_sums[i]/w.size
-        Rmean         = R_sums[i]/w.size
-        psf_corr_mean = psf_corr_sums[i]/w.size
-
-        Rinv = numpy.linalg.inv(Rmean)
-        shear     = numpy.dot(Rinv, gmean-psf_corr_mean)
-        shear_err = g[w].std(axis=0)/numpy.sqrt(w.size)
-        shear_err = numpy.dot(Rinv, shear_err)
-
-        means['shear'][i] = shear
-
-    fits=fit_m_c(means, doprint=True)
-
-    mvals = numpy.zeros( (njack,2) )
-    cvals = numpy.zeros( (njack,2) )
-
-    for ijack in xrange(njack):
-        print("    jack %d/%d" % (ijack+1,njack))
-        for i in xrange(nfield):
-            w=rev[ rev[i]:rev[i+1] ]
-
-            nkeep = w.size//njack
-
-            beg = ijack*nkeep
-            end = (ijack+1)*nkeep
-            wkeep = w[beg:end]
-
-            tg_sum         = g[wkeep].sum(axis=0)
-            tgpsf_sum      = gpsf[wkeep].sum(axis=0)
-            tR_sum         = R[wkeep].sum(axis=0)
-            tpsf_corr_sum  = (gpsf[wkeep]*Rpsf[wkeep]).sum(axis=0)
-
-            jg_sum        = g_sums[i] - tg_sum
-            jgpsf_sum     = gpsf_sums[i] - tgpsf_sum
-            jR_sum        = R_sums[i] - tR_sum
-            jpsf_corr_sum = psf_corr_sums[i] - tpsf_corr_sum
-
-            nuse = h[i] - wkeep.size
-            gmean         = jg_sum/nuse
-            Rmean         = jR_sum/nuse
-            psf_corr_mean = jpsf_corr_sum/nuse
-
-            Rinv = numpy.linalg.inv(Rmean)
-            shear     = numpy.dot(Rinv, gmean-psf_corr_mean)
-
-            tmeans['shear'][i] = shear
-
-        tfits=fit_m_c(tmeans, doprint=False)
-
-        mvals[ijack] = tfits['m']
-        cvals[ijack] = tfits['c']
-
-    j_mmean=mvals.mean(axis=0)
-    j_cmean=cvals.mean(axis=0)
-
-    merr2 = mvals.var(axis=0) * (njack-1.0) * (njack-1.0)/njack
-    cerr2 = cvals.var(axis=0) * (njack-1.0) * (njack-1.0)/njack
-
-    merr = numpy.sqrt(merr2)
-    cerr = numpy.sqrt(cerr2)
-
-    fits['merr'] = merr
-    fits['cerr'] = cerr
-
-    print('-'*70)
-    print('jackknifed by obj')
-    print("jackknife means:")
-    print("    m: %.3e %.3e" % (j_mmean[0],j_mmean[1]))
-    print("    c: %.3e %.3e" % (j_cmean[0],j_cmean[1]))
-
-    for i in [0,1]:
-        print_m_c(i+1,
-                  fits['m'][0,i],
-                  fits['merr'][0,i],
-                  fits['c'][0,i],
-                  fits['cerr'][0,i])
-
-
-    return fits, means
-
-
-def fit_m_c_jack_by_field(fits, means):
-
-    nfield = means.size
-
-    jfits=numpy.zeros(nfield, dtype=fits.dtype)
-
-    ind = numpy.arange(nfield)
-    for i in xrange(nfield):
-
-        w,=numpy.where(ind != i)
-
-        tfits=fit_m_c(means[w], doprint=False)
-
-        jfits[i] = tfits
-
-    merr2 = jfits['m'].var(axis=0) * (nfield-1.0) * (nfield-1.0)/nfield
-    cerr2 = jfits['c'].var(axis=0) * (nfield-1.0) * (nfield-1.0)/nfield
-
-    merr = numpy.sqrt(merr2)
-    cerr = numpy.sqrt(cerr2)
-
-    newfits = fits.copy()
-    newfits['merr'] = merr
-    newfits['cerr'] = cerr
-
-    print('-'*70)
-    print('jackknifed by field')
-    for i in [0,1]:
-        print_m_c(i+1,
-                  newfits['m'][0,i],
-                  newfits['merr'][0,i],
-                  newfits['c'][0,i],
-                  newfits['cerr'][0,i])
-
-    return newfits
 
 def main():
     args = parser.parse_args()
@@ -581,8 +365,7 @@ def main():
     conf = nsim.files.read_config(args.run)
     conf['simc'] = nsim.files.read_config(conf['sim'])
 
-    # if only doing the fit, and not bootstrapping
-    if args.fit_only and not args.boot and not args.jack:
+    if args.fit_only:
         means = read_means(args)
     else:
 
@@ -591,23 +374,10 @@ def main():
         else:
             data=read_data(conf)
 
-        if not args.jack:
-            means = get_averages(conf, data)
-            #write_means(args, means)
+        means = get_averages(conf, data)
 
-    if args.jack:
-        fits, means = fit_m_c_jack_byobj(conf, data, args.njack)
-        #write_means(args, means)
-    else:
-        fits=fit_m_c(means)
-
-        fits = fit_m_c_jack_by_field(fits, means)
-
-        if args.boot:
-            fits = fit_m_c_boot(fits, conf, data, args.nboot)
-
+    fits=fit_m_c(means)
     #write_fits(args, fits)
-
     doplot(args, means, fits)
 
 main()

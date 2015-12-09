@@ -1,4 +1,5 @@
 # low noise
+# using psf model
 run: "run-bd14mcal-t01"
 sim: "sim-bd14"
 
@@ -18,6 +19,7 @@ noise: 0.001
 metacal_pars:
     step: 0.01
     use_psf_model: True
+    #use_psf_model: False
     shape: [48,48]
 
 priors:

@@ -1,6 +1,6 @@
 # low noise
 # using psf model
-run: "run-bd14mcal-t01"
+run: "run-bd14mcal-t02"
 sim: "sim-bd14"
 
 ngmix_hash: "?"
@@ -12,7 +12,9 @@ fit_model: "exp"
 g_prior_during: True
 use_logpars: True
 
-noise: 0.001
+# trying to get mean s2n of ~12 with scatter 5 for the flux distribution in
+# the sim
+noise: 0.66
 
 metacal_pars:
     step: 0.01
@@ -55,9 +57,10 @@ max_pars:
         m: 5
         h: 1.0e-3
 
-ngal: 500000
+ngal: 2000000
 
-desired_hours: 0.25
+desired_hours: 1.0
+
 sec_per: 1.0
 
 verbose: False

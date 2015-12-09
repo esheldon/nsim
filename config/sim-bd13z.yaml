@@ -1,0 +1,77 @@
+# realistic flux distribution
+# galsim bulge-disk
+# elliptical moffat psf, round
+# shifts to bulge
+# no shifts to center of primary
+# assortment of shears
+name: "sim-bd13z"
+
+simulator: "galsim"
+
+# these sims are never rings
+do_ring: False
+
+
+stamp_size: [48,48]
+
+psf:
+
+    s2n: 10000.0
+
+    #model: "gauss"
+
+    # this r50 is equivalent to
+    # fwhm: 3.40 pixels, which is 0.9'' for DES
+    #r50: 2.05
+    #shape: [0.0, 0.0]
+
+    model: "moffat"
+    beta: 3.5
+
+    # this r50 is equivalent to
+    # fwhm: 3.40 pixels, which is 0.9'' for DES
+    r50: 2.05
+
+    shape:
+      type: "normal2d"
+      cen: [0.0, 0.007]
+      sigma: [0.018, 0.018]
+
+
+obj_model:
+
+    model: "bd"
+
+    flux:
+        type: "gmixnd"
+        file: "great-des-fdist-shift.fits"
+        is_in_log: True
+
+    # both components get the same scale length and ellipticity
+    g:
+        type: "ba"
+        sigma: 0.2
+
+    r50:
+        type: "lognormal"
+        mean: 2.7
+        sigma: 0.5
+
+    fracdev:
+        type: "uniform"
+        range: [0.0, 1.0]
+
+    dev_shift:
+        type: "uniform"
+        # in units of r50
+        radius: 1.0
+
+    cen_shift: null
+
+label: "$bulge-disk$"
+
+shear:
+  type: 'const'
+
+  shears: [0.0, 0.0]
+

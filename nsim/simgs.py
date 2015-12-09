@@ -35,9 +35,6 @@ class SimGS(dict):
 
         self.update(sim_conf)
 
-        #seed = ngmixsim.get_devrand_uint()
-        #numpy.random.seed(seed)
-
         self._setup()
 
         pprint.pprint(self)
@@ -57,13 +54,14 @@ class SimGS(dict):
 
         gal_obs.set_psf(psf_obs)
 
-        #save_pars=[gal_pars['r50'], gal_obs.image_flux]
         save_pars=[gal_pars['r50'], gal_pars['flux']]
         return {'obs':gal_obs,
                 's2n':s2n,
                 'model':self['model'],
                 'gal_info':gal_pars,
-                'pars':save_pars}
+                'pars':save_pars,
+                'psf_obj': psf,
+                'gal_obj': gal}
 
 
     def _make_obs(self, gs_obj, s2n=None):

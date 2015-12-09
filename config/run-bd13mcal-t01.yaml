@@ -24,13 +24,13 @@ priors:
 
     T:
         type: "gmixnd"
-        run: "run-bd12zmax-lownoise01"
+        run: "run-bd13zmax-lownoise01"
         extra: "log_T"
         cov_factor: 1.44
 
     counts:
         type: "gmixnd"
-        run: "run-bd12zmax-lownoise01"
+        run: "run-bd13zmax-lownoise01"
         extra: "log_F"
         cov_factor: 1.44
 

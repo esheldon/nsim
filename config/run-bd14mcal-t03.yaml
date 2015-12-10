@@ -1,0 +1,65 @@
+# low noise
+# using psf model
+# symmetrize
+run: "run-bd14mcal-t03"
+sim: "sim-bd14"
+
+ngmix_hash: "?"
+nsim_hash: "?"
+
+fitter: "metacal-max"
+fit_model: "exp"
+
+g_prior_during: True
+use_logpars: True
+
+# trying to get mean s2n of ~12 with scatter 5 for the flux distribution in
+# the sim
+noise: 0.66
+
+metacal_pars:
+    step: 0.01
+    symmetrize_noise: True
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    T:
+        type: "gmixnd"
+        run: "run-bd13zmax-lownoise01"
+        extra: "log_T"
+        cov_factor: 1.44
+
+    counts:
+        type: "gmixnd"
+        run: "run-bd13zmax-lownoise01"
+        extra: "log_F"
+        cov_factor: 1.44
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+ngal: 2000000
+
+desired_hours: 1.0
+
+sec_per: 1.0
+
+verbose: False

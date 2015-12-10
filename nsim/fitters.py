@@ -862,6 +862,58 @@ class MaxMetacalSimnFitter(MaxMetacalFitter):
         d['mcal_Rpsf_noise'][i] = res['mcal_Rpsf_noise']
 
 
+class MaxMetacalSubnFitter(MaxMetacalFitter):
+
+    def _do_metacal(self, boot):
+        from ngmix import Bootstrapper
+
+        # create all the relevant metacal observations
+        mcal_obs_dict = ngmix.metacal.get_all_metacal(
+            boot.mb_obs_list,
+            **self['metacal_pars']
+        )
+
+        # now make versions that are just noise
+        mobs_sim_noise = ngmix.simobs.simulate_obs(
+            None,
+            boot.mb_obs_list,
+            add_noise=True,
+            convolve_psf=False,
+        )
+        # and the metacal observations for that noise
+        mcal_obs_dict_noise = ngmix.metacal.get_all_metacal(
+            mobs_sim_noise,
+            **self['metacal_pars']
+        )
+
+        # now subtract the correlated noise part only
+        for key in mcal_obs_dict:
+            mobs = mcal_obs_dict[key]
+            mobs_noise = mcal_obs_dict_noise[key]
+
+            for iband in xrange(len(mobs)):
+                olist = mobs[iband]
+                olist_noise = mobs_noise[iband]
+
+                olist_noise_orig = mobs_sim_noise[iband]
+
+                for iobs in xrange(len(olist)):
+                    obs = olist[iobs]
+                    obs_noise = olist_noise[iobs]
+
+                    obs_noise_orig = olist_noise_orig[iobs]
+
+                    # (orig_noise + corr_noise) - (orig_noise)
+                    corr_noise = obs_noise.image - obs_noise_orig.image
+
+                    obs.image = obs.image - corr_noise
+
+        super(MaxMetacalSubnFitter,self)._do_metacal(
+            boot,
+            metacal_obs=mcal_obs_dict
+        )
+
+
 class MaxMetacalFixRFitter(MaxMetacalFitter):
     """
     This Addn is different from reredux

@@ -1,0 +1,66 @@
+run: "run-gg14mcal-symm-t01"
+sim: "sim-gg14"
+
+ngmix_hash: "379b145f6808cff44dede3262d11ee84b9e798af"
+nsim_hash: "c188795ce0edd910d71ba628d9408d7f93f0d527"
+
+fitter: "metacal-max"
+fit_model: "gauss"
+
+metacal_pars:
+    step: 0.01
+    symmetrize_noise: True
+
+g_prior_during: True
+use_logpars: True
+
+# for this sim, gives mode at ~12
+noise: 0.75
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    T:
+        type: "gmixnd"
+        # same underlying galaxies
+        run: "run-gg12zmax-lownoise01"
+        extra: "log_T"
+        cov_factor: 1.44
+
+    counts:
+        type: "gmixnd"
+        # same underlying galaxies
+        run: "run-gg12zmax-lownoise01"
+        extra: "log_F"
+        cov_factor: 1.44
+
+    g:
+        type: "ba"
+        sigma: 0.2
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+
+ngal: 2000000
+
+desired_hours: 0.1
+# this was wrong, more like 0.2
+sec_per: 0.05
+
+verbose: False
+
+#avg_s2n_r_range: [10,23]

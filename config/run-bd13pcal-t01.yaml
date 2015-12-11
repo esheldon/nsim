@@ -5,15 +5,12 @@ ngmix_hash: "?"
 nsim_hash: "?"
 
 fitter: "pcal-sim-shearp"
-#fitter: "pcal-simp"
 fit_model: "exp"
 
 g_prior_during: True
 use_logpars: True
 
-# 1.0 gives mean s2n of ~12.3 with scatter 5 for the flux distribution in
-# the sim
-noise: 1.0
+noise: 0.66
 
 postcal_pars:
     step: 0.01
@@ -25,13 +22,13 @@ priors:
 
     T:
         type: "gmixnd"
-        run: "run-bd12zmax-lownoise01"
+        run: "run-bd13zmax-lownoise01"
         extra: "log_T"
         cov_factor: 1.44
 
     counts:
         type: "gmixnd"
-        run: "run-bd12zmax-lownoise01"
+        run: "run-bd13zmax-lownoise01"
         extra: "log_F"
         cov_factor: 1.44
 
@@ -41,7 +38,9 @@ priors:
 
 psf_pars:
     #model: "coellip3"
-    model: "em1"
+    #model: "em3"
+    model: "gauss"
+    #model: "em1"
     ntry: 10
 
 max_pars:
@@ -57,9 +56,9 @@ max_pars:
 metacal_pars:
     step: 0.01
 
-ngal: 2000000
+ngal: 500000
 
-desired_hours: 1.0
-sec_per: 2.0
+desired_hours: 0.25
+sec_per: 1.0
 
 verbose: False

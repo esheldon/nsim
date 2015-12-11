@@ -83,6 +83,7 @@ class FitterBase(dict):
                     res=self.process_one(imdict)
                     self.tm_fit += time.time()-tm0
 
+
                     res['shear_true'] = imdict['gal_info']['shear']
                     res['shear_index'] = imdict['gal_info']['shear_index']
                     self._copy_to_output(res, igal)
@@ -93,7 +94,6 @@ class FitterBase(dict):
                     break
                 except TryAgainError as err:
                     print(str(err))
-
 
         self._set_elapsed_time()
 

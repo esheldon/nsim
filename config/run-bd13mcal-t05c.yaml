@@ -4,8 +4,10 @@ sim: "sim-bd13"
 ngmix_hash: "379b145f6808cff44dede3262d11ee84b9e798af"
 nsim_hash: "4f8f239d037d20bcb316ba6f05a9f618f6e1a3d0"
 
+seed: 234231
+
 fitter: "metacal-max"
-fit_model: "gauss"
+fit_model: "exp"
 
 g_prior_during: True
 use_logpars: True

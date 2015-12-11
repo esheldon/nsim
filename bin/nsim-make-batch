@@ -36,8 +36,9 @@ noise=%(noise)g
 ngal=%(ngal_per)s
 output="%(output)s"
 logfile="%(logfile)s"
+seed=%(seed)s
 
-${command} ${noise} ${ngal} ${output} ${logfile}
+${command} ${noise} ${ngal} ${output} ${logfile} ${seed}
 """
 
 
@@ -48,7 +49,7 @@ function runsim {
     echo "will write to file: $output"
 
     command=%(command)s
-    ${command} ${run} ${noise} ${ngal} ${output}
+    ${command} --seed ${seed} ${run} ${noise} ${ngal} ${output}
     status=$?
 
     echo "time: $SECONDS"
@@ -64,6 +65,7 @@ noise=$1
 ngal=$2
 output=$3
 logfile=$4
+seed=$5
 
 run=%(run)s
 
@@ -109,7 +111,8 @@ command: |
     ngal=%(ngal_per)s
     output="%(output)s"
     logfile="%(logfile)s"
-    ${command} ${noise} ${ngal} ${output} ${logfile}
+    seed=%(seed)d
+    ${command} ${noise} ${ngal} ${output} ${logfile} ${seed}
     
 job_name: "%(job_name)s"
 """
@@ -121,7 +124,7 @@ function runsim {
     echo "will write to file: $output"
 
     command=%(command)s
-    ${command} ${run} ${noise} ${ngal} ${output}
+    ${command} --seed ${seed} ${run} ${noise} ${ngal} ${output}
     status=$?
 
     echo "time: $SECONDS"
@@ -138,6 +141,7 @@ noise=$1
 ngal=$2
 output=$3
 logfile=$4
+seed=$5
 
 run=%(run)s
 
@@ -186,6 +190,7 @@ run=%(run)s
 noise=%(noise)s
 ngal=%(ngal_per)s
 output=%(output)s
+seed=%(seed)d
 
 export TMPDIR=/scratch/$USER/$SLURM_JOB_ID
 echo "cd $TMPDIR"
@@ -194,6 +199,7 @@ cd $TMPDIR
 echo "will write to file: $output"
 
 nsim-run           \\
+        --seed $seed \\
         $run       \\
         $noise     \\
         $ngal      \\
@@ -219,6 +225,8 @@ def get_command():
 class MakerBase(dict):
     def __init__(self, conf):
         self.update(conf)
+
+        numpy.random.seed(self['global_seed'])
 
     def go(self):
         self.make_some_dirs()
@@ -257,6 +265,9 @@ class MakerBase(dict):
         self['walltime'] = '%02d:00' % walltime
 
         for isplit in xrange(nsplit):
+
+            seed = numpy.random.randint(0,2**31-1)
+
             ngal_tot += ngal_per
             output = nsim.files.get_output_url(self['run'], 0, 0, itrial=isplit)
             do_write=True
@@ -271,6 +282,7 @@ class MakerBase(dict):
                 self['output'] = output
                 self['logfile'] = logfile
                 self['job_name']=job_name
+                self['seed'] = seed
                 self.write_script(filenum)
 
                 njobs += 1

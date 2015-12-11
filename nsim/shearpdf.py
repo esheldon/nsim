@@ -1,4 +1,4 @@
-import random
+import numpy
 from ngmix import Shape
 
 class ShearGeneratorBase(object):
@@ -20,5 +20,5 @@ class ConstShearGenerator(ShearGeneratorBase):
         """
         return a random shear from the input list, plus an index
         """
-        ri = random.randint(0, self.nshear-1)
+        ri = numpy.random.randint(0, self.nshear)
         return self.shears[ri], ri

@@ -13,15 +13,21 @@ from sys import stderr
 import nsim
 import fitsio
 
-from optparse import OptionParser
-parser=OptionParser(__doc__)
-parser.add_option('--make-plots',action='store_true',
+from argparse import ArgumentParser
+parser=ArgumentParser(__doc__)
+
+parser.add_argument('run',help="run")
+parser.add_argument('noise',type=float,help="noise to use")
+parser.add_argument('ngal',type=int,help="number to simulate")
+parser.add_argument('output_file',help="output file to write")
+parser.add_argument('--seed',type=int,help="seed to use")
+parser.add_argument('--make-plots',action='store_true',
                   help="make some plots of the trials")
 
-parser.add_option("--profile", action='store_true',
+parser.add_argument("--profile", action='store_true',
                   help=("Profile the code using cProfile"))
 
-parser.add_option("--profile-image", default=None,
+parser.add_argument("--profile-image", default=None,
                   help=("Profile the code and create the specified "
                         "image using pycallgraph"))
 
@@ -47,14 +53,14 @@ def cleanup_checkpoint(checkpoint_file):
         print('removing checkpoint file',checkpoint_file)
         os.remove(checkpoint_file)
 
-def profile_sim(sim_conf,run_conf,s2n_or_noise,npairs,output_file,options):
+def profile_sim(sim_conf,run_conf,s2n_or_noise,npairs,output_file,args):
     # don't want to see the JIT
     import cProfile
     import pstats
 
     import ngmix
 
-    cProfile.runctx('run_sim(sim_conf,run_conf,s2n_or_noise,npairs,output_file,options)',
+    cProfile.runctx('run_sim(sim_conf,run_conf,s2n_or_noise,npairs,output_file,args)',
                     globals(),locals(),
                     'profile_stats')
     
@@ -62,7 +68,7 @@ def profile_sim(sim_conf,run_conf,s2n_or_noise,npairs,output_file,options):
     p.sort_stats('time').print_stats()
 
 
-def profile_sim_pycallgraph(sim_conf,run_conf,s2n_or_noise,npairs,output_file,options):
+def profile_sim_pycallgraph(sim_conf,run_conf,s2n_or_noise,npairs,output_file,args):
     # pycallgraph doesn't like it when the JIT starts up
     import ngmix
 
@@ -70,14 +76,14 @@ def profile_sim_pycallgraph(sim_conf,run_conf,s2n_or_noise,npairs,output_file,op
     from pycallgraph import PyCallGraph
     from pycallgraph.output import GraphvizOutput
 
-    img_name=options.profile_image
+    img_name=args.profile_image
     graphviz = GraphvizOutput()
     print('profile image:',img_name)
     graphviz.output_file = img_name
     config=pycallgraph.Config(groups=False)
 
     with PyCallGraph(config=config, output=graphviz):
-        run_sim(sim_conf,run_conf,s2n_or_noise,npairs,output_file,options)
+        run_sim(sim_conf,run_conf,s2n_or_noise,npairs,output_file,args)
 
 
 def run_sim(sim_conf,
@@ -85,7 +91,7 @@ def run_sim(sim_conf,
             s2n_or_noise,
             npairs,
             output_file,
-            options):
+            args):
 
 
     simtype=sim_conf.get('simulator','ngmix')
@@ -95,6 +101,11 @@ def run_sim(sim_conf,
 
         # in this case the parameter on the command line is the sky noise
         sim_conf['noise'] = s2n_or_noise
+        
+        if args.seed is not None:
+            #import numpy
+            sim_conf['seed'] = args.seed
+            #numpy.random.seed(sim_conf['seed'])
 
         if sim_conf['obj_model']['model']=='bd':
             sim=nsim.simgs.SimBD(sim_conf)
@@ -106,7 +117,7 @@ def run_sim(sim_conf,
 
     kw=dict(checkpoint_file=checkpoint_file,
             checkpoint_data=checkpoint_data,
-            make_plots=options.make_plots,
+            make_plots=args.make_plots,
             plot_base=plot_base)
 
     ftype=run_conf['fitter']
@@ -214,29 +225,22 @@ def run_sim(sim_conf,
 
 
 def main():
-    options,args = parser.parse_args(sys.argv[1:])
+    args=parser.parse_args()
 
-    if len(args) < 4:
-        parser.print_help()
-        sys.exit(45)
-
-    run=args[0]
-    s2n_or_noise=float(args[1])
-    npairs=int(args[2])
-    output_file=args[3]
+    s2n_or_noise=args.noise
 
     print('reading config files')
-    run_conf = nsim.files.read_config(run)
+    run_conf = nsim.files.read_config(args.run)
     sim_conf = nsim.files.read_config(run_conf['sim'])
 
-    if options.profile_image is not None:
+    if args.profile_image is not None:
         print('profiling sim with pycallgraph')
-        profile_sim_pycallgraph(sim_conf,run_conf,s2n_or_noise,npairs,output_file,options)
-    elif options.profile:
+        profile_sim_pycallgraph(sim_conf,run_conf,s2n_or_noise,args.ngal,args.output_file,args)
+    elif args.profile:
         print('profiling sim with cProfile')
-        profile_sim(sim_conf,run_conf,s2n_or_noise,npairs,output_file,options)
+        profile_sim(sim_conf,run_conf,s2n_or_noise,args.ngal,args.output_file,args)
     else:
         print('running sim')
-        run_sim(sim_conf,run_conf,s2n_or_noise,npairs,output_file,options)
+        run_sim(sim_conf,run_conf,s2n_or_noise,args.ngal,args.output_file,args)
 
 main()

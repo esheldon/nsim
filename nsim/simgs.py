@@ -38,6 +38,10 @@ class SimGS(dict):
         self._setup()
 
         pprint.pprint(self)
+        if 'seed' in self:
+            print("    using seed:",self['seed'])
+            numpy.random.seed(self['seed'])
+
 
     def get_image(self):
         """
@@ -349,6 +353,7 @@ class SimGS(dict):
 
 
     def _setup(self):
+
         self['ivar'] = 1.0/self['noise']**2
         self['model'] = self['obj_model']['model']
         self._set_pdfs()

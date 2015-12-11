@@ -31,6 +31,11 @@ from copy import deepcopy
 
 import esutil as eu
 
+try:
+    import galsim
+except ImportError:
+    pass
+
 # minutes
 DEFAULT_CHECKPOINTS=[30,60,90,110]
 
@@ -1241,7 +1246,6 @@ class PostcalFitter(MaxFitter):
                 'res':res}
 
     def _get_postcal_obsdict(self, obs):
-        import galsim
 
         psf_obs = obs.psf
 
@@ -1690,58 +1694,107 @@ class PostcalSimpFitter(PostcalFitter):
         d['pcal_gp'][i] = res['pcal_gp']
 
 
+LANCZOS_PARS_DEFAULT={'order':5, 'conserve_dc':True, 'tol':1.0e-4}
 class PostcalSimShearpFitter(PostcalSimpFitter):
 
-    def _simulate_obsp(self, obs, noise=None):
-        res=super(PostcalSimShearpFitter,self)._simulate_obsp(
-            obs,
-            noise=noise,
-            shear_psf=True
-        )
-        return res
+    #def _simulate_obsp(self, obs, noise=None):
+    #    res=super(PostcalSimShearpFitter,self)._simulate_obsp(
+    #        obs,
+    #        noise=noise,
+    #        shear_psf=True
+    #    )
+    #    return res
 
-    def _simulate_obsp_old(self, obs, noise=None):
-        """
-        simulate just shearing the galaxy model
-        """
+    def _do_postcal(self,obs):
 
-        psfobs = obs.psf
+        fitter=self.fitter
+
+        res=super(PostcalSimpFitter,self)._do_postcal(obs)
+
+        print("    Calculating Rp")
 
         gm = self.fitter.get_gmix()
 
+        # do shearing of galaxy before convolving with psf
+        #noise=ngmix.simobs.get_noise_image(obs.weight)
+        noise=None
+        obsdict_p = self._simulate_obsp(obs,noise=noise)
 
-        psf_gm = psfobs.gmix
+        pres_p =super(PostcalSimpFitter,self)._do_postcal(
+            None,
+            pcal_obs_dict=obsdict_p
+        )
+
+        res['pcal_gp'] = pres_p['pcal_g']
+        res['pcal_Rp'] = pres_p['pcal_R']
+
+        return res
+
+
+    def _simulate_obsp(self, obs, noise=None):
+        """
+        simulate just shearing the psf but not shearing
+        the galaxy
+        """
+        pixel_scale = obs.jacobian.get_scale()
+        interp = galsim.Lanczos(LANCZOS_PARS_DEFAULT['order'],
+                                LANCZOS_PARS_DEFAULT['conserve_dc'],
+                                LANCZOS_PARS_DEFAULT['tol'])
+
+        psfobs = obs.psf
+        psf_im = psfobs.image
+
+        psf_gs_im = galsim.Image(psf_im.copy())
+        psf_gs_im_interp = galsim.InterpolatedImage(psf_gs_im,
+                                                    x_interpolant=interp,
+                                                    scale=pixel_scale)
+
+        gm = self.fitter.get_gmix()
+
+        gm_gsobj = gm.make_galsim_object()
+
+        im_shape = obs.image.shape
+        psf_shape = psf_im.shape
+
 
         odict={}
         for t in self.pcal_shears:
             name = t[0]
             shear = t[1]
 
-            gm_sheared0    = gm.get_sheared(shear)
-            psf_gm_sheared = psf_gm.get_sheared(shear)
+            # sheared psf
+            psf_sheared = psf_gs_im_interp.shear(g1=shear.g1, g2=shear.g2)
+            new_psf_gs_im = galsim.ImageD(psf_shape[1], psf_shape[0])
+            psf_sheared.drawImage(image=new_psf_gs_im,
+                                  method='no_pixel',
+                                  scale=pixel_scale)
+            new_psf_im = new_psf_gs_im.array.copy()
 
-            gm_sheared = gm_sheared0.convolve(psf_gm_sheared)
+            # now model convolved with the sheared psf, model not sheared
+            new_obj = galsim.Convolve( [gm_gsobj, psf_sheared])
 
-            pim = psf_gm_sheared.make_image(
-                psfobs.image.shape,
-                jacobian=psfobs.jacobian
-            )
-            im = gm_sheared.make_image(
-                obs.image.shape,
-                jacobian=obs.jacobian
-            )
-
+            new_gs_im = galsim.ImageD(im_shape[1], im_shape[0])
+            new_obj.drawImage(image=new_gs_im,
+                              method='no_pixel',
+                              scale=pixel_scale)
+            new_im = new_gs_im.array.copy()
             if noise is not None:
-                im += noise
+                new_im += noise
 
-            psf_sobs = Observation(pim,
-                                   weight=psfobs.weight.copy(),
-                                   jacobian=psfobs.jacobian.copy())
-            sobs = Observation(im,
-                               weight=obs.weight.copy(),
-                               jacobian=obs.jacobian.copy(),
-                               psf=psf_sobs)
-            odict[name] = sobs
+            # now the observation, making sure to copy everything
+            new_psf_obs = Observation(
+                new_psf_im,
+                weight=psfobs.weight.copy(),
+                jacobian=psfobs.jacobian.copy()
+            )
+
+            new_obs = Observation(
+                new_im,
+                weight=obs.weight.copy(),
+                jacobian=obs.jacobian.copy(),
+                psf=new_psf_obs
+            )
+            odict[name] = new_obs
 
         return odict
 

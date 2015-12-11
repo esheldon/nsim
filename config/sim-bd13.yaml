@@ -18,24 +18,25 @@ psf:
 
     s2n: 10000.0
 
-    #model: "gauss"
+    model: "gauss"
 
     # this r50 is equivalent to
     # fwhm: 3.40 pixels, which is 0.9'' for DES
     #r50: 2.05
     #shape: [0.0, 0.0]
 
-    model: "moffat"
-    beta: 3.5
+    #model: "moffat"
+    #beta: 3.5
 
     # this r50 is equivalent to
     # fwhm: 3.40 pixels, which is 0.9'' for DES
     r50: 2.05
 
-    shape:
-      type: "normal2d"
-      cen: [0.0, 0.007]
-      sigma: [0.018, 0.018]
+    shape: [0.0, 0.0]
+    #shape:
+    #  type: "normal2d"
+    #  cen: [0.0, 0.007]
+    #  sigma: [0.018, 0.018]
 
 
 obj_model:

@@ -2,7 +2,7 @@ run: "run-bd13mcal-dt-t01"
 sim: "sim-bd13"
 
 ngmix_hash: "379b145f6808cff44dede3262d11ee84b9e798af"
-nsim_hash: "4f8f239d037d20bcb316ba6f05a9f618f6e1a3d0"
+nsim_hash: "3cd18c9fb858e5efa24e94ce175e2c75e271efd1"
 
 fitter: "metacal-max-detrend"
 fit_model: "exp"
@@ -61,9 +61,10 @@ metacal_pars:
     step: 0.01
 
 # 10M
-ngal: 10000000
+#ngal: 10000000
+ngal: 500000
 
-desired_hours: 2.0
-sec_per: 0.8
+desired_hours: 0.25
+sec_per: 2.0
 
 verbose: False

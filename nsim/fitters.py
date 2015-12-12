@@ -813,11 +813,13 @@ class MaxMetacalDetrendFitter(MaxMetacalFitter):
                                   jacobian=oobs.jacobian.copy(),
                                   psf=deepcopy(oobs.psf))
 
-            new_res=super(MaxMetacalDetrendFitter,self)._do_fits(new_obs)
+            new_resd=super(MaxMetacalDetrendFitter,self)._do_fits(new_obs)
+            new_res=new_resd['res']
 
+            print("        s2n_w:",new_res['s2n_w'])
             new_results.append(new_res)
 
-        res['dt_results'] = new_results
+        res['res']['dt_results'] = new_results
         return res
 
     def _copy_to_output(self, res, i):
@@ -845,9 +847,9 @@ class MaxMetacalDetrendFitter(MaxMetacalFitter):
         ndt = len(self['target_noises'])
 
         dt += [
-            ('mcal_dt_g',(ndt,2),
-            ('mcal_dt_R',(ndt,2,2),
-            ('mcal_dt_Rpsf',(ndt,2),
+            ('mcal_dt_g','f8',(ndt,2)),
+            ('mcal_dt_R','f8',(ndt,2,2)),
+            ('mcal_dt_Rpsf','f8',(ndt,2)),
         ]
         return dt
 

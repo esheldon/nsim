@@ -1,4 +1,4 @@
-run: "run-bd13mcal-t06a"
+run: "run-bd13mcal-dt-t01"
 sim: "sim-bd13"
 
 ngmix_hash: "379b145f6808cff44dede3262d11ee84b9e798af"

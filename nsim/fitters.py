@@ -775,6 +775,14 @@ class MaxMetacalFitter(MaxFitter):
         images.compare_images(im1, im2, **keys)
 
 class MaxMetacalDetrendFitter(MaxMetacalFitter):
+
+    def __init__(self, *args, **kw):
+        super(MaxMetacalDetrendFitter,self).__init__(*args, **kw)
+
+        sim_seed = self.sim['seed']
+        rs_seed = sim_seed + 35
+        self.random_state=numpy.random.RandomState(rs_seed)
+
     def _do_fits(self, oobs):
         res=super(MaxMetacalDetrendFitter,self)._do_fits(oobs)
 
@@ -791,8 +799,14 @@ class MaxMetacalDetrendFitter(MaxMetacalFitter):
             target_noise=self['target_noises'][i]
             extra_noise = sqrt(target_noise**2 - sim_noise**2)
 
+            print("    doing target_noise: %.2f "
+                  "extra_noise: %.2f" % (target_noise,extra_noise))
+
+            noise_image = self.random_state.normal(loc=0.0,
+                                                   scale=extra_noise,
+                                                   size=im.shape)
             new_im=im + noise_image
-            new_weight = 1.0/(1.0/wt + extra_noise**2)
+            new_weight = wt*0 + (1.0/target_noise**2)
 
             new_obs = Observation(new_im,
                                   weight=new_weight,

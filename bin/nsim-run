@@ -146,6 +146,9 @@ def run_sim(sim_conf,
     elif ftype=='metacal-max-fixR':
         fitclass=nsim.fitters.MaxMetacalFixRFitter
 
+    elif ftype=='metacal-max-detrend':
+        fitclass=nsim.fitters.MaxMetacalDetrendFitter
+
 
     elif ftype=='metacal-max-degrade':
         if simtype=='galsim':

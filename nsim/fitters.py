@@ -774,6 +774,69 @@ class MaxMetacalFitter(MaxFitter):
         keys['height']=1000
         images.compare_images(im1, im2, **keys)
 
+class MaxMetacalDetrendFitter(MaxMetacalFitter):
+    def _do_fits(self, oobs):
+        res=super(MaxMetacalDetrendFitter,self)._do_fits(oobs)
+
+        #def _do_metacal(self, boot, metacal_obs=None):
+        #    super(MaxMetacalDetrendFitter,self)._do_metacal(boot)
+
+        #oobs = boot.mb_obs_list[0][0]
+        im=oobs.image
+        wt=oobs.weight
+
+        sim_noise=self['noise']
+        new_results=[]
+        for i in xrange(len(self['target_noises'])):
+            target_noise=self['target_noises'][i]
+            extra_noise = sqrt(target_noise**2 - sim_noise**2)
+
+            new_im=im + noise_image
+            new_weight = 1.0/(1.0/wt + extra_noise**2)
+
+            new_obs = Observation(new_im,
+                                  weight=new_weight,
+                                  jacobian=oobs.jacobian.copy(),
+                                  psf=deepcopy(oobs.psf))
+
+            new_res=super(MaxMetacalDetrendFitter,self)._do_fits(new_obs)
+
+            new_results.append(new_res)
+
+        res['dt_results'] = new_results
+        return res
+
+    def _copy_to_output(self, res, i):
+        """
+        copy parameters specific to this class
+        """
+        super(MaxMetacalDetrendFitter,self)._copy_to_output(res, i)
+
+        d=self.data
+
+        for idt in xrange(len(self['target_noises'])):
+            dtres=res['dt_results'][idt]
+
+            d['mcal_dt_g'][i,idt,:] = dtres['mcal_g']
+            d['mcal_dt_R'][i,idt,:,:] = dtres['mcal_R']
+            d['mcal_dt_Rpsf'][i,idt,:] = dtres['mcal_Rpsf']
+
+
+    def _get_dtype(self):
+        """
+        get the dtype for the output struct
+        """
+        dt=super(MaxMetacalDetrendFitter,self)._get_dtype()
+
+        ndt = len(self['target_noises'])
+
+        dt += [
+            ('mcal_dt_g',(ndt,2),
+            ('mcal_dt_R',(ndt,2,2),
+            ('mcal_dt_Rpsf',(ndt,2),
+        ]
+        return dt
+
 
 class MaxMetacalSimnFitter(MaxMetacalFitter):
 

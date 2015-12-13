@@ -1,3 +1,4 @@
+# this one I forgot to use the same noise image for each target
 run: "run-bd13mcal-dt-t01"
 sim: "sim-bd13"
 

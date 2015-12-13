@@ -18,25 +18,13 @@ psf:
 
     s2n: 10000.0
 
-    #model: "gauss"
-
-    # this r50 is equivalent to
-    # fwhm: 3.40 pixels, which is 0.9'' for DES
-    #r50: 2.05
-    #shape: [0.0, 0.0]
-
-    model: "moffat"
-    beta: 3.5
+    model: "gauss"
 
     # this r50 is equivalent to
     # fwhm: 3.40 pixels, which is 0.9'' for DES
     r50: 2.05
 
-    shape:
-      type: "normal2d"
-      cen: [0.0, 0.007]
-      sigma: [0.018, 0.018]
-
+    shape: [0.0, 0.0]
 
 obj_model:
 
@@ -67,6 +55,7 @@ obj_model:
         radius: 1.0
 
     cen_shift: null
+
 
 label: "$bulge-disk$"
 

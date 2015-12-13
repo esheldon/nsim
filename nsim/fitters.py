@@ -786,25 +786,133 @@ class MaxMetacalDetrendFitter(MaxMetacalFitter):
     def _do_fits(self, oobs):
         res=super(MaxMetacalDetrendFitter,self)._do_fits(oobs)
 
-        #def _do_metacal(self, boot, metacal_obs=None):
-        #    super(MaxMetacalDetrendFitter,self)._do_metacal(boot)
+        boot=res['boot']
+        obs_dict=res['res']['obs_dict']
 
-        #oobs = boot.mb_obs_list[0][0]
         im=oobs.image
         wt=oobs.weight
 
         sim_noise=self['noise']
         new_results=[]
+
+        noise_image1 = self.random_state.normal(loc=0.0,
+                                                scale=1.0,
+                                                size=im.shape)
         for i in xrange(len(self['target_noises'])):
             target_noise=self['target_noises'][i]
             extra_noise = sqrt(target_noise**2 - sim_noise**2)
 
+            # same noise image, just scaled
+            noise_image = noise_image1*extra_noise
+            new_weight = wt*0 + (1.0/target_noise**2)
+
             print("    doing target_noise: %.2f "
                   "extra_noise: %.2f" % (target_noise,extra_noise))
 
-            noise_image = self.random_state.normal(loc=0.0,
-                                                   scale=extra_noise,
-                                                   size=im.shape)
+            #
+            # add noise first and then run through metacal
+            #
+            obs_before = Observation(im + noise_image,
+                                     weight=new_weight.copy(),
+                                     jacobian=oobs.jacobian.copy(),
+                                     psf=deepcopy(oobs.psf))
+
+            mcal_obs_before = ngmix.metacal.get_all_metacal(
+                obs_before,
+                **self['metacal_pars']
+            )
+            self._do_metacal(boot, metacal_obs=mcal_obs_before)
+            res_before = boot.get_metacal_max_result()
+
+            #
+            # just add noise to the existing metacal observations
+            #
+            mcal_obs_after = {}
+            for key in obs_dict:
+                mo=obs_dict[key]
+                o=mo[0][0]
+                tobs = Observation(o.image + noise_image,
+                                   weight=new_weight.copy(),
+                                   jacobian=o.jacobian.copy(),
+                                   psf=deepcopy(o.psf))
+                mcal_obs_after[key] = tobs
+
+            self._do_metacal(boot, metacal_obs=mcal_obs_after)
+            res_after = boot.get_metacal_max_result()
+
+            # difference should be A*(nnew^2 - n^2) where n is noise level
+            Rnoise     = res_before['mcal_R']    - res_after['mcal_R']
+            Rnoise_psf = res_before['mcal_Rpsf'] - res_after['mcal_Rpsf']
+
+            print("        s2n:",res_before['mcal_s2n_r'])
+
+            new_res={'mcal_Rnoise':Rnoise, 'mcal_Rnoise_psf':Rnoise_psf}
+            new_results.append(new_res)
+
+        res['res']['dt_results'] = new_results
+        return res
+
+    def _copy_to_output(self, res, i):
+        """
+        copy parameters specific to this class
+        """
+        super(MaxMetacalDetrendFitter,self)._copy_to_output(res, i)
+
+        d=self.data
+
+        for idt in xrange(len(self['target_noises'])):
+            dtres=res['dt_results'][idt]
+
+            d['mcal_dt_Rnoise'][i,idt,:,:] = dtres['mcal_Rnoise']
+            d['mcal_dt_Rnoise_psf'][i,idt,:] = dtres['mcal_Rnoise_psf']
+
+
+    def _get_dtype(self):
+        """
+        get the dtype for the output struct
+        """
+        dt=super(MaxMetacalDetrendFitter,self)._get_dtype()
+
+        ndt = len(self['target_noises'])
+
+        dt += [
+            ('mcal_dt_Rnoise','f8',(ndt,2,2)),
+            ('mcal_dt_Rnoise_psf','f8',(ndt,2)),
+        ]
+        return dt
+
+
+class MaxMetacalDetrendFitterOld(MaxMetacalFitter):
+
+    def __init__(self, *args, **kw):
+        super(MaxMetacalDetrendFitter,self).__init__(*args, **kw)
+
+        sim_seed = self.sim['seed']
+        rs_seed = sim_seed + 35
+        self.random_state=numpy.random.RandomState(rs_seed)
+
+    def _do_fits(self, oobs):
+        res=super(MaxMetacalDetrendFitter,self)._do_fits(oobs)
+
+        im=oobs.image
+        wt=oobs.weight
+
+        sim_noise=self['noise']
+        new_results=[]
+
+        noise_image1 = self.random_state.normal(loc=0.0,
+                                                scale=1.0,
+                                                size=im.shape)
+        for i in xrange(len(self['target_noises'])):
+            target_noise=self['target_noises'][i]
+            extra_noise = sqrt(target_noise**2 - sim_noise**2)
+
+            # same noise image, just scaled
+            noise_image = noise_image1*extra_noise
+
+            print("    doing target_noise: %.2f "
+                  "extra_noise: %.2f" % (target_noise,extra_noise))
+
             new_im=im + noise_image
             new_weight = wt*0 + (1.0/target_noise**2)
 
@@ -852,6 +960,8 @@ class MaxMetacalDetrendFitter(MaxMetacalFitter):
             ('mcal_dt_Rpsf','f8',(ndt,2)),
         ]
         return dt
+
+
 
 
 class MaxMetacalSimnFitter(MaxMetacalFitter):

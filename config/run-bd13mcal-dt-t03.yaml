@@ -18,7 +18,7 @@ noise: 0.70
 # these are the same noise field but with different amplitude
 target_noises: [0.75, 0.80, 0.85]
 
-global_seed: 19013
+global_seed: 4449
 
 metacal_pars:
     step: 0.01
@@ -65,7 +65,7 @@ metacal_pars:
 #ngal: 10000000
 ngal: 500000
 
-desired_hours: 0.25
-sec_per: 2.0
+desired_hours: 0.5
+sec_per: 3.5
 
 verbose: False

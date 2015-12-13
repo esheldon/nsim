@@ -171,7 +171,18 @@ def fitline(xarr, yarr):
             'cov':cov_ab}
     #return a, a_err, b, b_err, cov_ab
 
+def fitline_zero_offset(x, y):
 
+    # Our model is y = a * x, so things are quite simple, in this case...
+    # x needs to be a column vector instead of a 1D vector for this, however.
+    x = x[:,numpy.newaxis]
+    a, _, _, _ = numpy.linalg.lstsq(x, y)
+
+    return {'offset':0.0,
+            'offset_err':0.0,
+            'slope':a[0],
+            'slope_err':0.0}
+    
 def calc_q(fits):
 
     m1=fits['m'][0,0]
@@ -229,9 +240,9 @@ def doplot(args, data, fits):
         )
         yfit=fits['m'][0,i]*x + fits['c'][0,i]
 
-        c=biggles.Curve(x, yfit, color='red')
         z=biggles.Curve(x, x*0, color='black')
-        plt.add(c,z)
+        c=biggles.Curve(x, yfit, color='red')
+        plt.add(z,c)
 
         mstr='m%d: %.2g +/- %.2g' % (i+1,fits['m'][0,i],fits['merr'][0,i])
         cstr='c%d: %.2g +/- %.2g' % (i+1,fits['c'][0,i],fits['cerr'][0,i])
@@ -510,6 +521,18 @@ def get_Rnoise(conf, args, data):
     res_Rpsf1=fitline(diff_noise2, Rnoise_psf[:,0])
     res_Rpsf2=fitline(diff_noise2, Rnoise_psf[:,1])
 
+    '''
+    res_R11=fitline_zero_offset(diff_noise2, Rnoise[:,0,0])
+    res_R12=fitline_zero_offset(diff_noise2, Rnoise[:,0,1])
+    res_R21=fitline_zero_offset(diff_noise2, Rnoise[:,1,0])
+    res_R22=fitline_zero_offset(diff_noise2, Rnoise[:,1,1])
+
+    res_Rpsf1=fitline_zero_offset(diff_noise2, Rnoise_psf[:,0])
+    res_Rpsf2=fitline_zero_offset(diff_noise2, Rnoise_psf[:,1])
+    '''
+
+
+
     p="%s (%.3f +/- %.3f) + (%.3f +/- %.3f) delta n^2"
     print(p % ('R11',res_R11['offset'],res_R11['offset_err'],
                res_R11['slope'],res_R11['slope_err']))
@@ -535,18 +558,25 @@ def get_Rnoise(conf, args, data):
 
     Rnoise_mean = noise0*array( [[res_R11['slope'], res_R12['slope']],
                                  [res_R21['slope'], res_R22['slope']] ] )
+    Rnoise_mean -= array( [[res_R11['offset'], res_R12['offset']],
+                           [res_R21['offset'], res_R22['offset']] ] )
+
+
 
     Rnoise_psf_mean = noise0*array( [res_Rpsf1['slope'], res_Rpsf2['slope'] ])
+    Rnoise_psf_mean -= array( [res_Rpsf1['offset'], res_Rpsf2['offset'] ])
 
 
     if args.show:
         import biggles
         xrng=[0, 1.1*diff_noise2.max()]
+        yrng=[1.1*Rnoise[:,0,0].min(), 0.0]
         plt=biggles.plot(diff_noise2, Rnoise[:,0,0], yerr=Rnoise_err[:,0,0],
                          color='blue',visible=False,
                          xlabel=r'$\Delta noise**2$',
                          ylabel=r'$\Delta R$',
-                         xrange=xrng)
+                         xrange=xrng,
+                         yrange=yrng)
         plt=biggles.plot(diff_noise2, Rnoise[:,1,1], yerr=Rnoise_err[:,1,1],
                          color='red',visible=False,
                          plt=plt)

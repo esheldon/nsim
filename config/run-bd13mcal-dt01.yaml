@@ -1,0 +1,66 @@
+# new detrend
+run: "run-bd13mcal-dt01"
+sim: "sim-bd13"
+
+ngmix_hash: "199a348cf02160c41d62fbc0bf66a6ee45b87443"
+nsim_hash: "dcdc6e8ad8ed86615c97f641f349054cbf01847e"
+
+fitter: "metacal-max-detrend"
+fit_model: "gauss"
+
+g_prior_during: True
+use_logpars: True
+
+# hopefully mode near 12-12.5
+# we will do 0.70 0.75 0.80 to start
+noise: 0.70
+
+# these are the same noise field but with different amplitude
+target_noises: [0.75, 0.80, 0.85]
+
+global_seed: 15604
+
+metacal_pars:
+    step: 0.01
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    T:
+        type: "gmixnd"
+        run: "run-bd13zmax-lownoise02"
+        extra: "log_T"
+        cov_factor: 1.44
+
+    counts:
+        type: "gmixnd"
+        run: "run-bd13zmax-lownoise02"
+        extra: "log_F"
+        cov_factor: 1.44
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+ngal: 8000000
+
+desired_hours: 4.0
+sec_per: 3.5
+
+verbose: False

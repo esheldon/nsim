@@ -678,7 +678,7 @@ moments
 
 - sim-bd13
     - round gaussian psf
-    - run-bd13mcal-dt-04
+    - run-bd13mcal-dt-t04
         - 2 million
         - detrending
            m1: 2.690e-04 +/- 4.417e-03 c1: -1.162e-04 +/- 1.589e-04  r1: -0.13
@@ -691,6 +691,18 @@ moments
            m1: 1.653e-03 +/- 2.123e-03 c1: -7.295e-05 +/- 7.638e-05  r1: -0.13
            m2: 1.401e-03 +/- 2.311e-03 c2: 4.897e-06 +/- 8.019e-05  r2: -0.00774
 
+- sim-bd15
+    - same as bd12 but with everything a bit better resolved
+    * run-bd15mcal-dt01
+
+    - run-bd15mcal-dt-t01
+        Purposefully using just a gaussian for psf
+        Not subtracting offset
+            m1: -5.206e-03 +/- 8.402e-03 c1: -4.138e-05 +/- 3.023e-04  r1: -0.13
+            m2: -9.162e-03 +/- 9.199e-03 c2: 2.818e-04 +/- 3.192e-04  r2: -0.00774
+        Subtracting offset
+            m1: -3.017e-03 +/- 8.421e-03 c1: -4.143e-05 +/- 3.029e-04  r1: -0.13
+            m2: -6.523e-03 +/- 9.224e-03 c2: 2.651e-04 +/- 3.200e-04  r2: -0.00774
 
 
 - sim-bd02

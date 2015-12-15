@@ -569,11 +569,13 @@ def get_Rnoise(conf, args, data):
     Rnoise_psf_mean -= array( [res_Rpsf1['offset'], res_Rpsf2['offset'] ])
 
 
+    biggles.configure('default','fontsize_min',1)
+
     xrng=[0, 1.1*diff_noise2.max()]
     yrng=[1.1*Rnoise[:,0,0].min(), 0.0]
     plt=biggles.plot(diff_noise2, Rnoise[:,0,0], yerr=Rnoise_err[:,0,0],
                      color='blue',visible=False,
-                     xlabel=r'$\Delta noise**2$',
+                     xlabel=r'$\Delta n^2$',
                      ylabel=r'$\Delta R$',
                      xrange=xrng,
                      yrange=yrng)

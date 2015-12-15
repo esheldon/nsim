@@ -1,0 +1,67 @@
+# intentionally use single gauss psf instead of 3
+run: "run-bd15mcal-dt-t01"
+sim: "sim-bd15"
+
+nsim_hash: "a0b3846d28a3e339aa8862399cbff9b22aa7eb69"
+ngmix_hash: "26738a1152d8d17ccf65449978721d77a7365eeb"
+
+fitter: "metacal-max-detrend"
+fit_model: "gauss"
+
+g_prior_during: True
+use_logpars: True
+
+# hopefully mode near 12-12.5
+# we will do 0.70 0.75 0.80 to start
+noise: 0.70
+
+# these are the same noise field but with different amplitude
+target_noises: [0.75, 0.80, 0.85]
+
+global_seed: 6225
+
+metacal_pars:
+    step: 0.01
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    T:
+        type: "gmixnd"
+        run: "run-bd15zmax-lownoise01"
+        extra: "log_T"
+        cov_factor: 1.44
+
+    counts:
+        type: "gmixnd"
+        run: "run-bd15zmax-lownoise01"
+        extra: "log_F"
+        cov_factor: 1.44
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+psf_pars:
+    # intionally bad
+    model: "gauss"
+    ntry: 10
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+ngal: 500000
+
+desired_hours: 0.75
+sec_per: 1.7
+
+verbose: False

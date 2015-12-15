@@ -799,55 +799,62 @@ class MaxMetacalDetrendFitter(MaxMetacalFitter):
                                                 scale=1.0,
                                                 size=im.shape)
         for i in xrange(len(self['target_noises'])):
-            target_noise=self['target_noises'][i]
-            extra_noise = sqrt(target_noise**2 - sim_noise**2)
+            try:
+                target_noise=self['target_noises'][i]
+                extra_noise = sqrt(target_noise**2 - sim_noise**2)
 
-            # same noise image, just scaled
-            noise_image = noise_image1*extra_noise
-            new_weight = wt*0 + (1.0/target_noise**2)
+                # same noise image, just scaled
+                noise_image = noise_image1*extra_noise
+                new_weight = wt*0 + (1.0/target_noise**2)
 
-            print("    doing target_noise: %.2f "
-                  "extra_noise: %.2f" % (target_noise,extra_noise))
+                print("    doing target_noise: %.2f "
+                      "extra_noise: %.2f" % (target_noise,extra_noise))
 
-            #
-            # add noise first and then run through metacal
-            #
-            obs_before = Observation(im + noise_image,
-                                     weight=new_weight.copy(),
-                                     jacobian=oobs.jacobian.copy(),
-                                     psf=deepcopy(oobs.psf))
+                #
+                # add noise first and then run through metacal
+                #
+                obs_before = Observation(im + noise_image,
+                                         weight=new_weight.copy(),
+                                         jacobian=oobs.jacobian.copy(),
+                                         psf=deepcopy(oobs.psf))
 
-            mcal_obs_before = ngmix.metacal.get_all_metacal(
-                obs_before,
-                **self['metacal_pars']
-            )
-            self._do_metacal(boot, metacal_obs=mcal_obs_before)
-            res_before = boot.get_metacal_max_result()
+                mcal_obs_before = ngmix.metacal.get_all_metacal(
+                    obs_before,
+                    **self['metacal_pars']
+                )
+                self._do_metacal(boot, metacal_obs=mcal_obs_before)
+                res_before = boot.get_metacal_max_result()
 
-            #
-            # just add noise to the existing metacal observations
-            #
-            mcal_obs_after = {}
-            for key in obs_dict:
-                mo=obs_dict[key]
-                o=mo[0][0]
-                tobs = Observation(o.image + noise_image,
-                                   weight=new_weight.copy(),
-                                   jacobian=o.jacobian.copy(),
-                                   psf=deepcopy(o.psf))
-                mcal_obs_after[key] = tobs
+                #
+                # just add noise to the existing metacal observations
+                #
+                mcal_obs_after = {}
+                for key in obs_dict:
+                    mo=obs_dict[key]
+                    o=mo[0][0]
+                    tobs = Observation(o.image + noise_image,
+                                       weight=new_weight.copy(),
+                                       jacobian=o.jacobian.copy(),
+                                       psf=deepcopy(o.psf))
+                    mcal_obs_after[key] = tobs
 
-            self._do_metacal(boot, metacal_obs=mcal_obs_after)
-            res_after = boot.get_metacal_max_result()
+                self._do_metacal(boot, metacal_obs=mcal_obs_after)
+                res_after = boot.get_metacal_max_result()
 
-            # difference should be A*(nnew^2 - n^2) where n is noise level
-            Rnoise     = res_before['mcal_R']    - res_after['mcal_R']
-            Rnoise_psf = res_before['mcal_Rpsf'] - res_after['mcal_Rpsf']
+                # difference should be A*(nnew^2 - n^2) where n is noise level
+                Rnoise     = res_before['mcal_R']    - res_after['mcal_R']
+                Rnoise_psf = res_before['mcal_Rpsf'] - res_after['mcal_Rpsf']
 
-            print("        s2n:",res_before['mcal_s2n_r'])
+                print("        s2n:",res_before['mcal_s2n_r'])
 
-            new_res={'mcal_Rnoise':Rnoise, 'mcal_Rnoise_psf':Rnoise_psf}
-            new_results.append(new_res)
+                new_res={'mcal_Rnoise':Rnoise, 'mcal_Rnoise_psf':Rnoise_psf}
+                new_results.append(new_res)
+
+            except BootPSFFailure:
+                raise TryAgainError("failed to fit metacal psfs")
+            except BootGalFailure:
+                raise TryAgainError("failed to fit galaxy")
+
 
         res['res']['dt_results'] = new_results
         return res

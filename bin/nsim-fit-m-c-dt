@@ -22,6 +22,7 @@ parser=argparse.ArgumentParser(formatter_class=fclass)
 parser.add_argument('run', help='run to use in fit')
 
 parser.add_argument('--show',action='store_true',help='show plot')
+parser.add_argument('--sub-offset',action='store_true',help='subtract the offset')
 parser.add_argument('--yrange', help="yrange of plot")
 parser.add_argument('--xrange', help="xrange of plot")
 
@@ -564,7 +565,7 @@ def get_Rnoise(conf, args, data):
     Rnoise_psf_mean = noise0*array( [res_Rpsf1['slope'], res_Rpsf2['slope'] ])
 
 
-    if False:
+    if args.sub_offset:
         print("subtracting offset")
         Rnoise_mean -= array( [[res_R11['offset'], res_R12['offset']],
                                [res_R21['offset'], res_R22['offset']] ] )

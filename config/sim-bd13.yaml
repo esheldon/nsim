@@ -1,9 +1,3 @@
-# realistic flux distribution
-# galsim bulge-disk
-# elliptical moffat psf, round
-# shifts to bulge
-# no shifts to center of primary
-# assortment of shears
 name: "sim-bd13"
 
 simulator: "galsim"

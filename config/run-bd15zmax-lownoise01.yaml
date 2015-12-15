@@ -1,6 +1,9 @@
 run: "run-bd15zmax-lownoise01"
 sim: "sim-bd15z"
 
+nsim_hash: "a0b3846d28a3e339aa8862399cbff9b22aa7eb69"
+ngmix_hash: "26738a1152d8d17ccf65449978721d77a7365eeb"
+
 fitter: "max"
 fit_model: "gauss"
 
@@ -28,7 +31,7 @@ priors:
         sigma: 0.3
 
 psf_pars:
-    model: "gauss"
+    model: "coellip3"
     ntry: 10
 
 max_pars:
@@ -45,6 +48,6 @@ ngal: 2000000
 
 desired_hours: 0.10
 
-sec_per: 0.05
+sec_per: 0.08
 
 verbose: True

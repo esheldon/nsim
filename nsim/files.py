@@ -204,7 +204,17 @@ def get_noise_file(run):
     fname=os.path.join(dir, fname)
     return fname
 
-   
+def get_plot_dir(run):
+    dir=get_run_dir(run)
+    dir=path_join(dir, 'plots')
+    return dir
+
+def get_plot_url(run, extra, ext='eps'):
+    dir=get_plot_dir(run)
+    f='%s-%s.%s' % (run,extra,ext)
+    return path_join(dir, f)
+
+  
 def get_psample_summed_url(run, is2n, itrial=None, fs=None, ext='fits'):
     """
     is2 and is2n are the index in the list of s2 and s2n vals for a given run.

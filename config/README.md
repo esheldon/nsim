@@ -694,6 +694,13 @@ moments
 - sim-bd15
     - same as bd12 but with everything a bit better resolved
     * run-bd15mcal-dt01
+      half way
+      Not subtracting offset
+          m1: -4.083e-04 +/- 3.530e-03 c1: -1.942e-04 +/- 1.270e-04  r1: -0.13
+          m2: -2.365e-03 +/- 3.563e-03 c2: 3.512e-04 +/- 1.236e-04  r2: -0.00774
+      Subtracting offset
+          m1: 2.379e-03 +/- 3.540e-03 c1: -1.947e-04 +/- 1.273e-04  r1: -0.13
+          m2: 2.291e-04 +/- 3.572e-03 c2: 3.342e-04 +/- 1.239e-04  r2: -0.00774
 
     - run-bd15mcal-dt-t01
         Purposefully using just a gaussian for psf

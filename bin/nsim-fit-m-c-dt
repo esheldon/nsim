@@ -560,13 +560,15 @@ def get_Rnoise(conf, args, data):
 
     Rnoise_mean = noise0*array( [[res_R11['slope'], res_R12['slope']],
                                  [res_R21['slope'], res_R22['slope']] ] )
-    #Rnoise_mean -= array( [[res_R11['offset'], res_R12['offset']],
-    #                       [res_R21['offset'], res_R22['offset']] ] )
-
-
 
     Rnoise_psf_mean = noise0*array( [res_Rpsf1['slope'], res_Rpsf2['slope'] ])
-    #Rnoise_psf_mean -= array( [res_Rpsf1['offset'], res_Rpsf2['offset'] ])
+
+
+    if False:
+        print("subtracting offset")
+        Rnoise_mean -= array( [[res_R11['offset'], res_R12['offset']],
+                               [res_R21['offset'], res_R22['offset']] ] )
+        Rnoise_psf_mean -= array( [res_Rpsf1['offset'], res_Rpsf2['offset'] ])
 
 
     biggles.configure('default','fontsize_min',1)

@@ -686,21 +686,34 @@ moments
         - not removing offset
            m1: -2.117e-03 +/- 4.407e-03 c1: -1.160e-04 +/- 1.585e-04  r1: -0.13
            m2: -4.308e-03 +/- 4.426e-03 c2: -1.509e-04 +/- 1.536e-04  r2: -0.00774
-    - run-bd13mcal-dt01
-        - 8 million
+    - run-bd13mcal-dt01 8 million
+        Not subtracting offset
+          m1: -8.332e-04 +/- 2.118e-03 c1: -7.281e-05 +/- 7.619e-05  r1: -0.13
+          m2: -1.188e-03 +/- 2.305e-03 c2: 4.958e-06 +/- 7.998e-05  r2: -0.00774
+        Subtracting offset
            m1: 1.653e-03 +/- 2.123e-03 c1: -7.295e-05 +/- 7.638e-05  r1: -0.13
            m2: 1.401e-03 +/- 2.311e-03 c2: 4.897e-06 +/- 8.019e-05  r2: -0.00774
+
+    - short runs using less added noise, to see if we go through
+        zero in delta R
+        - we do, but the answer is biased using the A
+        - run-bd13mcal-dt-t05
+            m1: -1.594e-02 +/- 8.500e-03 c1: -1.774e-04 +/- 3.058e-04  r1: -0.13
+            m2: -3.084e-02 +/- 8.288e-03 c2: 3.901e-04 +/- 2.876e-04  r2: -0.00774
+        - run-bd13mcal-dt-t06
+            m1: -3.196e-02 +/- 8.459e-03 c1: 2.129e-04 +/- 3.043e-04  r1: -0.13
+            m2: -2.152e-02 +/- 8.790e-03 c2: 3.652e-04 +/- 3.050e-04  r2: -0.00774
 
 - sim-bd15
     - same as bd12 but with everything a bit better resolved
     * run-bd15mcal-dt01
       half way
       Not subtracting offset
-          m1: -4.083e-04 +/- 3.530e-03 c1: -1.942e-04 +/- 1.270e-04  r1: -0.13
-          m2: -2.365e-03 +/- 3.563e-03 c2: 3.512e-04 +/- 1.236e-04  r2: -0.00774
+        m1: -2.190e-03 +/- 2.387e-03 c1: -7.640e-05 +/- 8.586e-05  r1: -0.13
+        m2: -2.544e-03 +/- 2.264e-03 c2: 2.559e-04 +/- 7.855e-05  r2: -0.00774
       Subtracting offset
-          m1: 2.379e-03 +/- 3.540e-03 c1: -1.947e-04 +/- 1.273e-04  r1: -0.13
-          m2: 2.291e-04 +/- 3.572e-03 c2: 3.342e-04 +/- 1.239e-04  r2: -0.00774
+        m1: 5.643e-04 +/- 2.393e-03 c1: -7.663e-05 +/- 8.610e-05  r1: -0.13
+        m2: 1.016e-04 +/- 2.270e-03 c2: 2.386e-04 +/- 7.876e-05  r2: -0.00774
 
     - run-bd15mcal-dt-t01
         Purposefully using just a gaussian for psf

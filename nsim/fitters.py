@@ -807,8 +807,8 @@ class MaxMetacalDetrendFitter(MaxMetacalFitter):
                 noise_image = noise_image1*extra_noise
                 new_weight = wt*0 + (1.0/target_noise**2)
 
-                print("    doing target_noise: %.2f "
-                      "extra_noise: %.2f" % (target_noise,extra_noise))
+                print("    doing target_noise: %.3f "
+                      "extra_noise: %.3f" % (target_noise,extra_noise))
 
                 #
                 # add noise first and then run through metacal
@@ -845,9 +845,16 @@ class MaxMetacalDetrendFitter(MaxMetacalFitter):
                 Rnoise     = res_before['mcal_R']    - res_after['mcal_R']
                 Rnoise_psf = res_before['mcal_Rpsf'] - res_after['mcal_Rpsf']
 
-                print("        s2n:",res_before['mcal_s2n_r'])
+                #print("        s2n:",res_before['mcal_s2n_r'])
 
-                new_res={'mcal_Rnoise':Rnoise, 'mcal_Rnoise_psf':Rnoise_psf}
+                new_res={
+                    'mcal_Rnoise':Rnoise,
+                    'mcal_Rnoise_psf':Rnoise_psf,
+                    #'mcal_R_before': res_before['mcal_R'],
+                    #'mcal_R_after': res_after['mcal_R'],
+                    #'mcal_Rpsf_before': res_before['mcal_Rpsf'],
+                    #'mcal_Rpsf_after': res_after['mcal_Rpsf'],
+                }
                 new_results.append(new_res)
 
             except BootPSFFailure:
@@ -873,6 +880,11 @@ class MaxMetacalDetrendFitter(MaxMetacalFitter):
             d['mcal_dt_Rnoise'][i,idt,:,:] = dtres['mcal_Rnoise']
             d['mcal_dt_Rnoise_psf'][i,idt,:] = dtres['mcal_Rnoise_psf']
 
+            #d['mcal_dt_R_before'][i,idt,:,:] = dtres['mcal_R_before']
+            #d['mcal_dt_R_after'][i,idt,:,:] = dtres['mcal_R_after']
+            #d['mcal_dt_Rpsf_before'][i,idt,:] = dtres['mcal_Rpsf_before']
+            #d['mcal_dt_Rpsf_after'][i,idt,:] = dtres['mcal_Rpsf_after']
+
 
     def _get_dtype(self):
         """
@@ -885,6 +897,10 @@ class MaxMetacalDetrendFitter(MaxMetacalFitter):
         dt += [
             ('mcal_dt_Rnoise','f8',(ndt,2,2)),
             ('mcal_dt_Rnoise_psf','f8',(ndt,2)),
+            #('mcal_dt_R_before','f8',(ndt,2,2)),
+            #('mcal_dt_R_after','f8',(ndt,2,2)),
+            #('mcal_dt_Rpsf_before','f8',(ndt,2)),
+            #('mcal_dt_Rpsf_after','f8',(ndt,2)),
         ]
         return dt
 
@@ -917,7 +933,7 @@ class MaxMetacalDetrendFitterOld(MaxMetacalFitter):
             # same noise image, just scaled
             noise_image = noise_image1*extra_noise
 
-            print("    doing target_noise: %.2f "
+            print("    doing target_noise: %.3f "
                   "extra_noise: %.2f" % (target_noise,extra_noise))
 
             new_im=im + noise_image

@@ -877,7 +877,7 @@ def get_Rnoise_line(conf, args, data):
         Apsf[i] = res['slope']
         if args.show:
             plot_line_fit(xvals, Rdt_psf[:,i],res,
-                          r'2 \times n_0 \times $\Delta n$',
+                          r'$2 n \Delta n$',
                           r'$\Delta R^{PSF}_%d$' % i)
 
         for j in xrange(2):
@@ -894,7 +894,7 @@ def get_Rnoise_line(conf, args, data):
 
             if args.show:
                 plot_line_fit(xvals, Rdt[:,i,j],res,
-                              r'2 \times n_0 \times $\Delta n$',
+                              r'$2 n \Delta n$',
                               r'$\Delta R_{%d,%d}$' % (i,j))
 
     Rnoise = A*noise0**2

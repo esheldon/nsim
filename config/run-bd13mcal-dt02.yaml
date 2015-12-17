@@ -2,8 +2,8 @@
 run: "run-bd13mcal-dt02"
 sim: "sim-bd13"
 
-ngmix_hash: "26738a1152d8d17ccf65449978721d77a7365eeb"
-nsim_hash: "66927c9b2c1b6dc069e2bb332674fcfa0693fb9a"
+ngmix_hash: "ae7529b074aa76abab47156529fb0d6415e662c3"
+nsim_hash: "4724a977b85bee2338d1fb7b700024d20b34b11e"
 
 fitter: "metacal-max-detrend"
 fit_model: "gauss"

@@ -708,6 +708,9 @@ moments
         at 68 million, using mean correction
           m1: 1.211e-03 +/- 7.801e-04 c1: -1.461e-05 +/- 2.807e-05  r1: -0.13
           m2: -3.137e-04 +/- 7.909e-04 c2: 8.691e-06 +/- 2.744e-05  r2: -0.00774
+        some cuts
+          m1: 8.023e-04 +/- 7.760e-04 c1: -1.612e-05 +/- 2.792e-05  r1: -0.13
+          m2: -5.590e-04 +/- 7.942e-04 c2: 8.795e-06 +/- 2.756e-05  r2: -0.00774 
 
 - sim-bd15
     - same as bd12 but with everything a bit better resolved

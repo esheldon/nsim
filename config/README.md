@@ -704,6 +704,11 @@ moments
             m1: -3.196e-02 +/- 8.459e-03 c1: 2.129e-04 +/- 3.043e-04  r1: -0.13
             m2: -2.152e-02 +/- 8.790e-03 c2: 3.652e-04 +/- 3.050e-04  r2: -0.00774
 
+    - big run, 100 million
+        at 68 million, using mean correction
+          m1: 1.211e-03 +/- 7.801e-04 c1: -1.461e-05 +/- 2.807e-05  r1: -0.13
+          m2: -3.137e-04 +/- 7.909e-04 c2: 8.691e-06 +/- 2.744e-05  r2: -0.00774
+
 - sim-bd15
     - same as bd12 but with everything a bit better resolved
     * run-bd15mcal-dt01

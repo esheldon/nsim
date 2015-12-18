@@ -55,23 +55,22 @@ def read_data(conf, dt_index=None, cache=False):
         'mcal_dt_Rnoise_psf',
     ]
 
-    '''
-    t=nsim.files.read_output(conf['run'],
-                             0,
-                             columns=['mcal_s2n_r','mcal_R'])
-    w,=numpy.where(
-        between(t['mcal_s2n_r'], 6.3, 3162.)
-        & between(t['mcal_R'][:,0,0], -6.0, 2.0)
-        & between(t['mcal_R'][:,0,1], -5.0, 5.0)
-        & between(t['mcal_R'][:,1,0], -5.0, 5.0)
-        & between(t['mcal_R'][:,1,1], -6.0, 2.0)
-    )
-    print("    kept: %d/%d" % (w.size,t.size))
-    '''
-
-    return nsim.files.read_output(conf['run'], 0, columns=columns)
-    #return nsim.files.read_output(conf['run'], 0, columns=columns, rows=w)
-    #return nsim.files.read_output(conf['run'], 0, columns=columns, rows=numpy.arange(10000000))
+    if True:
+        t=nsim.files.read_output(conf['run'],
+                                 0,
+                                 columns=['mcal_s2n_r','mcal_R'])
+        w,=numpy.where(
+            between(t['mcal_s2n_r'], 6.3, 3162.)
+            & between(t['mcal_R'][:,0,0], -6.0, 2.0)
+            & between(t['mcal_R'][:,0,1], -5.0, 5.0)
+            & between(t['mcal_R'][:,1,0], -5.0, 5.0)
+            & between(t['mcal_R'][:,1,1], -6.0, 2.0)
+        )
+        print("    kept: %d/%d" % (w.size,t.size))
+        return nsim.files.read_output(conf['run'], 0, columns=columns, rows=w)
+    else:
+        return nsim.files.read_output(conf['run'], 0, columns=columns)
+        #return nsim.files.read_output(conf['run'], 0, columns=columns, rows=numpy.arange(10000000))
 
     '''
     fname=files.get_output_url(conf['run'], 0, 0)

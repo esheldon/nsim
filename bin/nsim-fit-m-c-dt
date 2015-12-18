@@ -875,34 +875,41 @@ def get_Rnoise_line(conf, args, data):
         res = fitline(xvals, Rdt_psf[:,i])
         #Apsf[i] = res['slope']/2.0/noise0
         Apsf[i] = res['slope']
-        if args.show:
-            plot_line_fit(xvals, Rdt_psf[:,i],res,
-                          r'$2 n \Delta n$',
-                          r'$\Delta R^{PSF}_%d$' % i)
+
+        plot_line_fit(
+            args,
+            'Rnoise-detrend-Rpsf%d' % (i+1),
+            xvals, Rdt_psf[:,i],res,
+            r'$2 n \Delta n$',
+            r'$\Delta R^{PSF}_%d$' % (i+1),
+        )
 
         for j in xrange(2):
             res = fitline(xvals, Rdt[:,i,j])
             #A[i,j] = res['slope']/2.0/noise0
             A[i,j] = res['slope']
 
-            n='R[%d,%d]' % (i+1,j+1)
+            n='A[%d,%d]' % (i+1,j+1)
             s=res['slope']
             serr=res['slope_err']
             o=res['offset']
             oerr=res['offset_err']
             print(p % (n,o,oerr,s,serr))
 
-            if args.show:
-                plot_line_fit(xvals, Rdt[:,i,j],res,
-                              r'$2 n \Delta n$',
-                              r'$\Delta R_{%d,%d}$' % (i,j))
+            plot_line_fit(
+                args,
+                'Rnoise-detrend-R%d%d' % (i+1,j+1),
+                xvals, Rdt[:,i,j],res,
+                r'$2 n \Delta n$',
+                r'$\Delta R_{%d,%d}$' % (i+1,j+1),
+            )
 
     Rnoise = A*noise0**2
     Rnoise_psf = Apsf*noise0**2 
 
     return Rnoise, Rnoise_psf
 
-def plot_line_fit(x, y, res, xlabel, ylabel):
+def plot_line_fit(args, extra, x, y, res, xlabel, ylabel):
     plt=biggles.FramedPlot()
 
     ymin=y.min()
@@ -912,7 +919,7 @@ def plot_line_fit(x, y, res, xlabel, ylabel):
     else:
         yr = [0, 1.1*ymax]
 
-    xr = [0.0, x.max()]
+    xr = [0.0, 1.1*x.max()]
 
     plt.xrange=xr
     plt.yrange=yr
@@ -920,7 +927,7 @@ def plot_line_fit(x, y, res, xlabel, ylabel):
     plt.ylabel=ylabel
     plt.aspect_ratio=1
 
-    xfit = numpy.linspace(0, x.max())
+    xfit = numpy.linspace(0, xr[1])
     yfit = res['offset'] + res['slope']*xfit
 
     pts = biggles.Points(x,y,type='filled circle')
@@ -932,7 +939,16 @@ def plot_line_fit(x, y, res, xlabel, ylabel):
     blabel=biggles.PlotLabel(0.9, 0.85, blab, halign='right')
 
     plt.add(c, pts, alabel, blabel)
-    plt.show()
+
+    plotfile=files.get_plot_url(args.run, extra)
+
+    print("writing:",plotfile)
+    eu.ostools.makedirs_fromfile(plotfile)
+    plt.write_eps(plotfile)
+
+    if args.show:
+        plt.show()
+
 
 
 def get_Rnoise_poly(conf, args, data):

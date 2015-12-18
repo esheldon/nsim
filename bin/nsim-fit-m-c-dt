@@ -14,12 +14,15 @@ from nsim import files
 
 import argparse
 import esutil as eu
+from esutil.numpy_util import between
 
 
 fclass=argparse.ArgumentDefaultsHelpFormatter
 parser=argparse.ArgumentParser(formatter_class=fclass)
 
 parser.add_argument('run', help='run to use in fit')
+
+parser.add_argument('--weights',action='store_true')
 
 parser.add_argument('--show',action='store_true',help='show plot')
 parser.add_argument('--sub-offset',action='store_true',help='subtract the offset')
@@ -52,7 +55,23 @@ def read_data(conf, dt_index=None, cache=False):
         'mcal_dt_Rnoise_psf',
     ]
 
+    '''
+    t=nsim.files.read_output(conf['run'],
+                             0,
+                             columns=['mcal_s2n_r','mcal_R'])
+    w,=numpy.where(
+        between(t['mcal_s2n_r'], 6.3, 3162.)
+        & between(t['mcal_R'][:,0,0], -6.0, 2.0)
+        & between(t['mcal_R'][:,0,1], -5.0, 5.0)
+        & between(t['mcal_R'][:,1,0], -5.0, 5.0)
+        & between(t['mcal_R'][:,1,1], -6.0, 2.0)
+    )
+    print("    kept: %d/%d" % (w.size,t.size))
+    '''
+
     return nsim.files.read_output(conf['run'], 0, columns=columns)
+    #return nsim.files.read_output(conf['run'], 0, columns=columns, rows=w)
+    #return nsim.files.read_output(conf['run'], 0, columns=columns, rows=numpy.arange(10000000))
 
     '''
     fname=files.get_output_url(conf['run'], 0, 0)
@@ -572,6 +591,11 @@ def print_shear(ind, num, shear, shear_err):
 
 def get_averages(conf, args, data, show_progress=True):
 
+    if args.weights:
+        weights=get_s2n_weights(data['mcal_s2n_r'])
+    else:
+        weights=None
+
     sconf=conf['simc']
     shears = sconf['shear']['shears']
 
@@ -589,10 +613,16 @@ def get_averages(conf, args, data, show_progress=True):
     #Rnoise, Rnoise_psf = get_Rnoise_numpy_poly(conf, args, data)
     #Rnoise, Rnoise_psf = get_Rnoise_quad(conf, args, data)
     #Rnoise, Rnoise_psf = get_Rnoise_poly(conf, args, data)
-    Rnoise, Rnoise_psf = get_Rnoise_line(conf, args, data)
+    Rnoise, Rnoise_psf = get_Rnoise_line(conf, args, data, weights=weights)
 
-    R -= Rnoise
-    Rpsf -= Rnoise_psf
+    Rmean = R.mean(axis=0)
+    Rpsf_mean = Rpsf.mean(axis=0)
+
+    #R -= Rnoise
+    #Rpsf -= Rnoise_psf
+    Rmean -= Rnoise
+    Rpsf_mean -= Rnoise_psf
+    Rinv = numpy.linalg.inv(Rmean)
 
     means=get_mean_struct(nind)
 
@@ -604,11 +634,11 @@ def get_averages(conf, args, data, show_progress=True):
 
         shear_true = shears[i]
 
-        Rmean = R[w].mean(axis=0)
-        Rinv = numpy.linalg.inv(Rmean)
+        #Rmean = R[w].mean(axis=0)
+        #Rinv = numpy.linalg.inv(Rmean)
 
-        psf_corr  = (gpsf[w]*Rpsf[w]).mean(axis=0)
-        #psf_corr  = (gpsf[w]*Rpsf).mean(axis=0)
+        #psf_corr  = (gpsf[w]*Rpsf[w]).mean(axis=0)
+        psf_corr  = (gpsf[w]*Rpsf_mean).mean(axis=0)
 
         gmean     = g[w].mean(axis=0)
         shear     = numpy.dot(Rinv, gmean-psf_corr)
@@ -857,20 +887,35 @@ def get_R_poly_old(conf, args, data):
     return R, R_err, Rpsf, Rpsf_err
 
 
-def get_Rnoise_line(conf, args, data):
+S2N0=20.0
+def get_s2n_weight(s2n):
+    wts = 1.0/(1.0 + (S2N_SOFT/s2n)**2 )
+    return wts
+
+def get_Rnoise_line(conf, args, data, weights=None):
+    from numpy import newaxis
 
     noise0 = conf['noise']
     target_noises = array( conf['target_noises'] )
     ndiff = target_noises - noise0
     xvals = 2*noise0*ndiff
 
-    Rdt = data['mcal_dt_Rnoise'].mean(axis=0)
-    Rdt_psf = data['mcal_dt_Rnoise_psf'].mean(axis=0)
+    if weights is not None:
+        wsum=weights.sum()
+        wna1=weights[:,newaxis]
+        wna2=weights[:,newaxis,newaxis]
+        
+        Rdt = (data['mcal_dt_Rnoise']*wna2).sum(axis=0)/wsum
+        Rdt_psf = (data['mcal_dt_Rnoise_psf']*wna1).sum(axis=0)/wsum
+
+    else:
+        Rdt = data['mcal_dt_Rnoise'].mean(axis=0)
+        Rdt_psf = data['mcal_dt_Rnoise_psf'].mean(axis=0)
 
     A = zeros( (2,2) )
     Apsf = zeros(2)
 
-    p='%s (%.3g +/- %.3g) + (%.3g +/ %.3g) x'
+    p='%s (%.3g +/- %.3g) + (%.3g +/ %.3g) deltan'
     for i in xrange(2):
         res = fitline(xvals, Rdt_psf[:,i])
         #Apsf[i] = res['slope']/2.0/noise0

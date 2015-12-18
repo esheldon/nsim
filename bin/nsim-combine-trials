@@ -43,6 +43,7 @@ def combine_trials_new(run, allow_missing=False, allow_mismatch=False):
     tmpfile=get_tmp_file(outfile)
     print('writing to temp file:',tmpfile)
 
+    nmissing=0
     with fitsio.FITS(tmpfile,mode="rw",clobber=True) as output:
 
         first=True
@@ -50,6 +51,7 @@ def combine_trials_new(run, allow_missing=False, allow_mismatch=False):
             f=nsim.files.get_output_url(run, 0, is2n, itrial=isplit, fs=fs)
             if allow_missing and not os.path.exists(f):
                 print("   missing file:",f)
+                nmissing += 1
                 continue
             print(f)
             t=fitsio.read(f)
@@ -63,6 +65,9 @@ def combine_trials_new(run, allow_missing=False, allow_mismatch=False):
                 first=False
             else:
                 output[-1].append(t)
+
+    if allow_missing:
+        print(nmissing,"were missing")
 
     print('moving to:',outfile)
     exit_code=os.system('mv -fv %s %s' % (tmpfile, outfile))

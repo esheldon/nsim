@@ -4,6 +4,7 @@ import sys
 import os
 import numpy
 from numpy import sqrt, array, diag, ones, zeros, where, newaxis
+from numpy import newaxis
 import biggles
 
 import fitsio
@@ -23,6 +24,8 @@ parser=argparse.ArgumentParser(formatter_class=fclass)
 parser.add_argument('run', help='run to use in fit')
 
 parser.add_argument('--weights',action='store_true')
+parser.add_argument('--s2n-soft',type=float,default=20)
+parser.add_argument('--cuts',action='store_true')
 
 parser.add_argument('--show',action='store_true',help='show plot')
 parser.add_argument('--sub-offset',action='store_true',help='subtract the offset')
@@ -37,25 +40,26 @@ parser.add_argument('--cache',action='store_true',
                           'if available'))
 
 
+default_columns=[
+    'shear_index',
+    'mcal_g',
+    'mcal_gpsf',
+    'mcal_R',
+    'mcal_Rpsf',
+    'mcal_dt_Rnoise',
+    'mcal_dt_Rnoise_psf',
+]
 
-def read_data(conf, dt_index=None, cache=False):
+
+def read_data(conf, args, cache=False, columns=default_columns):
 
     if cache:
-        return read_cached_data(conf, dt_index=dt_index)
+        return read_cached_data(conf,args)
 
-    chunksize=1000000
 
-    columns=[
-        'shear_index',
-        'mcal_g',
-        'mcal_gpsf',
-        'mcal_R',
-        'mcal_Rpsf',
-        'mcal_dt_Rnoise',
-        'mcal_dt_Rnoise_psf',
-    ]
-
-    if True:
+    if args.cuts:
+        print("making cuts")
+        print("reading cut fields only")
         t=nsim.files.read_output(conf['run'],
                                  0,
                                  columns=['mcal_s2n_r','mcal_R'])
@@ -67,12 +71,17 @@ def read_data(conf, dt_index=None, cache=False):
             & between(t['mcal_R'][:,1,1], -6.0, 2.0)
         )
         print("    kept: %d/%d" % (w.size,t.size))
+        print("reading subset")
+        print("reading columns:",columns)
         return nsim.files.read_output(conf['run'], 0, columns=columns, rows=w)
     else:
-        return nsim.files.read_output(conf['run'], 0, columns=columns)
-        #return nsim.files.read_output(conf['run'], 0, columns=columns, rows=numpy.arange(10000000))
+        print("reading columns:",columns)
+        return nsim.files.read_output(conf['run'], 0, columns=columns)#,
+                                      #rows=numpy.arange(10000000))
+
 
     '''
+    chunksize=1000000
     fname=files.get_output_url(conf['run'], 0, 0)
     with fitsio.FITS(fname) as fits:
         hdu = fits[1]
@@ -95,19 +104,15 @@ def read_data(conf, dt_index=None, cache=False):
             data['shear_index'][beg:beg+tdata.size] = tdata['shear_index']
             data['gpsf'][beg:beg+tdata.size] = tdata['mcal_gpsf']
 
-            if dt_index is not None:
-                data['g'][beg:beg+tdata.size] = tdata['mcal_dt_g'][:,dt_index,:]
-                data['R'][beg:beg+tdata.size] = tdata['mcal_dt_R'][:,dt_index,:,:]
-                data['Rpsf'][beg:beg+tdata.size] = tdata['mcal_dt_Rpsf'][:,dt_index,:]
-            else:
-                data['g'][beg:beg+tdata.size] = tdata['mcal_g'][:,:]
-                data['R'][beg:beg+tdata.size] = tdata['mcal_R'][:,:,:]
-                data['Rpsf'][beg:beg+tdata.size] = tdata['mcal_Rpsf'][:,:]
-        
+            data['g'][beg:beg+tdata.size] = tdata['mcal_g'][:,:]
+            data['R'][beg:beg+tdata.size] = tdata['mcal_R'][:,:,:]
+            data['Rpsf'][beg:beg+tdata.size] = tdata['mcal_Rpsf'][:,:]
+
             beg += tdata.size
 
     return data
     '''
+
 def get_cache_file(conf):
     tdir=os.environ['TMPDIR']
     tfile= nsim.files.get_output_url(conf['run'], 0, 0)
@@ -116,16 +121,23 @@ def get_cache_file(conf):
     tfile=os.path.join(tdir, tfile)
     return tfile
 
-def read_cached_data(conf, dt_index=None):
+def read_cached_data(conf, args):
 
-    tfile=get_cache_file(conf['run'])
+    tfile=get_cache_file(conf)
 
     if os.path.exists(tfile):
         print("reading cache:",tfile)
-        data=fitsio.read(tfile, dt_index=dt_index)
+
+        columns=default_columns
+        if args.weights:
+            columns.append('mcal_s2n_r')
+        print("reading columns:",columns)
+        data=fitsio.read(tfile,columns=columns)
 
     else:
-        data=read_data(conf, dt_index=dt_index)
+        columns = default_columns
+        columns.append('mcal_s2n_r')
+        data=read_data(conf,args, columns=columns)
         print("writing cache:",tfile)
         fitsio.write(tfile, data, clobber=True)
 
@@ -591,9 +603,8 @@ def print_shear(ind, num, shear, shear_err):
 def get_averages(conf, args, data, show_progress=True):
 
     if args.weights:
-        weights=get_s2n_weights(data['mcal_s2n_r'])
-    else:
-        weights=None
+        return get_averages_weighted(conf, args, data,
+                                     show_progress=show_progress)
 
     sconf=conf['simc']
     shears = sconf['shear']['shears']
@@ -604,21 +615,27 @@ def get_averages(conf, args, data, show_progress=True):
     g=data['mcal_g']
     gpsf=data['mcal_gpsf']
 
-    #R, R_err, Rpsf, Rpsf_err = get_R_poly_old(conf, args, data)
-    #Rinv = numpy.linalg.inv(R)
     R=data['mcal_R']
     Rpsf=data['mcal_Rpsf']
 
-    #Rnoise, Rnoise_psf = get_Rnoise_numpy_poly(conf, args, data)
-    #Rnoise, Rnoise_psf = get_Rnoise_quad(conf, args, data)
-    #Rnoise, Rnoise_psf = get_Rnoise_poly(conf, args, data)
-    Rnoise, Rnoise_psf = get_Rnoise_line(conf, args, data, weights=weights)
+    Rnoise, Rnoise_psf = get_Rnoise_line(conf, args, data)
 
     Rmean = R.mean(axis=0)
     Rpsf_mean = Rpsf.mean(axis=0)
 
-    #R -= Rnoise
-    #Rpsf -= Rnoise_psf
+    '''
+    print("Rmean:")
+    print(Rmean)
+    print("Rpsf_mean:")
+    print(Rpsf_mean)
+
+    print("Rnoise:")
+    print(Rnoise)
+    print("Rnoise_psf:")
+    print(Rnoise_psf)
+    '''
+
+
     Rmean -= Rnoise
     Rpsf_mean -= Rnoise_psf
     Rinv = numpy.linalg.inv(Rmean)
@@ -633,10 +650,6 @@ def get_averages(conf, args, data, show_progress=True):
 
         shear_true = shears[i]
 
-        #Rmean = R[w].mean(axis=0)
-        #Rinv = numpy.linalg.inv(Rmean)
-
-        #psf_corr  = (gpsf[w]*Rpsf[w]).mean(axis=0)
         psf_corr  = (gpsf[w]*Rpsf_mean).mean(axis=0)
 
         gmean     = g[w].mean(axis=0)
@@ -649,6 +662,86 @@ def get_averages(conf, args, data, show_progress=True):
         means['shear_true'][i] = shear_true
 
     return means
+
+def get_averages_weighted(conf, args, data, show_progress=True):
+
+    print("using weights")
+    weights=get_s2n_weights(data['mcal_s2n_r'], args)
+    wsum=weights.sum()
+    #wna1=weights[:,newaxis]
+    #wna2=weights[:,newaxis,newaxis]
+
+    sconf=conf['simc']
+    shears = sconf['shear']['shears']
+
+    h,rev = eu.stat.histogram(data['shear_index'], rev=True)
+    nind = h.size
+
+    g=data['mcal_g']
+    gpsf=data['mcal_gpsf']
+
+    R=data['mcal_R']
+    Rpsf=data['mcal_Rpsf']
+
+    print("getting Rnoise")
+    Rnoise, Rnoise_psf = get_Rnoise_line(conf, args, data, weights=weights)
+
+    print("calculating Rmean")
+    Rmean = numpy.zeros( (2,2) )
+    Rpsf_mean = numpy.zeros(2)
+    for i in xrange(2):
+        Rpsf_mean[i] = (Rpsf[:,i]*weights).sum()/wsum
+        for j in xrange(2):
+            Rmean[i,j] = (R[:,i,j]*weights).sum()/wsum
+
+    '''
+    print("Rmean:")
+    print(Rmean)
+    print("Rpsf_mean:")
+    print(Rpsf_mean)
+
+    print("Rnoise:")
+    print(Rnoise)
+    print("Rnoise_psf:")
+    print(Rnoise_psf)
+    '''
+
+
+    Rmean = Rmean - Rnoise
+    Rpsf_mean = Rpsf_mean - Rnoise_psf
+
+    Rinv = numpy.linalg.inv(Rmean)
+
+    means=get_mean_struct(nind)
+
+    print("getting shears for each shear_index")
+    gmean=numpy.zeros(2)
+    psf_corr=numpy.zeros(2)
+    for i in xrange(nind):
+        if show_progress:
+            print("shear index:",i)
+
+        w=rev[ rev[i]:rev[i+1] ]
+
+        shear_true = shears[i]
+
+        twsum = weights[w].sum()
+        for j in xrange(2):
+            psf_corr[j]  = Rpsf_mean[j]*(gpsf[w,j]*weights[w]).sum()/twsum
+            gmean[j]     = (g[w,j]*weights[w]).sum()/twsum
+
+        shear = numpy.dot(Rinv, gmean-psf_corr)
+
+        # wrong, but won't get used anyway
+        shear_err = g[w].std(axis=0)/numpy.sqrt(w.size)
+        shear_err = numpy.dot(Rinv, shear_err)
+
+        means['shear'][i] = shear
+        means['shear_err'][i] = shear_err
+        means['shear_true'][i] = shear_true
+
+    return means
+
 
 def print_m_c(sindex, m, merr, c, cerr, r=None):
     fmt = '  m{i}: %.3e +/- %.3e c{i}: %.3e +/- %.3e'.format(i=sindex)
@@ -665,7 +758,6 @@ def fit_m_c(data, doprint=True):
 
     strue = data['shear_true']
     sdiff = data['shear'] - data['shear_true']
-    #serr = data['shear_err']
 
     m = numpy.zeros(2)
     merr = numpy.zeros(2)
@@ -678,41 +770,17 @@ def fit_m_c(data, doprint=True):
                                ('cerr','f8',2),
                                ('r','f8',2)])
     for i in [0,1]:
-        w,=numpy.where(strue[:,i] != 0.0)
-        if w.size == 0:
-            print("shear is zero, mean for all is")
-            m,e=eu.stat.wmom(data['shear'][:,i],
-                             1.0/data['shear_err'][:,i]**2,
-                             calc_err=True)
-            print("s%d: %.3e +/- %.3e" % (i+1,m,e))
-        else:
-            if True:
-                res = fitline(strue[:,i], sdiff[:,i])
-                r = res['cov']/sqrt(res['slope_err']**2 * res['offset_err']**2)
-                fits['m'][0,i] = res['slope']
-                fits['merr'][0,i] = res['slope_err']
-                fits['c'][0,i] = res['offset']
-                fits['cerr'][0,i] = res['offset_err']
-                fits['r'][0,i] = r
+        res = fitline(strue[:,i], sdiff[:,i])
+        r = res['cov']/sqrt(res['slope_err']**2 * res['offset_err']**2)
+        fits['m'][0,i] = res['slope']
+        fits['merr'][0,i] = res['slope_err']
+        fits['c'][0,i] = res['offset']
+        fits['cerr'][0,i] = res['offset_err']
+        fits['r'][0,i] = r
 
-                if doprint:
-                    print_m_c(i+1, res['slope'],res['slope_err'],
-                              res['offset'],res['offset_err'], r=r)
-            else:
-                fit = fitting.fit_line(strue[:,i],
-                                       sdiff[:,i],
-                                       yerr=serr[:,i])
-                res = fit.get_result()
-                p=res['pars']
-                perr=res['perr']
-
-                if doprint:
-                    print_m_c(i+1, p[0],perr[0],p[1],perr[1])
-
-                fits['m'][0,i] = p[0]
-                fits['merr'][0,i] = perr[0]
-                fits['c'][0,i] = p[1]
-                fits['cerr'][0,i] = perr[1]
+        if doprint:
+            print_m_c(i+1, res['slope'],res['slope_err'],
+                      res['offset'],res['offset_err'], r=r)
 
     return fits
 
@@ -886,13 +954,13 @@ def get_R_poly_old(conf, args, data):
     return R, R_err, Rpsf, Rpsf_err
 
 
-S2N0=20.0
-def get_s2n_weight(s2n):
-    wts = 1.0/(1.0 + (S2N_SOFT/s2n)**2 )
+def get_s2n_weights(s2n, args):
+    #return numpy.ones(s2n.size)
+    print("s2n soft:",args.s2n_soft)
+    wts = 1.0/(1.0 + (args.s2n_soft/s2n)**2 )
     return wts
 
 def get_Rnoise_line(conf, args, data, weights=None):
-    from numpy import newaxis
 
     noise0 = conf['noise']
     target_noises = array( conf['target_noises'] )
@@ -901,11 +969,33 @@ def get_Rnoise_line(conf, args, data, weights=None):
 
     if weights is not None:
         wsum=weights.sum()
-        wna1=weights[:,newaxis]
-        wna2=weights[:,newaxis,newaxis]
-        
-        Rdt = (data['mcal_dt_Rnoise']*wna2).sum(axis=0)/wsum
-        Rdt_psf = (data['mcal_dt_Rnoise_psf']*wna1).sum(axis=0)/wsum
+        #wna1=weights[:,newaxis]
+        #wna2=weights[:,newaxis,newaxis]
+        #wna3=weights[:,newaxis,newaxis,newaxis]
+
+        R = data['mcal_dt_Rnoise']
+        Rpsf = data['mcal_dt_Rnoise_psf']
+        Rshape=R.shape[1:]
+        Rpsf_shape=Rpsf.shape[1:]
+
+        Rdt = numpy.zeros(Rshape)
+        Rdt_psf = numpy.zeros(Rpsf_shape)
+
+        for i in xrange(Rshape[0]):
+            for j in xrange(Rshape[1]):
+                for k in xrange(Rshape[2]):
+                    Rdt[i,j,k] = (R[:,i,j,k]*weights).sum()/wsum
+
+        for i in xrange(Rpsf_shape[0]):
+            for j in xrange(Rpsf_shape[1]):
+                Rdt_psf[i,j] = (Rpsf[:,i,j]*weights).sum()/wsum
+
+
+        #Rdt = (data['mcal_dt_Rnoise']*wna3).sum(axis=0)/wsum
+        #Rdt_psf = (data['mcal_dt_Rnoise_psf']*wna2).sum(axis=0)/wsum
+
+        #Rdt = eu.stat.wmom(data['mcal_dt_Rnoise'], weights)
+        #Rdt_psf = eu.stat.wmom(data['mcal_dt_Rnoise_psf'], weights)
 
     else:
         Rdt = data['mcal_dt_Rnoise'].mean(axis=0)
@@ -1397,30 +1487,10 @@ def main():
 
     n_target_noise = len(conf['target_noises'])
 
-    data=read_data(conf, cache=args.cache)
+    data=read_data(conf, args, cache=args.cache)
 
     means = get_averages(conf, args, data, show_progress=False)
     fits=fit_m_c(means)
     doplot(args, means, fits)
-
-    '''
-    all_means=[]
-    means = get_averages(conf, data, show_progress=False)
-    fits=fit_m_c(means)
-    all_means.append(means)
-
-    target_means = []
-    for i in xrange(n_target_noise):
-        data=read_data(conf, cache=args.cache, dt_index=i)
-        means = get_averages(conf, data, show_progress=False)
-        fits=fit_m_c(means)
-
-        all_means.append(means)
-
-    means = correct_means(conf, all_means, args)
-
-    fits=fit_m_c(means)
-    doplot(args, means, fits)
-    '''
 
 main()

@@ -60,6 +60,6 @@ max_pars:
 ngal: 500000
 
 desired_hours: 0.25
-sec_per: 1.67
+sec_per: 1.0
 
 verbose: False

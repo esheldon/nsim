@@ -690,12 +690,10 @@ class MaxMetacalFitter(MaxFitter):
         """
 
         super(MaxMetacalFitter,self)._print_res(res)
-        print("    mcal s2n_r:",res['mcal_s2n_r'],'mcal s2n_simple:',res['mcal_s2n_simple'])
+        print("    mcal s2n_r:",res['mcal_s2n_r'])
         print_pars(res['mcal_pars'],       front='    mcal pars: ')
         print_pars(res['mcal_R'].ravel(),  front='    mcal R:    ')
         print_pars(res['mcal_Rpsf'],       front='    mcal Rpsf: ')
-
-        print("    mcal c:",res['mcal_c'][0], res['mcal_c'][1])
 
     def _get_dtype(self):
         """
@@ -710,9 +708,7 @@ class MaxMetacalFitter(MaxFitter):
             ('mcal_g','f8',2),
             ('mcal_g_cov','f8', (2,2) ),
             ('mcal_g_noshear','f8',2),
-            ('mcal_c','f8',2),
             ('mcal_s2n_r','f8'),
-            ('mcal_s2n_simple','f8'),
             ('mcal_R','f8',(2,2)),
             ('mcal_Rpsf','f8',2),
             ('mcal_gpsf','f8',2),
@@ -733,10 +729,8 @@ class MaxMetacalFitter(MaxFitter):
         d['mcal_g'][i] = res['mcal_g']
         d['mcal_g_cov'][i] = res['mcal_g_cov']
         d['mcal_s2n_r'][i] = res['mcal_s2n_r']
-        d['mcal_s2n_simple'][i] = res['mcal_s2n_simple']
 
         d['mcal_g_noshear'][i] = res['mcal_pars_noshear'][2:2+2]
-        d['mcal_c'][i] = res['mcal_c']
 
         d['mcal_R'][i] = res['mcal_R']
         d['mcal_Rpsf'][i] = res['mcal_Rpsf']
@@ -798,6 +792,7 @@ class MaxMetacalDetrendFitter(MaxMetacalFitter):
         noise_image1 = self.random_state.normal(loc=0.0,
                                                 scale=1.0,
                                                 size=im.shape)
+        Rnoise_types=['1p','1m','2p','2m']
         for i in xrange(len(self['target_noises'])):
             try:
                 target_noise=self['target_noises'][i]
@@ -820,6 +815,7 @@ class MaxMetacalDetrendFitter(MaxMetacalFitter):
 
                 mcal_obs_before = ngmix.metacal.get_all_metacal(
                     obs_before,
+                    types=Rnoise_types,
                     **self['metacal_pars']
                 )
                 self._do_metacal(boot, metacal_obs=mcal_obs_before)
@@ -829,7 +825,8 @@ class MaxMetacalDetrendFitter(MaxMetacalFitter):
                 # just add noise to the existing metacal observations
                 #
                 mcal_obs_after = {}
-                for key in obs_dict:
+                #for key in obs_dict:
+                for key in Rnoise_types:
                     mo=obs_dict[key]
                     o=mo[0][0]
                     tobs = Observation(o.image + noise_image,
@@ -878,13 +875,6 @@ class MaxMetacalDetrendFitter(MaxMetacalFitter):
             dtres=res['dt_results'][idt]
 
             d['mcal_dt_Rnoise'][i,idt,:,:] = dtres['mcal_Rnoise']
-            d['mcal_dt_Rnoise_psf'][i,idt,:] = dtres['mcal_Rnoise_psf']
-
-            #d['mcal_dt_R_before'][i,idt,:,:] = dtres['mcal_R_before']
-            #d['mcal_dt_R_after'][i,idt,:,:] = dtres['mcal_R_after']
-            #d['mcal_dt_Rpsf_before'][i,idt,:] = dtres['mcal_Rpsf_before']
-            #d['mcal_dt_Rpsf_after'][i,idt,:] = dtres['mcal_Rpsf_after']
-
 
     def _get_dtype(self):
         """
@@ -896,11 +886,6 @@ class MaxMetacalDetrendFitter(MaxMetacalFitter):
 
         dt += [
             ('mcal_dt_Rnoise','f8',(ndt,2,2)),
-            ('mcal_dt_Rnoise_psf','f8',(ndt,2)),
-            #('mcal_dt_R_before','f8',(ndt,2,2)),
-            #('mcal_dt_R_after','f8',(ndt,2,2)),
-            #('mcal_dt_Rpsf_before','f8',(ndt,2)),
-            #('mcal_dt_Rpsf_after','f8',(ndt,2)),
         ]
         return dt
 
@@ -1312,7 +1297,7 @@ class MaxMetanoiseFitter(MaxMetacalFitter):
         """
 
         super(MaxMetanoiseFitter,self)._print_res(res)
-        print("    mnoise s2n_r:",res['mnoise_s2n_r'],'mnoise s2n_simple:',res['mnoise_s2n_simple'])
+        print("    mnoise s2n_r:",res['mnoise_s2n_r'])
         print_pars(res['mnoise_pars'],       front='    mnoise pars: ')
         print_pars(res['mnoise_R'].ravel(),  front='    mnoise R:    ')
         print_pars(res['mnoise_Rpsf'],       front='    mnoise Rpsf: ')
@@ -1335,7 +1320,6 @@ class MaxMetanoiseFitter(MaxMetacalFitter):
             ('mnoise_g_noshear','f8',2),
             ('mnoise_c','f8',2),
             ('mnoise_s2n_r','f8'),
-            ('mnoise_s2n_simple','f8'),
             ('mnoise_R','f8',(2,2)),
             ('mnoise_Rpsf','f8',2),
             ('mnoise_gpsf','f8',2),
@@ -1356,7 +1340,6 @@ class MaxMetanoiseFitter(MaxMetacalFitter):
         d['mnoise_g'][i] = res['mnoise_g']
         d['mnoise_g_cov'][i] = res['mnoise_g_cov']
         d['mnoise_s2n_r'][i] = res['mnoise_s2n_r']
-        d['mnoise_s2n_simple'][i] = res['mnoise_s2n_simple']
 
         d['mnoise_g_noshear'][i] = res['mnoise_pars_noshear'][2:2+2]
         d['mnoise_c'][i] = res['mnoise_c']
@@ -1531,7 +1514,7 @@ class PostcalFitter(MaxFitter):
 
     def _extract_postcal_responses(self, fits):
         """
-        pars pars_cov gpsf, s2n_r, s2n_simple, T_r, psf_T_r required
+        pars pars_cov gpsf, s2n_r, T_r, psf_T_r required
 
         expect the shape to be in pars[2] and pars[3]
         """
@@ -1588,7 +1571,6 @@ class PostcalFitter(MaxFitter):
             #'pcal_Rpsf':Rpsf,
             #'pcal_gpsf':fits['gpsf'],
             'pcal_s2n_r':s2n_r_mean,
-            #'pcal_s2n_simple':fits['s2n_simple'],
         }
         return res
 

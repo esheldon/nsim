@@ -618,26 +618,14 @@ def get_averages(conf, args, data, show_progress=True):
     R=data['mcal_R']
     Rpsf=data['mcal_Rpsf']
 
-    Rnoise, Rnoise_psf = get_Rnoise_line(conf, args, data)
+    #Rnoise, Rnoise_psf = get_Rnoise_line(conf, args, data)
+    Rnoise = get_Rnoise_line(conf, args, data)
 
     Rmean = R.mean(axis=0)
     Rpsf_mean = Rpsf.mean(axis=0)
 
-    '''
-    print("Rmean:")
-    print(Rmean)
-    print("Rpsf_mean:")
-    print(Rpsf_mean)
-
-    print("Rnoise:")
-    print(Rnoise)
-    print("Rnoise_psf:")
-    print(Rnoise_psf)
-    '''
-
-
     Rmean -= Rnoise
-    Rpsf_mean -= Rnoise_psf
+    #Rpsf_mean -= Rnoise_psf
     Rinv = numpy.linalg.inv(Rmean)
 
     means=get_mean_struct(nind)
@@ -684,7 +672,8 @@ def get_averages_weighted(conf, args, data, show_progress=True):
     Rpsf=data['mcal_Rpsf']
 
     print("getting Rnoise")
-    Rnoise, Rnoise_psf = get_Rnoise_line(conf, args, data, weights=weights)
+    #Rnoise, Rnoise_psf = get_Rnoise_line(conf, args, data, weights=weights)
+    Rnoise = get_Rnoise_line(conf, args, data, weights=weights)
 
     print("calculating Rmean")
     Rmean = numpy.zeros( (2,2) )
@@ -694,21 +683,8 @@ def get_averages_weighted(conf, args, data, show_progress=True):
         for j in xrange(2):
             Rmean[i,j] = (R[:,i,j]*weights).sum()/wsum
 
-    '''
-    print("Rmean:")
-    print(Rmean)
-    print("Rpsf_mean:")
-    print(Rpsf_mean)
-
-    print("Rnoise:")
-    print(Rnoise)
-    print("Rnoise_psf:")
-    print(Rnoise_psf)
-    '''
-
-
     Rmean = Rmean - Rnoise
-    Rpsf_mean = Rpsf_mean - Rnoise_psf
+    #Rpsf_mean = Rpsf_mean - Rnoise_psf
 
     Rinv = numpy.linalg.inv(Rmean)
 
@@ -974,21 +950,21 @@ def get_Rnoise_line(conf, args, data, weights=None):
         #wna3=weights[:,newaxis,newaxis,newaxis]
 
         R = data['mcal_dt_Rnoise']
-        Rpsf = data['mcal_dt_Rnoise_psf']
+        #Rpsf = data['mcal_dt_Rnoise_psf']
         Rshape=R.shape[1:]
-        Rpsf_shape=Rpsf.shape[1:]
+        #Rpsf_shape=Rpsf.shape[1:]
 
         Rdt = numpy.zeros(Rshape)
-        Rdt_psf = numpy.zeros(Rpsf_shape)
+        #Rdt_psf = numpy.zeros(Rpsf_shape)
 
         for i in xrange(Rshape[0]):
             for j in xrange(Rshape[1]):
                 for k in xrange(Rshape[2]):
                     Rdt[i,j,k] = (R[:,i,j,k]*weights).sum()/wsum
 
-        for i in xrange(Rpsf_shape[0]):
-            for j in xrange(Rpsf_shape[1]):
-                Rdt_psf[i,j] = (Rpsf[:,i,j]*weights).sum()/wsum
+        #for i in xrange(Rpsf_shape[0]):
+        #    for j in xrange(Rpsf_shape[1]):
+        #        Rdt_psf[i,j] = (Rpsf[:,i,j]*weights).sum()/wsum
 
 
         #Rdt = (data['mcal_dt_Rnoise']*wna3).sum(axis=0)/wsum
@@ -999,15 +975,15 @@ def get_Rnoise_line(conf, args, data, weights=None):
 
     else:
         Rdt = data['mcal_dt_Rnoise'].mean(axis=0)
-        Rdt_psf = data['mcal_dt_Rnoise_psf'].mean(axis=0)
+        #Rdt_psf = data['mcal_dt_Rnoise_psf'].mean(axis=0)
 
     A = zeros( (2,2) )
-    Apsf = zeros(2)
+    #Apsf = zeros(2)
 
     p='%s (%.3g +/- %.3g) + (%.3g +/ %.3g) deltan'
     for i in xrange(2):
+        '''
         res = fitline(xvals, Rdt_psf[:,i])
-        #Apsf[i] = res['slope']/2.0/noise0
         Apsf[i] = res['slope']
 
         plot_line_fit(
@@ -1017,6 +993,7 @@ def get_Rnoise_line(conf, args, data, weights=None):
             r'$2 n \Delta n$',
             r'$\Delta R^{PSF}_%d$' % (i+1),
         )
+        '''
 
         for j in xrange(2):
             res = fitline(xvals, Rdt[:,i,j])
@@ -1039,9 +1016,10 @@ def get_Rnoise_line(conf, args, data, weights=None):
             )
 
     Rnoise = A*noise0**2
-    Rnoise_psf = Apsf*noise0**2 
+    #Rnoise_psf = Apsf*noise0**2 
 
-    return Rnoise, Rnoise_psf
+    #return Rnoise, Rnoise_psf
+    return Rnoise
 
 def plot_line_fit(args, extra, x, y, res, xlabel, ylabel):
     plt=biggles.FramedPlot()

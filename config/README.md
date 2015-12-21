@@ -739,6 +739,11 @@ moments
             m2: -6.523e-03 +/- 9.224e-03 c2: 2.651e-04 +/- 3.200e-04  r2: -0.00774
 
 
+- sim-bd16
+    - same as bd12 but psf is round on average
+    - run-bd16mcal-dt-t01
+        - 500,000
+
 - sim-bd02
 - sim-bd02z
     - round gaussian psf, r50=1.5 same

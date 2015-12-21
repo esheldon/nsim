@@ -47,7 +47,7 @@ default_columns=[
     'mcal_R',
     'mcal_Rpsf',
     'mcal_dt_Rnoise',
-    'mcal_dt_Rnoise_psf',
+    #'mcal_dt_Rnoise_psf',
 ]
 
 

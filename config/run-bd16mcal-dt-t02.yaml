@@ -1,0 +1,63 @@
+run: "run-bd16mcal-dt-t02"
+sim: "sim-bd16"
+
+ngmix_hash: "7cf206b86f5c00564fdfd1aaa5bd391a47c875ac"
+nsim_hash: "7f1a606c76e8f6cc4ee7c87169f1c187ac846bc1"
+
+fitter: "metacal-max-detrend"
+fit_model: "gauss"
+
+g_prior_during: True
+use_logpars: True
+
+noise: 0.60
+
+# factors [ 1.00714286,  1.01428571,  1.02142857]
+target_noises: [ 0.60428572,  0.60857143,  0.61285714]
+
+global_seed: 20607
+
+metacal_pars:
+    step: 0.01
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    T:
+        type: "gmixnd"
+        run: "run-bd16zmax-lownoise01"
+        extra: "log_T"
+        cov_factor: 1.44
+
+    counts:
+        type: "gmixnd"
+        run: "run-bd16zmax-lownoise01"
+        extra: "log_F"
+        cov_factor: 1.44
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+ngal: 10000000
+
+desired_hours: 1.0
+sec_per: 1.0
+
+verbose: False

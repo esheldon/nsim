@@ -1,5 +1,5 @@
 # super difficult, like 12 but with psf round on average
-# so I can run gaussians for the psf
+# so I can run gaussians for the psf for speed
 name: "sim-bd16"
 
 simulator: "galsim"

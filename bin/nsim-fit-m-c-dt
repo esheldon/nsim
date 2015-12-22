@@ -938,7 +938,7 @@ def get_s2n_weights(s2n, args):
 
 def get_Rnoise_line(conf, args, data, weights=None):
 
-    noise0 = conf['noise']
+    noise0 = conf['simc']['noise']
     factors=array(conf['detrend_factors'])
     target_noises = noise0*factors
     ndiff = target_noises - noise0
@@ -1463,8 +1463,6 @@ def main():
 
     conf = nsim.files.read_config(args.run)
     conf['simc'] = nsim.files.read_config(conf['sim'])
-
-    n_target_noise = len(conf['target_noises'])
 
     data=read_data(conf, args, cache=args.cache)
 

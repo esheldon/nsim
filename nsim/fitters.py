@@ -770,15 +770,18 @@ class MaxMetacalFitter(MaxFitter):
 
 class MaxMetacalDetrendFitter(MaxMetacalFitter):
 
-    def __init__(self, *args, **kw):
-        super(MaxMetacalDetrendFitter,self).__init__(*args, **kw)
+    def __init__(self, sim, run_conf, ngal, **keys):
+        run_conf['detrend_factors'] = array(run_conf['detrend_factors'])
+        run_conf['target_noises'] = run_conf['noise']*run_conf['detrend_factors']
+
+        super(MaxMetacalDetrendFitter,self).__init__(
+            sim, run_conf, ngal, **keys
+        )
 
         sim_seed = self.sim['seed']
         rs_seed = sim_seed + 35
         self.random_state=numpy.random.RandomState(rs_seed)
 
-        self['detrend_factors'] = array(self['detrend_factors'])
-        self['target_noises'] = self['noise']*self['detrend_factors']
 
     def _do_fits(self, oobs):
         res=super(MaxMetacalDetrendFitter,self)._do_fits(oobs)

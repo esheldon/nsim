@@ -1,3 +1,5 @@
+# low noise, zero shear sim, with same galaxy parameters
+# as bd16
 name: "sim-bd16z"
 
 simulator: "galsim"
@@ -5,6 +7,7 @@ simulator: "galsim"
 # these sims are never rings
 do_ring: False
 
+noise: 0.001
 
 stamp_size: [48,48]
 

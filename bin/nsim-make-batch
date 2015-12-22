@@ -32,13 +32,12 @@ echo "working on host: $(hostname)"
 uptime
 
 command=%(master_script)s
-noise=%(noise)g
 ngal=%(ngal_per)s
 output="%(output)s"
 logfile="%(logfile)s"
 seed=%(seed)s
 
-${command} ${noise} ${ngal} ${output} ${logfile} ${seed}
+${command} ${ngal} ${output} ${logfile} ${seed}
 """
 
 
@@ -49,7 +48,7 @@ function runsim {
     echo "will write to file: $output"
 
     command=%(command)s
-    ${command} --seed ${seed} ${run} ${noise} ${ngal} ${output}
+    ${command} --seed ${seed} ${run} ${ngal} ${output}
     status=$?
 
     echo "time: $SECONDS"
@@ -61,11 +60,10 @@ function runsim {
     return $status
 }
 
-noise=$1
-ngal=$2
-output=$3
-logfile=$4
-seed=$5
+ngal=$1
+output=$2
+logfile=$3
+seed=$4
 
 run=%(run)s
 
@@ -107,12 +105,11 @@ command: |
     . $HOME/shell_scripts/nsim2-prepare.sh
 
     command=%(master_script)s
-    noise=%(noise)g
     ngal=%(ngal_per)s
     output="%(output)s"
     logfile="%(logfile)s"
     seed=%(seed)d
-    ${command} ${noise} ${ngal} ${output} ${logfile} ${seed}
+    ${command} ${ngal} ${output} ${logfile} ${seed}
     
 job_name: "%(job_name)s"
 """
@@ -124,7 +121,7 @@ function runsim {
     echo "will write to file: $output"
 
     command=%(command)s
-    ${command} --seed ${seed} ${run} ${noise} ${ngal} ${output}
+    ${command} --seed ${seed} ${run} ${ngal} ${output}
     status=$?
 
     echo "time: $SECONDS"
@@ -137,11 +134,10 @@ function runsim {
 }
 
 
-noise=$1
-ngal=$2
-output=$3
-logfile=$4
-seed=$5
+ngal=$1
+output=$2
+logfile=$3
+seed=$4
 
 run=%(run)s
 
@@ -187,7 +183,6 @@ echo "working on host: $(hostname)"
 slr_pad_id=$(printf '%%06d' $SLURM_ARRAY_TASK_ID)
 
 run=%(run)s
-noise=%(noise)s
 ngal=%(ngal_per)s
 output=%(output)s
 seed=%(seed)d
@@ -201,7 +196,6 @@ echo "will write to file: $output"
 nsim-run           \\
         --seed $seed \\
         $run       \\
-        $noise     \\
         $ngal      \\
         $output
 status=$?

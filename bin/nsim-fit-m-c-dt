@@ -939,7 +939,8 @@ def get_s2n_weights(s2n, args):
 def get_Rnoise_line(conf, args, data, weights=None):
 
     noise0 = conf['noise']
-    target_noises = array( conf['target_noises'] )
+    factors=array(conf['detrend_factors'])
+    target_noises = noise0*factors
     ndiff = target_noises - noise0
     xvals = 2*noise0*ndiff
 

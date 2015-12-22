@@ -772,7 +772,7 @@ class MaxMetacalDetrendFitter(MaxMetacalFitter):
 
     def __init__(self, sim, run_conf, ngal, **keys):
         run_conf['detrend_factors'] = array(run_conf['detrend_factors'])
-        run_conf['target_noises'] = run_conf['noise']*run_conf['detrend_factors']
+        run_conf['target_noises'] = sim['noise']*run_conf['detrend_factors']
 
         super(MaxMetacalDetrendFitter,self).__init__(
             sim, run_conf, ngal, **keys
@@ -792,7 +792,7 @@ class MaxMetacalDetrendFitter(MaxMetacalFitter):
         im=oobs.image
         wt=oobs.weight
 
-        sim_noise=self['noise']
+        sim_noise=self.sim['noise']
         new_results=[]
 
         noise_image1 = self.random_state.normal(loc=0.0,

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-    %prog run s2n_or_noise npairs output_file
+    %prog run npairs output_file
 
 for some sims npair might just be ngal
 """
@@ -17,7 +17,6 @@ from argparse import ArgumentParser
 parser=ArgumentParser(__doc__)
 
 parser.add_argument('run',help="run")
-parser.add_argument('noise',type=float,help="noise to use")
 parser.add_argument('ngal',type=int,help="number to simulate")
 parser.add_argument('output_file',help="output file to write")
 parser.add_argument('--seed',type=int,help="seed to use")
@@ -53,14 +52,14 @@ def cleanup_checkpoint(checkpoint_file):
         print('removing checkpoint file',checkpoint_file)
         os.remove(checkpoint_file)
 
-def profile_sim(sim_conf,run_conf,s2n_or_noise,npairs,output_file,args):
+def profile_sim(sim_conf,run_conf,npairs,output_file,args):
     # don't want to see the JIT
     import cProfile
     import pstats
 
     import ngmix
 
-    cProfile.runctx('run_sim(sim_conf,run_conf,s2n_or_noise,npairs,output_file,args)',
+    cProfile.runctx('run_sim(sim_conf,run_conf,npairs,output_file,args)',
                     globals(),locals(),
                     'profile_stats')
     
@@ -68,7 +67,7 @@ def profile_sim(sim_conf,run_conf,s2n_or_noise,npairs,output_file,args):
     p.sort_stats('time').print_stats()
 
 
-def profile_sim_pycallgraph(sim_conf,run_conf,s2n_or_noise,npairs,output_file,args):
+def profile_sim_pycallgraph(sim_conf,run_conf,npairs,output_file,args):
     # pycallgraph doesn't like it when the JIT starts up
     import ngmix
 
@@ -83,24 +82,22 @@ def profile_sim_pycallgraph(sim_conf,run_conf,s2n_or_noise,npairs,output_file,ar
     config=pycallgraph.Config(groups=False)
 
     with PyCallGraph(config=config, output=graphviz):
-        run_sim(sim_conf,run_conf,s2n_or_noise,npairs,output_file,args)
+        run_sim(sim_conf,run_conf,npairs,output_file,args)
 
 
 def run_sim(sim_conf,
             run_conf,
-            s2n_or_noise,
             npairs,
             output_file,
             args):
 
 
     simtype=sim_conf.get('simulator','ngmix')
+
     if simtype=='ngmix':
+        raise RuntimeError("convert to new system")
         sim=nsim.sim.NGMixSim(sim_conf, s2n_or_noise)
     else:
-
-        # in this case the parameter on the command line is the sky noise
-        sim_conf['noise'] = s2n_or_noise
         
         if args.seed is not None:
             #import numpy
@@ -230,20 +227,18 @@ def run_sim(sim_conf,
 def main():
     args=parser.parse_args()
 
-    s2n_or_noise=args.noise
-
     print('reading config files')
     run_conf = nsim.files.read_config(args.run)
     sim_conf = nsim.files.read_config(run_conf['sim'])
 
     if args.profile_image is not None:
         print('profiling sim with pycallgraph')
-        profile_sim_pycallgraph(sim_conf,run_conf,s2n_or_noise,args.ngal,args.output_file,args)
+        profile_sim_pycallgraph(sim_conf,run_conf,args.ngal,args.output_file,args)
     elif args.profile:
         print('profiling sim with cProfile')
-        profile_sim(sim_conf,run_conf,s2n_or_noise,args.ngal,args.output_file,args)
+        profile_sim(sim_conf,run_conf,args.ngal,args.output_file,args)
     else:
         print('running sim')
-        run_sim(sim_conf,run_conf,s2n_or_noise,args.ngal,args.output_file,args)
+        run_sim(sim_conf,run_conf,args.ngal,args.output_file,args)
 
 main()

@@ -10,11 +10,10 @@ fit_model: "gauss"
 g_prior_during: True
 use_logpars: True
 
-noise: 1.0
-
+# we detrend at noise levels sim['noise']*detrend_factors
 detrend_factors: [ 1.00714286,  1.01428571,  1.02142857 ]
 
-global_seed: 19997
+global_seed: 19993
 
 metacal_pars:
     step: 0.01

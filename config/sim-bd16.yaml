@@ -7,6 +7,8 @@ simulator: "galsim"
 # these sims are never rings
 do_ring: False
 
+# going for mode around 10
+noise: 1.0
 
 stamp_size: [48,48]
 

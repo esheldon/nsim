@@ -777,6 +777,9 @@ class MaxMetacalDetrendFitter(MaxMetacalFitter):
         rs_seed = sim_seed + 35
         self.random_state=numpy.random.RandomState(rs_seed)
 
+        self['detrend_factors'] = array(self['detrend_factors'])
+        self['target_noises'] = self['noise']*self['detrend_factors']
+
     def _do_fits(self, oobs):
         res=super(MaxMetacalDetrendFitter,self)._do_fits(oobs)
 

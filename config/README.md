@@ -743,6 +743,10 @@ moments
     - same as bd12 but psf is round on average
     - run-bd16mcal-dt-t01
         - 500,000
+        - looks fine
+    - run-bd16mcal-dt-t02
+        - messed up the noise: this is high s/n
+    - run-bd16mcal-dt01
 
 - sim-bd02
 - sim-bd02z

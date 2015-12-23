@@ -630,9 +630,6 @@ class MaxMetacalFitter(MaxFitter):
         try:
             boot.fit_psfs(ppars['model'], Tguess, ntry=ppars['ntry'],fit_pars=psf_fit_pars)
 
-            if self['roundify_psf']:
-                self._set_psf_shape(obs)
-
         except BootPSFFailure:
             raise TryAgainError("failed to fit psf")
 
@@ -687,32 +684,6 @@ class MaxMetacalFitter(MaxFitter):
             metacal_pars=self['metacal_pars'],
             metacal_obs=metacal_obs
         )
-
-    def _set_psf_shape(self, obs):
-        """
-        get the psf shape before pixelization
-        """
-        #print("        doing psf shape prepixel")
-
-        intpars=self.get('roundify_intpars',None)
-        #print("intpars:",intpars)
-        ppars=self['psf_pars']
-        Tguess=self.sim.get('psf_T',4.0)
-        lm_pars={'maxfev': 4000}
-
-        runner=ngmix.bootstrap.PSFRunner(
-            obs.psf,
-            ppars['model'],
-            Tguess,
-            lm_pars,
-            intpars=intpars,
-        )
-        runner.go(ntry=ppars['ntry'])
-
-        g1,g2,T=runner.fitter.get_gmix().get_g1g2T()
-
-        self['metacal_pars']['psf_shape']=Shape(g1,g2)
-        #print("        done")
 
     def _print_res(self,res):
         """
@@ -826,7 +797,8 @@ class MaxMetacalDetrendFitter(MaxMetacalFitter):
         noise_image1 = self.random_state.normal(loc=0.0,
                                                 scale=1.0,
                                                 size=im.shape)
-        Rnoise_types=['1p','1m','2p','2m']
+        #Rnoise_types=['1p','1m','2p','2m']
+        Rnoise_types=['1p','1m','2p','2m','1p_psf','1m_psf','2p_psf','2m_psf']
         for i in xrange(len(self['target_noises'])):
             try:
                 target_noise=self['target_noises'][i]
@@ -909,6 +881,7 @@ class MaxMetacalDetrendFitter(MaxMetacalFitter):
             dtres=res['dt_results'][idt]
 
             d['mcal_dt_Rnoise'][i,idt,:,:] = dtres['mcal_Rnoise']
+            d['mcal_dt_Rnoise_psf'][i,idt,:] = dtres['mcal_Rnoise_psf']
 
     def _get_dtype(self):
         """
@@ -920,6 +893,7 @@ class MaxMetacalDetrendFitter(MaxMetacalFitter):
 
         dt += [
             ('mcal_dt_Rnoise','f8',(ndt,2,2)),
+            ('mcal_dt_Rnoise_psf','f8',(ndt,2)),
         ]
         return dt
 

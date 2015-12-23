@@ -50,8 +50,14 @@ class SimGS(dict):
 
         gal, gal_pars, psf = self._get_galsim_objects()
 
-        psf_obs = self._make_obs(psf, s2n=self['psf']['s2n'])
-        gal_obs = self._make_obs(gal)
+        if 'psf_stamp_size' in self:
+            nrows,ncols=self['psf_stamp_size']
+        else:
+            nrows,ncols=self['stamp_size']
+        psf_obs = self._make_obs(psf, nrows, ncols, s2n=self['psf']['s2n'])
+
+        nrows,ncols=self['stamp_size']
+        gal_obs = self._make_obs(gal, nrows, ncols)
 
         s2n = self._get_expected_s2n(gal_obs.image_nonoise)
         print("    s2n expected:",s2n)
@@ -68,15 +74,13 @@ class SimGS(dict):
                 'gal_obj': gal}
 
 
-    def _make_obs(self, gs_obj, s2n=None):
+    def _make_obs(self, gs_obj, nrows, ncols, s2n=None):
         """
         get an ngmix Observation
 
         for psfs, send s2n=
         """
 
-
-        nrows,ncols=self['stamp_size']
         gsimage = gs_obj.drawImage(nx=ncols,
                                    ny=nrows,
                                    scale=1.0,

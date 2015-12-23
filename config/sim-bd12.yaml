@@ -11,6 +11,8 @@ simulator: "galsim"
 # these sims are never rings
 do_ring: False
 
+# going for mode around 10
+noise: 1.0
 
 stamp_size: [48,48]
 
@@ -21,11 +23,9 @@ psf:
     s2n: 10000.0
 
     r50: 1.5
-      # 8% scatter
-      #type: "lognormal"
-      #mean: 1.7
-      #sigma: 0.13 
 
+    # DES variation in shape
+    # also mean for g2 only
     shape:
       type: "normal2d"
       cen: [0.0, 0.007]

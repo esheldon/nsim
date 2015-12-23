@@ -600,6 +600,7 @@ class MaxMetacalFitter(MaxFitter):
 
 
         obs=imdict['obs']
+
         mdict = self._do_fits(obs)
         res=mdict['res']
         fitter=mdict['fitter']
@@ -625,9 +626,13 @@ class MaxMetacalFitter(MaxFitter):
         ppars=self['psf_pars']
 
         psf_fit_pars = ppars.get('fit_pars',None)
-    
+
         try:
             boot.fit_psfs(ppars['model'], Tguess, ntry=ppars['ntry'],fit_pars=psf_fit_pars)
+
+            if self['roundify_psf']:
+                self._set_psf_shape_prepixel(obs)
+
         except BootPSFFailure:
             raise TryAgainError("failed to fit psf")
 
@@ -683,6 +688,30 @@ class MaxMetacalFitter(MaxFitter):
             metacal_obs=metacal_obs
         )
 
+    def _set_psf_shape_prepixel(self, obs):
+        """
+        get the psf shape before pixelization
+        """
+        #print("        doing psf shape prepixel")
+
+        intpars=self['roundify_intpars']
+        ppars=self['psf_pars']
+        Tguess=self.sim.get('psf_T',4.0)
+        lm_pars={'maxfev': 4000}
+
+        runner=ngmix.bootstrap.PSFRunner(
+            obs.psf,
+            ppars['model'],
+            Tguess,
+            lm_pars,
+            intpars=self['roundify_intpars'],
+        )
+        runner.go(ntry=ppars['ntry'])
+
+        g1,g2,T=runner.fitter.get_gmix().get_g1g2T()
+
+        self['metacal_pars']['psf_shape']=Shape(g1,g2)
+        #print("        done")
 
     def _print_res(self,res):
         """
@@ -707,7 +736,6 @@ class MaxMetacalFitter(MaxFitter):
             ('mcal_pars_cov','f8',(npars,npars)),
             ('mcal_g','f8',2),
             ('mcal_g_cov','f8', (2,2) ),
-            ('mcal_g_noshear','f8',2),
             ('mcal_s2n_r','f8'),
             ('mcal_R','f8',(2,2)),
             ('mcal_Rpsf','f8',2),
@@ -729,8 +757,6 @@ class MaxMetacalFitter(MaxFitter):
         d['mcal_g'][i] = res['mcal_g']
         d['mcal_g_cov'][i] = res['mcal_g_cov']
         d['mcal_s2n_r'][i] = res['mcal_s2n_r']
-
-        d['mcal_g_noshear'][i] = res['mcal_pars_noshear'][2:2+2]
 
         d['mcal_R'][i] = res['mcal_R']
         d['mcal_Rpsf'][i] = res['mcal_Rpsf']
@@ -781,6 +807,7 @@ class MaxMetacalDetrendFitter(MaxMetacalFitter):
         sim_seed = self.sim['seed']
         rs_seed = sim_seed + 35
         self.random_state=numpy.random.RandomState(rs_seed)
+
 
 
     def _do_fits(self, oobs):
@@ -1323,7 +1350,6 @@ class MaxMetanoiseFitter(MaxMetacalFitter):
             ('mnoise_pars_cov','f8',(npars,npars)),
             ('mnoise_g','f8',2),
             ('mnoise_g_cov','f8', (2,2) ),
-            ('mnoise_g_noshear','f8',2),
             ('mnoise_c','f8',2),
             ('mnoise_s2n_r','f8'),
             ('mnoise_R','f8',(2,2)),
@@ -1346,9 +1372,6 @@ class MaxMetanoiseFitter(MaxMetacalFitter):
         d['mnoise_g'][i] = res['mnoise_g']
         d['mnoise_g_cov'][i] = res['mnoise_g_cov']
         d['mnoise_s2n_r'][i] = res['mnoise_s2n_r']
-
-        d['mnoise_g_noshear'][i] = res['mnoise_pars_noshear'][2:2+2]
-        d['mnoise_c'][i] = res['mnoise_c']
 
         d['mnoise_R'][i] = res['mnoise_R']
         d['mnoise_Rpsf'][i] = res['mnoise_Rpsf']

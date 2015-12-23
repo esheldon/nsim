@@ -747,10 +747,11 @@ moments
     - run-bd16mcal-dt-t02
         - messed up the noise: this is high s/n
     - run-bd16mcal-dt01
+        - 100 million
         - noise tuned for mode closer to 10
         - part way through
-            m1: 3.387e-04 +/- 1.102e-03 c1: -5.956e-05 +/- 3.882e-05  r1: 0.00386
-            m2: 5.471e-04 +/- 1.188e-03 c2: 3.860e-05 +/- 3.926e-05  r2: -0.0233
+            m1: 3.862e-04 +/- 7.207e-04 c1: -1.813e-05 +/- 2.540e-05  r1: 0.00386
+            m2: 1.496e-04 +/- 7.771e-04 c2: 3.837e-05 +/- 2.567e-05  r2: -0.0233
 
 - sim-bd02
 - sim-bd02z

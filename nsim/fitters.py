@@ -631,7 +631,7 @@ class MaxMetacalFitter(MaxFitter):
             boot.fit_psfs(ppars['model'], Tguess, ntry=ppars['ntry'],fit_pars=psf_fit_pars)
 
             if self['roundify_psf']:
-                self._set_psf_shape_prepixel(obs)
+                self._set_psf_shape(obs)
 
         except BootPSFFailure:
             raise TryAgainError("failed to fit psf")
@@ -688,13 +688,14 @@ class MaxMetacalFitter(MaxFitter):
             metacal_obs=metacal_obs
         )
 
-    def _set_psf_shape_prepixel(self, obs):
+    def _set_psf_shape(self, obs):
         """
         get the psf shape before pixelization
         """
         #print("        doing psf shape prepixel")
 
-        intpars=self['roundify_intpars']
+        intpars=self.get('roundify_intpars',None)
+        #print("intpars:",intpars)
         ppars=self['psf_pars']
         Tguess=self.sim.get('psf_T',4.0)
         lm_pars={'maxfev': 4000}
@@ -704,7 +705,7 @@ class MaxMetacalFitter(MaxFitter):
             ppars['model'],
             Tguess,
             lm_pars,
-            intpars=self['roundify_intpars'],
+            intpars=intpars,
         )
         runner.go(ntry=ppars['ntry'])
 

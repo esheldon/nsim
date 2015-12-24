@@ -27,6 +27,8 @@ parser.add_argument('--weights',action='store_true')
 parser.add_argument('--s2n-soft',type=float,default=20)
 parser.add_argument('--cuts',action='store_true')
 
+parser.add_argument('--no-Rpsf-noise',action='store_true')
+
 parser.add_argument('--show',action='store_true',help='show plot')
 parser.add_argument('--sub-offset',action='store_true',help='subtract the offset')
 parser.add_argument('--yrange', help="yrange of plot")
@@ -53,6 +55,8 @@ default_columns=[
 
 def read_data(conf, args, cache=False, columns=default_columns):
 
+    if args.no_Rpsf_noise:
+        columns=[c for c in columns if c != 'mcal_dt_Rnoise_psf']
     if cache:
         return read_cached_data(conf,args)
 
@@ -77,7 +81,7 @@ def read_data(conf, args, cache=False, columns=default_columns):
     else:
         print("reading columns:",columns)
         return nsim.files.read_output(conf['run'], 0, columns=columns)#,
-                                      #rows=numpy.arange(10000000))
+                                      #rows=numpy.arange(100000))
 
 
     '''
@@ -760,174 +764,6 @@ def fit_m_c(data, doprint=True):
 
     return fits
 
-def correct_means(conf, all_means, args):
-    import fitting
-
-    noise0 = conf['noise']
-    target_noises = numpy.array( conf['target_noises'] )
-
-    noises2 = numpy.zeros(1+target_noises.size)
-    noises2[0] = conf['noise']**2
-    noises2[1:] = target_noises**2
-
-
-    ratio = numpy.ones( (noises2.size, 2) )
-    ratio_err = numpy.ones( (noises2.size, 2) )
-    for i in xrange(0,noises2.size):
-
-        offset1,oerr,slope1,s1err,cov=fitline(all_means[0]['shear'][:,0],all_means[i]['shear'][:,0])
-        offset2,oerr,slope2,s2err,cov=fitline(all_means[0]['shear'][:,1],all_means[i]['shear'][:,1])
-
-        print("-"*70)
-        print("  s1 %d: %g + %g * s1(0)" % (i,offset1,slope1))
-        print("  s2 %d: %g + %g * s2(0)" % (i,offset2,slope2))
-
-        ratio[i,:] = slope1,slope2
-        ratio_err[i,:] = s1err,s2err
-
-    print("-"*70)
-    ratio_err[0,:] = ratio_err[1,:]
-
-
-    offset1,oerr,slope1,serr,cov=fitline(noises2[1:], ratio[1:,0]) 
-    offset2,oerr,slope2,serr,cov=fitline(noises2[1:], ratio[1:,1]) 
-
-    print("fit g1")
-    print("%g + %g * g1" % (offset1,slope1))
-    print("fit g2")
-    print("%g + %g * g2" % (offset2,slope2))
-
-    new_means=all_means[0].copy()
-    new_means['shear'][:,0] *= offset1
-    new_means['shear'][:,1] *= offset2
-    new_means['shear_err'][:,0] *= offset1
-    new_means['shear_err'][:,1] *= offset2
-
-    if args.show:
-        import biggles
-        xrng=[0, 1.1*noises2.max()]
-        plt=biggles.plot(noises2, ratio[:,0], yerr=ratio_err[:,0],
-                         color='blue',visible=False,
-                         xlabel='noise**2',
-                         ylabel='<shear/shear0>',
-                         xrange=xrng)
-        plt=biggles.plot(noises2, ratio[:,1], yerr=ratio_err[:,1],
-                         color='red',visible=False,
-                         plt=plt)
-
-        xvals=numpy.linspace(0, xrng[1])
-        yvals1 = offset1 + slope1*xvals
-        yvals2 = offset2 + slope2*xvals
-        plt.add(biggles.Curve(xvals,yvals1,color='blue',type='solid'))
-        plt.add(biggles.Curve(xvals,yvals2,color='red',type='solid'))
-
-        plt.show()
-
-    return new_means
-
-def get_R_poly_old(conf, args, data):
-    import fitting
-
-
-    noise0 = conf['noise']
-    target_noises = numpy.array( conf['target_noises'] )
-
-    diff_noise = target_noises - noise0
-    diff_noise2 = target_noises**2 - noise0**2
-
-    n=data.size
-
-    R0 = data['mcal_R'].mean(axis=0)
-    R0_err = data['mcal_R'].std(axis=0)/sqrt(n)
-    Rpsf0 = data['mcal_Rpsf'].mean(axis=0)
-    Rpsf0_err = data['mcal_Rpsf'].std(axis=0)/sqrt(n)
-
-    Rdt = data['mcal_dt_Rnoise'].mean(axis=0)
-    Rdt_err = data['mcal_dt_Rnoise'].std(axis=0)/sqrt(n)
-    Rdt_psf = data['mcal_dt_Rnoise_psf'].mean(axis=0)
-    Rdt_psf_err = data['mcal_dt_Rnoise_psf'].std(axis=0)/sqrt(n)
-
-    R = zeros( (2,2) )
-    R_err = zeros( (2,2) )
-    Rpsf = zeros(2)
-    Rpsf_err = zeros(2)
-    
-    for i in xrange(2):
-        tRpsf, tRpsferr = fitpolyold(noise0,
-                                  target_noises,
-                                  Rpsf0[i],
-                                  Rpsf0_err[i],
-                                  Rdt_psf[:,i],
-                                  Rdt_psf_err[:,i])
-        Rpsf[i] = tRpsf
-        Rpsf_err[i] = tRpsferr
-
-        for j in xrange(2):
-
-            tR, tRerr = fitpolyold(noise0,
-                                target_noises,
-                                R0[i,j],
-                                R0_err[i,j],
-                                Rdt[:,i,j],
-                                Rdt_err[:,i,j])
-            R[i,j] = tR
-            R_err[i,j] = tRerr
-
-    p="%s (%.4f +/- %.4f)"
-    print(p % ('R11',R[0,0], R_err[0,0]))
-    print(p % ('R12',R[0,1], R_err[0,1]))
-    print(p % ('R21',R[1,0], R_err[1,0]))
-    print(p % ('R22',R[1,1], R_err[1,1]))
-
-    print(p % ('Rpsf1',Rpsf[0], Rpsf_err[0]))
-    print(p % ('Rpsf2',Rpsf[1], Rpsf_err[1]))
-
-    '''
-    plt=biggles.FramedPlot()
-    xrng=[0, 1.1*diff_noise2.max()]
-    
-    plt.xrange=xrng
-    plt.yrange= [1.1*Rnoise[:,0,0].min(), 0.0]
-    plt.aspect_ratio=1.0
-    plt.xlabel=r'$\Delta n^2$'
-    plt.ylabel=r'$\Delta R$'
-
-    pts1 = biggles.Points(diff_noise2, Rnoise[:,0,0], color='blue',
-                          type='filled circle')
-    err1 = biggles.SymmetricErrorBarsY(diff_noise2,
-                                       Rnoise[:,0,0],
-                                       Rnoise_err[:,0,0],
-                                       color='blue')
-
-    pts2 = biggles.Points(diff_noise2, Rnoise[:,1,1], color='red',
-                          type='filled square')
-    err2 = biggles.SymmetricErrorBarsY(diff_noise2,
-                                       Rnoise[:,1,1],
-                                       Rnoise_err[:,1,1],
-                                       color='red')
-    pts1.label=r'$\Delta R_{1,1}$'
-    pts2.label=r'$\Delta R_{2,2}$'
-
-    xvals=numpy.linspace(0, xrng[1])
-    yvals11 = res_R11['offset']  + res_R11['slope']*xvals
-    yvals22 = res_R22['offset']  + res_R22['slope']*xvals
-    c1=biggles.Curve(xvals,yvals11,color='blue',type='solid')
-    c2=biggles.Curve(xvals,yvals22,color='red',type='dashed')
-
-    key=biggles.PlotKey(0.9, 0.9, [pts1, pts2],
-                        halign='right')
-    plt.add(c1, c2, pts1, err1, pts2, err2, key)
-
-    plotfile=files.get_plot_url(args.run, 'Rnoise-detrend')
-
-    print("writing:",plotfile)
-    eu.ostools.makedirs_fromfile(plotfile)
-    plt.write_eps(plotfile)
-
-    if args.show:
-        plt.show()
-    '''
-    return R, R_err, Rpsf, Rpsf_err
 
 
 def get_s2n_weights(s2n, args):
@@ -938,51 +774,65 @@ def get_s2n_weights(s2n, args):
 
 def get_Rnoise_line(conf, args, data, weights=None):
 
+    print("calculating detrend")
+
     noise0 = conf['simc']['noise']
     factors=array(conf['detrend_factors'])
     target_noises = noise0*factors
     ndiff = target_noises - noise0
     xvals = 2*noise0*ndiff
 
+    if not args.no_Rpsf_noise:
+        do_psf=True
+    else:
+        do_psf=False
+
     if weights is not None:
         wsum=weights.sum()
 
         R = data['mcal_dt_Rnoise']
-        Rpsf = data['mcal_dt_Rnoise_psf']
         Rshape=R.shape[1:]
-        Rpsf_shape=Rpsf.shape[1:]
-
         Rdt = numpy.zeros(Rshape)
-        Rdt_psf = numpy.zeros(Rpsf_shape)
+
 
         for i in xrange(Rshape[0]):
             for j in xrange(Rshape[1]):
                 for k in xrange(Rshape[2]):
                     Rdt[i,j,k] = (R[:,i,j,k]*weights).sum()/wsum
 
-        for i in xrange(Rpsf_shape[0]):
-            for j in xrange(Rpsf_shape[1]):
-                Rdt_psf[i,j] = (Rpsf[:,i,j]*weights).sum()/wsum
+        if do_psf:
+            Rpsf = data['mcal_dt_Rnoise_psf']
+            Rpsf_shape=Rpsf.shape[1:]
+
+            Rdt_psf = numpy.zeros(Rpsf_shape)
+
+            for i in xrange(Rpsf_shape[0]):
+                for j in xrange(Rpsf_shape[1]):
+                    Rdt_psf[i,j] = (Rpsf[:,i,j]*weights).sum()/wsum
 
     else:
         Rdt = data['mcal_dt_Rnoise'].mean(axis=0)
-        Rdt_psf = data['mcal_dt_Rnoise_psf'].mean(axis=0)
+
+        if do_psf:
+            Rdt_psf = data['mcal_dt_Rnoise_psf'].mean(axis=0)
 
     A = zeros( (2,2) )
     Apsf = zeros(2)
 
     p='%s (%.3g +/- %.3g) + (%.3g +/ %.3g) deltan'
     for i in xrange(2):
-        res = fitline(xvals, Rdt_psf[:,i])
-        Apsf[i] = res['slope']
 
-        plot_line_fit(
-            args,
-            'Rnoise-detrend-Rpsf%d' % (i+1),
-            xvals, Rdt_psf[:,i],res,
-            r'$2 n \Delta n$',
-            r'$\Delta R^{PSF}_%d$' % (i+1),
-        )
+        if do_psf:
+            res = fitline(xvals, Rdt_psf[:,i])
+            Apsf[i] = res['slope']
+
+            plot_line_fit(
+                args,
+                'Rnoise-detrend-Rpsf%d' % (i+1),
+                xvals, Rdt_psf[:,i],res,
+                r'$2 n \Delta n$',
+                r'$\Delta R^{PSF}_%d$' % (i+1),
+            )
 
         for j in xrange(2):
             res = fitline(xvals, Rdt[:,i,j])
@@ -1004,7 +854,7 @@ def get_Rnoise_line(conf, args, data, weights=None):
             )
 
     Rnoise = A*noise0**2
-    Rnoise_psf = Apsf*noise0**2 
+    Rnoise_psf = Apsf*noise0**2
 
     return Rnoise, Rnoise_psf
     #return Rnoise
@@ -1049,401 +899,6 @@ def plot_line_fit(args, extra, x, y, res, xlabel, ylabel):
     if args.show:
         plt.show()
 
-
-
-def get_Rnoise_poly(conf, args, data):
-    import fitting
-
-
-    noise0 = conf['noise']
-    target_noises = array( conf['target_noises'] )
-
-    n=data.size
-
-    Rdt = data['mcal_dt_Rnoise'].mean(axis=0)
-    Rdt_err = data['mcal_dt_Rnoise'].std(axis=0)/sqrt(n)
-    Rdt_psf = data['mcal_dt_Rnoise_psf'].mean(axis=0)
-    Rdt_psf_err = data['mcal_dt_Rnoise_psf'].std(axis=0)/sqrt(n)
-
-    if True:
-        td=Rdt[:,0,0]
-
-        ndiff=target_noises-noise0
-
-        '''
-        xvals = 2*target_noises*ndiff
-        res=fitline(xvals, td)
-        print(res)
-
-        xr=[0, 1.1*xvals.max()]
-        yr=[1.1*td.min(), 0]
-        plt=biggles.plot(
-            xvals, td,
-            xrange=xr,
-            yrange=yr,
-            visible=False
-        )
-        sxvals=numpy.linspace(0.0, xvals.max())
-        biggles.plot(sxvals,
-                     res['offset'] + res['slope']*sxvals,
-                     color='blue',
-                     type='solid',
-                     plt=plt)
- 
-        stop
-        '''
-
-
-        yr=[1.1*td.min(), 0]
-        plt=biggles.plot(ndiff, td,
-                     xrange=[0, 1.1*ndiff.max()],
-                     yrange=yr,visible=False)
-        res=fitline(ndiff, td)
-        print("%g + %g deltan" % (res['offset'],res['slope']))
-        xvals=numpy.linspace(0.0, ndiff.max())
-        biggles.plot(xvals,
-                     res['offset'] + res['slope']*xvals,
-                     color='blue',
-                     type='solid',
-                     plt=plt)
-
-        A = res['slope']/2.0/noise0
-
-        Rnoise = A*noise0**2
-        print("Rnoise:",Rnoise)
-        stop
-        
-
-    A = zeros( (2,2) )
-    A_err = zeros( (2,2) )
-    Apsf = zeros(2)
-    Apsf_err = zeros(2)
-    
-    B = zeros( (2,2) )
-    B_err = zeros( (2,2) )
-    Bpsf = zeros(2)
-    Bpsf_err = zeros(2)
- 
-    for i in xrange(2):
-        res = fitpoly(noise0,
-                      target_noises,
-                      Rdt_psf[:,i],
-                      Rdt_psf_err[:,i])
-
-        pars=res['pars']
-        print("Apsf:",pars)
-        perr=res['perr']
-        Apsf[i] = pars[0]
-        Apsf_err[i] = perr[0]
-        Bpsf[i] = pars[1]
-        Bpsf_err[i] = perr[1]
-
-        for j in xrange(2):
-            res = fitpoly(noise0,
-                           target_noises,
-                           Rdt[:,i,j],
-                           Rdt_err[:,i,j])
-            pars=res['pars']
-            perr=res['perr']
-            print("    A:",pars)
-            A[i,j] = pars[0]
-            A_err[i,j] = perr[0]
-            B[i,j] = pars[1]
-            B_err[i,j] = perr[1]
-
-    #Rnoise = noise0 *A
-    #Rnoise_err = noise0 *A_err
-    #Rnoise_psf = noise0 *Apsf
-    #Rnoise_psf_err = noise0 *Apsf_err
-
-    #Rnoise = noise0**2 *A
-    #Rnoise_err = noise0**2 *A_err
-    #Rnoise_psf = noise0**2 *Apsf
-    #Rnoise_psf_err = noise0**2 *Apsf_err
-
-    Rnoise = noise0**2 * B
-    Rnoise_err = noise0**2 * B_err
-    Rnoise_psf = noise0**2 * Bpsf
-    Rnoise_psf_err = noise0**2 * Bpsf_err
-
-    p="%s (%.4f +/- %.4f)"
-    print(p % ('R11',Rnoise[0,0], Rnoise_err[0,0]))
-    print(p % ('R12',Rnoise[0,1], Rnoise_err[0,1]))
-    print(p % ('R21',Rnoise[1,0], Rnoise_err[1,0]))
-    print(p % ('R22',Rnoise[1,1], Rnoise_err[1,1]))
-
-    print(p % ('Rpsf1',Rnoise_psf[0], Rnoise_psf_err[0]))
-    print(p % ('Rpsf2',Rnoise_psf[1], Rnoise_psf_err[1]))
-
-    return Rnoise, Rnoise_psf
-
-
-    '''
-    plt=biggles.FramedPlot()
-    xrng=[0, 1.1*diff_noise2.max()]
-    
-    plt.xrange=xrng
-    plt.yrange= [1.1*Rnoise[:,0,0].min(), 0.0]
-    plt.aspect_ratio=1.0
-    plt.xlabel=r'$\Delta n^2$'
-    plt.ylabel=r'$\Delta R$'
-
-    pts1 = biggles.Points(diff_noise2, Rnoise[:,0,0], color='blue',
-                          type='filled circle')
-    err1 = biggles.SymmetricErrorBarsY(diff_noise2,
-                                       Rnoise[:,0,0],
-                                       Rnoise_err[:,0,0],
-                                       color='blue')
-
-    pts2 = biggles.Points(diff_noise2, Rnoise[:,1,1], color='red',
-                          type='filled square')
-    err2 = biggles.SymmetricErrorBarsY(diff_noise2,
-                                       Rnoise[:,1,1],
-                                       Rnoise_err[:,1,1],
-                                       color='red')
-    pts1.label=r'$\Delta R_{1,1}$'
-    pts2.label=r'$\Delta R_{2,2}$'
-
-    xvals=numpy.linspace(0, xrng[1])
-    yvals11 = res_R11['offset']  + res_R11['slope']*xvals
-    yvals22 = res_R22['offset']  + res_R22['slope']*xvals
-    c1=biggles.Curve(xvals,yvals11,color='blue',type='solid')
-    c2=biggles.Curve(xvals,yvals22,color='red',type='dashed')
-
-    key=biggles.PlotKey(0.9, 0.9, [pts1, pts2],
-                        halign='right')
-    plt.add(c1, c2, pts1, err1, pts2, err2, key)
-
-    plotfile=files.get_plot_url(args.run, 'Rnoise-detrend')
-
-    print("writing:",plotfile)
-    eu.ostools.makedirs_fromfile(plotfile)
-    plt.write_eps(plotfile)
-
-    if args.show:
-        plt.show()
-    '''
-
-
-def get_Rnoise_numpy_poly(conf, args, data):
-    import fitting
-    from numpy import polyfit
-
-
-    noise0 = conf['noise']
-    target_noises = numpy.array( conf['target_noises'] )
-
-    diff_noise2 = target_noises**2 - noise0**2
-
-    n=data.size
-    Rnoise = data['mcal_dt_Rnoise'].mean(axis=0)
-    Rnoise_err = data['mcal_dt_Rnoise'].std(axis=0)/sqrt(n)
-    Rnoise_psf = data['mcal_dt_Rnoise_psf'].mean(axis=0)
-    Rnoise_psf_err = data['mcal_dt_Rnoise_psf'].std(axis=0)/sqrt(n)
-
-    #p="R%d%d (%.4f +/- %.4f) dn^2 + (%.4f +/- %.4f)"
-    p="A: %d%d %.4f dn^2 + %.4f"
-
-    A = zeros( (2,2) )
-    A_err = zeros( (2,2) )
-    off = zeros( (2,2) )
-    off_err = zeros( (2,2) )
-    Apsf = zeros(2)
-    Apsf_err = zeros(2)
-    off_psf = zeros(2)
-    off_psf_err = zeros(2)
- 
-    order=1
-    for i in xrange(2):
-        coeff,cov=polyfit(diff_noise2, Rnoise_psf[:,i],
-                          order,cov=True)
-        Apsf[i] = coeff[0]
-        off_psf[i] = coeff[1]
-        for j in xrange(2):
-            coeff,cov=polyfit(diff_noise2, Rnoise[:,i,j],
-                              order,cov=True)
-            A[i,j] = coeff[0]
-            off[i,j] = coeff[1]
-
-            print(p % (i,j,A[i,j],off[i,j]))
-
-
-    if args.sub_offset:
-        print("subtracting offset")
-        Rnoise_mean -= array( [[res_R11['offset'], res_R12['offset']],
-                               [res_R21['offset'], res_R22['offset']] ] )
-        Rnoise_psf_mean -= array( [res_Rpsf1['offset'], res_Rpsf2['offset'] ])
-
-
-    biggles.configure('default','fontsize_min',1)
-
-    plt=biggles.FramedPlot()
-    xrng=[0, 1.1*diff_noise2.max()]
-    
-    plt.xrange=xrng
-    plt.yrange= [1.1*Rnoise[:,0,0].min(), 0.0]
-    plt.aspect_ratio=1.0
-    plt.xlabel=r'$\Delta n^2$'
-    plt.ylabel=r'$\Delta R$'
-
-    pts1 = biggles.Points(diff_noise2, Rnoise[:,0,0], color='blue',
-                          type='filled circle')
-    err1 = biggles.SymmetricErrorBarsY(diff_noise2,
-                                       Rnoise[:,0,0],
-                                       Rnoise_err[:,0,0],
-                                       color='blue')
-
-    pts2 = biggles.Points(diff_noise2, Rnoise[:,1,1], color='red',
-                          type='filled square')
-    err2 = biggles.SymmetricErrorBarsY(diff_noise2,
-                                       Rnoise[:,1,1],
-                                       Rnoise_err[:,1,1],
-                                       color='red')
-    pts1.label=r'$\Delta R_{1,1}$'
-    pts2.label=r'$\Delta R_{2,2}$'
-
-    xvals=numpy.linspace(0, xrng[1])
-    yvals11 = off[0,0]  + A[0,0]*xvals
-    yvals22 = off[1,1]  + A[1,1]*xvals
-    c1=biggles.Curve(xvals,yvals11,color='blue',type='solid')
-    c2=biggles.Curve(xvals,yvals22,color='red',type='dashed')
-
-    key=biggles.PlotKey(0.9, 0.9, [pts1, pts2],
-                        halign='right')
-    plt.add(c1, c2, pts1, err1, pts2, err2, key)
-
-    plotfile=files.get_plot_url(args.run, 'Rnoise-detrend')
-
-    print("writing:",plotfile)
-    eu.ostools.makedirs_fromfile(plotfile)
-    plt.write_eps(plotfile)
-
-    if args.show:
-        plt.show()
-
-    R = noise0**2 * A
-    Rpsf = noise0**2 * Apsf
-    return R, Rpsf
-
-
-def get_Rnoise_quad(conf, args, data):
-    import fitting
-
-
-    noise0 = conf['noise']
-    target_noises = numpy.array( conf['target_noises'] )
-
-    diff_noise2 = target_noises**2 - noise0**2
-
-    n=data.size
-    Rnoise = data['mcal_dt_Rnoise'].mean(axis=0)
-    Rnoise_err = data['mcal_dt_Rnoise'].std(axis=0)/sqrt(n)
-    Rnoise_psf = data['mcal_dt_Rnoise_psf'].mean(axis=0)
-    Rnoise_psf_err = data['mcal_dt_Rnoise_psf'].std(axis=0)/sqrt(n)
-
-    res_R11=fitline(diff_noise2, Rnoise[:,0,0])
-    res_R12=fitline(diff_noise2, Rnoise[:,0,1])
-    res_R21=fitline(diff_noise2, Rnoise[:,1,0])
-    res_R22=fitline(diff_noise2, Rnoise[:,1,1])
-
-    res_Rpsf1=fitline(diff_noise2, Rnoise_psf[:,0])
-    res_Rpsf2=fitline(diff_noise2, Rnoise_psf[:,1])
-
-    '''
-    res_R11=fitline_zero_offset(diff_noise2, Rnoise[:,0,0])
-    res_R12=fitline_zero_offset(diff_noise2, Rnoise[:,0,1])
-    res_R21=fitline_zero_offset(diff_noise2, Rnoise[:,1,0])
-    res_R22=fitline_zero_offset(diff_noise2, Rnoise[:,1,1])
-
-    res_Rpsf1=fitline_zero_offset(diff_noise2, Rnoise_psf[:,0])
-    res_Rpsf2=fitline_zero_offset(diff_noise2, Rnoise_psf[:,1])
-    '''
-
-
-
-    p="%s (%.4f +/- %.4f) + (%.4f +/- %.4f) delta n^2"
-    print(p % ('R11',res_R11['offset'],res_R11['offset_err'],
-               res_R11['slope'],res_R11['slope_err']))
-
-    print(p % ('R12',res_R12['offset'],res_R12['offset_err'],
-               res_R12['slope'],res_R12['slope_err']))
-
-    print(p % ('R21',res_R21['offset'],res_R21['offset_err'],
-               res_R21['slope'],res_R21['slope_err']))
-
-    print(p % ('R22',res_R22['offset'],res_R22['offset_err'],
-               res_R22['slope'],res_R22['slope_err']))
-
-    print(p % ('Rpsf1',res_Rpsf1['offset'],res_Rpsf1['offset_err'],
-               res_Rpsf1['slope'],res_Rpsf1['slope_err']))
-    print(p % ('Rpsf2',res_Rpsf2['offset'],res_Rpsf2['offset_err'],
-               res_Rpsf2['slope'],res_Rpsf2['slope_err']))
-
-    #Rnoise_mean = array( [[res_R11['offset'], res_R12['offset']],
-    #                 [res_R21['offset'], res_R22['offset']] ] )
-
-    #Rnoise_psf_mean = array( [res_Rpsf1['offset'], res_Rpsf2['offset'] ])
-
-    Rnoise_mean = noise0*array( [[res_R11['slope'], res_R12['slope']],
-                                 [res_R21['slope'], res_R22['slope']] ] )
-
-    Rnoise_psf_mean = noise0*array( [res_Rpsf1['slope'], res_Rpsf2['slope'] ])
-
-
-    if args.sub_offset:
-        print("subtracting offset")
-        Rnoise_mean -= array( [[res_R11['offset'], res_R12['offset']],
-                               [res_R21['offset'], res_R22['offset']] ] )
-        Rnoise_psf_mean -= array( [res_Rpsf1['offset'], res_Rpsf2['offset'] ])
-
-
-    biggles.configure('default','fontsize_min',1)
-
-    plt=biggles.FramedPlot()
-    xrng=[0, 1.1*diff_noise2.max()]
-    
-    plt.xrange=xrng
-    plt.yrange= [1.1*Rnoise[:,0,0].min(), 0.0]
-    plt.aspect_ratio=1.0
-    plt.xlabel=r'$\Delta n^2$'
-    plt.ylabel=r'$\Delta R$'
-
-    pts1 = biggles.Points(diff_noise2, Rnoise[:,0,0], color='blue',
-                          type='filled circle')
-    err1 = biggles.SymmetricErrorBarsY(diff_noise2,
-                                       Rnoise[:,0,0],
-                                       Rnoise_err[:,0,0],
-                                       color='blue')
-
-    pts2 = biggles.Points(diff_noise2, Rnoise[:,1,1], color='red',
-                          type='filled square')
-    err2 = biggles.SymmetricErrorBarsY(diff_noise2,
-                                       Rnoise[:,1,1],
-                                       Rnoise_err[:,1,1],
-                                       color='red')
-    pts1.label=r'$\Delta R_{1,1}$'
-    pts2.label=r'$\Delta R_{2,2}$'
-
-    xvals=numpy.linspace(0, xrng[1])
-    yvals11 = res_R11['offset']  + res_R11['slope']*xvals
-    yvals22 = res_R22['offset']  + res_R22['slope']*xvals
-    c1=biggles.Curve(xvals,yvals11,color='blue',type='solid')
-    c2=biggles.Curve(xvals,yvals22,color='red',type='dashed')
-
-    key=biggles.PlotKey(0.9, 0.9, [pts1, pts2],
-                        halign='right')
-    plt.add(c1, c2, pts1, err1, pts2, err2, key)
-
-    plotfile=files.get_plot_url(args.run, 'Rnoise-detrend')
-
-    print("writing:",plotfile)
-    eu.ostools.makedirs_fromfile(plotfile)
-    plt.write_eps(plotfile)
-
-    if args.show:
-        plt.show()
-
-    return Rnoise_mean, Rnoise_psf_mean
 
 def main():
     args = parser.parse_args()

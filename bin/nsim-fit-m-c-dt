@@ -25,7 +25,7 @@ parser.add_argument('run', help='run to use in fit')
 
 parser.add_argument('--weights',action='store_true')
 parser.add_argument('--s2n-soft',type=float,default=20)
-parser.add_argument('--cuts',action='store_true')
+parser.add_argument('--min-s2n',type=float,default=None)
 
 parser.add_argument('--no-Rpsf-noise',action='store_true')
 
@@ -37,11 +37,6 @@ parser.add_argument('--xrange', help="xrange of plot")
 parser.add_argument('--fit-only',action='store_true',
                     help='get the means from the written file')
 
-parser.add_argument('--cache',action='store_true',
-                    help=('cache the file subset locally; use the cache '
-                          'if available'))
-
-
 default_columns=[
     'shear_index',
     'mcal_g',
@@ -50,40 +45,59 @@ default_columns=[
     'mcal_Rpsf',
     'mcal_dt_Rnoise',
     'mcal_dt_Rnoise_psf',
+    'mcal_s2n_r',
 ]
 
 
-def read_data(conf, args, cache=False, columns=default_columns):
+def get_subset(conf, args, fname, min_s2n):
+    print("making s2n cut:",min_s2n)
 
-    if args.no_Rpsf_noise:
-        columns=[c for c in columns if c != 'mcal_dt_Rnoise_psf']
-    if cache:
-        return read_cached_data(conf,args)
+    columns=['mcal_s2n_r']
+    print("reading cut fields only:",columns)
+    t=fitsio.read(fname, columns=columns)
 
+    w,=numpy.where( t['mcal_s2n_r'] > min_s2n)
+    print("    kept: %d/%d" % (w.size,t.size))
 
-    if args.cuts:
-        print("making cuts")
-        print("reading cut fields only")
-        t=nsim.files.read_output(conf['run'],
-                                 0,
-                                 columns=['mcal_s2n_r','mcal_R'])
-        w,=numpy.where(
-            between(t['mcal_s2n_r'], 6.3, 3162.)
-            & between(t['mcal_R'][:,0,0], -6.0, 2.0)
-            & between(t['mcal_R'][:,0,1], -5.0, 5.0)
-            & between(t['mcal_R'][:,1,0], -5.0, 5.0)
-            & between(t['mcal_R'][:,1,1], -6.0, 2.0)
-        )
-        print("    kept: %d/%d" % (w.size,t.size))
-        print("reading subset")
-        print("reading columns:",columns)
-        return nsim.files.read_output(conf['run'], 0, columns=columns, rows=w)
+    return w
+
+def get_cache_file(conf):
+    tdir=os.environ['TMPDIR']
+    tfile= nsim.files.get_output_url(conf['run'], 0, 0)
+    tfile=os.path.basename(tfile)
+
+    tfile=os.path.join(tdir, tfile)
+    return tfile
+
+def read_data(conf, args, **kw):
+
+    tfile=get_cache_file(conf)
+
+    while not os.path.exists(tfile):
+        fname=files.get_output_url(conf['run'], 0, 0)
+        columns = default_columns
+
+        if args.no_Rpsf_noise:
+            columns=[c for c in columns if c != 'mcal_dt_Rnoise_psf']
+
+        print("reading original:",fname)
+        data=fitsio.read(fname,columns=columns)
+
+        print("writing cache:",tfile)
+        fitsio.write(tfile, data, clobber=True)
+
+        del data
+
+    print("reading cache:",tfile)
+
+    if 'min_s2n' in kw:
+        rows=get_subset(conf, args, tfile, kw['min_s2n'])
     else:
-        print("reading columns:",columns)
-        return nsim.files.read_output(conf['run'], 0, columns=columns)#,
-                                      #rows=numpy.arange(100000))
+        rows=None
 
+    data=fitsio.read(tfile,rows=rows)
 
+    return data
     '''
     chunksize=1000000
     fname=files.get_output_url(conf['run'], 0, 0)
@@ -117,35 +131,6 @@ def read_data(conf, args, cache=False, columns=default_columns):
     return data
     '''
 
-def get_cache_file(conf):
-    tdir=os.environ['TMPDIR']
-    tfile= nsim.files.get_output_url(conf['run'], 0, 0)
-    tfile=os.path.basename(tfile)
-
-    tfile=os.path.join(tdir, tfile)
-    return tfile
-
-def read_cached_data(conf, args):
-
-    tfile=get_cache_file(conf)
-
-    if os.path.exists(tfile):
-        print("reading cache:",tfile)
-
-        columns=default_columns
-        if args.weights:
-            columns.append('mcal_s2n_r')
-        print("reading columns:",columns)
-        data=fitsio.read(tfile,columns=columns)
-
-    else:
-        columns = default_columns
-        columns.append('mcal_s2n_r')
-        data=read_data(conf,args, columns=columns)
-        print("writing cache:",tfile)
-        fitsio.write(tfile, data, clobber=True)
-
-    return data
 
 
 SIGMA2_MIN_CONSTANT_GROUND = 4.     # 2**2
@@ -817,7 +802,9 @@ def get_Rnoise_line(conf, args, data, weights=None):
             Rdt_psf = data['mcal_dt_Rnoise_psf'].mean(axis=0)
 
     A = zeros( (2,2) )
+    Aerr = zeros( (2,2) )
     Apsf = zeros(2)
+    Apsf_err = zeros(2)
 
     p='%s (%.3g +/- %.3g) + (%.3g +/ %.3g) deltan'
     for i in xrange(2):
@@ -825,6 +812,7 @@ def get_Rnoise_line(conf, args, data, weights=None):
         if do_psf:
             res = fitline(xvals, Rdt_psf[:,i])
             Apsf[i] = res['slope']
+            Apsf_err[i] = res['slope_err']
 
             plot_line_fit(
                 args,
@@ -837,6 +825,7 @@ def get_Rnoise_line(conf, args, data, weights=None):
         for j in xrange(2):
             res = fitline(xvals, Rdt[:,i,j])
             A[i,j] = res['slope']
+            Aerr[i,j] = res['slope_err']
 
             n='A[%d,%d]' % (i+1,j+1)
             s=res['slope']
@@ -854,7 +843,20 @@ def get_Rnoise_line(conf, args, data, weights=None):
             )
 
     Rnoise = A*noise0**2
+    Rnoise_err = Aerr*noise0**2
+
     Rnoise_psf = Apsf*noise0**2
+    Rnoise_psf_err = Apsf_err*noise0**2
+
+    p='%s: %.3g +/- %.3g'
+    for i in xrange(2):
+        n='Rnoise_psf[%d]' % (i+1)
+        print(p % (n,Rnoise_psf[i],Rnoise_psf_err[i]))
+
+    for i in xrange(2):
+        for j in xrange(2):
+            n='Rnoise[%d,%d]' % ((i+1),(j+1))
+            print(p % (n,Rnoise[i,j],Rnoise_err[i,j]))
 
     return Rnoise, Rnoise_psf
     #return Rnoise
@@ -906,7 +908,10 @@ def main():
     conf = nsim.files.read_config(args.run)
     conf['simc'] = nsim.files.read_config(conf['sim'])
 
-    data=read_data(conf, args, cache=args.cache)
+    kw={}
+    if args.min_s2n is not None:
+        kw['min_s2n'] = args.min_s2n
+    data=read_data(conf, args, **kw)
 
     means = get_averages(conf, args, data, show_progress=False)
     fits=fit_m_c(means)

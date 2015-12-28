@@ -1,8 +1,8 @@
 run: "run-bd18mcal-dt01"
 sim: "sim-bd18"
 
-ngmix_hash: ""
-nsim_hash: ""
+ngmix_hash: "3bf2b7edcce85270a43be266aa7011daab992f80"
+nsim_hash: "9919daacd284adea9d1f067709483ac3ec96ed30"
 
 fitter: "metacal-max-detrend"
 fit_model: "gauss"

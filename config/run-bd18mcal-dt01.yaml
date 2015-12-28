@@ -13,7 +13,7 @@ use_logpars: True
 # we detrend at noise levels sim['noise']*detrend_factors
 detrend_factors: [ 1.00714286,  1.01428571,  1.02142857 ]
 
-global_seed: 28817
+global_seed: 11365
 
 metacal_pars:
     step: 0.01

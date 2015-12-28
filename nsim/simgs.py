@@ -166,27 +166,28 @@ class SimGS(dict):
         get the galaxy and psf galsim objects
         """
 
-        gal0, gal_pars = self._get_gal_obj()
+        gal_pars=self._get_galaxy_pars()
+
         psf  = self._get_psf_obj(gal_pars['cenoff'])
 
-        gal = galsim.Convolve([psf, gal0])
+        if gal_pars['model']=='star':
+            gal = psf.withFlux(gal_pars['flux'])
+        else:
+            gal0, gal_pars = self._get_gal_obj()
+            gal = galsim.Convolve([psf, gal0])
 
         return gal, gal_pars, psf
 
-    def _get_gal_obj(self):
+    def _get_gal_obj(self, pars):
         """
         get the galsim object for the galaxy model
         """
 
-        pars=self._get_galaxy_pars()
-
         flux = pars['flux']
+
         r50 = pars['r50']
 
         g1,g2=pars['g']
-        shear,shindex = self.shear_pdf.get_shear()
-        pars['shear'] = shear
-        pars['shear_index'] = shindex
 
         cenoff = pars['cenoff']
 
@@ -290,20 +291,31 @@ class SimGS(dict):
         else:
             cenoff=None
 
-        g1,g2 = self.g_pdf.sample2d()
+        if self.g_pdf is not None:
+            g1,g2 = self.g_pdf.sample2d()
+        else:
+            g1,g2=None,None
 
         flux = self.flux_pdf.sample()
         if self.flux_is_in_log:
             flux = numpy.exp(flux)
 
         # this is the round r50
-        r50 = self.r50_pdf.sample()
+        if self.r50_pdf is not None:
+            r50 = self.r50_pdf.sample()
+        else:
+            r50=None
+
 
         pars = {'model':self['model'],
                 'g':(g1,g2),
                 'flux':flux,
                 'r50':r50,
                 'cenoff':cenoff}
+
+        shear,shindex = self.shear_pdf.get_shear()
+        pars['shear'] = shear
+        pars['shear_index'] = shindex
 
         return pars
 
@@ -376,13 +388,17 @@ class SimGS(dict):
 
     def _set_shear_pdf(self):
         from .shearpdf import ConstShearGenerator
-        shconf = self['shear']
-        if shconf['type'] == 'const':
-            pdf = ConstShearGenerator(shconf['shears'])
-        else:
-            raise ValueError("only shear 'const' for now")
 
-        self.shear_pdf=pdf
+        if 'shear' in self:
+            shconf = self['shear']
+            if shconf['type'] == 'const':
+                pdf = ConstShearGenerator(shconf['shears'])
+            else:
+                raise ValueError("only shear 'const' for now")
+
+            self.shear_pdf=pdf
+        else:
+            self.shear_pdf=None
 
     def _set_psf_pdf(self):
         pspec = self['psf']
@@ -407,20 +423,26 @@ class SimGS(dict):
             self.psf_ellip_pdf=None
 
     def _set_g_pdf(self):
-        g_spec=self['obj_model']['g']
-        self.g_pdf=ngmix.priors.GPriorBA(g_spec['sigma'])
+        if 'g' in self['obj_model']:
+            g_spec=self['obj_model']['g']
+            self.g_pdf=ngmix.priors.GPriorBA(g_spec['sigma'])
+        else:
+            self.g_pdf=None
 
     def _set_r50_pdf(self):
-        r50spec = self['obj_model']['r50']
-        
-        if r50spec['type']=='uniform':
-            r50_r = r50spec['range']
-            self.r50_pdf=ngmix.priors.FlatPrior(r50_r[0], r50_r[1])
-        elif r50spec['type']=='lognormal':
-            self.r50_pdf=ngmix.priors.LogNormal(r50spec['mean'],
-                                                r50spec['sigma'])
+        if 'r50' in self['obj_model']:
+            r50spec = self['obj_model']['r50']
+
+            if r50spec['type']=='uniform':
+                r50_r = r50spec['range']
+                self.r50_pdf=ngmix.priors.FlatPrior(r50_r[0], r50_r[1])
+            elif r50spec['type']=='lognormal':
+                self.r50_pdf=ngmix.priors.LogNormal(r50spec['mean'],
+                                                    r50spec['sigma'])
+            else:
+                raise ValueError("bad r50 pdf type: '%s'" % r50spec['type'])
         else:
-            raise ValueError("bad r50 pdf type: '%s'" % r50spec['type'])
+            self.r50_pdf=None
 
     def _set_cen_pdf(self):
 
@@ -476,10 +498,6 @@ class SimBD(SimGS):
         r50 = pars['r50']
 
         g1,g2=pars['g']
-        shear, shindex = self.shear_pdf.get_shear()
-        pars['shear'] = shear
-        pars['shear_index'] = shindex
-
 
         cenoff = pars['cenoff']
 
@@ -530,6 +548,10 @@ class SimBD(SimGS):
         else:
             dev_offset=None
         pars['dev_offset'] = dev_offset
+
+        shear, shindex = self.shear_pdf.get_shear()
+        pars['shear'] = shear
+        pars['shear_index'] = shindex
 
         return pars
 

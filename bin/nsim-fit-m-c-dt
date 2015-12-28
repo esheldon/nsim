@@ -607,15 +607,22 @@ def get_averages(conf, args, data, show_progress=True):
     R=data['mcal_R']
     Rpsf=data['mcal_Rpsf']
 
-    Rnoise, Rnoise_psf = get_Rnoise_line(conf, args, data)
+    Rnoise, Rnoise_err,Rnoise_psf,Rnoise_psf_err = get_Rnoise_line(conf, args, data)
     #Rnoise = get_Rnoise_line(conf, args, data)
 
     Rmean = R.mean(axis=0)
+    Rerr = R.std(axis=0)/sqrt(R.shape[0])
     Rpsf_mean = Rpsf.mean(axis=0)
+    Rpsf_err = Rpsf.std(axis=0)/sqrt(R.shape[0])
 
     Rmean -= Rnoise
     Rpsf_mean -= Rnoise_psf
     Rinv = numpy.linalg.inv(Rmean)
+
+    Rerr = sqrt(Rerr**2 + Rnoise_err**2)
+    Rpsf_err = sqrt(Rpsf_err**2 + Rnoise_psf_err**2)
+
+    print_Rs(Rmean, Rerr, Rpsf_mean, Rpsf_err)
 
     means=get_mean_struct(nind)
 
@@ -848,18 +855,22 @@ def get_Rnoise_line(conf, args, data, weights=None):
     Rnoise_psf = Apsf*noise0**2
     Rnoise_psf_err = Apsf_err*noise0**2
 
+    print_Rs(Rnoise, Rnoise_err, Rnoise_psf, Rnoise_psf_err, type='noise')
+
+    return Rnoise, Rnoise_err, Rnoise_psf, Rnoise_psf_err
+    #return Rnoise
+
+def print_Rs(R, Rerr, Rpsf, Rpsf_err, type=''):
     p='%s: %.3g +/- %.3g'
     for i in xrange(2):
-        n='Rnoise_psf[%d]' % (i+1)
-        print(p % (n,Rnoise_psf[i],Rnoise_psf_err[i]))
+        n='R%s_psf[%d]' % (type,i+1)
+        print(p % (n,Rpsf[i],Rpsf_err[i]))
 
     for i in xrange(2):
         for j in xrange(2):
-            n='Rnoise[%d,%d]' % ((i+1),(j+1))
-            print(p % (n,Rnoise[i,j],Rnoise_err[i,j]))
+            n='R%s[%d,%d]' % (type,(i+1),(j+1))
+            print(p % (n,R[i,j],Rerr[i,j]))
 
-    return Rnoise, Rnoise_psf
-    #return Rnoise
 
 def plot_line_fit(args, extra, x, y, res, xlabel, ylabel):
     plt=biggles.FramedPlot()

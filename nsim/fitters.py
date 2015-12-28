@@ -153,7 +153,9 @@ class FitterBase(dict):
         d['processed'][i] = 1
         d['model_true'][i] = res['model_true']
         d['s2n_true'][i] = res['s2n_true']
-        d['pars_true'][i,:] = res['pars_true']
+
+        if res['pars_true'][0] is not None:
+            d['pars_true'][i,:] = res['pars_true']
 
         d['shear_true'][i] = res['shear_true'].g1,res['shear_true'].g2
         d['shear_index'][i] = res['shear_index']
@@ -524,7 +526,9 @@ class MaxFitter(SimpleFitterBase):
 
         print_pars(res['pars'],      front='        pars: ')
         print_pars(res['pars_err'],  front='        perr: ')
-        print_pars(res['pars_true'], front='        true: ')
+
+        if res['pars_true'][0] is not None:
+            print_pars(res['pars_true'], front='        true: ')
 
     def _make_plots(self, fitter, key):
         """
@@ -542,21 +546,6 @@ class MaxFitter(SimpleFitterBase):
         print(resid_pname)
         rplt=fitter.plot_residuals()
         rplt[0][0].write_img(width,height,resid_pname)
-    
-        '''
-        copy into ones that have samples
-        trials_pname=self.plot_base+'-%06d-%s-trials.png' % (self.ipair,key)
-        print(trials_pname)
-        p=pdict['trials']
-        p.write_img(width,height,trials_pname)
-
-        if 'wtrials' in pdict:
-            wp=pdict['wtrials']
-            wtrials_pname=\
-                self.plot_base+'-%06d-%s-wtrials.png' % (self.ipair,key)
-            print(wtrials_pname)
-            wp.write_img(width,height,wtrials_pname)
-        '''
 
 
     def _get_dtype(self):

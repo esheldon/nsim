@@ -752,6 +752,18 @@ moments
         - final
             m1: 6.089e-04 +/- 6.087e-04 c1: -3.087e-05 +/- 2.145e-05  r1: 0.00386
             m2: 3.114e-04 +/- 6.442e-04 c2: 2.152e-05 +/- 2.128e-05  r2: -0.0233
+    - run-bd16mcal-dt01 + run-bd18mcal-dt01
+        - adding 10% stars
+            m1: 6.057e-04 +/- 6.512e-04 c1: -2.360e-05 +/- 2.295e-05  r1: 0.00386
+            m2: 3.434e-04 +/- 6.681e-04 c2: 2.356e-05 +/- 2.207e-05  r2: -0.0233
+
+- sim-bd18
+    - stars
+    - run-bd18mcal-dt-t01     500,000
+    - run-bd18mcal-dt-t02     500,000 using flat priors and not log
+    - run-bd18mcal-dt-t03   2,000,000
+    - run-bd18mcal-dt01    10,000,000
+
 
 - sim-bd02
 - sim-bd02z

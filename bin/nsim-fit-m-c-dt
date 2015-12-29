@@ -21,7 +21,7 @@ from esutil.numpy_util import between
 fclass=argparse.ArgumentDefaultsHelpFormatter
 parser=argparse.ArgumentParser(formatter_class=fclass)
 
-parser.add_argument('run', help='run to use in fit')
+parser.add_argument('runs', nargs='+',help='run to use in fit')
 
 parser.add_argument('--weights',action='store_true')
 parser.add_argument('--s2n-soft',type=float,default=20)
@@ -61,75 +61,88 @@ def get_subset(conf, args, fname, min_s2n):
 
     return w
 
-def get_cache_file(conf):
+def get_cache_file(runs):
+
+    rlist='-'.join(runs)
+    rlist=rlist.replace('run-','')
+
     tdir=os.environ['TMPDIR']
-    tfile= nsim.files.get_output_url(conf['run'], 0, 0)
+    tfile= nsim.files.get_output_url(runs[0], 0, 0)
     tfile=os.path.basename(tfile)
 
+    tfile=tfile.replace(runs[0], rlist)
     tfile=os.path.join(tdir, tfile)
     return tfile
 
+def count_objects(flist):
+
+    n=0
+    for fname in flist:
+        with fitsio.FITS(fname) as fits:
+            n += fits[1].get_nrows()
+
+    return n
+
+def cache_in_chunks(runs, columns, cache_file):
+
+    chunksize=1000000
+
+    first=True
+    with fitsio.FITS(cache_file,'rw',clobber=True) as output:
+        for run in runs:
+
+            fname = nsim.files.get_output_url(run, 0, 0)
+            print(fname)
+
+            with fitsio.FITS(fname) as fits:
+
+                hdu=fits[1]
+
+                nrows=hdu.get_nrows()
+                nchunks = nrows//chunksize
+
+                if (nrows % chunksize) > 0:
+                    nchunks += 1
+
+                beg=0
+                for i in xrange(nchunks):
+                    print("    chunk %d/%d" % (i+1,nchunks))
+
+                    end=beg+chunksize
+
+                    data = hdu[columns][beg:end]
+
+                    if first:
+                        output.write(data)
+                        first=False
+                    else:
+                        output[-1].append(data)
+
+                    beg = beg + chunksize
+
 def read_data(conf, args, **kw):
 
-    tfile=get_cache_file(conf)
+    columns = default_columns
 
-    while not os.path.exists(tfile):
-        fname=files.get_output_url(conf['run'], 0, 0)
-        columns = default_columns
+    if args.no_Rpsf_noise:
+        columns=[c for c in columns if c != 'mcal_dt_Rnoise_psf']
 
-        if args.no_Rpsf_noise:
-            columns=[c for c in columns if c != 'mcal_dt_Rnoise_psf']
+    cache_file=get_cache_file(args.runs)
+    print("cache file:",cache_file)
 
-        print("reading original:",fname)
-        data=fitsio.read(fname,columns=columns)
+    if not os.path.exists(cache_file):
+        cache_in_chunks(args.runs, columns, cache_file)
 
-        print("writing cache:",tfile)
-        fitsio.write(tfile, data, clobber=True)
-
-        del data
-
-    print("reading cache:",tfile)
+    print("reading cache:",cache_file)
 
     if 'min_s2n' in kw:
-        rows=get_subset(conf, args, tfile, kw['min_s2n'])
+        rows=get_subset(conf, args, cache_file, kw['min_s2n'])
     else:
         rows=None
 
-    data=fitsio.read(tfile,rows=rows)
+    data=fitsio.read(cache_file,rows=rows)
 
     return data
-    '''
-    chunksize=1000000
-    fname=files.get_output_url(conf['run'], 0, 0)
-    with fitsio.FITS(fname) as fits:
-        hdu = fits[1]
-        nrows=hdu.get_nrows()
-
-        data=numpy.zeros(nrows, dtype=dt)
-
-        nchunks = nrows//chunksize
-
-        if (nrows % chunksize) > 0:
-            nchunks += 1
-
-        beg=0
-        for i in xrange(nchunks):
-
-            end=beg+chunksize
-
-            tdata = hdu[columns][beg:end]
-
-            data['shear_index'][beg:beg+tdata.size] = tdata['shear_index']
-            data['gpsf'][beg:beg+tdata.size] = tdata['mcal_gpsf']
-
-            data['g'][beg:beg+tdata.size] = tdata['mcal_g'][:,:]
-            data['R'][beg:beg+tdata.size] = tdata['mcal_R'][:,:,:]
-            data['Rpsf'][beg:beg+tdata.size] = tdata['mcal_Rpsf'][:,:]
-
-            beg += tdata.size
-
-    return data
-    '''
 
 
 
@@ -557,13 +570,6 @@ def doplot(args, data, fits):
     if args.show:
         tab.show(width=1000, height=1000)
 
-def write_fits(args, fits):
-    fname=reredux.files.get_fit_file(args.run, extra='fit-m-c')
-
-    eu.ostools.makedirs_fromfile(fname)
-    print("writing fit data to file:",fname)
-    fitsio.write(fname, fits, clobber=True)
-
 def get_mean_struct(n):
     dt=[('shear','f8',2),
         ('shear_true','f8',2),
@@ -607,11 +613,13 @@ def get_averages(conf, args, data, show_progress=True):
     R=data['mcal_R']
     Rpsf=data['mcal_Rpsf']
 
-    Rnoise, Rnoise_err,Rnoise_psf,Rnoise_psf_err = get_Rnoise_line(conf, args, data)
+    Rnoise, Rnoise_err, Rnoise_psf, Rnoise_psf_err = \
+            get_Rnoise_line(conf, args, data)
     #Rnoise = get_Rnoise_line(conf, args, data)
 
     Rmean = R.mean(axis=0)
     Rerr = R.std(axis=0)/sqrt(R.shape[0])
+
     Rpsf_mean = Rpsf.mean(axis=0)
     Rpsf_err = Rpsf.std(axis=0)/sqrt(R.shape[0])
 
@@ -903,7 +911,7 @@ def plot_line_fit(args, extra, x, y, res, xlabel, ylabel):
 
     plt.add(c, pts, alabel, blabel)
 
-    plotfile=files.get_plot_url(args.run, extra)
+    plotfile=files.get_plot_url(args.runs[0], extra)
 
     print("writing:",plotfile)
     eu.ostools.makedirs_fromfile(plotfile)
@@ -916,12 +924,13 @@ def plot_line_fit(args, extra, x, y, res, xlabel, ylabel):
 def main():
     args = parser.parse_args()
 
-    conf = nsim.files.read_config(args.run)
+    conf = nsim.files.read_config(args.runs[0])
     conf['simc'] = nsim.files.read_config(conf['sim'])
 
     kw={}
     if args.min_s2n is not None:
         kw['min_s2n'] = args.min_s2n
+
     data=read_data(conf, args, **kw)
 
     means = get_averages(conf, args, data, show_progress=False)

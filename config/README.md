@@ -767,6 +767,13 @@ moments
     - run-bd18mcal-dt-t03   2,000,000
     - run-bd18mcal-dt01    10,000,000
 
+- sim-bd19
+    - same as bd17 but with a random bad pixel, and using noise
+        to replace the value
+    - run-bd19mcal-dt-t01 500,000
+        m1: -3.231e-03 +/- 9.709e-03 c1: 2.089e-04 +/- 3.235e-04  r1: -0.00487
+        m2: 2.193e-03 +/- 9.419e-03 c2: 3.631e-04 +/- 3.377e-04  r2: 0.103
+
 
 - sim-bd02
 - sim-bd02z

@@ -208,7 +208,7 @@ class SimGS(dict):
         if gal_pars['model']=='star':
             gal = psf.withFlux(gal_pars['flux'])
         else:
-            gal0, gal_pars = self._get_gal_obj()
+            gal0 = self._get_gal_obj(gal_pars)
             gal = galsim.Convolve([psf, gal0])
 
         return gal, gal_pars, psf
@@ -239,6 +239,7 @@ class SimGS(dict):
         gal = gal.shear(g1=g1, g2=g2)
 
         # now shear it
+        shear=pars['shear']
         gal = gal.shear(g1=shear.g1, g2=shear.g2)
 
         # in the demos, the shift was always applied after the shear, not sure
@@ -249,7 +250,7 @@ class SimGS(dict):
         tup=(r50,cenoff)
         print("    r50: %g cenoff: %s" % tup)
 
-        return gal, pars
+        return gal
 
 
     def _get_psf_obj(self, cenoff):
@@ -524,12 +525,10 @@ class SimBD(SimGS):
     """
     specific sim to deal with complications of a bulge+disk model
     """
-    def _get_gal_obj(self):
+    def _get_gal_obj(self, pars):
         """
         get the galsim object for the galaxy model
         """
-
-        pars=self._get_galaxy_pars()
 
         flux = pars['flux']
 
@@ -558,6 +557,7 @@ class SimBD(SimGS):
         # combine them and shear that
         gal = galsim.Add([disk, bulge])
 
+        shear=pars['shear']
         gal = gal.shear(g1=shear.g1, g2=shear.g2)
 
         if cenoff is not None:
@@ -566,7 +566,7 @@ class SimBD(SimGS):
         tup=(r50,fracdev,dev_offset,cenoff)
         print("    r50: %g fracdev: %g dev_offset: %s cenoff: %s" % tup)
 
-        return gal, pars
+        return gal
 
     def _get_galaxy_pars(self):
         """
@@ -582,7 +582,6 @@ class SimBD(SimGS):
         if self.dev_offset_pdf is not None:
             dev_offset1,dev_offset2 = self.dev_offset_pdf.sample2d()
             dev_offset = (r50*dev_offset1, r50*dev_offset2)
-            print("    dev offset:",dev_offset[0],dev_offset[1])
         else:
             dev_offset=None
         pars['dev_offset'] = dev_offset

@@ -2,6 +2,7 @@
 from __future__ import print_function
 import sys
 import os
+from pprint import pprint
 import numpy
 from numpy import sqrt, array, diag, ones, zeros, where, newaxis
 from numpy import newaxis
@@ -23,9 +24,15 @@ parser=argparse.ArgumentParser(formatter_class=fclass)
 
 parser.add_argument('runs', nargs='+',help='run to use in fit')
 
+parser.add_argument('--boot-Rnoise',action='store_true')
+parser.add_argument('--nboot-Rnoise',type=int,default=100)
+parser.add_argument('--bootsize-Rnoise',type=int,default=1000000)
+
 parser.add_argument('--weights',action='store_true')
 parser.add_argument('--s2n-soft',type=float,default=20)
+
 parser.add_argument('--min-s2n',type=float,default=None)
+parser.add_argument('--min-logF',type=float,default=None)
 
 parser.add_argument('--no-Rpsf-noise',action='store_true')
 
@@ -45,19 +52,56 @@ default_columns=[
     'mcal_Rpsf',
     'mcal_dt_Rnoise',
     'mcal_dt_Rnoise_psf',
-    'mcal_s2n_r',
+]
+
+cache_columns=[
+    'shear_index',
+    'pars',
+    's2n_r',
+    'mcal_g',
+    'mcal_gpsf',
+    'mcal_R',
+    'mcal_Rpsf',
+    'mcal_dt_Rnoise',
+    'mcal_dt_Rnoise_psf',
 ]
 
 
-def get_subset(conf, args, fname, min_s2n):
-    print("making s2n cut:",min_s2n)
+def get_subset(conf, args, fname, **kw):
 
-    columns=['mcal_s2n_r']
-    print("reading cut fields only:",columns)
-    t=fitsio.read(fname, columns=columns)
+    docuts=False
+    types=['min_s2n','min_logF']
+    for t in types:
+        if kw[t] is not None:
+            docuts=True
 
-    w,=numpy.where( t['mcal_s2n_r'] > min_s2n)
-    print("    kept: %d/%d" % (w.size,t.size))
+    if not docuts:
+        return None
+
+    with fitsio.FITS(fname) as fobj:
+        nrows = fobj[1].get_nrows()
+        logic = numpy.ones(nrows,dtype=bool)
+
+        if kw['min_s2n'] is not None:
+            print("making s2n cut:",kw['min_s2n'])
+
+            columns=['s2n_r']
+            print("reading cut fields only:",columns)
+            t=fitsio.read(fname, columns=columns)
+
+            logic = logic & (t['s2n_r'] > kw['min_s2n'])
+
+        if kw['min_logF'] is not None:
+            print("making logF cut:",kw['min_logF'])
+
+            columns=['pars']
+            print("reading cut fields only:",columns)
+            t=fitsio.read(fname, columns=columns)
+
+            logic = logic & (t['pars'][:,5] > kw['min_logF'])
+
+    w,=numpy.where(logic)
+    print("    kept: %d/%d" % (w.size,logic.size))
 
     return w
 
@@ -84,6 +128,9 @@ def count_objects(flist):
     return n
 
 def cache_in_chunks(runs, columns, cache_file):
+
+    print("cacheing columns:")
+    pprint(columns)
 
     chunksize=1000000
 
@@ -123,24 +170,27 @@ def cache_in_chunks(runs, columns, cache_file):
 def read_data(conf, args, **kw):
 
     columns = default_columns
+    ccolumns = cache_columns
 
     if args.no_Rpsf_noise:
         columns=[c for c in columns if c != 'mcal_dt_Rnoise_psf']
+        ccolumns=[c for c in ccolumns if c != 'mcal_dt_Rnoise_psf']
 
     cache_file=get_cache_file(args.runs)
     print("cache file:",cache_file)
 
     if not os.path.exists(cache_file):
-        cache_in_chunks(args.runs, columns, cache_file)
+        cache_in_chunks(args.runs, ccolumns, cache_file)
 
     print("reading cache:",cache_file)
 
-    if 'min_s2n' in kw:
-        rows=get_subset(conf, args, cache_file, kw['min_s2n'])
+    if len(kw) > 0:
+        rows=get_subset(conf, args, cache_file, **kw)
     else:
         rows=None
 
-    data=fitsio.read(cache_file,rows=rows)
+    #rows=numpy.arange(1000000)
+    data=fitsio.read(cache_file,columns=columns,rows=rows)
 
     return data
 
@@ -578,6 +628,13 @@ def get_mean_struct(n):
     means = numpy.zeros(n, dtype=dt)
     return means
 
+def get_boot_struct(nboot):
+    dt=[('m','f8',2),
+        ('c','f8',2)]
+
+    bs = numpy.zeros(nboot, dtype=dt)
+    return bs
+
 def read_means(args):
     return reredux.files.read_fit_file(args.run,
                                        extra='shear-means')
@@ -658,7 +715,7 @@ def get_averages(conf, args, data, show_progress=True):
 def get_averages_weighted(conf, args, data, show_progress=True):
 
     print("using weights")
-    weights=get_s2n_weights(data['mcal_s2n_r'], args)
+    weights=get_s2n_weights(data['s2n_r'], args)
     wsum=weights.sum()
     #wna1=weights[:,newaxis]
     #wna2=weights[:,newaxis,newaxis]
@@ -721,6 +778,102 @@ def get_averages_weighted(conf, args, data, show_progress=True):
         means['shear_true'][i] = shear_true
 
     return means
+
+def get_averages_boot_Rnoise(conf, args, data):
+
+    sconf=conf['simc']
+    shears = sconf['shear']['shears']
+
+    g=data['mcal_g']
+    gpsf=data['mcal_gpsf']
+
+    R=data['mcal_R']
+    Rpsf=data['mcal_Rpsf']
+
+    Rmean0 = R.mean(axis=0)
+    Rerr0 = R.std(axis=0)/sqrt(R.shape[0])
+
+    Rpsf_mean0 = Rpsf.mean(axis=0)
+    Rpsf_err0 = Rpsf.std(axis=0)/sqrt(R.shape[0])
+
+    bs=get_boot_struct(args.nboot_Rnoise)
+
+
+    h,rev = eu.stat.histogram(data['shear_index'], rev=True)
+    nind = h.size
+
+    g_means = []
+    g_errs = []
+    gpsf_means = []
+    for i in xrange(nind):
+        w=rev[ rev[i]:rev[i+1] ]
+
+        gmean     = g[w].mean(axis=0)
+        g_err = g[w].std(axis=0)/numpy.sqrt(w.size)
+        gpsf_mean = gpsf[w].mean(axis=0)
+
+        g_means.append(gmean)
+        g_errs.append(g_err)
+        gpsf_means.append(gpsf_mean)
+
+
+
+    means=get_mean_struct(nind)
+    for iboot in xrange(args.nboot_Rnoise):
+
+        print("%d/%d" % (iboot+1,args.nboot_Rnoise))
+
+        subset=numpy.random.randint(
+            0,
+            data.size,
+            args.bootsize_Rnoise
+        )
+
+        Rnoise, Rnoise_err, Rnoise_psf, Rnoise_psf_err = \
+                get_Rnoise_line(conf, args, data[subset])
+
+        Rmean = Rmean0 - Rnoise
+        Rpsf_mean = Rpsf_mean0 - Rnoise_psf
+        Rinv = numpy.linalg.inv(Rmean)
+
+        Rerr = sqrt(Rerr0**2 + Rnoise_err**2)
+        Rpsf_err = sqrt(Rpsf_err0**2 + Rnoise_psf_err**2)
+
+        print_Rs(Rmean, Rerr, Rpsf_mean, Rpsf_err)
+
+        for i in xrange(nind):
+
+            shear_true = shears[i]
+
+            g_mean = g_means[i]
+            g_err = g_errs[i]
+            gpsf_mean = gpsf_means[i]
+
+            psf_corr  = gpsf_mean*Rpsf_mean
+
+            shear     = numpy.dot(Rinv, g_mean-psf_corr)
+            shear_err = g_err
+            shear_err = numpy.dot(Rinv, shear_err)
+
+            means['shear'][i] = shear
+            means['shear_err'][i] = shear_err
+            means['shear_true'][i] = shear_true
+
+        fits=fit_m_c(means)
+        bs['m'][iboot] = fits['m'][0,:]
+        bs['c'][iboot] = fits['c'][0,:]
+
+    mres = eu.stat.get_stats(bs['m'])
+    cres = eu.stat.get_stats(bs['c'])
+
+    print('-'*70)
+    for i in xrange(2):
+        print_m_c(i+1,
+                  mres['mean'][i],
+                  mres['err'][i],
+                  cres['mean'][i],
+                  cres['err'][i])
+
 
 
 def print_m_c(sindex, m, merr, c, cerr, r=None):
@@ -920,6 +1073,41 @@ def plot_line_fit(args, extra, x, y, res, xlabel, ylabel):
     if args.show:
         plt.show()
 
+S2N_FACTORS=array([1.1,1.2,1.3])
+def get_averages_with_selection(conf, args, data):
+
+    print("getting means")
+    means = get_averages(conf, args, data, show_progress=False)
+    s2n_vals=S2N_FACTORS*args.min_s2n
+
+    nshear=s2n_vals.size
+    diffs = numpy.zeros(means.size,
+                            dtype=[('min_s2n','f8',nshear),
+                                   ('shear_diff1','f8',nshear)])
+
+    for i,s2n in enumerate(s2n_vals):
+        print("    getting means s2n > ",s2n)
+        w,=where(data['s2n_r'] > s2n)
+
+        tmeans = get_averages(conf, args, data[w], show_progress=False)
+
+        diffs['min_s2n'][:,i] = s2n_vals[i]
+        diffs['shear_diff1'][:,i] = tmeans['shear'][:,0]-means['shear'][:,0]
+        diffs['shear_diff2'][:,i] = tmeans['shear'][:,1]-means['shear'][:,1]
+
+    res1 = fitline(
+        diffs['min_s2n'].ravel(),
+        diffs['shear_diff1'].ravel()
+    )
+    res2 = fitline(
+        diffs['min_s2n'].ravel(),
+        diffs['shear_diff2'].ravel()
+    )
+    fmt = '  M{i}: %.3g +/- %.3g C{i}: %.3g +/- %.3g'.format(i=1)
+    print(fmt % (res1['slope'],res1['slope_err'],res1['offset'],res1['offset_err']))
+    fmt = '  M{i}: %.3g +/- %.3g C{i}: %.3g +/- %.3g'.format(i=2)
+    print(fmt % (res2['slope'],res2['slope_err'],res2['offset'],res2['offset_err']))
+
 
 def main():
     args = parser.parse_args()
@@ -927,14 +1115,23 @@ def main():
     conf = nsim.files.read_config(args.runs[0])
     conf['simc'] = nsim.files.read_config(conf['sim'])
 
-    kw={}
-    if args.min_s2n is not None:
-        kw['min_s2n'] = args.min_s2n
+    kw={'min_s2n':args.min_s2n,
+        'min_logF': args.min_logF}
 
     data=read_data(conf, args, **kw)
 
-    means = get_averages(conf, args, data, show_progress=False)
-    fits=fit_m_c(means)
-    doplot(args, means, fits)
+    if args.boot_Rnoise:
+        get_averages_boot_Rnoise(conf, args, data)
+    else:
+        '''
+        if args.min_s2n is not None:
+            means=get_averages_with_selection(conf, args, data)
+        else:
+            means = get_averages(conf, args, data, show_progress=False)
+        '''
+        means = get_averages(conf, args, data, show_progress=False)
+
+        fits=fit_m_c(means)
+        doplot(args, means, fits)
 
 main()

@@ -54,10 +54,10 @@ class SimGS(dict):
             nrows,ncols=self['psf_stamp_size']
         else:
             nrows,ncols=self['stamp_size']
-        psf_obs = self._make_obs(psf, nrows, ncols, s2n=self['psf']['s2n'])
+        psf_obs = self._make_obs(psf, nrows, ncols, s2n=self['psf']['s2n'], isgal=False)
 
         nrows,ncols=self['stamp_size']
-        gal_obs = self._make_obs(gal, nrows, ncols)
+        gal_obs = self._make_obs(gal, nrows, ncols, isgal=True)
 
         s2n = self._get_expected_s2n(gal_obs.image_nonoise)
         print("    s2n expected:",s2n)
@@ -74,7 +74,7 @@ class SimGS(dict):
                 'gal_obj': gal}
 
 
-    def _make_obs(self, gs_obj, nrows, ncols, s2n=None):
+    def _make_obs(self, gs_obj, nrows, ncols, s2n=None, isgal=True):
         """
         get an ngmix Observation
 
@@ -97,7 +97,16 @@ class SimGS(dict):
 
         weight = numpy.zeros( image.shape ) + self['ivar']
 
-        obs = ngmix.Observation(image, weight=weight, jacobian=jacob)
+        bmask=None
+        if isgal and self['bad_pixels'] is not None:
+            bmask=self._set_bad_pixels(image, weight)
+
+        obs = ngmix.Observation(
+            image,
+            weight=weight,
+            bmask=bmask,
+            jacobian=jacob
+        )
 
         # monkey patching
         obs.image_nonoise = image_nonoise
@@ -107,6 +116,32 @@ class SimGS(dict):
 
         return obs
 
+    def _set_bad_pixels(self, image, weight):
+        """
+        currently one per stamp, random location
+        """
+        bmask=numpy.zeros(image.shape, dtype='i2')
+
+        # ravel returns a view
+        imravel = image.ravel()
+        wtravel = weight.ravel()
+        bmravel = bmask.ravel()
+
+        ibad = numpy.random.randint(0, imravel.size)
+
+        if self['bad_pixels']['replace_with']=='noise':
+            imravel[ibad] = numpy.random.normal(
+                loc=0.0,
+                scale=self['noise'],
+                size=1
+            )
+        else:
+            imravel[ibad] = -9999.0
+
+        wtravel[ibad] = 0.0
+        bmravel[ibad] = 1
+
+        return bmask
 
     def _compare_images(self, im1, im2, **keys):
         import images
@@ -198,7 +233,7 @@ class SimGS(dict):
         elif pars['model']=='dev':
             gal = galsim.DeVaucouleurs(flux=flux, half_light_radius=r50)
         else:
-            raise ValueError("bad galaxy model: '%s'" % self['model'])
+            raise ValueError("bad galaxy model: '%s'" % pars['model'])
 
         # first give it an intrinsic shape
         gal = gal.shear(g1=g1, g2=g2)
@@ -372,6 +407,9 @@ class SimGS(dict):
 
         self['ivar'] = 1.0/self['noise']**2
         self['model'] = self['obj_model']['model']
+
+        self['bad_pixels'] = self.get('bad_pixels',None)
+        assert self['bad_pixels']['replace_with']=='noise'
         self._set_pdfs()
 
     def _set_pdfs(self):

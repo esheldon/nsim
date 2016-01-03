@@ -757,6 +757,9 @@ moments
             m1: 6.057e-04 +/- 6.512e-04 c1: -2.360e-05 +/- 2.295e-05  r1: 0.00386
             m2: 3.434e-04 +/- 6.681e-04 c2: 2.356e-05 +/- 2.207e-05  r2: -0.0233
 
+- sim-bd17
+    - same as bd12 but big, fixed psf anisitropy
+
 - sim-bd18
     - stars
     - run-bd18mcal-dt-t01     500,000

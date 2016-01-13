@@ -142,6 +142,7 @@ seed=$4
 run=%(run)s
 
 tmpdir=$TMPDIR
+mkdir -p $tmpdir
 cd $tmpdir
 
 tmplog=$(basename $logfile)

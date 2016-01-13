@@ -13,6 +13,7 @@ from .sim import srandu
 
 from .util import TryAgainError, load_gmixnd
 
+
 try:
     import galsim
     have_galsim=True
@@ -100,6 +101,8 @@ class SimGS(dict):
         bmask=None
         if isgal and self['bad_pixels'] is not None:
             bmask=self._set_bad_pixels(image, weight)
+        elif isgal and self['masks'] is not None:
+            bmask=self._set_mask(image, weight)
 
         obs = ngmix.Observation(
             image,
@@ -142,6 +145,41 @@ class SimGS(dict):
         bmravel[ibad] = 1
 
         return bmask
+
+    def _set_mask(self, image, weight):
+        """
+        currently one per stamp, random location
+        """
+        mask = self._get_random_mask()
+
+        bmask = numpy.zeros(mask.shape, dtype='i2')
+
+        # ravel returns a view
+        imravel = image.ravel()
+        wtravel = weight.ravel()
+
+        mask_ravel = mask.ravel()
+        bmravel = bmask.ravel()
+
+        mess="mask size does not match image"
+        assert imravel.size == mask_ravel.size,mess
+
+        ibad, = numpy.where(mask_ravel == 0)
+
+        if self['masks']['replace_with']=='noise':
+            imravel[ibad] = numpy.random.normal(
+                loc=0.0,
+                scale=self['noise'],
+                size=ibad.size
+            )
+        else:
+            imravel[ibad] = -9999.0
+
+        wtravel[ibad] = 0.0
+        bmravel[ibad] = 1
+
+        return bmask
+
 
     def _compare_images(self, im1, im2, **keys):
         import images
@@ -410,8 +448,43 @@ class SimGS(dict):
         self['model'] = self['obj_model']['model']
 
         self['bad_pixels'] = self.get('bad_pixels',None)
-        assert self['bad_pixels']['replace_with']=='noise'
+        if self['bad_pixels'] is not None:
+                assert self['bad_pixels']['replace_with']=='noise'
+
+        self['masks'] = self.get('masks',None)
+        if self['masks'] is not None:
+            assert self['masks']['replace_with']=='noise'
+
+            self._load_masks()
+
         self._set_pdfs()
+
+    def _load_masks(self):
+        """
+        load masks from a multi-extension fits file
+        """
+        import fitsio
+        mask_file=self['masks']['mask_file']
+
+        print("Loading masks from:",mask_file)
+        with fitsio.FITS(mask_file) as fits:
+            mask_list = [hdu.read() for hdu in fits]
+
+        self.mask_list=mask_list
+
+    def _get_random_mask(self):
+        """
+        get a random mask, rotated by a random multiple
+        of 90 degrees
+        """
+        i = numpy.random.randint(0, len(self.mask_list))
+        #print("    loading mask:",i)
+        mask=self.mask_list[i]
+
+        ri=numpy.random.randint(0,4)
+        mask = numpy.rot90(mask, k=ri)
+
+        return mask
 
     def _set_pdfs(self):
         """

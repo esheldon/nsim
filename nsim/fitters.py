@@ -598,15 +598,6 @@ class MaxMetacalFitter(MaxFitter):
 
         return fitter
 
-    def _replace_masked(self, imdict):
-        self._obs_orig = deepcopy(imdict['obs'])
-        
-        obs=imdict['obs']
-        bmask=obs.bmask
-        w=numpy.where(bmask != 0)
-
-        newobs = deepcopy(imdict['obs'])
-
     def _do_fits(self, obs):
         """
         the basic fitter for this class
@@ -647,7 +638,7 @@ class MaxMetacalFitter(MaxFitter):
             if mconf['pars']['method']=='lm':
                 boot.try_replace_cov(mconf['cov_pars'])
 
-            boot.replace_masked()
+            boot.replace_masked_pixels()
             self._do_metacal(boot)
 
         except BootPSFFailure:

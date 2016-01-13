@@ -1,6 +1,6 @@
 # replace masked pixels with best fit model
-run: "run-bd20mcal-dt-t02"
-sim: "sim-bd20"
+run: "run-bd21mcal-dt-t01"
+sim: "sim-bd21"
 
 ngmix_hash: "2add8afa3d3e42bbdb2f4be7121a77189bb760b7"
 nsim_hash: "d6c804fa98d2f5e2f7e80823784636ada2f05b95"

@@ -167,14 +167,15 @@ class SimGS(dict):
 
         ibad, = numpy.where(mask_ravel == 0)
 
-        if self['masks']['replace_with']=='noise':
+        rep=self['masks']['replace_with']
+        if rep =='noise':
             imravel[ibad] = numpy.random.normal(
                 loc=0.0,
                 scale=self['noise'],
                 size=ibad.size
             )
         else:
-            imravel[ibad] = -9999.0
+            imravel[ibad] = rep
 
         wtravel[ibad] = 0.0
         bmravel[ibad] = 1
@@ -461,8 +462,6 @@ class SimGS(dict):
 
         self['masks'] = self.get('masks',None)
         if self['masks'] is not None:
-            #assert self['masks']['replace_with']=='noise'
-
             self._load_masks()
 
         self._set_pdfs()

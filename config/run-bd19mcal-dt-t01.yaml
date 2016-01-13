@@ -1,0 +1,62 @@
+run: "run-bd19mcal-dt-t01"
+sim: "sim-bd19"
+
+ngmix_hash: ""
+nsim_hash: "da9d508c285f5ef8c074b9e1d59b1ab8a71d8673"
+
+fitter: "metacal-max-detrend"
+fit_model: "gauss"
+
+g_prior_during: True
+use_logpars: True
+
+# we detrend at noise levels sim['noise']*detrend_factors
+detrend_factors: [ 1.00714286,  1.01428571,  1.02142857 ]
+
+global_seed: 12911
+
+metacal_pars:
+    step: 0.01
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    T:
+        type: "gmixnd"
+        run: "run-bd16zmax-lownoise01"
+        extra: "log_T"
+        cov_factor: 1.44
+
+    counts:
+        type: "gmixnd"
+        run: "run-bd16zmax-lownoise01"
+        extra: "log_F"
+        cov_factor: 1.44
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+ngal: 500000
+
+desired_hours: 0.25
+sec_per: 1.4
+
+verbose: False

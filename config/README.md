@@ -774,6 +774,18 @@ moments
         m1: -3.231e-03 +/- 9.709e-03 c1: 2.089e-04 +/- 3.235e-04  r1: -0.00487
         m2: 2.193e-03 +/- 9.419e-03 c2: 3.631e-04 +/- 3.377e-04  r2: 0.103
 
+sim-bd20
+    - run-bd20mcal-dt-t01
+        - added full masking, replaced by random noise
+            - shitty
+              m1: -4.522e-02 +/- 8.946e-03 c1: -1.930e-04 +/- 2.981e-04
+              m2: -3.343e-02 +/- 8.518e-03 c2: 2.702e-04 +/- 3.055e-04
+sim-bd21
+    - in sim masked replaced by zeros
+    - run-bd21mcal-dt-t01
+        - replaced by best fit, which is gaussian, so this might suck
+              m1: 1.499e-02 +/- 9.326e-03 c1: -1.646e-04 +/- 3.107e-04
+              m2: 4.376e-04 +/- 8.974e-03 c2: 4.824e-04 +/- 3.218e-04
 
 - sim-bd02
 - sim-bd02z

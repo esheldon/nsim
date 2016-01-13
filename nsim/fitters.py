@@ -598,13 +598,22 @@ class MaxMetacalFitter(MaxFitter):
 
         return fitter
 
+    def _replace_masked(self, imdict):
+        self._obs_orig = deepcopy(imdict['obs'])
+        
+        obs=imdict['obs']
+        bmask=obs.bmask
+        w=numpy.where(bmask != 0)
+
+        newobs = deepcopy(imdict['obs'])
+
     def _do_fits(self, obs):
         """
         the basic fitter for this class
         """
         from ngmix import Bootstrapper
 
-        intpars=self.get('intpars',None) 
+        intpars=self.get('intpars',None)
 
         boot=Bootstrapper(obs,
                           use_logpars=self['use_logpars'],
@@ -638,6 +647,7 @@ class MaxMetacalFitter(MaxFitter):
             if mconf['pars']['method']=='lm':
                 boot.try_replace_cov(mconf['cov_pars'])
 
+            boot.replace_masked()
             self._do_metacal(boot)
 
         except BootPSFFailure:
@@ -645,7 +655,7 @@ class MaxMetacalFitter(MaxFitter):
         except BootGalFailure:
             raise TryAgainError("failed to fit galaxy")
 
-        fitter=boot.get_max_fitter() 
+        fitter=boot.get_max_fitter()
         res=fitter.get_result()
 
         mres = boot.get_metacal_max_result()

@@ -155,6 +155,7 @@ class SimGS(dict):
         bmask = numpy.zeros(mask.shape, dtype='i2')
 
         # ravel returns a view
+        #imorig=image.copy()
         imravel = image.ravel()
         wtravel = weight.ravel()
 
@@ -177,6 +178,13 @@ class SimGS(dict):
 
         wtravel[ibad] = 0.0
         bmravel[ibad] = 1
+
+        if False:
+            import images
+            images.view_mosaic([mask,image,image-imorig],
+                               titles=['mask','mod image','mod-orig'])
+            if raw_input('hit a key: ') == 'q':
+                stop
 
         return bmask
 
@@ -453,7 +461,7 @@ class SimGS(dict):
 
         self['masks'] = self.get('masks',None)
         if self['masks'] is not None:
-            assert self['masks']['replace_with']=='noise'
+            #assert self['masks']['replace_with']=='noise'
 
             self._load_masks()
 

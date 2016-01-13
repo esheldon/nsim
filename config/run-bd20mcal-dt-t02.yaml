@@ -2,8 +2,8 @@
 run: "run-bd20mcal-dt-t02"
 sim: "sim-bd20"
 
-ngmix_hash: ""
-nsim_hash: ""
+ngmix_hash: "2add8afa3d3e42bbdb2f4be7121a77189bb760b7"
+nsim_hash: "d6c804fa98d2f5e2f7e80823784636ada2f05b95"
 
 fitter: "metacal-max-detrend"
 fit_model: "gauss"

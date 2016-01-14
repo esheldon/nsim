@@ -24,7 +24,12 @@ psf:
 
     r50: 1.5
 
-    shape: [0.0, 0.02]
+    # DES variation in shape
+    # also mean for g2 only
+    shape:
+      type: "normal2d"
+      cen: [0.0, 0.007]
+      sigma: [0.018, 0.018]
 
 obj_model:
 

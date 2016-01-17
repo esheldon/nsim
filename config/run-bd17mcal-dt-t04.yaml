@@ -1,4 +1,3 @@
-# roundify psf, based on pre-pixel psf
 run: "run-bd17mcal-dt-t04"
 sim: "sim-bd17"
 

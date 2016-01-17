@@ -18,11 +18,18 @@ import argparse
 import esutil as eu
 from esutil.numpy_util import between
 
+import reredux
+
 
 fclass=argparse.ArgumentDefaultsHelpFormatter
 parser=argparse.ArgumentParser(formatter_class=fclass)
 
 parser.add_argument('runs', nargs='+',help='run to use in fit')
+
+parser.add_argument('--ntest',default=None,type=int,
+                    help='work on a small subset for quick tests')
+parser.add_argument('--nocorr',action='store_true',
+                    help='do not apply correlated noise correction')
 
 parser.add_argument('--boot-Rnoise',action='store_true')
 parser.add_argument('--nboot-Rnoise',type=int,default=100)
@@ -185,12 +192,18 @@ def read_data(conf, args, **kw):
     print("reading cache:",cache_file)
 
     if len(kw) > 0:
+        print("getting subset")
         rows=get_subset(conf, args, cache_file, **kw)
+    elif args.ntest is not None:
+        rows=numpy.arange(args.ntest)
+        print("reading",rows.size,"rows")
     else:
+        print("reading all")
         rows=None
 
     #rows=numpy.arange(1000000)
-    data=fitsio.read(cache_file,columns=columns,rows=rows)
+    #data=fitsio.read(cache_file,columns=columns,rows=rows)
+    data=fitsio.read(cache_file,rows=rows)
 
     return data
 
@@ -652,6 +665,134 @@ def print_shear(ind, num, shear, shear_err):
     tup=(ind, num, shear[0],shear_err[0], shear[1],shear_err[1])
     print(mess % tup)
 
+
+def do_sums(nshear, data, args, sums=None):
+
+    n_detrend = data['mcal_dt_Rnoise'].shape[1]
+
+    h,rev = eu.stat.histogram(data['shear_index'],
+                              min=0,
+                              max=nshear-1,
+                              rev=True)
+    nind = h.size
+    assert nshear==nind
+
+    if sums is None:
+        dt=[
+            ('n','i8'),
+            ('g','f8',2),
+            ('gpsf','f8',2),
+            ('R','f8',(2,2)),
+            ('Rpsf','f8',2),
+            ('Rdt','f8',(n_detrend,2,2)),
+            ('Rdt_psf','f8',(n_detrend,2)),
+        ]
+
+        sums=numpy.zeros(nshear, dtype=dt)
+
+    for i in xrange(nshear):
+        if rev[i] != rev[i+1]:
+            w=rev[ rev[i]:rev[i+1] ]
+
+            sums['n'][i] += w.size
+            sums['g'][i] += data['mcal_g'][w].sum(axis=0)
+            sums['gpsf'][i] += data['mcal_gpsf'][w].sum(axis=0)
+
+            sums['R'][i] += data['mcal_R'][w].sum(axis=0)
+            sums['Rpsf'][i] += data['mcal_Rpsf'][w].sum(axis=0)
+
+            if not args.nocorr:
+
+                sums['Rdt'][i] += data['mcal_dt_Rnoise'][w].sum(axis=0)
+
+                if not args.no_Rpsf_noise:
+                    sums['Rdt_psf'][i] += data['mcal_dt_Rnoise_psf'][w].sum(axis=0)
+
+    return sums
+
+def read_and_average(conf, args):
+
+    sconf=conf['simc']
+    shears = sconf['shear']['shears']
+    nshear=len(shears)
+
+    chunksize=1000000
+    sums=None
+    ntot=0
+    for run in args.runs:
+        if args.ntest is not None and ntot > args.ntest:
+            break
+
+        fname = nsim.files.get_output_url(run, 0, 0)
+        with fitsio.FITS(fname) as fits:
+
+            hdu=fits[1]
+
+            nrows=hdu.get_nrows()
+            nchunks = nrows//chunksize
+
+            if (nrows % chunksize) > 0:
+                nchunks += 1
+
+            beg=0
+            for i in xrange(nchunks):
+                print("    chunk %d/%d" % (i+1,nchunks))
+
+                end=beg+chunksize
+
+                data = hdu[beg:end]
+                ntot += data.size
+
+                sums=do_sums(nshear, data, args, sums=sums)
+
+                beg = beg + chunksize
+
+                if args.ntest is not None and ntot > args.ntest:
+                    break
+
+    # convert to averages
+    ntot=sums['n'].sum()
+    R = sums['R'].sum(axis=0)/ntot
+    Rpsf = sums['Rpsf'].sum(axis=0)/ntot
+    print("R:",R)
+
+    if not args.nocorr:
+        Rnoise, Rnoise_err, Rnoise_psf, Rnoise_psf_err = \
+                get_Rnoise_line(conf, args, None, sums=sums)
+
+        R -= Rnoise
+        Rpsf -= Rnoise_psf
+
+    g = sums['g']
+    gpsf = sums['gpsf']
+
+    ninv = 1.0/sums['n']
+    g[:,0]    *= ninv
+    g[:,1]    *= ninv
+    gpsf[:,0] *= ninv
+    gpsf[:,1] *= ninv
+
+    Rinv = numpy.linalg.inv(R)
+
+    means=get_mean_struct(nshear)
+
+    for i in xrange(nshear):
+
+        shear_true = shears[i]
+
+        psf_corr  = Rpsf*gpsf[i]
+
+        gmean     = g[i]
+        shear     = numpy.dot(Rinv, gmean-psf_corr)
+
+        means['shear'][i] = shear
+        means['shear_err'][i] = 1.0
+        means['shear_true'][i] = shear_true
+
+    return means
+
+
+
 def get_averages(conf, args, data, show_progress=True):
 
     if args.weights:
@@ -661,18 +802,16 @@ def get_averages(conf, args, data, show_progress=True):
     sconf=conf['simc']
     shears = sconf['shear']['shears']
 
+    print("histogramming shear index")
     h,rev = eu.stat.histogram(data['shear_index'], rev=True)
     nind = h.size
 
+    print("Getting overall means")
     g=data['mcal_g']
     gpsf=data['mcal_gpsf']
 
     R=data['mcal_R']
     Rpsf=data['mcal_Rpsf']
-
-    Rnoise, Rnoise_err, Rnoise_psf, Rnoise_psf_err = \
-            get_Rnoise_line(conf, args, data)
-    #Rnoise = get_Rnoise_line(conf, args, data)
 
     Rmean = R.mean(axis=0)
     Rerr = R.std(axis=0)/sqrt(R.shape[0])
@@ -680,17 +819,29 @@ def get_averages(conf, args, data, show_progress=True):
     Rpsf_mean = Rpsf.mean(axis=0)
     Rpsf_err = Rpsf.std(axis=0)/sqrt(R.shape[0])
 
-    Rmean -= Rnoise
-    Rpsf_mean -= Rnoise_psf
+    if not args.nocorr:
+        print("calculating detrend correlated noise corrections")
+        Rnoise, Rnoise_err, Rnoise_psf, Rnoise_psf_err = \
+                get_Rnoise_line(conf, args, data)
+
+        Rmean -= Rnoise
+        Rpsf_mean -= Rnoise_psf
+
+        Rerr = sqrt(Rerr**2 + Rnoise_err**2)
+        Rpsf_err = sqrt(Rpsf_err**2 + Rnoise_psf_err**2)
+    else:
+        print("skipping correlated noise correction")
+
     Rinv = numpy.linalg.inv(Rmean)
 
-    Rerr = sqrt(Rerr**2 + Rnoise_err**2)
-    Rpsf_err = sqrt(Rpsf_err**2 + Rnoise_psf_err**2)
 
     print_Rs(Rmean, Rerr, Rpsf_mean, Rpsf_err)
 
     means=get_mean_struct(nind)
 
+    #psf_corr  = Rpsf_mean*gpsf.mean(axis=0)
+
+    print("getting shear field means")
     for i in xrange(nind):
         if show_progress:
             print("shear index:",i)
@@ -699,7 +850,7 @@ def get_averages(conf, args, data, show_progress=True):
 
         shear_true = shears[i]
 
-        psf_corr  = (gpsf[w]*Rpsf_mean).mean(axis=0)
+        psf_corr  = Rpsf_mean*gpsf[w].mean(axis=0)
 
         gmean     = g[w].mean(axis=0)
         shear     = numpy.dot(Rinv, gmean-psf_corr)
@@ -859,7 +1010,7 @@ def get_averages_boot_Rnoise(conf, args, data):
             means['shear_err'][i] = shear_err
             means['shear_true'][i] = shear_true
 
-        fits=fit_m_c(means)
+        fits=reredux.averaging.fit_m_c(means)
         bs['m'][iboot] = fits['m'][0,:]
         bs['c'][iboot] = fits['c'][0,:]
 
@@ -877,6 +1028,7 @@ def get_averages_boot_Rnoise(conf, args, data):
 
 
 def print_m_c(sindex, m, merr, c, cerr, r=None):
+
     fmt = '  m{i}: %.3e +/- %.3e c{i}: %.3e +/- %.3e'.format(i=sindex)
     if r is not None:
         fmt += '  r{i}: %.3g'.format(i=sindex)
@@ -884,18 +1036,39 @@ def print_m_c(sindex, m, merr, c, cerr, r=None):
     else:
         print(fmt % (m, merr, c, cerr))
 
-def fit_m_c(data, doprint=True):
-    import fitting
-    import mcmc
-    import esutil as eu
-
+def fit_m_c(data, doprint=True, onem=False):
     strue = data['shear_true']
     sdiff = data['shear'] - data['shear_true']
+    serr  = data['shear_err']
 
-    m = numpy.zeros(2)
-    merr = numpy.zeros(2)
-    c = numpy.zeros(2)
-    cerr = numpy.zeros(2)
+    if onem:
+        import reredux
+        fits=numpy.zeros(1, dtype=[('m','f8'),
+                                   ('merr','f8'),
+                                   ('c1','f8'),
+                                   ('c1err','f8'),
+                                   ('c2','f8'),
+                                   ('c2err','f8')])
+
+
+        fitter=reredux.averaging.MCFitter(strue, sdiff, serr)
+        fitter.dofit()
+        res=fitter.get_result()
+
+        pars=res['pars']
+        perr=res['perr']
+        fits['m'] = pars[0]
+        fits['c1'] = pars[1]
+        fits['c2'] = pars[2]
+        fits['merr'] = perr[0]
+        fits['c1err'] = perr[1]
+        fits['c2err'] = perr[2]
+
+        fmt = '  m: %.3e +/- %.3e c1: %.3e +/- %.3e c2: %.3e +/- %.3e'
+        print(fmt % (pars[0],perr[0],
+                     pars[1],perr[1],
+                     pars[2],perr[2]))
+        return fits
 
     fits=numpy.zeros(1, dtype=[('m','f8',2),
                                ('merr','f8',2),
@@ -925,9 +1098,7 @@ def get_s2n_weights(s2n, args):
     wts = 1.0/(1.0 + (args.s2n_soft/s2n)**2 )
     return wts
 
-def get_Rnoise_line(conf, args, data, weights=None):
-
-    print("calculating detrend")
+def get_Rnoise_line(conf, args, data, weights=None, sums=None):
 
     noise0 = conf['simc']['noise']
     factors=array(conf['detrend_factors'])
@@ -940,34 +1111,41 @@ def get_Rnoise_line(conf, args, data, weights=None):
     else:
         do_psf=False
 
-    if weights is not None:
-        wsum=weights.sum()
-
-        R = data['mcal_dt_Rnoise']
-        Rshape=R.shape[1:]
-        Rdt = numpy.zeros(Rshape)
-
-
-        for i in xrange(Rshape[0]):
-            for j in xrange(Rshape[1]):
-                for k in xrange(Rshape[2]):
-                    Rdt[i,j,k] = (R[:,i,j,k]*weights).sum()/wsum
-
-        if do_psf:
-            Rpsf = data['mcal_dt_Rnoise_psf']
-            Rpsf_shape=Rpsf.shape[1:]
-
-            Rdt_psf = numpy.zeros(Rpsf_shape)
-
-            for i in xrange(Rpsf_shape[0]):
-                for j in xrange(Rpsf_shape[1]):
-                    Rdt_psf[i,j] = (Rpsf[:,i,j]*weights).sum()/wsum
+    if sums is not None:
+        # sum over all shear fields
+        ninv = 1.0/sums['n'].sum()
+        Rdt = sums['Rdt'].sum(axis=0) * ninv
+        Rdt_psf = sums['Rdt_psf'].sum(axis=0) * ninv
 
     else:
-        Rdt = data['mcal_dt_Rnoise'].mean(axis=0)
+        if weights is not None:
+            wsum=weights.sum()
 
-        if do_psf:
-            Rdt_psf = data['mcal_dt_Rnoise_psf'].mean(axis=0)
+            R = data['mcal_dt_Rnoise']
+            Rshape=R.shape[1:]
+            Rdt = numpy.zeros(Rshape)
+
+
+            for i in xrange(Rshape[0]):
+                for j in xrange(Rshape[1]):
+                    for k in xrange(Rshape[2]):
+                        Rdt[i,j,k] = (R[:,i,j,k]*weights).sum()/wsum
+
+            if do_psf:
+                Rpsf = data['mcal_dt_Rnoise_psf']
+                Rpsf_shape=Rpsf.shape[1:]
+
+                Rdt_psf = numpy.zeros(Rpsf_shape)
+
+                for i in xrange(Rpsf_shape[0]):
+                    for j in xrange(Rpsf_shape[1]):
+                        Rdt_psf[i,j] = (Rpsf[:,i,j]*weights).sum()/wsum
+
+        else:
+            Rdt = data['mcal_dt_Rnoise'].mean(axis=0)
+
+            if do_psf:
+                Rdt_psf = data['mcal_dt_Rnoise_psf'].mean(axis=0)
 
     A = zeros( (2,2) )
     Aerr = zeros( (2,2) )
@@ -1022,7 +1200,7 @@ def get_Rnoise_line(conf, args, data, weights=None):
     #return Rnoise
 
 def print_Rs(R, Rerr, Rpsf, Rpsf_err, type=''):
-    p='%s: %.3g +/- %.3g'
+    p='%s: %.5g +/- %.5g'
     for i in xrange(2):
         n='R%s_psf[%d]' % (type,i+1)
         print(p % (n,Rpsf[i],Rpsf_err[i]))
@@ -1115,23 +1293,22 @@ def main():
     conf = nsim.files.read_config(args.runs[0])
     conf['simc'] = nsim.files.read_config(conf['sim'])
 
-    kw={'min_s2n':args.min_s2n,
-        'min_logF': args.min_logF}
+    kw={}
+    if args.min_s2n is not None:
+        kw['min_s2n']=args.min_s2n
+    if args.min_logF is not None:
+        kw['min_logF']=args.min_logF
 
-    data=read_data(conf, args, **kw)
+    #data=read_data(conf, args, **kw)
 
     if args.boot_Rnoise:
         get_averages_boot_Rnoise(conf, args, data)
     else:
-        '''
-        if args.min_s2n is not None:
-            means=get_averages_with_selection(conf, args, data)
-        else:
-            means = get_averages(conf, args, data, show_progress=False)
-        '''
-        means = get_averages(conf, args, data, show_progress=False)
+        #means = get_averages(conf, args, data, show_progress=False)
+        means = read_and_average(conf, args)
 
-        fits=fit_m_c(means)
+        fits=reredux.averaging.fit_m_c(means)
+        fitsone=reredux.averaging.fit_m_c(means,onem=True)
         doplot(args, means, fits)
 
 main()

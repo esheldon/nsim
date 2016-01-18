@@ -724,6 +724,7 @@ def read_and_average(conf, args):
             break
 
         fname = nsim.files.get_output_url(run, 0, 0)
+        print(fname)
         with fitsio.FITS(fname) as fits:
 
             hdu=fits[1]

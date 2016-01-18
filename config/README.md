@@ -813,6 +813,15 @@ sim-bd21
          c1: -2.282e-06 +/- 2.622e-05
          c2: -5.593e-04 +/- 2.630e-05
 
+    - adding run-stars01mcal-dt01
+        - part way through
+         m: -8.058e-04 +/- 5.019e-04
+         c1: 4.222e-06 +/- 2.450e-05
+         c2: 1.270e-04 +/- 2.457e-05
+
+- sim-stars01
+    - stars, goes with bd21
+
 - sim-bd02
 - sim-bd02z
     - round gaussian psf, r50=1.5 same

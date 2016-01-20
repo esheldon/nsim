@@ -767,6 +767,16 @@ moments
             c2: 2.361e-05 +/- 2.256e-05
 
     - selections
+         note using different fake_shear values (0.01 vs 0.032 or whatever)
+        did not make a difference.  Using the mean R etc. didn't work
+        at all.
+
+        running now without subtracting mean, but I think this didn't work
+        better either.  also it is needed to remove net psf anisotropy
+        anyway...
+
+        what else to try to get this under 1.0e-3?
+
         - s/n > 20
             - no correction
                 m: -2.662e-03 +/- 5.940e-04
@@ -776,6 +786,7 @@ moments
                  m: -8.741e-04 +/- 5.947e-04
                  c1: -2.775e-05 +/- 2.873e-05
                  c2: -2.247e-05 +/- 2.873e-05
+                 # not subtracting mean m = 1.142e-03 +/- 6.048e-04
         - s/n > 15 
             - no correction
                 m: -2.315e-03 +/- 5.324e-04
@@ -794,6 +805,13 @@ moments
                 m: -1.040e-03 +/- 4.618e-04
                 c1: -2.716e-05 +/- 2.231e-05
                 c2: 1.709e-05 +/- 2.231e-05
+            - new correction
+
+        - s/n > 7.5
+            - with correction
+                m: -5.480e-04 +/- 4.448e-04
+                c1: -3.217e-05 +/- 2.149e-05
+                c2: 2.183e-05 +/- 2.149e-05
         - s/n > 5
             - with correction
                 m: 3.335e-04 +/- 4.436e-04
@@ -860,6 +878,22 @@ sim-bd21
             m: 1.189e-01 +/- 5.609e-04
             c1: 9.315e-06 +/- 2.738e-05
             c2: -6.358e-04 +/- 2.746e-05
+
+    - run-bd21mcal-dt02
+        - 2 gaussian psf model
+            m1: -7.176e-04 +/- 7.025e-04 c1: -4.990e-05 +/- 2.341e-05
+            m2: 7.741e-06 +/- 6.679e-04 c2: 9.373e-05 +/- 2.395e-05
+            m: -3.302e-04 +/- 4.853e-04
+            c1: -4.997e-05 +/- 2.368e-05
+            c2: 9.248e-05 +/- 2.375e-05
+        - no corr
+            m1: 1.089e-01 +/- 7.799e-04 c1: -5.524e-05 +/- 2.599e-05
+            m2: 1.095e-01 +/- 7.406e-04 c2: -6.111e-04 +/- 2.656e-05
+
+            m: 1.092e-01 +/- 5.383e-04
+            c1: -5.530e-05 +/- 2.627e-05
+            c2: -6.121e-04 +/- 2.635e-05
+
 
 
 

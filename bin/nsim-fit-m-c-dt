@@ -890,10 +890,23 @@ class Summer(dict):
         self.chunksize=1000000
 
         sconf=self['simc']
-        self['nshear']=len(self['simc']['shear']['shears'])
 
-        self['fake_shear']=0.045
-        #self['fake_shear']=0.01
+        self['nshear']=len(self['simc']['shear']['shears'])
+        print("nshear:",self['nshear'])
+
+        '''
+        shears_array=array(self['simc']['shear']['shears'])
+
+        # fake shear for selection effects
+        sh = sqrt(shears_array[:,0]**2 + shears_array[:,1]**2)
+        # in each component
+        self['fake_shear']=sh.mean()/sqrt(2)
+
+        #self['fake_shear']=0.045
+        '''
+        self['fake_shear']=0.01
+
+        print("fake shear:",self['fake_shear'])
 
     def go(self):
         sums, sums_select = self.do_sums()
@@ -1066,7 +1079,7 @@ class Summer(dict):
                     if args.ntest is not None and ntot > args.ntest:
                         break
 
-        if False and add_fake_shear:
+        if add_fake_shear:
             # the shear is being simulated
             # we don't add the Rpsf when adding fake shear; should we?
             for n in ['Rpsf','Rdt_psf']:
@@ -1134,6 +1147,7 @@ class Summer(dict):
 
         data=data_in.copy()
 
+        # applied separately in each component
         shear=self['fake_shear']
 
         g = data['mcal_g']
@@ -1153,18 +1167,26 @@ class Summer(dict):
 
         # currently subtracting mean to remove psf anisotropy, and
         # we set Rpsf=0
-        g1 = g[:,0] - g[:,0].mean()
-        g2 = g[:,1] - g[:,1].mean()
+        if True:
+            g1 = g[:,0] - g[:,0].mean()
+            g2 = g[:,1] - g[:,1].mean()
+        else:
+            g1 = g[:,0]
+            g2 = g[:,1]
 
         print("        making sheared")
+        shear1 = shear*R11
+        print("        shear1 min max:",shear1.min(),shear1.max())
         sg1,junk = ngmix.shape.shear_reduced(g1,
                                              g2,
-                                             shear*R11,
+                                             shear1,
                                              0.0)
+        shear2=shear*R22
+        print("        shear2 min max:",shear2.min(),shear2.max())
         junk,sg2 = ngmix.shape.shear_reduced(g1,
                                              g2,
                                              0.0,
-                                             shear*R22)
+                                             shear2)
 
         data['mcal_g'][:,0] = sg1
         data['mcal_g'][:,1] = sg2

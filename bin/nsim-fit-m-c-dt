@@ -1140,7 +1140,7 @@ class Summer(dict):
 
         return sums
 
-    def add_fake_shear(self, data_in, Rnoise, R=None):
+    def add_fake_shear(self, data_in, Rnoise, R=None, reflect=False):
         """
         add shear using the individual R values
         """
@@ -1152,6 +1152,8 @@ class Summer(dict):
 
         g = data['mcal_g']
 
+        n=g.shape[0]
+
         if R is None:
             print("        using individual R values")
             R = data['mcal_R']
@@ -1160,6 +1162,17 @@ class Summer(dict):
 
             R11 -= Rnoise[0,0]
             R22 -= Rnoise[1,1]
+
+            if reflect:
+                print("        R new")
+                tR11 = R11
+                tR22 = R22
+                R11 = zeros(n*2)
+                R22 = zeros(n*2)
+                R11[0:n] = tR11
+                R11[n:]  = tR11
+                R22[0:n] = tR22
+                R22[n:]  = tR22
         else:
             print("        using mean R values")
             R11 = R[0,0]
@@ -1167,10 +1180,24 @@ class Summer(dict):
 
         # currently subtracting mean to remove psf anisotropy, and
         # we set Rpsf=0
-        if True:
+        if reflect:
+            print("        g new")
+            g1sub = g[:,0] - g[:,0].mean()
+            g2sub = g[:,1] - g[:,1].mean()
+
+            g1 = zeros(n*2)
+            g2 = zeros(n*2)
+            g1[0:n] = g1sub
+            g1[n:] = -g1sub
+            g2[0:n] = g2sub
+            g2[n:] = -g2sub
+
+        elif False:
+            print("    subtracting mean")
             g1 = g[:,0] - g[:,0].mean()
             g2 = g[:,1] - g[:,1].mean()
-        else:
+        elif False:
+            print("    not subtracting mean")
             g1 = g[:,0]
             g2 = g[:,1]
 
@@ -1187,6 +1214,12 @@ class Summer(dict):
                                              g2,
                                              0.0,
                                              shear2)
+
+        if reflect:
+            tdata=data
+            data=zeros(tdata.size*2, dtype=tdata.dtype)
+            data[0:n] = tdata
+            data[n:] = tdata
 
         data['mcal_g'][:,0] = sg1
         data['mcal_g'][:,1] = sg2

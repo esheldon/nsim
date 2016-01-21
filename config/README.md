@@ -774,6 +774,7 @@ moments
         running now without subtracting mean, but I think this didn't work
         better either.  also it is needed to remove net psf anisotropy
         anyway...
+        - looks better for 10
 
         what else to try to get this under 1.0e-3?
 

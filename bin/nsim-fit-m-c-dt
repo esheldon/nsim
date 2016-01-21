@@ -4,7 +4,7 @@ import sys
 import os
 from pprint import pprint
 import numpy
-from numpy import sqrt, array, diag, ones, zeros, where, newaxis
+from numpy import sqrt, array, diag, ones, zeros, where, newaxis, exp
 from numpy import newaxis
 import biggles
 
@@ -28,6 +28,9 @@ parser.add_argument('runs', nargs='+',help='run to use in fit')
 
 parser.add_argument('--select',default=None,
                     help='string for selection, refer to data[field] etc.')
+parser.add_argument('--prob-select',default=None,type=float,
+                    help='apply probabilistic selection on s2n')
+
 
 parser.add_argument('--ntest',default=None,type=int,
                     help='work on a small subset for quick tests')
@@ -39,8 +42,9 @@ parser.add_argument('--boot-Rnoise',action='store_true')
 parser.add_argument('--nboot-Rnoise',type=int,default=100)
 parser.add_argument('--bootsize-Rnoise',type=int,default=1000000)
 
-parser.add_argument('--weights',action='store_true')
-parser.add_argument('--s2n-soft',type=float,default=20)
+parser.add_argument('--weights',default=None,help='type of weight to use')
+parser.add_argument('--s2n-soft',type=float,default=10.0)
+parser.add_argument('--shapenoise',type=float,default=0.20)
 
 parser.add_argument('--no-Rpsf-noise',action='store_true')
 
@@ -892,9 +896,7 @@ class Summer(dict):
         sconf=self['simc']
 
         self['nshear']=len(self['simc']['shear']['shears'])
-        print("nshear:",self['nshear'])
 
-        '''
         shears_array=array(self['simc']['shear']['shears'])
 
         # fake shear for selection effects
@@ -903,8 +905,7 @@ class Summer(dict):
         self['fake_shear']=sh.mean()/sqrt(2)
 
         #self['fake_shear']=0.045
-        '''
-        self['fake_shear']=0.01
+        #self['fake_shear']=0.01
 
         print("fake shear:",self['fake_shear'])
 
@@ -923,14 +924,15 @@ class Summer(dict):
                 n=BNamer('sel')
 
             # averated over all shear fields
-            ntot=tsums['n'].sum()
-            self[n('R')] = tsums['R'].sum(axis=0)/ntot
-            self[n('Rpsf')] = tsums['Rpsf'].sum(axis=0)/ntot
+            wtot=tsums['wsum'].sum()
+            self[n('R')] = tsums['R'].sum(axis=0)/wtot
+            self[n('Rpsf')] = tsums['Rpsf'].sum(axis=0)/wtot
 
             if not args.nocorr:
                 Rnoise, Rnoise_err, Rnoise_psf, Rnoise_psf_err = \
                         get_Rnoise_line(self, args, None, sums=tsums)
 
+                print("R:",self[n('R')],Rnoise)
                 self[n('R')] -= Rnoise
                 self[n('Rpsf')] -= Rnoise_psf
                 self[n('Rnoise')] = Rnoise
@@ -939,15 +941,20 @@ class Summer(dict):
             self[n('Rinv')] = numpy.linalg.inv( self[n('R')] )
 
         if sums_select is not None:
-            # using the mean R values
-            self.sel = self.get_selection_effect()
-            #self.sel=array([1.0,1.0])
+            if args.prob_select is None:
+                #self.sel = self.get_selection_effect()
+                #self.sel = self.get_selection_effect_sens()
+                print("not doing selection")
+                self.sel=ones(2)
+            else:
+                self.sel=ones(2)
+            #self.sel=ones(2)
             sums_no_select=sums
             sums=sums_select
 
             n=BNamer('sel')
         else:
-            self.sel=array([1.0,1.0])
+            self.sel=ones(2)
             n=BNamer()
 
         print("sel:",self.sel)
@@ -956,11 +963,11 @@ class Summer(dict):
         g = sums['g'].copy()
         gpsf = sums['gpsf'].copy()
 
-        ninv = 1.0/sums['n']
-        g[:,0]    *= ninv
-        g[:,1]    *= ninv
-        gpsf[:,0] *= ninv
-        gpsf[:,1] *= ninv
+        winv = 1.0/sums['wsum']
+        g[:,0]    *= winv
+        g[:,1]    *= winv
+        gpsf[:,0] *= winv
+        gpsf[:,1] *= winv
 
         # using mean responses
         Rpsf = self[n('Rpsf')]
@@ -989,7 +996,7 @@ class Summer(dict):
 
     def get_selection_effect(self):
 
-        sums, sums_select = self.do_sums(add_fake_shear=True)
+        sums, sums_select = self.do_sums(fake_shear=self['fake_shear'])
 
         sheard={}
 
@@ -1000,19 +1007,63 @@ class Summer(dict):
                 n=BNamer('sel')
 
             # we added shear to all fields, so we sum over shear_index
-            ntot = tsums['n'].sum()
-            g    = tsums['g'].sum(axis=0)/ntot
-            gpsf = tsums['gpsf'].sum(axis=0)/ntot
+            wtot = tsums['wsum'].sum()
+            g    = tsums['g'].sum(axis=0)/wtot
+            gpsf = tsums['gpsf'].sum(axis=0)/wtot
 
-            psf_corr  = self[n('Rpsf')]*gpsf[i]
+            #psf_corr  = self[n('Rpsf')]*gpsf
+            #sheard[n('shear')] = numpy.dot(self[n('Rinv')], g-psf_corr)
+            sheard[n('shear')] = numpy.dot(self[n('Rinv')], g)
 
-            sheard[n('shear')] = numpy.dot(self[n('Rinv')], g-psf_corr)
-
+        print("shear:",sheard['shear'])
+        print("shear_sel:",sheard['shear_sel'])
         sel = sheard['shear']/sheard['shear_sel']
 
         return sel
 
-    def do_sums(self, add_fake_shear=False):
+    def get_selection_effect_sens(self):
+        """
+        calculate a full sensitivity ratio
+        """
+        sumsp, sums_selectp = self.do_sums(fake_shear= self['fake_shear'])
+        sumsm, sums_selectm = self.do_sums(fake_shear=-self['fake_shear'])
+
+        sheard={}
+
+        slist=[sumsp,sumsm,sums_selectp, sums_selectm]
+        nlist=['p','m','selp','selm']
+
+        for i in xrange(len(slist)):
+            tsums = slist[i]
+            name=nlist[i]
+
+            if 'sel' in name:
+                n=BNamer('sel')
+            else:
+                n=BNamer()
+
+
+            # we added shear to all fields, so we sum over shear_index
+            wtot = tsums['wsum'].sum()
+            g    = tsums['g'].sum(axis=0)/wtot
+            gpsf = tsums['gpsf'].sum(axis=0)/wtot
+
+            psf_corr  = self[n('Rpsf')]*gpsf
+
+            sheard[name] = numpy.dot(self[n('Rinv')], g-psf_corr)
+
+        print(sheard)
+        Rall = sheard['p'] - sheard['m']
+        Rsel = sheard['selp'] - sheard['selm']
+        print("Rall:",Rall)
+        print("Rsel:",Rsel)
+
+        sel=Rall/Rsel
+
+        return sel
+
+
+    def do_sums(self, fake_shear=None):
         chunksize=self.chunksize
         args=self.args
 
@@ -1046,16 +1097,24 @@ class Summer(dict):
                     data = hdu[beg:end]
                     ntot += data.size
 
-                    if add_fake_shear:
-                        #tmp_data=self.add_fake_shear_noR(data)
-                        tmp_data=self.add_fake_shear(data, self['Rnoise'])
-                        #tmp_data=self.add_fake_shear(data, self['Rnoise'], R=self['R'])
+                    if fake_shear is not None:
+                        tmp_data=self.add_fake_shear(fake_shear, data, self['Rnoise'])
                     else:
                         tmp_data=data
 
                     sums=self.do_sums1(tmp_data, sums=sums)
 
-                    if args.select is not None:
+                    if args.weights is not None:
+                        if args.weights=='s2n':
+                            wts = get_s2n_weights(tmp_data['s2n_r'], args)
+                        elif args.weights='noise':
+                            wts = get_noise_weights(tmp_data['mcal_g_cov'], args)
+                        else:
+                            raise ValueError("bad weight type: '%s'" % args.weights)
+
+
+                        sums_select=self.do_sums1(tmp_data, sums=sums_select, weights=wts)
+                    elif args.select is not None:
 
                         logic=eval(args.select)
                         w,=numpy.where(logic)
@@ -1065,21 +1124,53 @@ class Summer(dict):
                         # Rnoise is different, so we add shear separately for
                         # the selected data
 
-                        if add_fake_shear:
-                            #tmp_sdata=self.add_fake_shear_noR(sdata)
-                            tmp_sdata=self.add_fake_shear(sdata, self['Rnoise_sel'])
-                            #tmp_sdata=self.add_fake_shear(sdata, self['Rnoise_sel'], R=self['R_sel'])
+                        if fake_shear is not None:
+                            tmp_sdata=self.add_fake_shear(fake_shear, sdata, self['Rnoise_sel'])
                         else:
                             tmp_sdata = sdata
 
                         sums_select=self.do_sums1(tmp_sdata, sums=sums_select)
+                    elif args.prob_select is not None:
+                        # for now assume scatter in s2n of 1.0/s2n
+
+                        sig=1.0/args.prob_select
+
+                        # get right byte order
+                        x=zeros(data.size)
+                        x[:]=data['s2n_r']
+                        x -= args.prob_select
+                        x *= (1.0/sig/sqrt(2))
+
+                        erf_val = zeros(data.size)
+                        ngmix._gmix.erf_array(x, erf_val)
+
+                        if False:
+                            import biggles
+                            biggles.plot_hist(erf_val, min=-1, max=1, nbin=100)
+                        # scale between 0 and 1
+                        erf_val += 1.0
+                        erf_val *= 0.5
+
+                        if False:
+                            import biggles
+                            biggles.plot_hist(erf_val, min=0, max=1, nbin=100)
+
+                        # now generate a random number between 0 and 1, keep if
+                        # less than the erf val
+                        r=numpy.random.random(x.size)
+                        w,=where( numpy.isfinite(erf_val) & (r < erf_val) )
+                        print("        keeping %d/%d from probalistic "
+                              "cuts" % (w.size,data.size))
+
+                        sdata = data[w]
+                        sums_select=self.do_sums1(sdata, sums=sums_select)
 
                     beg = beg + chunksize
 
                     if args.ntest is not None and ntot > args.ntest:
                         break
 
-        if add_fake_shear:
+        if fake_shear is not None:
             # the shear is being simulated
             # we don't add the Rpsf when adding fake shear; should we?
             for n in ['Rpsf','Rdt_psf']:
@@ -1088,7 +1179,52 @@ class Summer(dict):
 
         return sums, sums_select
 
-    def do_sums1(self, data, sums=None):
+    def do_sums1(self, data, sums=None, weights=None):
+        """
+        just a binner and summer, no logic here
+        """
+        if weights is not None:
+            return self.do_sums1_weights(data, weights, sums=sums)
+
+        nshear=self['nshear']
+        args=self.args
+
+        n_detrend = data['mcal_dt_Rnoise'].shape[1]
+
+        h,rev = eu.stat.histogram(data['shear_index'],
+                                  min=0,
+                                  max=nshear-1,
+                                  rev=True)
+        nind = h.size
+        assert nshear==nind
+
+        if sums is None:
+            sums=self._get_sums_struct(n_detrend)
+
+        for i in xrange(nshear):
+            if rev[i] != rev[i+1]:
+                w=rev[ rev[i]:rev[i+1] ]
+
+                t=data[w]
+
+
+                sums['wsum'][i] += w.size
+                sums['g'][i] += t['mcal_g'].sum(axis=0)
+                sums['gpsf'][i] += t['mcal_gpsf'].sum(axis=0)
+
+                sums['R'][i] += t['mcal_R'].sum(axis=0)
+                sums['Rpsf'][i] += t['mcal_Rpsf'].sum(axis=0)
+
+                if not args.nocorr:
+
+                    sums['Rdt'][i] += t['mcal_dt_Rnoise'].sum(axis=0)
+
+                    if not args.no_Rpsf_noise:
+                        sums['Rdt_psf'][i] += t['mcal_dt_Rnoise_psf'].sum(axis=0)
+
+        return sums
+
+    def do_sums1_weights(self, data, weights, sums=None):
         """
         just a binner and summer, no logic here
         """
@@ -1105,17 +1241,7 @@ class Summer(dict):
         assert nshear==nind
 
         if sums is None:
-            dt=[
-                ('n','i8'),
-                ('g','f8',2),
-                ('gpsf','f8',2),
-                ('R','f8',(2,2)),
-                ('Rpsf','f8',2),
-                ('Rdt','f8',(n_detrend,2,2)),
-                ('Rdt_psf','f8',(n_detrend,2)),
-            ]
-
-            sums=numpy.zeros(nshear, dtype=dt)
+            sums=self._get_sums_struct(n_detrend)
 
         for i in xrange(nshear):
             if rev[i] != rev[i+1]:
@@ -1123,32 +1249,51 @@ class Summer(dict):
 
                 t=data[w]
 
+                wts=weights[w]
+                wa = wts[:,newaxis]
+                wa2 = wts[:,newaxis,newaxis]
+                wa3 = wts[:,newaxis,newaxis,newaxis]
+                wsum = wts.sum()
 
-                sums['n'][i] += w.size
-                sums['g'][i] += t['mcal_g'].sum(axis=0)
-                sums['gpsf'][i] += t['mcal_gpsf'].sum(axis=0)
+                sums['wsum'][i] += wsum
+                sums['g'][i] += (t['mcal_g']*wa).sum(axis=0)
+                sums['gpsf'][i] += (t['mcal_gpsf']*wa).sum(axis=0)
 
-                sums['R'][i] += t['mcal_R'].sum(axis=0)
-                sums['Rpsf'][i] += t['mcal_Rpsf'].sum(axis=0)
+                sums['R'][i] += (t['mcal_R']*wa2).sum(axis=0)
+                sums['Rpsf'][i] += (t['mcal_Rpsf']*wa).sum(axis=0)
 
                 if not args.nocorr:
 
-                    sums['Rdt'][i] += t['mcal_dt_Rnoise'].sum(axis=0)
+                    sums['Rdt'][i] += (t['mcal_dt_Rnoise']*wa3).sum(axis=0)
 
                     if not args.no_Rpsf_noise:
-                        sums['Rdt_psf'][i] += t['mcal_dt_Rnoise_psf'].sum(axis=0)
+                        sums['Rdt_psf'][i] += (t['mcal_dt_Rnoise_psf']*wa2).sum(axis=0)
 
         return sums
 
-    def add_fake_shear(self, data_in, Rnoise, R=None, reflect=False):
+    def _get_sums_struct(self, n_detrend):
+        dt=self._get_sums_dt(n_detrend)
+        return numpy.zeros(self['nshear'], dtype=dt)
+
+    def _get_sums_dt(self, n_detrend):
+        dt=[
+            ('wsum','f8'),
+            ('g','f8',2),
+            ('gpsf','f8',2),
+            ('R','f8',(2,2)),
+            ('Rpsf','f8',2),
+            ('Rdt','f8',(n_detrend,2,2)),
+            ('Rdt_psf','f8',(n_detrend,2)),
+        ]
+        return dt
+
+    def add_fake_shear(self, shear, data_in, Rnoise, R=None, reflect=False):
         """
         add shear using the individual R values
         """
 
+        print("            shear:",shear)
         data=data_in.copy()
-
-        # applied separately in each component
-        shear=self['fake_shear']
 
         g = data['mcal_g']
 
@@ -1192,24 +1337,23 @@ class Summer(dict):
             g2[0:n] = g2sub
             g2[n:] = -g2sub
 
-        elif False:
-            print("    subtracting mean")
+        elif True:
+            #print("        subtracting mean")
             g1 = g[:,0] - g[:,0].mean()
             g2 = g[:,1] - g[:,1].mean()
         elif False:
-            print("    not subtracting mean")
+            #print("        not subtracting mean")
             g1 = g[:,0]
             g2 = g[:,1]
 
-        print("        making sheared")
         shear1 = shear*R11
-        print("        shear1 min max:",shear1.min(),shear1.max())
+        #print("        shear1 min max:",shear1.min(),shear1.max())
         sg1,junk = ngmix.shape.shear_reduced(g1,
                                              g2,
                                              shear1,
                                              0.0)
         shear2=shear*R22
-        print("        shear2 min max:",shear2.min(),shear2.max())
+        #print("        shear2 min max:",shear2.min(),shear2.max())
         junk,sg2 = ngmix.shape.shear_reduced(g1,
                                              g2,
                                              0.0,
@@ -1557,9 +1701,16 @@ def fit_m_c(data, doprint=True, onem=False):
 
 def get_s2n_weights(s2n, args):
     #return numpy.ones(s2n.size)
-    print("s2n soft:",args.s2n_soft)
+    #print("s2n soft:",args.s2n_soft)
     wts = 1.0/(1.0 + (args.s2n_soft/s2n)**2 )
     return wts
+
+def get_noise_weights(g_cov, args):
+    #return numpy.ones(s2n.size)
+    #print("s2n soft:",args.s2n_soft)
+    wts = 1.0/(2*args.shapenoise**2 + g_cov[:,0,0] + g_cov[:,1,1])
+    return wts
+
 
 def get_Rnoise_line(conf, args, data, weights=None, sums=None):
 
@@ -1576,9 +1727,9 @@ def get_Rnoise_line(conf, args, data, weights=None, sums=None):
 
     if sums is not None:
         # sum over all shear fields
-        ninv = 1.0/sums['n'].sum()
-        Rdt = sums['Rdt'].sum(axis=0) * ninv
-        Rdt_psf = sums['Rdt_psf'].sum(axis=0) * ninv
+        winv = 1.0/sums['wsum'].sum()
+        Rdt = sums['Rdt'].sum(axis=0) * winv
+        Rdt_psf = sums['Rdt_psf'].sum(axis=0) * winv
 
     else:
         if weights is not None:

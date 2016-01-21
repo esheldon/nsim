@@ -702,6 +702,7 @@ class MaxMetacalFitter(MaxFitter):
             ('mcal_R','f8',(2,2)),
             ('mcal_Rpsf','f8',2),
             ('mcal_gpsf','f8',2),
+            ('mcal_Tpsf','f8'),
         ]
         return dt
 
@@ -723,6 +724,7 @@ class MaxMetacalFitter(MaxFitter):
         d['mcal_R'][i] = res['mcal_R']
         d['mcal_Rpsf'][i] = res['mcal_Rpsf']
         d['mcal_gpsf'][i] = res['mcal_gpsf']
+        d['mcal_Tpsf'][i] = res['mcal_psf_T']
 
     def _compare_psf_obs_fit(self, obs, **keys):
         gm = obs.get_gmix()

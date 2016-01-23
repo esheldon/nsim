@@ -214,7 +214,21 @@ def get_plot_url(run, extra, ext='eps'):
     f='%s-%s.%s' % (run,extra,ext)
     return path_join(dir, f)
 
-  
+def get_means_dir(run):
+    dir=get_run_dir(run)
+    dir=path_join(dir, 'fit-m-c')
+    return dir
+
+def get_means_url(run, extra=None):
+    dir=get_means_dir(run)
+    if extra is not None:
+        extra = '-'+extra
+    else:
+        extra=''
+
+    f='%s-means%s.fits' % (run,extra)
+    return path_join(dir, f)
+
 def get_psample_summed_url(run, is2n, itrial=None, fs=None, ext='fits'):
     """
     is2 and is2n are the index in the list of s2 and s2n vals for a given run.

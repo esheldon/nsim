@@ -738,8 +738,13 @@ moments
             m1: -3.017e-03 +/- 8.421e-03 c1: -4.143e-05 +/- 3.029e-04  r1: -0.13
             m2: -6.523e-03 +/- 9.224e-03 c2: 2.651e-04 +/- 3.200e-04  r2: -0.00774
 
-    - adjusted noies to 0.76 to get mode of s/n pdf at 10
+    - adjusted noise to 0.76 to get mode of s/n pdf at 10
     - run-bd15mcal-dt02
+        m1: -4.603e-04 +/- 6.285e-04 c1: -2.080e-05 +/- 2.261e-05
+        m2: -1.711e-03 +/- 6.455e-04 c2: 4.171e-05 +/- 2.240e-05
+        m:  -1.069e-03 +/- 4.522e-04
+        c1: -1.795e-05 +/- 2.260e-05
+        c2: 4.154e-05 +/- 2.250e-05
 
 - sim-bd16
     - same as bd12 but psf is round on average

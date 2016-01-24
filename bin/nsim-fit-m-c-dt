@@ -31,6 +31,9 @@ parser.add_argument('--select',default=None,
 parser.add_argument('--reflect',action='store_true',
                     help='reflect e1,e2 for select/weights corrections')
 
+parser.add_argument('--nrand',type=int,default=1,
+                    help=('number of times to randomize for '
+                          'selection/weighting corrections'))
 
 parser.add_argument('--ntest',default=None,type=int,
                     help='work on a small subset for quick tests')
@@ -1098,6 +1101,11 @@ class Summer(dict):
 
 
     def do_sums(self, fake_shear=None):
+
+        nrand=1
+        if fake_shear is not None:
+            nrand=self.args.nrand
+
         chunksize=self.chunksize
         args=self.args
 
@@ -1131,43 +1139,64 @@ class Summer(dict):
                     data = hdu[beg:end]
                     ntot += data.size
 
-                    if fake_shear is not None:
-                        tmp_data=self.add_fake_shear(fake_shear, data, self['Rnoise'])
-                    else:
-                        tmp_data=data
+                    g1all=data['mcal_g'][:,0]
+                    g2all=data['mcal_g'][:,1]
 
-                    sums=self.do_sums1(tmp_data, sums=sums)
-
-                    if args.weights is not None:
-                        if args.weights=='s2n':
-                            wts = get_s2n_weights(tmp_data['s2n_r'], args)
-                        elif args.weights=='noise':
-                            wts = get_noise_weights(tmp_data['mcal_g_cov'], args)
-                        else:
-                            raise ValueError("bad weight type: '%s'" % args.weights)
+                    for irand in xrange(nrand):
+                        if nrand > 1: print("        irand: %d/%d" % (irand+1,nrand))
 
                         if fake_shear is not None:
-                            tmp_data=self.add_fake_shear(fake_shear, data, self['Rnoise_sel'])
+                            #tmp_data=self.add_fake_shear(fake_shear, data, self['Rnoise'])
+                            # use sheared values
+                            g1send, g2send=self.add_fake_shear_rand(fake_shear, data, self['Rnoise'])
                         else:
-                            tmp_data=data
+                            g1send=g1all
+                            g2send=g2all
 
-                        sums_select=self.do_sums1(tmp_data, sums=sums_select, weights=wts)
-                    elif args.select is not None:
+                        sums=self.do_sums1(data, g1send, g2send, sums=sums)
 
-                        logic=eval(args.select)
-                        w,=numpy.where(logic)
-                        print("        keeping %d/%d from cuts" % (w.size,data.size))
-                        sdata=data[w]
+                        if args.weights is not None:
+                            if nrand == 0:
+                                if args.weights=='s2n':
+                                    wts = get_s2n_weights(tmp_data['s2n_r'], args)
+                                elif args.weights=='noise':
+                                    wts = get_noise_weights(tmp_data['mcal_g_cov'], args)
+                                else:
+                                    raise ValueError("bad weight type: '%s'" % args.weights)
 
-                        # Rnoise is different, so we add shear separately for
-                        # the selected data
+                            if fake_shear is not None:
+                                #tmp_data=self.add_fake_shear(fake_shear, data, self['Rnoise_sel'])
+                                # use sheared values, with different Rnoise
+                                g1send,g2send=self.add_fake_shear_rand(fake_shear,
+                                                                       data,
+                                                                       self['Rnoise_sel'])
+                            else:
+                                g1send=g1all
+                                g2send=g2all
 
-                        if fake_shear is not None:
-                            tmp_sdata=self.add_fake_shear(fake_shear, sdata, self['Rnoise_sel'])
-                        else:
-                            tmp_sdata = sdata
+                            sums_select=self.do_sums1(data, g1send, g2send, sums=sums_select, weights=wts)
 
-                        sums_select=self.do_sums1(tmp_sdata, sums=sums_select)
+                        elif args.select is not None:
+
+                            if irand == 0:
+                                logic=eval(args.select)
+                                w,=numpy.where(logic)
+                                print("        keeping %d/%d from cuts" % (w.size,data.size))
+                                sdata=data[w]
+
+                                g1send=sdata['mcal_g'][:,0]
+                                g2send=sdata['mcal_g'][:,1]
+
+                            # Rnoise is different, so we add shear separately for
+                            # the selected data
+
+                            if fake_shear is not None:
+                                #tmp_sdata=self.add_fake_shear(fake_shear, sdata, self['Rnoise_sel'])
+                                g1send,g2send=self.add_fake_shear_rand(fake_shear,
+                                                                       sdata,
+                                                                       self['Rnoise_sel'])
+
+                            sums_select=self.do_sums1(sdata, g1send, g2send, sums=sums_select)
 
                     beg = beg + chunksize
 
@@ -1183,12 +1212,12 @@ class Summer(dict):
 
         return sums, sums_select
 
-    def do_sums1(self, data, sums=None, weights=None):
+    def do_sums1(self, data, g1, g2, sums=None, weights=None):
         """
         just a binner and summer, no logic here
         """
         if weights is not None:
-            return self.do_sums1_weights(data, weights, sums=sums)
+            return self.do_sums1_weights(data, g1, g2, weights, sums=sums)
 
         nshear=self['nshear']
         args=self.args
@@ -1213,7 +1242,9 @@ class Summer(dict):
 
 
                 sums['wsum'][i] += w.size
-                sums['g'][i] += t['mcal_g'].sum(axis=0)
+                #sums['g'][i] += t['mcal_g'].sum(axis=0)
+                sums['g'][i,0] += g1[w].sum()
+                sums['g'][i,1] += g2[w].sum()
                 sums['gpsf'][i] += t['mcal_gpsf'].sum(axis=0)
 
                 sums['R'][i] += t['mcal_R'].sum(axis=0)
@@ -1228,7 +1259,7 @@ class Summer(dict):
 
         return sums
 
-    def do_sums1_weights(self, data, weights, sums=None):
+    def do_sums1_weights(self, data, g1, g2, weights, sums=None):
         """
         just a binner and summer, no logic here
         """
@@ -1260,7 +1291,9 @@ class Summer(dict):
                 wsum = wts.sum()
 
                 sums['wsum'][i] += wsum
-                sums['g'][i] += (t['mcal_g']*wa).sum(axis=0)
+                #sums['g'][i] += (t['mcal_g']*wa).sum(axis=0)
+                sums['g'][i,0] += (g1[w]*wts).sum()
+                sums['g'][i,1] += (g2[w]*wts).sum()
                 sums['gpsf'][i] += (t['mcal_gpsf']*wa).sum(axis=0)
 
                 sums['R'][i] += (t['mcal_R']*wa2).sum(axis=0)
@@ -1360,6 +1393,46 @@ class Summer(dict):
         data['mcal_g'][:,1] = sg2
 
         return data
+
+    def add_fake_shear_rand(self, shear, data, Rnoise):
+        """
+        add shear using the individual R values
+        """
+
+        g = data['mcal_g'].copy()
+        n=g.shape[0]
+
+        g1 = g[:,0] - g[:,0].mean()
+        g2 = g[:,1] - g[:,1].mean()
+
+        gtot = sqrt(g1**2 + g2**2)
+        twotheta = numpy.random.uniform(low=0.0, high=2.0*numpy.pi, size=n)
+
+        numpy.cos(twotheta, g1)
+        numpy.sin(twotheta, g2)
+
+        g1 *= gtot
+        g2 *= gtot
+
+        R = data['mcal_R']
+        R11 = R[:,0,0].copy()
+        R22 = R[:,1,1].copy()
+
+        R11 -= Rnoise[0,0]
+        R22 -= Rnoise[1,1]
+
+        shear1 = shear*R11
+        sg1,junk = ngmix.shape.shear_reduced(g1,
+                                             g2,
+                                             shear1,
+                                             0.0)
+        shear2=shear*R22
+        junk,sg2 = ngmix.shape.shear_reduced(g1,
+                                             g2,
+                                             0.0,
+                                             shear2)
+
+        return sg1, sg2
 
     def add_fake_shear_noR(self, data_in):
         """

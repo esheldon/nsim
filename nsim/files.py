@@ -209,9 +209,15 @@ def get_plot_dir(run):
     dir=path_join(dir, 'plots')
     return dir
 
-def get_plot_url(run, extra, ext='eps'):
+def get_plot_url(run, extra=None, ext='eps'):
     dir=get_plot_dir(run)
-    f='%s-%s.%s' % (run,extra,ext)
+
+    parts=[run]
+    if extra is not None:
+        parts += [extra]
+
+    f='-'.join(parts)
+    f='%s.%s' % (f, ext)
     return path_join(dir, f)
 
 def get_means_dir(run):

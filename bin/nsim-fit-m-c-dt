@@ -593,6 +593,11 @@ def doplot(args, data, fits):
 
     #Q=calc_q(fits)
 
+    extra=['fit-m-c']
+    if len(args.runs) > 1:
+        extra = args.runs[1:] + extra
+    extra = '-'.join(extra)
+
     if args.yrange is not None:
         yrange=[float(r) for r in args.yrange.split(',')]
     else:
@@ -645,12 +650,10 @@ def doplot(args, data, fits):
 
         tab[0,i] = plt
 
-    #fname=reredux.files.get_fit_file(args.run,
-    #                                 extra='fit-m-c',
-    #                                 ext='eps')
-    #eu.ostools.makedirs_fromfile(fname)
-    #print("writing:",fname)
-    #tab.write_eps(fname)
+    fname=files.get_plot_url(args.runs[0], extra)
+    eu.ostools.makedirs_fromfile(fname)
+    print("writing:",fname)
+    tab.write_eps(fname)
 
     if args.show:
         tab.show(width=1000, height=1000)
@@ -920,6 +923,9 @@ class Summer(dict):
         if self.args.fit_only:
             self.means=self._read_means()
         else:
+
+            extra=self._get_fname_extra()
+
             sums, sums_select = self.do_sums()
 
             args=self.args
@@ -940,7 +946,7 @@ class Summer(dict):
 
                 if not args.nocorr:
                     Rnoise, Rnoise_err, Rnoise_psf, Rnoise_psf_err = \
-                            get_Rnoise_line(self, args, None, sums=tsums)
+                            get_Rnoise_line(self, args, None, extra, sums=tsums)
 
                     print("R:",self[n('R')])
                     print("Rnoise:",Rnoise)
@@ -1000,17 +1006,24 @@ class Summer(dict):
             self.means=means
             self._write_means()
 
+        if self.args.boot:
+            self.fits, self.fitsone = reredux.averaging.fit_m_c_boot(self.means)
+        else:
+            self.fits=reredux.averaging.fit_m_c(self.means)
+            self.fitsone=reredux.averaging.fit_m_c(self.means,onem=True)
+
     def _read_means(self):
         fname=self._get_means_file()
+        print("reading:",fname)
         return fitsio.read(fname)
 
     def _write_means(self):
         fname=self._get_means_file()
         eu.ostools.makedirs_fromfile(fname)
         print("writing:",fname)
-        fitsio.write(fname, self.means)
+        fitsio.write(fname, self.means, clobber=True)
 
-    def _get_means_file(self):
+    def _get_fname_extra(self, last=None):
         runs=self.args.runs
         if len(runs) > 1:
             extra=runs[1:]
@@ -1021,15 +1034,39 @@ class Summer(dict):
             extra += ['wts', self.args.weights]
 
         if self.args.select is not None:
-            extra += ['select']
+            s=self.args.select.replace(' ','-').replace('(','').replace(')','').replace('[','').replace(']','').replace('"','').replace("'",'')
+            extra += ['select-']
 
         if self.args.ntest is not None:
             extra += ['test%d' % self.args.ntest]
 
-        extra = '-'.join(extra)
+        if last is not None:
+            extra += [last]
 
-        fname=files.get_means_url(runs[0], extra=extra)
+        if len(extra) > 0:
+            extra = '-'.join(extra)
+        else:
+            extra=None
+
+        return extra
+
+    def _get_means_file(self):
+
+        extra=self._get_fname_extra()
+        fname=files.get_means_url(self.args.runs[0], extra=extra)
         return fname
+
+    def _get_fit_plot_file(self):
+        extra=self._get_fname_extra(last='fit-m-c')
+        fname=files.get_plot_url(self.args.runs[0], extra=extra)
+        return fname
+
+    def _get_resid_hist_file(self):
+        extra=self._get_fname_extra(last='resid-hist')
+        fname=files.get_plot_url(self.args.runs[0], extra=extra)
+        return fname
+
+
 
     def get_selection_effect(self):
 
@@ -1174,7 +1211,9 @@ class Summer(dict):
                                 g1send=g1all
                                 g2send=g2all
 
-                            sums_select=self.do_sums1(data, g1send, g2send, sums=sums_select, weights=wts)
+                            sums_select=self.do_sums1(data, g1send, g2send,
+                                                      sums=sums_select,
+                                                      weights=wts)
 
                         elif args.select is not None:
 
@@ -1462,6 +1501,101 @@ class Summer(dict):
         data['mcal_g'][:,1] = sg2
 
         return data
+
+    def plot_fits(self):
+        import biggles
+
+        means=self.means
+        fits=self.fits
+        args=self.args
+        #Q=calc_q(fits)
+
+        if args.yrange is not None:
+            yrange=[float(r) for r in args.yrange.split(',')]
+        else:
+            yrange=[-0.01,0.01]
+
+        xrng=args.xrange
+        if xrng is not None:
+            xrng=[float(r) for r in args.xrange.split(',')]
+
+        tab=biggles.Table(1,2)
+        tab.aspect_ratio=0.5
+
+        diff = means['shear'] - means['shear_true']
+
+        plts=[]
+        for i in [0,1]:
+
+            x = means['shear_true'][:,i]
+            plt =biggles.plot(
+                x,
+                diff[:,i],
+                xlabel='shear%d true' % (i+1,),
+                ylabel='shear%d diff' % (i+1,),
+                yrange=yrange,
+                xrange=xrng,
+                visible=False,
+            )
+            yfit=fits['m'][0,i]*x + fits['c'][0,i]
+
+            z=biggles.Curve(x, x*0, color='black')
+            c=biggles.Curve(x, yfit, color='red')
+            plt.add(z,c)
+
+            '''
+            mstr='m%d: %.2g +/- %.2g' % (i+1,fits['m'][0,i],fits['merr'][0,i])
+            cstr='c%d: %.2g +/- %.2g' % (i+1,fits['c'][0,i],fits['cerr'][0,i])
+            mlab=biggles.PlotLabel(0.1,0.9,
+                                   mstr,
+                                   halign='left')
+            clab=biggles.PlotLabel(0.1,0.85,
+                                   cstr,
+                                   halign='left')
+            plt.add(mlab,clab)
+            '''
+            if False and i==0:
+                Qstr='Q: %d' % (int(Q),)
+                Qlab=biggles.PlotLabel(0.1,0.8,
+                                       Qstr,
+                                       halign='left')
+                plt.add(Qlab)
+
+
+            tab[0,i] = plt
+
+        fname=self._get_fit_plot_file()
+        eu.ostools.makedirs_fromfile(fname)
+        print("writing:",fname)
+        tab.write_eps(fname)
+
+        if args.show:
+            tab.show(width=1000, height=1000)
+
+
+    def plot_resid_hist(self):
+        import biggles
+
+        means=self.means
+        fits=self.fits
+        args=self.args
+        #Q=calc_q(fits)
+
+        diff = means['shear'] - means['shear_true']
+
+        plt = biggles.plot_hist(diff, nbin=20, visible=False,
+                               xlabel=r'$\gamma - \gamma_{True}$')
+
+        dmax=numpy.abs(diff).max() 
+        plt.xrange=[-1.3*dmax, 1.3*dmax]
+
+        fname=self._get_resid_hist_file()
+        eu.ostools.makedirs_fromfile(fname)
+        print("writing:",fname)
+        plt.write_eps(fname)
+
+        if args.show:
+            plt.show(width=1000, height=1000)
 
 
 def get_averages(conf, args, data, show_progress=True):
@@ -1792,7 +1926,7 @@ def get_noise_weights(g_cov, args):
     return wts
 
 
-def get_Rnoise_line(conf, args, data, weights=None, sums=None):
+def get_Rnoise_line(conf, args, data, extra, weights=None, sums=None):
 
     noise0 = conf['simc']['noise']
     factors=array(conf['detrend_factors'])
@@ -1854,9 +1988,13 @@ def get_Rnoise_line(conf, args, data, weights=None, sums=None):
             Apsf[i] = res['slope']
             Apsf_err[i] = res['slope_err']
 
+            textra = 'Rnoise-detrend-Rpsf%d' % (i+1)
+            if extra is not None:
+                textra = '%s-%s' % (extra, textra)
+
             plot_line_fit(
                 args,
-                'Rnoise-detrend-Rpsf%d' % (i+1),
+                textra,
                 xvals, Rdt_psf[:,i],res,
                 r'$2 n \Delta n$',
                 r'$\Delta R^{PSF}_%d$' % (i+1),
@@ -1874,9 +2012,12 @@ def get_Rnoise_line(conf, args, data, weights=None, sums=None):
             oerr=res['offset_err']
             print(p % (n,o,oerr,s,serr))
 
+            textra='Rnoise-detrend-R%d%d' % (i+1,j+1)
+            if extra is not None:
+                textra = '%s-%s' % (extra, textra)
             plot_line_fit(
                 args,
-                'Rnoise-detrend-R%d%d' % (i+1,j+1),
+                textra,
                 xvals, Rdt[:,i,j],res,
                 r'$2 n \Delta n$',
                 r'$\Delta R_{%d,%d}$' % (i+1,j+1),
@@ -1990,32 +2131,9 @@ def main():
     summer=Summer(conf, args)
     summer.go()
 
-    if args.boot:
-        fits, fitsone = reredux.averaging.fit_m_c_boot(summer.means)
-    else:
-        fits=reredux.averaging.fit_m_c(summer.means)
-        fitsone=reredux.averaging.fit_m_c(summer.means,onem=True)
-        doplot(args, summer.means, fits)
+    summer.plot_fits()
+    summer.plot_resid_hist()
 
     return
-
-
-    kw={}
-    if args.min_s2n is not None:
-        kw['min_s2n']=args.min_s2n
-    if args.min_logF is not None:
-        kw['min_logF']=args.min_logF
-
-    #data=read_data(conf, args, **kw)
-
-    if args.boot_Rnoise:
-        get_averages_boot_Rnoise(conf, args, data)
-    else:
-        #means = get_averages(conf, args, data, show_progress=False)
-        means = read_and_average(conf, args)
-
-        fits=reredux.averaging.fit_m_c(means)
-        fitsone=reredux.averaging.fit_m_c(means,onem=True)
-        doplot(args, means, fits)
 
 main()

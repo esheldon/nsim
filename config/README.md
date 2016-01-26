@@ -1,6 +1,14 @@
 REAL METACAL
 --------------
 
+important sims for paper
+--------------------------
+bd16: slightly undersampled (fwhm=0.8?), round psf. small galaxies
+bd15: fwhm=0.9, larger galaxies, non-round psf
+bd21: same as bd16 but non-round PSF and with masking
+
+bd22: same as bd16 but non-round PSF
+
 sim-bd01 and sim-bd01z
 =======================
 using galsim to do Gary's bulge+disk sim
@@ -740,11 +748,26 @@ moments
 
     - adjusted noise to 0.76 to get mode of s/n pdf at 10
     - run-bd15mcal-dt02
+        - gauss psf and gal
         m1: -4.603e-04 +/- 6.285e-04 c1: -2.080e-05 +/- 2.261e-05
         m2: -1.711e-03 +/- 6.455e-04 c2: 4.171e-05 +/- 2.240e-05
         m:  -1.069e-03 +/- 4.522e-04
         c1: -1.795e-05 +/- 2.260e-05
         c2: 4.154e-05 +/- 2.250e-05
+    - run-bd15mcal-dt03
+        - another new seed, otherwise the same as dt02
+        m1: 3.893e-04 +/- 6.485e-04 c1: -1.075e-05 +/- 2.333e-05
+        m2: 6.249e-04 +/- 6.779e-04 c2: -8.282e-06 +/- 2.352e-05
+        m:  5.038e-04 +/- 4.700e-04
+        c1: -1.129e-05 +/- 2.349e-05
+        c2: -8.250e-06 +/- 2.339e-05
+
+    - combined dt02,dt03
+        m1: -5.198e-05 +/- 4.386e-04 c1: -1.595e-05 +/- 1.578e-05
+        m2: -5.917e-04 +/- 4.684e-04 c2: 1.775e-05 +/- 1.625e-05
+        m:  -3.144e-04 +/- 3.216e-04
+        c1: -1.472e-05 +/- 1.607e-05
+        c2: 1.768e-05 +/- 1.600e-05
 
 - sim-bd16
     - same as bd12 but psf is round on average

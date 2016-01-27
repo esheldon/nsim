@@ -991,6 +991,9 @@ sim-bd21
             c2: 7.485e-05 +/- 2.358e-05
 
 
+sim-bd22
+    - like bd21, significant psf anisotropy but no masking
+
 - sim-stars01
     - stars, goes with bd21
 

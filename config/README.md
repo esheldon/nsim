@@ -995,6 +995,13 @@ sim-bd22
     - like bd21, significant psf anisotropy but no masking
     - run-bd22mcal-dt01
         - 100 million
+            m1: -4.448e-05 +/- 6.640e-04 c1: 1.360e-05 +/- 2.340e-05
+            m2: -6.225e-04 +/- 7.499e-04 c2: 1.103e-04 +/- 2.477e-05
+            m:  -3.147e-04 +/- 5.002e-04
+            c1: 1.356e-05 +/- 2.416e-05
+            c2: 1.101e-04 +/- 2.416e-05
+    - run-bd22mcal-dt02
+        - 100 million
 
 - sim-stars01
     - stars, goes with bd21

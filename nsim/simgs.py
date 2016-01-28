@@ -13,6 +13,7 @@ from .sim import srandu
 
 from .util import TryAgainError, load_gmixnd
 
+from .pdfs import DiscreteSampler
 
 try:
     import galsim
@@ -309,12 +310,15 @@ class SimGS(dict):
 
         model=pspec['model']
 
-        r50 = self._get_psf_r50()
+        r50, fwhm = self._get_psf_size()
 
         if model=='moffat':
-            psf = galsim.Moffat(beta=pspec['beta'], half_light_radius=r50)
+            psf = galsim.Moffat(beta=pspec['beta'],
+                                half_light_radius=r50,
+                                fwhm=fwhm)
         elif model=='gauss':
-            psf = galsim.Gaussian(half_light_radius=r50)
+            psf = galsim.Gaussian(half_light_radius=r50,
+                                  fwhm=fwhm)
         else:
             raise ValueError("bad psf model: '%s'" % model)
 
@@ -326,13 +330,18 @@ class SimGS(dict):
 
         return psf
 
-    def _get_psf_r50(self):
+    def _get_psf_size(self):
+        r50=None
+        fwhm=None
         if self.psf_r50_pdf is not None:
             r50 = self.psf_r50_pdf.sample()
-            print("    psf (pdf) r50: %g" % r50)
+            print("    psf r50: %g" % r50)
+        elif self.psf_fwhm_pdf is not None:
+            fwhm = self.psf_fwhm_pdf.sample()
+            print("    psf fwhm: %g" % fwhm)
         else:
             r50 = self['psf']['r50']
-        return r50
+        return r50, fwhm
 
     def _get_psf_shape(self):
         pspec = self['psf']
@@ -522,14 +531,24 @@ class SimGS(dict):
     def _set_psf_pdf(self):
         pspec = self['psf']
 
-        if isinstance(pspec['r50'], dict):
-            r50pdf = pspec['r50']
-            assert r50pdf['type']=="lognormal","r50 pdf log normal for now"
+        self.psf_r50_pdf=None
+        self.psf_fwhm_pdf=None
 
-            self.psf_r50_pdf = ngmix.priors.LogNormal(r50pdf['mean'],
-                                                      r50pdf['sigma'])
+        if 'fwhm' in pspec:
+            assert pspec['fwhm']['type']=='discrete-pdf'
+            fname=os.path.expandvars( pspec['fwhm']['file'] )
+            print("Reading fwhm values from file:",fname)
+            vals=numpy.fromfile(fname, sep='\n')
+            self.psf_fwhm_pdf=DiscreteSampler(vals)
         else:
-            self.psf_r50_pdf=None
+            if isinstance(pspec['r50'], dict):
+                r50pdf = pspec['r50']
+                assert r50pdf['type']=="lognormal","r50 pdf log normal for now"
+
+                self.psf_r50_pdf = ngmix.priors.LogNormal(r50pdf['mean'],
+                                                          r50pdf['sigma'])
+            else:
+                self.psf_r50_pdf=None
 
         if isinstance(pspec['shape'],dict):
             ppdf=pspec['shape']

@@ -84,8 +84,10 @@ class FitterBase(dict):
                     self.tm_fit += time.time()-tm0
 
 
-                    res['shear_true'] = imdict['gal_info']['shear']
-                    res['shear_index'] = imdict['gal_info']['shear_index']
+                    if 'shear' in imdict['gal_info']:
+                        res['shear_true'] = imdict['gal_info']['shear']
+                        res['shear_index'] = imdict['gal_info']['shear_index']
+
                     self._copy_to_output(res, igal)
 
                     self._set_elapsed_time()
@@ -157,8 +159,9 @@ class FitterBase(dict):
         if res['pars_true'][0] is not None:
             d['pars_true'][i,:] = res['pars_true']
 
-        d['shear_true'][i] = res['shear_true'].g1,res['shear_true'].g2
-        d['shear_index'][i] = res['shear_index']
+        if 'shear_true' in res:
+            d['shear_true'][i] = res['shear_true'].g1,res['shear_true'].g2
+            d['shear_index'][i] = res['shear_index']
 
     def _setup(self, run_conf, **keys):
         """
@@ -303,6 +306,8 @@ class FitterBase(dict):
 
         dt=self._get_dtype()
         self.data=numpy.zeros(self['ngal'], dtype=dt)
+
+        self.data['shear_index'] = -1
 
 class SimpleFitterBase(FitterBase):
 

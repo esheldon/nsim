@@ -1,4 +1,5 @@
 # DES fwhm distribution
+# cosmos 23.5 size distribution
 name: "sim-bd23"
 
 simulator: "galsim"
@@ -44,8 +45,8 @@ obj_model:
 
     r50:
         type: "lognormal"
-        mean: 2.7
-        sigma: 0.5
+        mean: 1.54
+        sigma: 1.0
 
     fracdev:
         type: "uniform"

@@ -4,18 +4,11 @@ REAL METACAL
 important sims for paper
 --------------------------
 bd16: slightly undersampled (fwhm=0.8?), round psf. small galaxies
+bd22: same as bd16 but non-round PSF
 bd15: fwhm=0.9, larger galaxies, non-round psf
 bd21: same as bd16 but non-round PSF and with masking
 
-bd22: same as bd16 but non-round PSF
-
-sim-bd01 and sim-bd01z
-=======================
-using galsim to do Gary's bulge+disk sim
-
-- current state
-    - using noise 0.1 in deep fields brings the calibrations closer
-
+bd23: psf sizes drawn from examples from DES
 
 new style simgs
 =================
@@ -1002,6 +995,18 @@ sim-bd22
             c2: 1.101e-04 +/- 2.416e-05
     - run-bd22mcal-dt02
         - 100 million
+        - combined a bit early (1240 missing)
+
+    - combined run
+        m1: 4.020e-04 +/- 4.609e-04 c1: 1.548e-05 +/- 1.625e-05
+        m2: -1.022e-03 +/- 5.160e-04 c2: 1.108e-04 +/- 1.705e-05
+        m:  -2.638e-04 +/- 3.468e-04
+        c1: 1.539e-05 +/- 1.675e-05
+        c2: 1.102e-04 +/- 1.675e-05
+
+- sim-bd23
+    - psf of psf fwhm drawn from DES
+    - need to get object size pdf right
 
 - sim-stars01
     - stars, goes with bd21

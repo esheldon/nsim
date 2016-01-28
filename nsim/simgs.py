@@ -287,8 +287,9 @@ class SimGS(dict):
         gal = gal.shear(g1=g1, g2=g2)
 
         # now shear it
-        shear=pars['shear']
-        gal = gal.shear(g1=shear.g1, g2=shear.g2)
+        if 'shear' in pars:
+            shear=pars['shear']
+            gal = gal.shear(g1=shear.g1, g2=shear.g2)
 
         # in the demos, the shift was always applied after the shear, not sure
         # if it matters
@@ -405,9 +406,10 @@ class SimGS(dict):
                 'r50':r50,
                 'cenoff':cenoff}
 
-        shear,shindex = self.shear_pdf.get_shear()
-        pars['shear'] = shear
-        pars['shear_index'] = shindex
+        if self.shear_pdf is not None:
+            shear,shindex = self.shear_pdf.get_shear()
+            pars['shear'] = shear
+            pars['shear_index'] = shindex
 
         return pars
 
@@ -656,8 +658,9 @@ class SimBD(SimGS):
         # combine them and shear that
         gal = galsim.Add([disk, bulge])
 
-        shear=pars['shear']
-        gal = gal.shear(g1=shear.g1, g2=shear.g2)
+        if 'shear' in pars:
+            shear=pars['shear']
+            gal = gal.shear(g1=shear.g1, g2=shear.g2)
 
         if cenoff is not None:
             gal = gal.shift(dx=cenoff[0], dy=cenoff[1])
@@ -685,9 +688,10 @@ class SimBD(SimGS):
             dev_offset=None
         pars['dev_offset'] = dev_offset
 
-        shear, shindex = self.shear_pdf.get_shear()
-        pars['shear'] = shear
-        pars['shear_index'] = shindex
+        if self.shear_pdf is not None:
+            shear, shindex = self.shear_pdf.get_shear()
+            pars['shear'] = shear
+            pars['shear_index'] = shindex
 
         return pars
 

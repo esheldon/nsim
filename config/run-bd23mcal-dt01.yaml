@@ -54,7 +54,7 @@ max_pars:
         m: 5
         h: 1.0e-3
 
-ngal: 2000000
+ngal: 100000000
 
 desired_hours: 0.5
 sec_per: 1.4

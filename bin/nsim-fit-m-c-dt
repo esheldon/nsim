@@ -4,7 +4,8 @@ import sys
 import os
 from pprint import pprint
 import numpy
-from numpy import sqrt, array, diag, ones, zeros, where, newaxis, exp
+from numpy import sqrt, array, diag, ones, zeros
+from numpy import where, newaxis, exp, log
 from numpy import newaxis
 import biggles
 

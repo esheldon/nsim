@@ -996,17 +996,23 @@ sim-bd22
     - run-bd22mcal-dt02
         - 100 million
         - combined a bit early (1240 missing)
+            (also some 430 didn't finish, running now)
 
     - combined run
-        m1: 4.020e-04 +/- 4.609e-04 c1: 1.548e-05 +/- 1.625e-05
-        m2: -1.022e-03 +/- 5.160e-04 c2: 1.108e-04 +/- 1.705e-05
-        m:  -2.638e-04 +/- 3.468e-04
-        c1: 1.539e-05 +/- 1.675e-05
-        c2: 1.102e-04 +/- 1.675e-05
+        m1: 4.905e-04 +/- 4.531e-04 c1: 1.823e-05 +/- 1.597e-05
+        m2: -9.254e-04 +/- 5.136e-04 c2: 1.135e-04 +/- 1.697e-05
+        m:  -1.715e-04 +/- 3.432e-04
+        c1: 1.814e-05 +/- 1.658e-05
+        c2: 1.129e-04 +/- 1.658e-05
 
 - sim-bd23
     - psf of psf fwhm drawn from DES
-    - need to get object size pdf right
+        m1: 4.288e-03 +/- 8.256e-04 c1: 2.904e-06 +/- 2.970e-05
+        m2: 2.633e-03 +/- 7.849e-04 c2: 2.242e-05 +/- 2.723e-05
+        m:  3.483e-03 +/- 5.724e-04
+        c1: 6.670e-06 +/- 2.861e-05
+        c2: 2.219e-05 +/- 2.848e-05
+
 
 - sim-stars01
     - stars, goes with bd21

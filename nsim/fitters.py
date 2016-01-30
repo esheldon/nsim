@@ -509,6 +509,7 @@ class MaxFitter(SimpleFitterBase):
             rres=boot.get_round_result()
             res=boot.get_max_fitter().get_result()
             res['s2n_r'] = rres['s2n_r']
+            res['T_r'] = rres['T_r']
 
             if mconf['pars']['method']=='lm':
                 boot.try_replace_cov(mconf['cov_pars'])
@@ -562,6 +563,7 @@ class MaxFitter(SimpleFitterBase):
         dt=super(MaxFitter,self)._get_dtype()
         dt += [
             ('s2n_r','f8'),
+            ('T_r','f8'),
             ('nfev','i4'),
             ('ntry','i4')
         ]
@@ -576,6 +578,7 @@ class MaxFitter(SimpleFitterBase):
 
         if 'nfev' in res:
             d['s2n_r'][i] = res['s2n_r']
+            d['T_r'][i] = res['T_r']
             d['nfev'][i] = res['nfev']
             # set outside of fitter
             d['ntry'][i] = res['ntry']
@@ -639,6 +642,7 @@ class MaxMetacalFitter(MaxFitter):
             rres=boot.get_round_result()
             res=boot.get_max_fitter().get_result()
             res['s2n_r'] = rres['s2n_r']
+            res['T_r'] = rres['T_r']
 
             if mconf['pars']['method']=='lm':
                 boot.try_replace_cov(mconf['cov_pars'])

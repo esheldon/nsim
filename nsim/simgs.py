@@ -3,7 +3,7 @@ Simulate images using galsim instead of ngmix
 """
 from __future__ import print_function
 import os
-import pprint
+from pprint import pprint
 
 import numpy
 
@@ -39,7 +39,10 @@ class SimGS(dict):
 
         self._setup()
 
-        pprint.pprint(self)
+        for k in self:
+            if k != "shear":
+                pprint(self[k])
+
         if 'seed' in self:
             print("    using seed:",self['seed'])
             numpy.random.seed(self['seed'])
@@ -750,5 +753,4 @@ def quick_fit_gauss(image, maxiter=4000, tol=1.0e-6, ntry=4):
     if res['flags'] != 0:
         raise TryAgainError("could not fit 1 gauss")
 
-    #pprint.pprint(res)
     return fitter

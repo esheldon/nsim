@@ -324,6 +324,7 @@ class SimpleFitterBase(FitterBase):
         d['g_cov'][i,:,:] = res['g_cov']
 
         d['s2n_w'][i] = res['s2n_w']
+        d['psf_T'][i] = res['psf_T']
 
     def _set_prior(self):
         """
@@ -475,7 +476,8 @@ class SimpleFitterBase(FitterBase):
             ('pars_cov','f8',(npars,npars)),
             ('g','f8',2),
             ('g_cov','f8',(2,2)),
-            ('s2n_w','f8')
+            ('s2n_w','f8'),
+            ('psf_T','f8')
         ]
 
         return dt
@@ -510,6 +512,9 @@ class MaxFitter(SimpleFitterBase):
             res=boot.get_max_fitter().get_result()
             res['s2n_r'] = rres['s2n_r']
             res['T_r'] = rres['T_r']
+
+            res['psf_T'] = imdict['obs'].psf.gmix.get_T()
+            res['psf_T_r'] = rres['psf_T_r']
 
             if mconf['pars']['method']=='lm':
                 boot.try_replace_cov(mconf['cov_pars'])
@@ -564,6 +569,7 @@ class MaxFitter(SimpleFitterBase):
         dt += [
             ('s2n_r','f8'),
             ('T_r','f8'),
+            ('psf_T_r','f8'),
             ('nfev','i4'),
             ('ntry','i4')
         ]
@@ -579,6 +585,7 @@ class MaxFitter(SimpleFitterBase):
         if 'nfev' in res:
             d['s2n_r'][i] = res['s2n_r']
             d['T_r'][i] = res['T_r']
+            d['psf_T_r'][i] = res['psf_T_r']
             d['nfev'][i] = res['nfev']
             # set outside of fitter
             d['ntry'][i] = res['ntry']
@@ -643,6 +650,9 @@ class MaxMetacalFitter(MaxFitter):
             res=boot.get_max_fitter().get_result()
             res['s2n_r'] = rres['s2n_r']
             res['T_r'] = rres['T_r']
+
+            res['psf_T'] = obs.psf.gmix.get_T()
+            res['psf_T_r'] = rres['psf_T_r']
 
             if mconf['pars']['method']=='lm':
                 boot.try_replace_cov(mconf['cov_pars'])

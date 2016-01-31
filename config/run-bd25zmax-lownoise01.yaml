@@ -1,8 +1,8 @@
 run: "run-bd25zmax-lownoise01"
 sim: "sim-bd25z"
 
-nsim_hash: ""
-ngmix_hash: ""
+nsim_hash: "79d6151593034c9c042c9c7966a48290a718b478"
+ngmix_hash: "fe55c4f7bef29dddeab2866d50dca91b2df86382"
 
 fitter: "max"
 fit_model: "gauss"

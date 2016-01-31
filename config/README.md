@@ -8,7 +8,9 @@ bd22: same as bd16 but non-round PSF
 bd15: fwhm=0.9, larger galaxies, non-round psf
 bd21: same as bd16 but non-round PSF and with masking
 
-bd23: psf sizes drawn from examples from DES
+bd23: psf sizes drawn from examples from DES, gal sizes similar to COSMOS
+bd24: same as 23 but gauss psf.
+    - also added round size
 
 new style simgs
 =================
@@ -1007,11 +1009,21 @@ sim-bd22
 
 - sim-bd23
     - psf of psf fwhm drawn from DES
+    - galaxy sizes similar to cosmos
         m1: 4.288e-03 +/- 8.256e-04 c1: 2.904e-06 +/- 2.970e-05
         m2: 2.633e-03 +/- 7.849e-04 c2: 2.242e-05 +/- 2.723e-05
         m:  3.483e-03 +/- 5.724e-04
         c1: 6.670e-06 +/- 2.861e-05
         c2: 2.219e-05 +/- 2.848e-05
+
+- sim-bd24
+    - gaussian psf, just to see if bias decreases relative to bd23
+        m1: 3.063e-03 +/- 7.314e-04 c1: 2.836e-07 +/- 2.575e-05  r1: 0.00989
+        m2: 3.012e-03 +/- 7.893e-04 c2: -5.842e-06 +/- 2.700e-05  r2: -0.0404
+        m:  3.038e-03 +/- 5.378e-04
+        c1: 2.751e-07 +/- 2.639e-05
+        c2: -5.877e-06 +/- 2.640e-05
+
 
 
 - sim-stars01

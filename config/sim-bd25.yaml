@@ -7,7 +7,7 @@ simulator: "galsim"
 do_ring: False
 
 # going for mode around 10
-noise: 1.0
+noise: 1.2
 
 stamp_size: [48,48]
 

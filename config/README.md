@@ -1026,12 +1026,11 @@ sim-bd22
 
 - sim-bd24
     - psf size 1.5 and gal size from cosmos 23.5 sample, lognorm mean ~1.5 sigma ~1.0
-        70% through
-        m1: 2.104e-04 +/- 8.844e-04 c1: 1.725e-05 +/- 3.064e-05  r1: 0.0147
-        m2: -2.446e-05 +/- 8.501e-04 c2: 7.830e-05 +/- 3.038e-05  r2: 0.00641
-        m:  8.928e-05 +/- 6.134e-04
-        c1: 1.719e-05 +/- 3.053e-05
-        c2: 7.833e-05 +/- 3.053e-05
+      m1: 7.059e-04 +/- 7.400e-04 c1: 4.845e-05 +/- 2.564e-05
+      m2: 1.854e-04 +/- 7.040e-04 c2: 5.687e-05 +/- 2.516e-05
+      m:  4.375e-04 +/- 5.107e-04
+      c1: 4.832e-05 +/- 2.542e-05
+      c2: 5.693e-05 +/- 2.542e-05
     - so it isn't smallness of galaxies, but smallness relative to the PSF, that
         is the problem
 

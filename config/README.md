@@ -1010,11 +1010,14 @@ sim-bd22
 - sim-bd23
     - psf of psf fwhm drawn from DES
     - galaxy sizes similar to cosmos
+    - run-bd23mcal-dt01
         m1: 4.288e-03 +/- 8.256e-04 c1: 2.904e-06 +/- 2.970e-05
         m2: 2.633e-03 +/- 7.849e-04 c2: 2.242e-05 +/- 2.723e-05
         m:  3.483e-03 +/- 5.724e-04
         c1: 6.670e-06 +/- 2.861e-05
         c2: 2.219e-05 +/- 2.848e-05
+    - run-bd23mcal-dt02
+        - using closer to "true" priors
 
 - sim-bd24
     - gaussian psf, just to see if bias decreases relative to bd23

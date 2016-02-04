@@ -7,6 +7,7 @@ import numpy
 from numpy import sqrt, array, diag, ones, zeros
 from numpy import where, newaxis, exp, log
 from numpy import newaxis
+import yaml
 import biggles
 
 import fitsio
@@ -1355,10 +1356,10 @@ class Summer(dict):
         return sums
 
     def _set_select(self):
+        self.select=None
         if self.args.select is not None:
             self.select = self.args.select
         elif self.args.select_from is not None:
-            import yaml
             with open(self.args.select_from) as fobj:
                 d=yaml.load(fobj)
 

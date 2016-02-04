@@ -29,6 +29,8 @@ parser.add_argument('runs', nargs='+',help='run to use in fit')
 
 parser.add_argument('--select',default=None,
                     help='string for selection, refer to data[field] etc.')
+parser.add_argument('--select-from',default=None,
+                    help='read the selection from the given yaml file')
 parser.add_argument('--reflect',action='store_true',
                     help='reflect e1,e2 for select/weights corrections')
 
@@ -41,6 +43,8 @@ parser.add_argument('--ntest',default=None,type=int,
 
 parser.add_argument('--nocorr',action='store_true',
                     help='do not apply correlated noise correction')
+parser.add_argument('--nocorr-select',action='store_true',
+                    help='do not apply corrections for the selection')
 
 parser.add_argument('--boot',action='store_true',
                     help='bootstrap over fields')
@@ -909,15 +913,19 @@ class Summer(dict):
 
         shears_array=array(self['simc']['shear']['shears'])
 
+        '''
         # fake shear for selection effects
         sh = sqrt(shears_array[:,0]**2 + shears_array[:,1]**2)
         # in each component
         self['fake_shear']=sh.mean()/sqrt(2)
 
         #self['fake_shear']=0.045
-        #self['fake_shear']=0.01
+        '''
+        self['fake_shear']=0.01
 
         print("fake shear:",self['fake_shear'])
+
+        self._set_select()
 
     def go(self):
 
@@ -958,20 +966,18 @@ class Summer(dict):
 
                 self[n('Rinv')] = numpy.linalg.inv( self[n('R')] )
 
+            self.sel=ones(2)
+            n=BNamer()
             if sums_select is not None:
-                self.sel = self.get_selection_effect()
-                #self.sel = self.get_selection_effect_sens()
-                #print("not doing selection")
+
+                n=BNamer('sel')
                 sums_no_select=sums
                 sums=sums_select
 
-                n=BNamer('sel')
-            else:
-                self.sel=ones(2)
-                n=BNamer()
+                if not args.nocorr_select:
+                    self.sel = self.get_selection_effect()
 
             print("sel:",self.sel)
-
 
             g = sums['g'].copy()
             gpsf = sums['gpsf'].copy()
@@ -1034,8 +1040,8 @@ class Summer(dict):
         if self.args.weights is not None:
             extra += ['wts', self.args.weights]
 
-        if self.args.select is not None:
-            s=self.args.select.replace(' ','-').replace('(','').replace(')','').replace('[','').replace(']','').replace('"','').replace("'",'')
+        if self.select is not None:
+            s=self.select.replace(' ','-').replace('(','').replace(')','').replace('[','').replace(']','').replace('"','').replace("'",'')
             extra += ['select-']
 
         if self.args.ntest is not None:
@@ -1216,10 +1222,10 @@ class Summer(dict):
                                                       sums=sums_select,
                                                       weights=wts)
 
-                        elif args.select is not None:
+                        elif self.select is not None:
 
                             if irand == 0:
-                                logic=eval(args.select)
+                                logic=eval(self.select)
                                 w,=numpy.where(logic)
                                 print("        keeping %d/%d from cuts" % (w.size,data.size))
                                 sdata=data[w]
@@ -1347,6 +1353,17 @@ class Summer(dict):
                         sums['Rdt_psf'][i] += (t['mcal_dt_Rnoise_psf']*wa2).sum(axis=0)
 
         return sums
+
+    def _set_select(self):
+        if self.args.select is not None:
+            self.select = self.args.select
+        elif self.args.select_from is not None:
+            import yaml
+            with open(self.args.select_from) as fobj:
+                d=yaml.load(fobj)
+
+            self.select = d['select'].strip()
+
 
     def _get_sums_struct(self, n_detrend):
         dt=self._get_sums_dt(n_detrend)

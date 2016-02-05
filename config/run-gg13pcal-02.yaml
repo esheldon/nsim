@@ -1,14 +1,16 @@
-run: "run-gg13pcal-01"
+run: "run-gg13pcal-02"
 sim: "sim-gg13"
 
-ngmix_hash: "99567d85c8de224ac092051838e9f61e720e9c35"
-nsim_hash: "08ef030026080a777f0e9ae33078a2c56477b343"
+ngmix_hash: ""
+nsim_hash: ""
 
 fitter: "pcal"
 fit_model: "gauss"
 
 g_prior_during: True
 use_logpars: True
+
+global_seed: 13922
 
 priors:
     cen:
@@ -52,9 +54,8 @@ postcal_pars:
 
 ngal: 2000000
 
-desired_hours: 0.1
-# this was wrong, more like 0.2
-sec_per: 0.05
+desired_hours: 0.25
+sec_per: 0.25
 
 verbose: False
 

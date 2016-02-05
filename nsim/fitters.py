@@ -1439,6 +1439,10 @@ class PostcalFitter(MaxFitter):
             rres=boot.get_round_result()
             res=boot.get_max_fitter().get_result()
             res['s2n_r']=rres['s2n_r']
+            res['T_r'] = rres['T_r']
+
+            res['psf_T'] = obs.psf.gmix.get_T()
+            res['psf_T_r'] = rres['psf_T_r']
 
             if mconf['pars']['method']=='lm':
                 boot.try_replace_cov(mconf['cov_pars'])

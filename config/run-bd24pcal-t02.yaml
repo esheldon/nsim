@@ -2,7 +2,7 @@ run: "run-bd24pcal-t02"
 sim: "sim-bd24"
 
 ngmix_hash: "fe55c4f7bef29dddeab2866d50dca91b2df86382"
-nsim_hash: "9b058b5001659ea5ccdf538ffe0097746eb5dea1"
+nsim_hash: "9c2da8e3ed756ad6e3213764c29587ff9500ba91"
 
 fitter: "pcal-simp"
 fit_model: "gauss"

@@ -1092,6 +1092,10 @@ sim-bd22
         c1: 2.751e-07 +/- 2.639e-05
         c2: -5.877e-06 +/- 2.640e-05
 
+    - run-bd24pcal-t01
+        - trying pcal
+        - this is a simp run
+
 - sim-bd24
     - psf size 1.5 and gal size from cosmos 23.5 sample, lognorm mean ~1.5 sigma ~1.0
       m1: 7.059e-04 +/- 7.400e-04 c1: 4.845e-05 +/- 2.564e-05

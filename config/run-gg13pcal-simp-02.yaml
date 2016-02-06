@@ -1,0 +1,63 @@
+run: "run-gg13pcal-simp-02"
+sim: "sim-gg13"
+
+ngmix_hash: ""
+nsim_hash: ""
+
+fitter: "pcal-simp"
+fit_model: "gauss"
+
+g_prior_during: True
+use_logpars: True
+
+global_seed: 5013
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    T:
+        type: "gmixnd"
+        # same underlying sim
+        run: "run-gg12zmax-lownoise01"
+        extra: "log_T"
+        cov_factor: 1.44
+
+    counts:
+        type: "gmixnd"
+        # same underlying sim
+        run: "run-gg12zmax-lownoise01"
+        extra: "log_F"
+        cov_factor: 1.44
+
+    g:
+        type: "ba"
+        sigma: 0.2
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+postcal_pars:
+    step: 0.01
+
+ngal: 2000000
+
+desired_hours: 0.5
+# double it
+sec_per: 0.60
+
+verbose: False
+
+#avg_s2n_r_range: [10,23]

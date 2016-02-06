@@ -1724,6 +1724,9 @@ class PostcalSimnFitter(PostcalFitter):
 
 
 class PostcalSimpFitter(PostcalFitter):
+    """
+    fix-up for extra junk that shows up in R from the shearing
+    """
     def _simulate_obsp(self, obs, shear_psf=False, noise=None):
         """
         simulate just shearing the galaxy model

@@ -1515,6 +1515,21 @@ sim-eg17
         others; more outlier stuff?
 
 
+pcal
+-----
+run-gg13pcal-01
+    - ran with noise 0.75
+    m1: -5.857e-03 +/- 3.623e-03 c1: -1.441e-04 +/- 1.336e-04
+    m2: -9.737e-03 +/- 4.353e-03 c2: 5.074e-05 +/- 1.416e-04
+run-gg13pcal-02
+    - ran with noise 1.0
+    m1: -1.876e-02 +/- 3.677e-03 c1: 7.494e-05 +/- 1.356e-04
+    m2: -2.961e-02 +/- 4.456e-03 c2: 1.371e-04 +/- 1.449e-04
+
+run-gg13pcal-simp-02
+    - ran with 0.85 noise
+    - simp correction
+
 
 ncal
 ----

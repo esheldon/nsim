@@ -1001,6 +1001,8 @@ sim-bd21
             c1: -6.130e-05 +/- 2.351e-05
             c2: 7.485e-05 +/- 2.358e-05
 
+    - run-bd21mcal-dt03
+        - more stats to augment dt01
 
 sim-bd22
     - like bd21, significant psf anisotropy but no masking
@@ -1034,6 +1036,13 @@ sim-bd22
         c2: 2.219e-05 +/- 2.848e-05
     - run-bd23mcal-dt02
         - using closer to "true" priors
+        - 95/100 done
+            m1: 2.217e-03 +/- 8.228e-04 c1: 4.833e-05 +/- 2.960e-05  r1: -0.13
+            m2: 3.263e-03 +/- 7.853e-04 c2: 6.479e-05 +/- 2.725e-05  r2: -0.00774
+            m:  2.725e-03 +/- 5.709e-04
+            c1: 4.594e-05 +/- 2.853e-05
+            c2: 6.494e-05 +/- 2.841e-05
+
         - 24/100 done
          m1: 2.161e-03 +/- 1.524e-03 c1: 2.247e-05 +/- 5.484e-05  r1: -0.13
          m2: 4.193e-03 +/- 1.539e-03 c2: 8.242e-05 +/- 5.340e-05  r2: -0.00774
@@ -1084,6 +1093,26 @@ sim-bd22
           c1: -3.465e-05 +/- 6.268e-05
           c2: 1.125e-04 +/- 6.240e-05
 
+    - run-bd23mcal-dt-t05
+        - closer to "true" priors
+        - round T
+    - run-bd23mcal-dt03
+        - closer to "true" priors
+        - round T
+
+      m1: 4.449e-03 +/- 7.539e-04 c1: 2.415e-05 +/- 2.712e-05  r1: -0.13
+      m2: 2.875e-03 +/- 8.049e-04 c2: 3.850e-05 +/- 2.793e-05  r2: -0.00774
+      m:  3.684e-03 +/- 5.532e-04
+      c1: 2.773e-05 +/- 2.765e-05
+      c2: 3.828e-05 +/- 2.753e-05
+
+     s/n > 10
+      m1: -6.351e-03 +/- 7.639e-04 c1: 1.921e-05 +/- 2.748e-05  r1: -0.13
+      m2: -7.442e-03 +/- 8.204e-04 c2: 1.071e-05 +/- 2.847e-05  r2: -0.00774
+      m:  -6.882e-03 +/- 5.618e-04
+      c1: 2.169e-05 +/- 2.808e-05
+      c2: 1.056e-05 +/- 2.796e-05
+
 - sim-bd24
     - gaussian psf, just to see if bias decreases relative to bd23
         m1: 3.063e-03 +/- 7.314e-04 c1: 2.836e-07 +/- 2.575e-05  r1: 0.00989
@@ -1095,8 +1124,10 @@ sim-bd22
     - run-bd24pcal-t01
         - trying pcal
         - this is a simp run
+    - run-bd24pcal-t02
+        - wider priors
 
-- sim-bd24
+- sim-bd25
     - psf size 1.5 and gal size from cosmos 23.5 sample, lognorm mean ~1.5 sigma ~1.0
       m1: 7.059e-04 +/- 7.400e-04 c1: 4.845e-05 +/- 2.564e-05
       m2: 1.854e-04 +/- 7.040e-04 c2: 5.687e-05 +/- 2.516e-05

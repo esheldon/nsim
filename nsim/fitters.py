@@ -46,6 +46,7 @@ class FitterBase(dict):
         self._setup(run_conf, **keys)
 
         self['ngal']=ngal
+        self['use_round_T'] = self.get('use_round_T',False)
 
         self._set_prior()
 
@@ -120,6 +121,7 @@ class FitterBase(dict):
                                 "flags %s" % (key,res['flags']))
 
         res['pars_true'] = imdict['pars']
+        res['psf_pars_true'] = imdict['psf_pars']
         res['model_true'] = imdict['model']
         res['s2n_true'] = imdict['s2n']
 
@@ -158,6 +160,8 @@ class FitterBase(dict):
 
         if res['pars_true'][0] is not None:
             d['pars_true'][i,:] = res['pars_true']
+
+        d['psf_pars_true'][i] = res['psf_pars_true']
 
         if 'shear_true' in res:
             d['shear_true'][i] = res['shear_true'].g1,res['shear_true'].g2
@@ -293,6 +297,7 @@ class FitterBase(dict):
             ('model_true','S3'),
             ('s2n_true','f8'),
             ('pars_true','f8',self['npars_true']),
+            ('psf_pars_true','f8'),
             ('shear_true','f8',2),
             ('shear_index','i4'),
            ]
@@ -489,8 +494,11 @@ class MaxFitter(SimpleFitterBase):
         Fit according to the requested method
         """
 
+        use_round_T=self['use_round_T']
+        print("max: use_round_T",use_round_T)
         boot=ngmix.Bootstrapper(imdict['obs'],
                                 use_logpars=self['use_logpars'],
+                                use_round_T=use_round_T,
                                 verbose=False)
 
         Tguess=self.sim.get('psf_T',4.0)
@@ -518,6 +526,10 @@ class MaxFitter(SimpleFitterBase):
 
             if mconf['pars']['method']=='lm':
                 boot.try_replace_cov(mconf['cov_pars'])
+
+            if self['use_round_T']:
+                res['T_s2n_r'] = boot.get_max_fitter().get_T_s2n()
+
         except BootGalFailure:
             raise TryAgainError("failed to fit galaxy")
 
@@ -573,6 +585,10 @@ class MaxFitter(SimpleFitterBase):
             ('nfev','i4'),
             ('ntry','i4')
         ]
+
+        if self['use_round_T']:
+            dt += [('T_s2n_r','f8')]
+
         return dt
 
 
@@ -589,6 +605,9 @@ class MaxFitter(SimpleFitterBase):
             d['nfev'][i] = res['nfev']
             # set outside of fitter
             d['ntry'][i] = res['ntry']
+
+            if self['use_round_T']:
+                d['T_s2n_r'][i] = res['T_s2n_r']
 
 
 class MaxMetacalFitter(MaxFitter):
@@ -621,9 +640,11 @@ class MaxMetacalFitter(MaxFitter):
 
         intpars=self.get('intpars',None)
 
+        use_round_T=self['use_round_T']
         boot=Bootstrapper(obs,
                           use_logpars=self['use_logpars'],
                           intpars=intpars,
+                          use_round_T=use_round_T,
                           verbose=False)
 
         Tguess=self.sim.get('psf_T',4.0)
@@ -656,6 +677,9 @@ class MaxMetacalFitter(MaxFitter):
 
             if mconf['pars']['method']=='lm':
                 boot.try_replace_cov(mconf['cov_pars'])
+
+            if self['use_round_T']:
+                res['T_s2n_r'] = boot.get_max_fitter().get_T_s2n()
 
             boot.replace_masked_pixels()
             self._do_metacal(boot)
@@ -723,6 +747,7 @@ class MaxMetacalFitter(MaxFitter):
             ('mcal_gpsf','f8',2),
             ('mcal_Tpsf','f8'),
         ]
+
         return dt
 
 

@@ -53,7 +53,7 @@ class SimGS(dict):
         get a randomized galaxy image
         """
 
-        gal, gal_pars, psf = self._get_galsim_objects()
+        gal, gal_pars, psf, psf_pars = self._get_galsim_objects()
 
         if 'psf_stamp_size' in self:
             nrows,ncols=self['psf_stamp_size']
@@ -70,11 +70,18 @@ class SimGS(dict):
         gal_obs.set_psf(psf_obs)
 
         save_pars=[gal_pars['r50'], gal_pars['flux']]
+
+        if psf_pars['fwhm'] is None:
+            psf_save_pars=psf_pars['r50']
+        else:
+            psf_save_pars=psf_pars['fwhm']
+
         return {'obs':gal_obs,
                 's2n':s2n,
                 'model':self['model'],
                 'gal_info':gal_pars,
                 'pars':save_pars,
+                'psf_pars':psf_save_pars,
                 'psf_obj': psf,
                 'gal_obj': gal}
 
@@ -254,7 +261,7 @@ class SimGS(dict):
 
         gal_pars=self._get_galaxy_pars()
 
-        psf  = self._get_psf_obj(gal_pars['cenoff'])
+        psf, psf_pars  = self._get_psf_obj(gal_pars['cenoff'])
 
         if gal_pars['model']=='star':
             gal = psf.withFlux(gal_pars['flux'])
@@ -262,7 +269,7 @@ class SimGS(dict):
             gal0 = self._get_gal_obj(gal_pars)
             gal = galsim.Convolve([psf, gal0])
 
-        return gal, gal_pars, psf
+        return gal, gal_pars, psf, psf_pars
 
     def _get_gal_obj(self, pars):
         """
@@ -332,7 +339,7 @@ class SimGS(dict):
         if cenoff is not None:
             psf = psf.shift(dx=cenoff[0], dy=cenoff[1])
 
-        return psf
+        return psf, {'fwhm':fwhm, 'r50':r50}
 
     def _get_psf_size(self):
         r50=None

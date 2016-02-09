@@ -37,15 +37,13 @@ class SummerDT(dict):
 
         shears_array=array(self['simc']['shear']['shears'])
 
-        '''
         # fake shear for selection effects
         sh = sqrt(shears_array[:,0]**2 + shears_array[:,1]**2)
         # in each component
         self['fake_shear']=sh.mean()/sqrt(2)
 
         #self['fake_shear']=0.045
-        '''
-        self['fake_shear']=0.01
+        #self['fake_shear']=0.01
 
         print("fake shear:",self['fake_shear'])
 

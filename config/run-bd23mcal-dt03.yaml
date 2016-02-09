@@ -1,0 +1,65 @@
+# using "true" priors for flux and T, and the
+# right shape prior for a single component
+run: "run-bd23mcal-dt03"
+sim: "sim-bd23"
+
+ngmix_hash: ""
+nsim_hash: ""
+
+fitter: "metacal-max-detrend"
+fit_model: "gauss"
+
+g_prior_during: True
+use_logpars: True
+use_round_T: True
+
+# we detrend at noise levels sim['noise']*detrend_factors
+detrend_factors: [ 1.00714286,  1.01428571,  1.02142857 ]
+
+global_seed: 2495
+
+metacal_pars:
+    step: 0.01
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    T:
+        type: "gmixnd"
+        run: "run-bd23zmax-lownoise01"
+        extra: "log_T"
+        cov_factor: 1.0
+
+    counts:
+        type: "gmixnd"
+        run: "run-bd23zmax-lownoise01"
+        extra: "log_F"
+        cov_factor: 1.0
+
+    g:
+        type: "ba"
+        sigma: 0.2
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+ngal: 100000000
+
+desired_hours: 2.0
+sec_per: 2.0
+
+verbose: False

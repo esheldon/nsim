@@ -167,6 +167,8 @@ def run_sim(sim_conf,
         fitclass=nsim.fitters.PostcalSimShearpFitter
 
 
+    elif ftype=='ppmcal':
+        fitclass=nsim.fitters.PPMetacalFitter
 
     elif ftype=='metanoise-max':
         if simtype=='galsim':

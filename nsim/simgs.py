@@ -69,7 +69,7 @@ class SimGS(dict):
 
         gal_obs.set_psf(psf_obs)
 
-        save_pars=[gal_pars['r50'], gal_pars['flux']]
+        save_pars=[gal_pars['size'], gal_pars['flux']]
 
         if psf_pars['fwhm'] is None:
             psf_save_pars=psf_pars['r50']
@@ -414,6 +414,7 @@ class SimGS(dict):
                 'g':(g1,g2),
                 'flux':flux,
                 'r50':r50,
+                'size':r50,
                 'cenoff':cenoff}
 
         if self.shear_pdf is not None:
@@ -522,7 +523,7 @@ class SimGS(dict):
         self._set_psf_pdf()
         self._set_flux_pdf()
         self._set_g_pdf()
-        self._set_r50_pdf()
+        self._set_size_pdf()
         self._set_cen_pdf()
         self._set_shear_pdf()
 
@@ -579,7 +580,7 @@ class SimGS(dict):
         else:
             self.g_pdf=None
 
-    def _set_r50_pdf(self):
+    def _set_size_pdf(self):
         if 'r50' in self['obj_model']:
             r50spec = self['obj_model']['r50']
 
@@ -631,6 +632,109 @@ class SimGS(dict):
             self.flux_pdf=load_gmixnd(fluxspec)
         else:
             raise ValueError("bad flux pdf type: '%s'" % fluxspec['type'])
+
+class SimGMix(SimGS):
+    """
+    the galaxy model is described by a gaussian mixture with size given
+    by T instead of r50 etc.
+    """
+
+    def _get_galaxy_pars(self):
+        """
+        Get pair parameters
+
+        if not random, then the mean pars are used, except for cen and g1,g2
+        which are zero
+        """
+
+        if self.cen_pdf is not None:
+            coff1 = self.cen_pdf.sample()
+            coff2 = self.cen_pdf.sample()
+
+            cenoff=(coff1,coff2)
+        else:
+            cenoff=None
+
+        if self.g_pdf is not None:
+            g1,g2 = self.g_pdf.sample2d()
+        else:
+            g1,g2=None,None
+
+        flux = self.flux_pdf.sample()
+        if self.flux_is_in_log:
+            flux = numpy.exp(flux)
+
+        # this is the round T
+        if self.T_pdf is not None:
+            T = self.T_pdf.sample()
+        else:
+            T=None
+
+
+        pars = {'model':self['model'],
+                'g':(g1,g2),
+                'flux':flux,
+                'T':T,
+                'size':T,
+                'cenoff':cenoff}
+
+        if self.shear_pdf is not None:
+            shear,shindex = self.shear_pdf.get_shear()
+            pars['shear'] = shear
+            pars['shear_index'] = shindex
+
+        return pars
+
+    def _get_gal_obj(self, pars):
+        """
+        get the galsim object for the galaxy model
+        """
+
+        flux = pars['flux']
+
+        T = pars['T']
+
+        g1,g2=pars['g']
+
+        cenoff = pars['cenoff']
+
+        gm_pars=[0.0, 0.0, 0.0, 0.0, T, flux]
+        gm = ngmix.GMixModel(gm_pars, self['obj_model']['gmix_model']) 
+
+        gal = gm.make_galsim_object()
+
+        # first give it an intrinsic shape
+        gal = gal.shear(g1=g1, g2=g2)
+
+        # now shear it
+        if 'shear' in pars:
+            shear=pars['shear']
+            gal = gal.shear(g1=shear.g1, g2=shear.g2)
+
+        # in the demos, the shift was always applied after the shear, not sure
+        # if it matters
+        if cenoff is not None:
+            gal = gal.shift(dx=cenoff[0], dy=cenoff[1])
+
+        tup=(T,cenoff)
+        print("    T: %g cenoff: %s" % tup)
+
+        return gal
+
+
+    def _set_size_pdf(self):
+        assert 'T' in self['obj_model']
+
+        spec = self['obj_model']['T']
+
+        if spec['type']=='lognormal':
+            self.T_pdf=ngmix.priors.LogNormal(spec['mean'],
+                                              spec['sigma'])
+        elif spec['type']=='gmixnd':
+            self.T_pdf=load_gmixnd(spec)
+        else:
+            raise ValueError("bad r50 pdf type: '%s'" % r50spec['type'])
+
 
 class SimBD(SimGS):
     """

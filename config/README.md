@@ -2085,9 +2085,10 @@ shear [0.035,0.035]
 
 
 
-
-
-
+- testing using deep prior sample to simulate the effects of selections
+    - sim-bd16 for deep
+    - run-bd16zmax-lownoise02 to get priors used to simulate
+    - sim-bd16re01 simulated from fits to above
 
 
 

@@ -1,8 +1,8 @@
 run: "run-bd16zmax-lownoise02"
 sim: "sim-bd16z"
 
-ngmix_hash: ""
-nsim_hash: ""
+ngmix_hash: "6e8c0395b4737a94b7fd003661a757dacb24c11a"
+nsim_hash: "bbadc0dc8158c91fb0501041172098fd7b17851c"
 
 fitter: "max"
 fit_model: "exp"

@@ -495,7 +495,6 @@ class MaxFitter(SimpleFitterBase):
         """
 
         use_round_T=self['use_round_T']
-        print("max: use_round_T",use_round_T)
         boot=ngmix.Bootstrapper(imdict['obs'],
                                 use_logpars=self['use_logpars'],
                                 use_round_T=use_round_T,

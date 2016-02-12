@@ -2,7 +2,7 @@ run: "run-bd16re-mcal-dt01"
 sim: "sim-bd16re"
 
 ngmix_hash: "6e8c0395b4737a94b7fd003661a757dacb24c11a"
-nsim_hash: ""
+nsim_hash: "3d29a4038cf11d7a2e0f1c99647bab2fd3931bdb"
 
 fitter: "metacal-max-detrend"
 fit_model: "gauss"

@@ -1,3 +1,5 @@
+# had too low noise
+
 run: "run-bd16re-mcal-dt01"
 sim: "sim-bd16re"
 
@@ -55,7 +57,7 @@ max_pars:
 
 ngal: 100000000
 
-desired_hours: 2.0
+desired_hours: 4.0
 # more than doubled
 sec_per: 3.0
 

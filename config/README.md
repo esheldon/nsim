@@ -2089,6 +2089,23 @@ shear [0.035,0.035]
     - sim-bd16 for deep
     - run-bd16zmax-lownoise02 to get priors used to simulate
     - sim-bd16re01 simulated from fits to above
+        argh.... noise was too low, s/n distribution is way off
+        I should probably just use CM
+        80/100
+          m1: 1.745e-03 +/- 7.375e-04 c1: -8.016e-06 +/- 2.606e-05  r1: -0.0629
+          m2: -4.098e-04 +/- 7.455e-04 c2: -3.932e-05 +/- 2.560e-05  r2: 0.0541
+          m:  6.973e-04 +/- 5.252e-04
+          c1: -5.687e-06 +/- 2.586e-05
+          c2: -3.726e-05 +/- 2.585e-05
+        s/n > 20
+          557901/1000000
+            (436867/1000000 in original.... hmm...)
+          m1: 3.055e-04 +/- 7.854e-04 c1: 9.611e-06 +/- 2.775e-05  r1: -0.0629
+          m2: -4.309e-04 +/- 8.141e-04 c2: -3.012e-05 +/- 2.796e-05  r2: 0.0541
+          m:  -5.252e-05 +/- 5.658e-04
+          c1: 1.041e-05 +/- 2.786e-05
+          c2: -2.942e-05 +/- 2.785e-05
+
 
 
 

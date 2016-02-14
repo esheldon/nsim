@@ -1,8 +1,8 @@
 run: "run-bdd26mcal-dt-t01"
 sim: "sim-bdd26"
 
-ngmix_hash: ""
-nsim_hash: ""
+ngmix_hash: "eebec8fef75762f690afaf90bdf2c8cdb46c3b40"
+nsim_hash: "02231062bfeddddd967022ab1ff73146ea5008ee"
 
 fitter: "metacal-max-detrend"
 fit_model: "gauss"

@@ -1,0 +1,62 @@
+# bulge-disk with different ellipticities
+name: "sim-bdd26z"
+
+simulator: "galsim"
+
+# these sims are never rings
+do_ring: False
+
+# going for mode around 10
+noise: 1.0
+
+stamp_size: [48,48]
+
+psf:
+    model: "gauss"
+
+    s2n: 10000.0
+    r50: 1.5
+
+    shape:
+      type: "normal2d"
+      cen: [0.0, 0.007]
+      sigma: [0.018, 0.018]
+
+obj_model:
+    # bulge with 
+    model: "bd-diffe"
+
+    flux:
+        type: "gmixnd"
+        file: "great-des-fdist-shift.fits"
+        is_in_log: True
+
+    g:
+        type: "ba"
+        sigma: 0.2
+
+    # bulge g = disk g * gfrac
+    bulge_gfrac: 0.7
+
+    # bulge rotated randomly with gaussian of this angle in degrees
+    bulge_rot_sigma_degrees: 20.0
+
+    r50:
+        type: "lognormal"
+        mean: 2.0
+        sigma: 0.5
+
+    fracdev:
+        type: "uniform"
+        range: [0.0, 1.0]
+
+    dev_shift: null
+    cen_shift:
+      radius: 0.5
+
+label: "$bulge-disk diffe$"
+
+shear:
+  type: 'const'
+  shears: [0.0, 0.0]
+

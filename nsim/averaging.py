@@ -322,11 +322,11 @@ class SummerDT(dict):
                         sums=self.do_sums1(data, g1send, g2send, sums=sums)
 
                         if args.weights is not None:
-                            if nrand == 0:
+                            if irand == 0:
                                 if args.weights=='s2n':
-                                    wts = get_s2n_weights(tmp_data['s2n_r'], args)
+                                    wts = get_s2n_weights(data['s2n_r'], args)
                                 elif args.weights=='noise':
-                                    wts = get_noise_weights(tmp_data['mcal_g_cov'], args)
+                                    wts = get_noise_weights(data['mcal_g_cov'], args)
                                 else:
                                     raise ValueError("bad weight type: '%s'" % args.weights)
 

@@ -67,6 +67,7 @@ class FitterBase(dict):
 
         nprocessed=0
         for igal in xrange(self['ngal']):
+            self.igal=igal
             print('%s/%s' % (igal+1,self['ngal']) )
 
             if self.data['processed'][igal]:
@@ -128,7 +129,7 @@ class FitterBase(dict):
         self._print_res(res)
 
         if self['make_plots']:
-            self._make_plots(fitter,key)
+            self._make_plots(fitter,self['fit_model'])
 
         return res
 
@@ -562,9 +563,9 @@ class MaxFitter(SimpleFitterBase):
 
         width,height=1100,1100
 
-        pdict=fitter.make_plots(do_residual=True, title=self.fit_model)
+        #pdict=fitter.make_plots(do_residual=True, title=self.fit_model)
 
-        resid_pname=self.plot_base+'-%06d-%s-gal-resid.png' % (self.ipair,key)
+        resid_pname=self['plot_base']+'-%06d-%s-gal-resid.png' % (self.igal,key)
         print(resid_pname)
         rplt=fitter.plot_residuals()
         rplt[0][0].write_img(width,height,resid_pname)

@@ -1,0 +1,45 @@
+name: "sim-dg10z"
+
+simulator: "galsim"
+
+# these sims are never rings
+do_ring: False
+
+# going for mode around 10
+noise: 0.001
+
+stamp_size: [48,48]
+
+psf:
+    model: "gauss"
+    # ~ 0.9'' for des
+    fwhm: 3.4
+    shape: [0.0, 0.0]
+
+    s2n: 10000.0
+
+obj_model:
+
+    model: "dev"
+
+    flux:
+        type: "gmixnd"
+        file: "great-des-fdist-shift.fits"
+        is_in_log: True
+
+    g:
+        type: "ba"
+        sigma: 0.2
+
+    r50:
+        type: "lognormal"
+        mean: 2.7
+        sigma: 0.5
+
+    cen_shift: null
+
+label: "$dev$"
+
+shear:
+  type: 'const'
+  shears: [0.0, 0.0]

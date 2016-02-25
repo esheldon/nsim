@@ -1,0 +1,55 @@
+run: "run-dg10resid-t01"
+sim: "sim-dg10"
+
+ngmix_hash: "3e4818f454c348728b005b52d1a9250f3da4063e"
+nsim_hash: ""
+
+fitter: "max-resid"
+fit_model: "gauss"
+
+g_prior_during: True
+use_logpars: True
+
+global_seed: 22425
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    T:
+        type: "gmixnd"
+        run: "run-dg10zmax-lownoise01"
+        extra: "log_T"
+        cov_factor: 1.44
+
+    counts:
+        type: "gmixnd"
+        run: "run-dg10zmax-lownoise01"
+        extra: "log_F"
+        cov_factor: 1.44
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+ngal: 2000000
+
+desired_hours: 0.10
+sec_per: 0.08
+
+verbose: False

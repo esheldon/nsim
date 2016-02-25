@@ -186,6 +186,9 @@ class FitterBase(dict):
         self['use_logpars']=self.get('use_logpars',False)
         self['npars']=ngmix.gmix.get_model_npars(self['fit_model'])
 
+        # this is "full" pars
+        self['psf_npars']=6*ngmix.gmix._gmix_ngauss_dict[self['psf_pars']['model']]
+
         if isinstance(self.sim['obj_model'], dict):
             npars=2
         else:
@@ -325,6 +328,8 @@ class SimpleFitterBase(FitterBase):
 
         d['pars'][i,:] = res['pars']
         d['pars_cov'][i,:,:] = res['pars_cov']
+
+        d['psf_pars'][i,:] = res['psf_pars']
 
         d['g'][i,:] = res['g']
         d['g_cov'][i,:,:] = res['g_cov']
@@ -475,9 +480,11 @@ class SimpleFitterBase(FitterBase):
         get the dtype for the output struct
         """
         npars=self['npars']
+        psf_npars=self['psf_npars']
 
         dt=super(SimpleFitterBase,self)._get_dtype()
         dt += [
+            ('psf_pars','f8',psf_npars),
             ('pars','f8',npars),
             ('pars_cov','f8',(npars,npars)),
             ('g','f8',2),
@@ -518,6 +525,9 @@ class MaxFitter(SimpleFitterBase):
             boot.set_round_s2n()
             rres=boot.get_round_result()
             res=boot.get_max_fitter().get_result()
+
+            res['psf_pars'] = boot.mb_obs_list[0][0].psf.gmix.get_full_pars()
+
             res['s2n_r'] = rres['s2n_r']
             res['T_r'] = rres['T_r']
 
@@ -2933,6 +2943,32 @@ class NCalFitter(MaxFitter):
         d['ncal_Rpsf'][i] = res['ncal_Rpsf']
 
 
+class MaxResid(MaxFitter):
+    """
+    run the max fitter, but also keep a running image of the residuals
+
+    For now, ensure the center is at the "true" center, for simplicity
+    For now, ensure the psf is the same for all
+    """
+    def _dofit(self, imdict):
+        fitter=super(MaxResid,self)._dofit(imdict)
+
+        image = imdict['obs'].image
+        gmix = fitter.get_convolved_gmix()
+        model = gmix.make_image(image.shape,
+                                jacobian=imdict['obs'].jacobian)
+        imdiff = image - model
+
+        if not hasattr(self,'im_sum'):
+            self.im_sum      = image*0
+            self.model_sum   = image*0
+            self.im_diff_sum = image*0
+
+        self.im_sum      += image
+        self.model_sum   += model
+        self.im_diff_sum += imdiff
+
+        return fitter
 
 def make_sheared_pars(pars, shear_g1, shear_g2):
     from ngmix import Shape

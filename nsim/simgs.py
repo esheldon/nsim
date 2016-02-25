@@ -350,8 +350,10 @@ class SimGS(dict):
         elif self.psf_fwhm_pdf is not None:
             fwhm = self.psf_fwhm_pdf.sample()
             print("    psf fwhm: %g" % fwhm)
-        else:
+        elif 'r50' in self['psf']:
             r50 = self['psf']['r50']
+        elif 'fwhm' in self['psf']:
+            fwhm = self['psf']['fwhm']
         return r50, fwhm
 
     def _get_psf_shape(self):
@@ -548,11 +550,12 @@ class SimGS(dict):
         self.psf_fwhm_pdf=None
 
         if 'fwhm' in pspec:
-            assert pspec['fwhm']['type']=='discrete-pdf'
-            fname=os.path.expandvars( pspec['fwhm']['file'] )
-            print("Reading fwhm values from file:",fname)
-            vals=numpy.fromfile(fname, sep='\n')
-            self.psf_fwhm_pdf=DiscreteSampler(vals)
+            if isinstance(pspec['fwhm'], dict):
+                assert pspec['fwhm']['type']=='discrete-pdf'
+                fname=os.path.expandvars( pspec['fwhm']['file'] )
+                print("Reading fwhm values from file:",fname)
+                vals=numpy.fromfile(fname, sep='\n')
+                self.psf_fwhm_pdf=DiscreteSampler(vals)
         else:
             if isinstance(pspec['r50'], dict):
                 r50pdf = pspec['r50']
@@ -560,8 +563,6 @@ class SimGS(dict):
 
                 self.psf_r50_pdf = ngmix.priors.LogNormal(r50pdf['mean'],
                                                           r50pdf['sigma'])
-            else:
-                self.psf_r50_pdf=None
 
         if isinstance(pspec['shape'],dict):
             ppdf=pspec['shape']

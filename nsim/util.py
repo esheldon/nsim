@@ -326,7 +326,7 @@ def get_true_shear(conf, index=0):
     return shear
 
 
-def write_fits(filename, data):
+def write_fits(filename, data, header=None):
     """
     Assume condor where cwd is scratch dir
 
@@ -342,8 +342,7 @@ def write_fits(filename, data):
     local_file=os.path.abspath( os.path.basename(output_file) )
     print("writing local file:",local_file)
 
-    with fitsio.FITS(local_file,'rw',clobber=True) as fobj:
-        fobj.write(data)
+    fitsio.write(local_file, data, header=header, clobber=True)
 
     if local_file==output_file:
         return True

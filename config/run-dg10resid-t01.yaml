@@ -2,7 +2,7 @@ run: "run-dg10resid-t01"
 sim: "sim-dg10"
 
 ngmix_hash: "3e4818f454c348728b005b52d1a9250f3da4063e"
-nsim_hash: ""
+nsim_hash: "8ab692c144daea4945c6528d076b48656c11740d"
 
 fitter: "max-resid"
 fit_model: "gauss"

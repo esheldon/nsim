@@ -29,6 +29,9 @@ parser=argparse.ArgumentParser(formatter_class=fclass)
 
 parser.add_argument('runs', nargs='+',help='run to use in fit')
 
+parser.add_argument('--max-shear',type=float,default=None,
+                    help='only fit m/c for shear < this value')
+
 parser.add_argument('--select',default=None,
                     help='string for selection, refer to data[field] etc.')
 parser.add_argument('--select-from',default=None,

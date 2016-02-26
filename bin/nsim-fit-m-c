@@ -267,6 +267,10 @@ def get_averages(conf, data, show_progress=True):
 
     g, gpsf, R, Rpsf = get_arrays(conf, data)
 
+    R = R.mean(axis=0)
+    Rpsf = Rpsf.mean(axis=0)
+    Rinv = numpy.linalg.inv(R)
+
     means=get_mean_struct(nind)
 
     for i in xrange(nind):
@@ -277,10 +281,11 @@ def get_averages(conf, data, show_progress=True):
 
         shear_true = shears[i]
 
-        Rmean = R[w].mean(axis=0)
-        Rinv = numpy.linalg.inv(Rmean)
+        #Rmean = R[w].mean(axis=0)
+        #Rinv = numpy.linalg.inv(Rmean)
 
-        psf_corr  = (gpsf[w]*Rpsf[w]).mean(axis=0)
+        #psf_corr  = (gpsf[w]*Rpsf[w]).mean(axis=0)
+        psf_corr  = (gpsf[w]*Rpsf).mean(axis=0)
 
         gmean     = g[w].mean(axis=0)
         shear     = numpy.dot(Rinv, gmean-psf_corr)

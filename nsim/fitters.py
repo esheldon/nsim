@@ -679,6 +679,9 @@ class MaxMetacalFitter(MaxFitter):
             boot.set_round_s2n()
             rres=boot.get_round_result()
             res=boot.get_max_fitter().get_result()
+
+            res['psf_pars'] = boot.mb_obs_list[0][0].psf.gmix.get_full_pars()
+
             res['s2n_r'] = rres['s2n_r']
             res['T_r'] = rres['T_r']
 

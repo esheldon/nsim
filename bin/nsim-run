@@ -107,7 +107,7 @@ def run_sim(sim_conf,
 
         if sim_conf['obj_model']['model']=='bd':
             sim=nsim.simgs.SimBD(sim_conf)
-        if sim_conf['obj_model']['model']=='bd-diffe':
+        elif sim_conf['obj_model']['model']=='bd-diffe':
             sim=nsim.simgs.SimBDD(sim_conf)
         elif sim_conf['obj_model']['model']=='gmix':
             sim=nsim.simgs.SimGMix(sim_conf)

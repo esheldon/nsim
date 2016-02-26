@@ -1,0 +1,51 @@
+run: "run-bd16zmax-lownoise03"
+sim: "sim-bd16z"
+
+ngmix_hash: "6e8c0395b4737a94b7fd003661a757dacb24c11a"
+nsim_hash: "fa987d8ee5cd36f7f7f4d45ea014da0898a36dc3"
+
+fitter: "max"
+fit_model: "exp"
+
+g_prior_during: True
+use_logpars: True
+
+global_seed: 1142
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    T:
+        type: "two-sided-erf"
+        pars: [-0.5, 1.0, 5.0, 1.0]
+
+    counts:
+        type: "two-sided-erf"
+        pars: [2.0, 1.0, 12, 1.0]
+
+    g:
+        type: "flat"
+
+psf_pars:
+    model: "coellip3"
+    ntry: 10
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+ngal: 2000000
+
+desired_hours: 0.25
+
+sec_per: 0.20
+
+verbose: True

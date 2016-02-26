@@ -67,6 +67,7 @@ class FitterBase(dict):
 
         nprocessed=0
         for igal in xrange(self['ngal']):
+            self.igal=igal
             print('%s/%s' % (igal+1,self['ngal']) )
 
             if self.data['processed'][igal]:
@@ -128,7 +129,7 @@ class FitterBase(dict):
         self._print_res(res)
 
         if self['make_plots']:
-            self._make_plots(fitter,key)
+            self._make_plots(fitter,self['fit_model'])
 
         return res
 
@@ -184,6 +185,9 @@ class FitterBase(dict):
 
         self['use_logpars']=self.get('use_logpars',False)
         self['npars']=ngmix.gmix.get_model_npars(self['fit_model'])
+
+        # this is "full" pars
+        self['psf_npars']=6*ngmix.gmix._gmix_ngauss_dict[self['psf_pars']['model']]
 
         if isinstance(self.sim['obj_model'], dict):
             npars=2
@@ -324,6 +328,8 @@ class SimpleFitterBase(FitterBase):
 
         d['pars'][i,:] = res['pars']
         d['pars_cov'][i,:,:] = res['pars_cov']
+
+        d['psf_pars'][i,:] = res['psf_pars']
 
         d['g'][i,:] = res['g']
         d['g_cov'][i,:,:] = res['g_cov']
@@ -474,9 +480,11 @@ class SimpleFitterBase(FitterBase):
         get the dtype for the output struct
         """
         npars=self['npars']
+        psf_npars=self['psf_npars']
 
         dt=super(SimpleFitterBase,self)._get_dtype()
         dt += [
+            ('psf_pars','f8',psf_npars),
             ('pars','f8',npars),
             ('pars_cov','f8',(npars,npars)),
             ('g','f8',2),
@@ -495,7 +503,6 @@ class MaxFitter(SimpleFitterBase):
         """
 
         use_round_T=self['use_round_T']
-        print("max: use_round_T",use_round_T)
         boot=ngmix.Bootstrapper(imdict['obs'],
                                 use_logpars=self['use_logpars'],
                                 use_round_T=use_round_T,
@@ -518,6 +525,9 @@ class MaxFitter(SimpleFitterBase):
             boot.set_round_s2n()
             rres=boot.get_round_result()
             res=boot.get_max_fitter().get_result()
+
+            res['psf_pars'] = boot.mb_obs_list[0][0].psf.gmix.get_full_pars()
+
             res['s2n_r'] = rres['s2n_r']
             res['T_r'] = rres['T_r']
 
@@ -563,9 +573,9 @@ class MaxFitter(SimpleFitterBase):
 
         width,height=1100,1100
 
-        pdict=fitter.make_plots(do_residual=True, title=self.fit_model)
+        #pdict=fitter.make_plots(do_residual=True, title=self.fit_model)
 
-        resid_pname=self.plot_base+'-%06d-%s-gal-resid.png' % (self.ipair,key)
+        resid_pname=self['plot_base']+'-%06d-%s-gal-resid.png' % (self.igal,key)
         print(resid_pname)
         rplt=fitter.plot_residuals()
         rplt[0][0].write_img(width,height,resid_pname)
@@ -669,6 +679,9 @@ class MaxMetacalFitter(MaxFitter):
             boot.set_round_s2n()
             rres=boot.get_round_result()
             res=boot.get_max_fitter().get_result()
+
+            res['psf_pars'] = boot.mb_obs_list[0][0].psf.gmix.get_full_pars()
+
             res['s2n_r'] = rres['s2n_r']
             res['T_r'] = rres['T_r']
 
@@ -2056,6 +2069,469 @@ def _make_new_obs(obs, im):
                        psf=psf_obs)
     return newobs
 
+PPMETACAL_TYPES = [
+    '1p','1m','2p','2m',
+]
+
+
+def get_all_ppmcal(obs, step=0.01):
+    p=PPMetacal(obs)
+    return p.get_all(step)
+
+class PPMetacal(object):
+    """
+    Create manipulated images for use in metacalibration
+
+    parameters
+    ----------
+    image: numpy array
+        2d array representing the image
+    psf_image: numpy array
+        2d array representing the psf image
+    jacobian: Jacobian, optional
+        An ngmix.Jacobian or None.  If None, an ngmix.UnitJacobian is
+        constructed
+    type: list
+        Types to calculate
+    """
+
+    def __init__(self, obs):
+
+        self.obs=obs
+
+        self._setup()
+        self._set_data()
+
+    def get_all(self, step):
+        """
+        Get all combinations of metacal images in a dict
+
+        parameters
+        ----------
+        step: float
+            The shear step value to use for metacal
+        types: list
+            Types to get.  Default is given in METACAL_TYPES
+
+        returns
+        -------
+        A dictionary with all the relevant metacaled images
+            dict keys:
+                1p -> ( shear, 0)
+                1m -> (-shear, 0)
+                2p -> ( 0, shear)
+                2m -> ( 0, -shear)
+            simular for 1p_psf etc.
+        """
+
+        types=PPMETACAL_TYPES
+
+        shdict={}
+
+        shdict['1m']=Shape(-step,  0.0)
+        shdict['1p']=Shape( step,  0.0)
+
+        shdict['2m']=Shape(0.0, -step)
+        shdict['2p']=Shape(0.0,  step)
+
+        # psfshear keys
+        keys=list(shdict.keys())
+        for key in keys:
+            pkey = '%s_psf' % key
+            shdict[pkey] = shdict[key].copy()
+
+        odict={}
+
+        for type in types:
+            sh=shdict[type]
+
+            obs = self.get_obs(sh)
+            odict[type] = obs
+
+        return odict
+
+
+    def get_obs(self, shear):
+        """
+        This is the case where we shear the image, for calculating R
+
+        parameters
+        ----------
+        shear: ngmix.Shape
+            The shear to apply
+
+        get_unsheared: bool
+            Get an observation only convolved by the target psf, not
+            sheared
+        """
+
+        sheared_image_nopix = self.image_int_nopix.shear(g1=shear.g1,
+                                                         g2=shear.g2)
+        sheared_psf_image_nopix = self.psf_int_nopix.shear(g1=shear.g1,
+                                                           g2=shear.g2)
+
+        sheared_image = galsim.Convolve([sheared_image_nopix, self.pixel])
+        sheared_psf_image = galsim.Convolve([sheared_psf_image_nopix, self.pixel])
+
+
+        newim = galsim.ImageD(self.im_dims[1], self.im_dims[0])
+        new_psf_im = galsim.ImageD(self.psf_dims[1], self.psf_dims[0])
+
+        sheared_image.drawImage(image=newim,
+                                method='no_pixel',
+                                scale=self.pixel_scale)
+        sheared_psf_image.drawImage(image=new_psf_im,
+                                    method='no_pixel',
+                                    scale=self.pixel_scale)
+
+        newobs = self._make_obs(newim, new_psf_im)
+
+        return newobs
+
+    def _setup(self):
+
+        obs=self.obs
+        if not obs.has_psf():
+            raise ValueError("observation must have a psf observation set")
+
+        self._set_wcs(obs.jacobian)
+        self._set_pixel()
+        self._set_interp()
+
+    def _set_data(self):
+        """
+        create galsim objects based on the input observation
+        """
+
+        obs=self.obs
+
+        # these would share data with the original numpy arrays, make copies
+        # to be sure they don't get modified
+        #
+        self.image = galsim.Image(obs.image.copy(),
+                                  wcs=self.gs_wcs)
+        self.psf_image = galsim.Image(obs.psf.image.copy(),
+                                      wcs=self.gs_wcs)
+
+        self.psf_dims=obs.psf.image.shape
+        self.im_dims=obs.image.shape
+
+        # interpolated image of the galaxy
+        self.image_int = galsim.InterpolatedImage(self.image,
+                                                  x_interpolant=self.interp)
+        # interpolated image deconvolved from pixel
+        self.image_int_nopix = galsim.Convolve([self.image_int, self.pixel_inv])
+
+
+        # interpolated psf image
+        self.psf_int = galsim.InterpolatedImage(self.psf_image,
+                                                x_interpolant = self.interp)
+        # interpolated psf deconvolved from pixel
+        self.psf_int_nopix = galsim.Convolve([self.psf_int, self.pixel_inv])
+
+    def _set_wcs(self, jacobian):
+        """
+        create a galsim JacobianWCS from the input ngmix.Jacobian, as
+        well as pixel objects
+        """
+
+        self.jacobian=jacobian
+
+        # TODO get conventions right and use full jacobian
+        '''
+        self.gs_wcs = galsim.JacobianWCS(jacobian.dudrow,
+                                         jacobian.dudcol,
+                                         jacobian.dvdrow, 
+                                         jacobian.dvdcol)
+
+        # TODO how this gets used does not seem general, why not use full wcs
+        self.pixel_scale=self.gs_wcs.maxLinearScale()
+        '''
+        self.pixel_scale=self.jacobian.get_scale()
+        self.gs_wcs = galsim.JacobianWCS(self.pixel_scale,
+                                         0.0,
+                                         0.0, 
+                                         self.pixel_scale)
+
+
+    def _set_pixel(self):
+        """
+        set the pixel based on the pixel scale, for convolutions
+        """
+
+        self.pixel = galsim.Pixel(self.pixel_scale)
+        self.pixel_inv = galsim.Deconvolve(self.pixel)
+
+    def _set_interp(self):
+        """
+        set the laczos interpolation configuration
+        """
+        self.interp = galsim.Lanczos(LANCZOS_PARS_DEFAULT['order'],
+                                     LANCZOS_PARS_DEFAULT['conserve_dc'],
+                                     LANCZOS_PARS_DEFAULT['tol'])
+
+    def _make_obs(self, im, psf_im):
+        """
+        inputs are galsim objects
+        """
+
+        obs=self.obs
+
+        psf_obs = Observation(psf_im.array,
+                              weight=obs.psf.weight.copy(),
+                              jacobian=obs.psf.jacobian.copy())
+
+        newobs=Observation(im.array,
+                           jacobian=obs.jacobian.copy(),
+                           weight=obs.weight.copy(),
+                           psf=psf_obs)
+        return newobs
+
+class PPMetacalFitter(MaxFitter):
+    def _dofit(self, imdict):
+        """
+        Fit according to the requested method
+        """
+
+        self.imdict=imdict
+
+
+        obs=imdict['obs']
+        mdict = self._do_fits(obs)
+        self.fitter=mdict['fitter']
+
+        ppmcal_res = self._do_ppmcal(obs)
+
+        res=mdict['res']
+        res.update( ppmcal_res )
+
+        return self.fitter
+
+    def _do_fits(self, obs):
+        """
+        the basic fitter for this class
+        """
+        from ngmix import Bootstrapper
+
+        boot=Bootstrapper(obs,
+                          use_logpars=self['use_logpars'],
+                          verbose=False)
+
+        Tguess=self.sim.get('psf_T',4.0)
+        ppars=self['psf_pars']
+
+        psf_fit_pars = ppars.get('fit_pars',None)
+
+        try:
+            boot.fit_psfs(ppars['model'],
+                          Tguess,
+                          ntry=ppars['ntry'],
+                          fit_pars=psf_fit_pars)
+
+        except BootPSFFailure:
+            raise TryAgainError("failed to fit psf")
+
+        mconf=self['max_pars']
+
+        try:
+            boot.fit_max(self['fit_model'],
+                         mconf['pars'],
+                         prior=self.prior,
+                         ntry=mconf['ntry'])
+
+
+            boot.set_round_s2n()
+            rres=boot.get_round_result()
+            res=boot.get_max_fitter().get_result()
+            res['s2n_r']=rres['s2n_r']
+            res['T_r'] = rres['T_r']
+
+            res['psf_T'] = obs.psf.gmix.get_T()
+            res['psf_T_r'] = rres['psf_T_r']
+
+            if mconf['pars']['method']=='lm':
+                boot.try_replace_cov(mconf['cov_pars'])
+
+        except BootPSFFailure:
+            raise TryAgainError("failed to fit metacal psfs")
+        except BootGalFailure:
+            raise TryAgainError("failed to fit galaxy")
+
+        fitter=boot.get_max_fitter() 
+        res=fitter.get_result()
+
+        return {'fitter':fitter,
+                'boot':boot,
+                'res':res}
+
+    def _get_postcal_obsdict(self, obs):
+
+        psf_obs = obs.psf
+
+        im = obs.image.copy()
+        psf_im = psf_obs.image.copy()
+        gs_im = galsim.Image(im, scale=1.0)
+        gs_psf = galsim.Image(psf_im, scale=1.0)
+
+        i_im = galsim.InterpolatedImage(gs_im)
+        i_psf = galsim.InterpolatedImage(gs_psf)
+
+
+        odict={}
+        for t in self.pcal_shears:
+            name = t[0]
+            shear = t[1]
+
+            s_i_im = i_im.shear(g1=shear.g1, g2=shear.g2)
+            s_i_psf = i_psf.shear(g1=shear.g1, g2=shear.g2)
+
+            s_im = s_i_im.drawImage(ny=im.shape[0],
+                                    nx=im.shape[1],
+                                    scale=1.0,
+                                    method='no_pixel')
+            s_psf_im = s_i_psf.drawImage(ny=psf_im.shape[0],
+                                         nx=psf_im.shape[1],
+                                         scale=1.0,
+                                         method='no_pixel')
+
+            spsf_obs = Observation(
+                s_psf_im.array,
+                weight=psf_obs.weight.copy(),
+                jacobian=psf_obs.jacobian.copy()
+            )
+            sobs = Observation(
+                s_im.array,
+                weight=obs.weight.copy(),
+                jacobian=obs.jacobian.copy(),
+                psf=spsf_obs
+            )
+
+            odict[name] = sobs
+
+            if False and name=='1p':
+                import images
+                images.compare_images(im,
+                                      s_im.array,
+                                      label1='im',
+                                      label2='sheared',
+                                      width=1000,
+                                      height=1000)
+                if raw_input('hit a key: ')=='q':
+                    stop
+
+        return odict
+
+    def _do_ppmcal(self, obs, ppmcal_obs_dict=None):
+
+        if ppmcal_obs_dict is None:
+            ppmcal_obs_dict = get_all_ppmcal(obs)
+
+        fits={}
+        for key in ppmcal_obs_dict:
+            tobs=ppmcal_obs_dict[key]
+
+            tmdict = self._do_fits(tobs)
+            fits[key] = tmdict['res']
+
+        res = self._extract_postcal_responses(fits)
+        return res
+
+    def _extract_postcal_responses(self, fits):
+        """
+        pars pars_cov gpsf, s2n_r, T_r, psf_T_r required
+
+        expect the shape to be in pars[2] and pars[3]
+        """
+        step = self['postcal_pars']['step']
+
+        res1p = fits['1p']
+        res1m = fits['1m']
+        res2p = fits['2p']
+        res2m = fits['2m']
+
+        pars_mean = (res1p['pars']+
+                     res1m['pars']+
+                     res2p['pars']+
+                     res2m['pars'])/4.0
+
+        pars_cov_mean = (res1p['pars_cov']+
+                         res1m['pars_cov']+
+                         res2p['pars_cov']+
+                         res2m['pars_cov'])/4.0
+
+        pars_mean[2] = 0.5*(fits['1p']['pars'][2] + fits['1m']['pars'][2])
+        pars_mean[3] = 0.5*(fits['2p']['pars'][3] + fits['2m']['pars'][3])
+
+        s2n_r_mean = (res1p['s2n_r']
+                      + res1m['s2n_r']
+                      + res2p['s2n_r']
+                      + res2m['s2n_r'])/4.0
+
+        if self['verbose']:
+            print_pars(pars_mean, front='    parsmean:   ')
+
+        R=numpy.zeros( (2,2) ) 
+        Rpsf=numpy.zeros(2)
+
+        fac = 1.0/(2.0*step)
+
+        R[0,0] = (fits['1p']['pars'][2]-fits['1m']['pars'][2])*fac
+        R[0,1] = (fits['1p']['pars'][3]-fits['1m']['pars'][3])*fac
+        R[1,0] = (fits['2p']['pars'][2]-fits['2m']['pars'][2])*fac
+        R[1,1] = (fits['2p']['pars'][3]-fits['2m']['pars'][3])*fac
+
+        res = {
+            'ppmcal_pars':pars_mean,
+            'ppmcal_pars_cov':pars_cov_mean,
+            'ppmcal_g':pars_mean[2:2+2],
+            'ppmcal_g_cov':pars_cov_mean[2:2+2, 2:2+2],
+            'ppmcal_R':R,
+            'ppmcal_s2n_r':s2n_r_mean,
+        }
+        return res
+
+    def _print_res(self,res):
+        """
+        print some stats
+        """
+
+        super(PPMetacalFitter,self)._print_res(res)
+        print_pars(res['ppmcal_pars'],       front='    ppmcal pars: ')
+        print_pars(res['ppmcal_R'].ravel(),  front='    ppmcal R:    ')
+
+    def _get_dtype(self):
+        """
+        get the dtype for the output struct
+        """
+        dt=super(PPMetacalFitter,self)._get_dtype()
+
+        npars=self['npars']
+        dt += [
+            ('ppmcal_pars','f8',npars),
+            ('ppmcal_pars_cov','f8',(npars,npars)),
+            ('ppmcal_g','f8',2),
+            ('ppmcal_g_cov','f8', (2,2) ),
+            ('ppmcal_R','f8',(2,2)),
+        ]
+        return dt
+
+
+    def _copy_to_output(self, res, i):
+        """
+        copy parameters specific to this class
+        """
+        super(PPMetacalFitter,self)._copy_to_output(res, i)
+
+        d=self.data
+
+        d['ppmcal_pars'][i] = res['ppmcal_pars']
+        d['ppmcal_pars_cov'][i] = res['ppmcal_pars_cov']
+        d['ppmcal_g'][i] = res['ppmcal_g']
+        d['ppmcal_g_cov'][i] = res['ppmcal_g_cov']
+
+        d['ppmcal_R'][i] = res['ppmcal_R']
+
+
 
 
 
@@ -2470,6 +2946,32 @@ class NCalFitter(MaxFitter):
         d['ncal_Rpsf'][i] = res['ncal_Rpsf']
 
 
+class MaxResid(MaxFitter):
+    """
+    run the max fitter, but also keep a running image of the residuals
+
+    For now, ensure the center is at the "true" center, for simplicity
+    For now, ensure the psf is the same for all
+    """
+    def _dofit(self, imdict):
+        fitter=super(MaxResid,self)._dofit(imdict)
+
+        image = imdict['obs'].image
+        gmix = fitter.get_convolved_gmix()
+        model = gmix.make_image(image.shape,
+                                jacobian=imdict['obs'].jacobian)
+        imdiff = image - model
+
+        if not hasattr(self,'im_sum'):
+            self.im_sum      = image*0
+            self.model_sum   = image*0
+            self.im_diff_sum = image*0
+
+        self.im_sum      += image
+        self.model_sum   += model
+        self.im_diff_sum += imdiff
+
+        return fitter
 
 def make_sheared_pars(pars, shear_g1, shear_g2):
     from ngmix import Shape

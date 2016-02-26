@@ -69,7 +69,7 @@ class SimGS(dict):
 
         gal_obs.set_psf(psf_obs)
 
-        save_pars=[gal_pars['r50'], gal_pars['flux']]
+        save_pars=[gal_pars['size'], gal_pars['flux']]
 
         if psf_pars['fwhm'] is None:
             psf_save_pars=psf_pars['r50']
@@ -350,8 +350,10 @@ class SimGS(dict):
         elif self.psf_fwhm_pdf is not None:
             fwhm = self.psf_fwhm_pdf.sample()
             print("    psf fwhm: %g" % fwhm)
-        else:
+        elif 'r50' in self['psf']:
             r50 = self['psf']['r50']
+        elif 'fwhm' in self['psf']:
+            fwhm = self['psf']['fwhm']
         return r50, fwhm
 
     def _get_psf_shape(self):
@@ -414,6 +416,7 @@ class SimGS(dict):
                 'g':(g1,g2),
                 'flux':flux,
                 'r50':r50,
+                'size':r50,
                 'cenoff':cenoff}
 
         if self.shear_pdf is not None:
@@ -522,7 +525,7 @@ class SimGS(dict):
         self._set_psf_pdf()
         self._set_flux_pdf()
         self._set_g_pdf()
-        self._set_r50_pdf()
+        self._set_size_pdf()
         self._set_cen_pdf()
         self._set_shear_pdf()
 
@@ -547,11 +550,12 @@ class SimGS(dict):
         self.psf_fwhm_pdf=None
 
         if 'fwhm' in pspec:
-            assert pspec['fwhm']['type']=='discrete-pdf'
-            fname=os.path.expandvars( pspec['fwhm']['file'] )
-            print("Reading fwhm values from file:",fname)
-            vals=numpy.fromfile(fname, sep='\n')
-            self.psf_fwhm_pdf=DiscreteSampler(vals)
+            if isinstance(pspec['fwhm'], dict):
+                assert pspec['fwhm']['type']=='discrete-pdf'
+                fname=os.path.expandvars( pspec['fwhm']['file'] )
+                print("Reading fwhm values from file:",fname)
+                vals=numpy.fromfile(fname, sep='\n')
+                self.psf_fwhm_pdf=DiscreteSampler(vals)
         else:
             if isinstance(pspec['r50'], dict):
                 r50pdf = pspec['r50']
@@ -559,8 +563,6 @@ class SimGS(dict):
 
                 self.psf_r50_pdf = ngmix.priors.LogNormal(r50pdf['mean'],
                                                           r50pdf['sigma'])
-            else:
-                self.psf_r50_pdf=None
 
         if isinstance(pspec['shape'],dict):
             ppdf=pspec['shape']
@@ -579,7 +581,7 @@ class SimGS(dict):
         else:
             self.g_pdf=None
 
-    def _set_r50_pdf(self):
+    def _set_size_pdf(self):
         if 'r50' in self['obj_model']:
             r50spec = self['obj_model']['r50']
 
@@ -631,6 +633,109 @@ class SimGS(dict):
             self.flux_pdf=load_gmixnd(fluxspec)
         else:
             raise ValueError("bad flux pdf type: '%s'" % fluxspec['type'])
+
+class SimGMix(SimGS):
+    """
+    the galaxy model is described by a gaussian mixture with size given
+    by T instead of r50 etc.
+    """
+
+    def _get_galaxy_pars(self):
+        """
+        Get pair parameters
+
+        if not random, then the mean pars are used, except for cen and g1,g2
+        which are zero
+        """
+
+        if self.cen_pdf is not None:
+            coff1 = self.cen_pdf.sample()
+            coff2 = self.cen_pdf.sample()
+
+            cenoff=(coff1,coff2)
+        else:
+            cenoff=None
+
+        if self.g_pdf is not None:
+            g1,g2 = self.g_pdf.sample2d()
+        else:
+            g1,g2=None,None
+
+        flux = self.flux_pdf.sample()
+        if self.flux_is_in_log:
+            flux = numpy.exp(flux)
+
+        # this is the round T
+        if self.T_pdf is not None:
+            T = self.T_pdf.sample()
+        else:
+            T=None
+
+
+        pars = {'model':self['model'],
+                'g':(g1,g2),
+                'flux':flux,
+                'T':T,
+                'size':T,
+                'cenoff':cenoff}
+
+        if self.shear_pdf is not None:
+            shear,shindex = self.shear_pdf.get_shear()
+            pars['shear'] = shear
+            pars['shear_index'] = shindex
+
+        return pars
+
+    def _get_gal_obj(self, pars):
+        """
+        get the galsim object for the galaxy model
+        """
+
+        flux = pars['flux']
+
+        T = pars['T']
+
+        g1,g2=pars['g']
+
+        cenoff = pars['cenoff']
+
+        gm_pars=[0.0, 0.0, 0.0, 0.0, T, flux]
+        gm = ngmix.GMixModel(gm_pars, self['obj_model']['gmix_model']) 
+
+        gal = gm.make_galsim_object()
+
+        # first give it an intrinsic shape
+        gal = gal.shear(g1=g1, g2=g2)
+
+        # now shear it
+        if 'shear' in pars:
+            shear=pars['shear']
+            gal = gal.shear(g1=shear.g1, g2=shear.g2)
+
+        # in the demos, the shift was always applied after the shear, not sure
+        # if it matters
+        if cenoff is not None:
+            gal = gal.shift(dx=cenoff[0], dy=cenoff[1])
+
+        tup=(T,cenoff)
+        print("    T: %g cenoff: %s" % tup)
+
+        return gal
+
+
+    def _set_size_pdf(self):
+        assert 'T' in self['obj_model']
+
+        spec = self['obj_model']['T']
+
+        if spec['type']=='lognormal':
+            self.T_pdf=ngmix.priors.LogNormal(spec['mean'],
+                                              spec['sigma'])
+        elif spec['type']=='gmixnd':
+            self.T_pdf=load_gmixnd(spec)
+        else:
+            raise ValueError("bad r50 pdf type: '%s'" % r50spec['type'])
+
 
 class SimBD(SimGS):
     """
@@ -725,6 +830,90 @@ class SimBD(SimGS):
     def _set_fracdev_pdf(self):
         bdr = self['obj_model']['fracdev']['range']
         self.fracdev_pdf=ngmix.priors.FlatPrior(bdr[0], bdr[1])
+
+class SimBDD(SimBD):
+    """
+    different ellipticities
+    """
+    def _get_gal_obj(self, pars):
+        """
+        get the galsim object for the galaxy model
+        """
+
+        flux = pars['flux']
+
+        r50 = pars['r50']
+
+        disk_g=pars['disk_g']
+        bulge_g=pars['bulge_g']
+
+        cenoff = pars['cenoff']
+
+        fracdev = pars['fracdev']
+        disk_flux = flux*(1.0 - fracdev)
+        bulge_flux = flux*fracdev
+
+        disk = galsim.Exponential(flux=disk_flux, half_light_radius=r50)
+        bulge = galsim.DeVaucouleurs(flux=bulge_flux, half_light_radius=r50)
+
+        # both disk and bulge get same overall shape
+        disk  = disk.shear(g1=disk_g[0], g2=disk_g[1])
+        bulge = bulge.shear(g1=bulge_g[0], g2=bulge_g[1])
+
+        # the bulge can be offset from the disk
+        dev_offset = pars['dev_offset']
+        if dev_offset is not None:
+            bulge = bulge.shift(dx=dev_offset[0], dy=dev_offset[1])
+
+        # combine them and shear that
+        gal = galsim.Add([disk, bulge])
+
+        if 'shear' in pars:
+            shear=pars['shear']
+            gal = gal.shear(g1=shear.g1, g2=shear.g2)
+
+        if cenoff is not None:
+            gal = gal.shift(dx=cenoff[0], dy=cenoff[1])
+
+        tup=(r50,fracdev,dev_offset,cenoff)
+        print("    r50: %g fracdev: %g dev_offset: %s cenoff: %s" % tup)
+        print("    disk g:",disk_g,"bulge g:",bulge_g)
+
+        return gal
+
+    def _get_galaxy_pars(self):
+        """
+        all pars are the same except for the shift of the bulge
+        """
+
+        # this will fill in only one of the shapes
+        pars=super(SimBDD,self)._get_galaxy_pars()
+
+        pars['disk_g'] = pars['g']
+
+        if self.g_pdf is not None:
+            angle =self.bulge_rot_pdf.sample()
+            frac=self['obj_model']['bulge_gfrac']
+            sh = ngmix.Shape(pars['disk_g'][0]*frac,
+                             pars['disk_g'][1]*frac)
+            shrot=sh.get_rotated(angle)
+            pars['bulge_g'] = (shrot.g1, shrot.g2)
+        else:
+            pars['bulge_g'] = None
+
+        return pars
+
+    def _set_pdfs(self):
+        """
+        add fracdev and bulge offset distributions
+        """
+        super(SimBDD,self)._set_pdfs()
+
+        self._set_bulge_rot_pdf()
+
+    def _set_bulge_rot_pdf(self):
+        sigma=numpy.deg2rad( self['obj_model']['bulge_rot_sigma_degrees'] )
+        self.bulge_rot_pdf = ngmix.priors.Normal(0.0, sigma)
 
 
 def quick_fit_gauss(image, maxiter=4000, tol=1.0e-6, ntry=4):

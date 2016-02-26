@@ -257,7 +257,7 @@ def get_arrays(conf, data):
 
     return g, gpsf, R, Rpsf
 
-def get_averages(conf, data, show_progress=True):
+def get_averages(conf, data, show_progress=False):
 
     sconf=conf['simc']
     shears = sconf['shear']['shears']
@@ -266,6 +266,10 @@ def get_averages(conf, data, show_progress=True):
     nind = h.size
 
     g, gpsf, R, Rpsf = get_arrays(conf, data)
+
+    R = R.mean(axis=0)
+    Rpsf = Rpsf.mean(axis=0)
+    Rinv = numpy.linalg.inv(R)
 
     means=get_mean_struct(nind)
 
@@ -277,10 +281,11 @@ def get_averages(conf, data, show_progress=True):
 
         shear_true = shears[i]
 
-        Rmean = R[w].mean(axis=0)
-        Rinv = numpy.linalg.inv(Rmean)
+        #Rmean = R[w].mean(axis=0)
+        #Rinv = numpy.linalg.inv(Rmean)
 
-        psf_corr  = (gpsf[w]*Rpsf[w]).mean(axis=0)
+        #psf_corr  = (gpsf[w]*Rpsf[w]).mean(axis=0)
+        psf_corr  = Rpsf*gpsf[w].mean(axis=0)
 
         gmean     = g[w].mean(axis=0)
         shear     = numpy.dot(Rinv, gmean-psf_corr)

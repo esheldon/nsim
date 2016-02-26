@@ -29,6 +29,9 @@ parser=argparse.ArgumentParser(formatter_class=fclass)
 
 parser.add_argument('runs', nargs='+',help='run to use in fit')
 
+parser.add_argument('--max-shear',type=float,default=None,
+                    help='only fit m/c for shear < this value')
+
 parser.add_argument('--select',default=None,
                     help='string for selection, refer to data[field] etc.')
 parser.add_argument('--select-from',default=None,
@@ -55,7 +58,7 @@ parser.add_argument('--boot-Rnoise',action='store_true')
 parser.add_argument('--nboot-Rnoise',type=int,default=100)
 parser.add_argument('--bootsize-Rnoise',type=int,default=1000000)
 
-parser.add_argument('--weights',default=None,help='type of weight to use')
+parser.add_argument('--weights',default=None,help='type of weight to use, noise or s2n')
 parser.add_argument('--s2n-soft',type=float,default=10.0)
 parser.add_argument('--shapenoise',type=float,default=0.20)
 

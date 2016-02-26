@@ -14,12 +14,16 @@ parser.add_argument('run',help='sim run')
 parser.add_argument('field',help='var to fit, T or flux',choices=['log_T','log_F'])
 parser.add_argument('ngauss',type=int,help='number of gaussians to fit')
 
+parser.add_argument('--round-T',action='store_true',help='fit the round T')
+
 
 class PriorFitter(object):
-    def __init__(self, run, field, ngauss):
+    def __init__(self, run, field, ngauss, round_T=False):
         self.run=run
         self.field=field
         self.ngauss=ngauss
+
+        self.round_T=round_T
 
     def go(self):
         self.read_data()
@@ -51,7 +55,7 @@ class PriorFitter(object):
                                           0,
                                           extra=self.field,
                                           ext='eps')
-        
+
         r=self.prior.sample(1000000)
 
         pwide = ngmix.gmix.GMixND(weights=self.prior.weights.copy(),
@@ -71,6 +75,9 @@ class PriorFitter(object):
 
         plt=biggles.FramedPlot()
         plt.xlabel=self.field
+        if self.field=='log_T' and self.round_T:
+            plt.xlabel = 'round log_T'
+
         plt.add(h, hr, hwide, key)
 
 
@@ -94,6 +101,17 @@ class PriorFitter(object):
 
         if self.field=='log_T':
             fdata = data['pars'][:,4]
+
+            if self.round_T:
+                print("    converting to round T")
+                g1=data['pars'][:,2]
+                g2=data['pars'][:,3]
+
+                T = numpy.exp(fdata)
+                roundT = ngmix.moments.get_Tround(T, g1, g2)
+
+                fdata = numpy.log(roundT)
+
         elif self.field=='log_F':
             fdata = data['pars'][:,5]
         else:
@@ -108,7 +126,7 @@ def main():
     field=args.field
     ngauss=args.ngauss
 
-    fitter=PriorFitter(args.run, args.field, args.ngauss)
+    fitter=PriorFitter(args.run, args.field, args.ngauss, round_T=args.round_T)
     fitter.go()
 
 main()

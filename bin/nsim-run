@@ -10,6 +10,7 @@ from __future__ import print_function
 import sys
 import os
 from sys import stderr
+import numpy
 import nsim
 import fitsio
 
@@ -106,6 +107,10 @@ def run_sim(sim_conf,
 
         if sim_conf['obj_model']['model']=='bd':
             sim=nsim.simgs.SimBD(sim_conf)
+        elif sim_conf['obj_model']['model']=='bd-diffe':
+            sim=nsim.simgs.SimBDD(sim_conf)
+        elif sim_conf['obj_model']['model']=='gmix':
+            sim=nsim.simgs.SimGMix(sim_conf)
         else:
             sim=nsim.simgs.SimGS(sim_conf)
 
@@ -120,6 +125,10 @@ def run_sim(sim_conf,
     ftype=run_conf['fitter']
     if ftype=='max':
         fitclass=nsim.fitters.MaxFitter
+
+    elif ftype=='max-resid':
+        fitclass=nsim.fitters.MaxResid
+        resid_file=output_file.replace('.fits','-resid-sum.fits')
 
     elif ftype=='isample-gaussmom':
         fitclass=nsim.fitters.ISampleGaussMom
@@ -167,6 +176,8 @@ def run_sim(sim_conf,
         fitclass=nsim.fitters.PostcalSimShearpFitter
 
 
+    elif ftype=='ppmcal':
+        fitclass=nsim.fitters.PPMetacalFitter
 
     elif ftype=='metanoise-max':
         if simtype=='galsim':
@@ -215,6 +226,14 @@ def run_sim(sim_conf,
     data=fitter.get_data()
 
     success=nsim.util.write_fits(output_file, data)
+
+    if success and ftype=='max-resid':
+        model_sum = fitter.model_sum
+        imdiff_sum = fitter.im_diff_sum
+
+        imdiff_sum = imdiff_sum/model_sum.sum()
+        success=nsim.util.write_fits(resid_file, imdiff_sum)
+
 
     if success:
         cleanup_checkpoint(checkpoint_file)

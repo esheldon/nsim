@@ -1,0 +1,67 @@
+# this one using very small step to hopefully suppress
+# issues
+
+run: "run-gg13pcal-03"
+sim: "sim-gg13"
+
+ngmix_hash: ""
+nsim_hash: ""
+
+fitter: "pcal"
+fit_model: "gauss"
+
+g_prior_during: True
+use_logpars: True
+
+global_seed: 31023
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    T:
+        type: "gmixnd"
+        # same underlying sim
+        run: "run-gg12zmax-lownoise01"
+        extra: "log_T"
+        cov_factor: 1.44
+
+    counts:
+        type: "gmixnd"
+        # same underlying sim
+        run: "run-gg12zmax-lownoise01"
+        extra: "log_F"
+        cov_factor: 1.44
+
+    g:
+        type: "ba"
+        sigma: 0.2
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+postcal_pars:
+    step: 0.001
+
+ngal: 2000000
+
+desired_hours: 0.25
+
+# not doubled for bnl
+sec_per: 0.10
+
+verbose: False
+
+#avg_s2n_r_range: [10,23]

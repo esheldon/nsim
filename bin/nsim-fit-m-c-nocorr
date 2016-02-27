@@ -1,0 +1,78 @@
+#!/usr/bin/env python
+from __future__ import print_function
+import sys
+import os
+from pprint import pprint
+import numpy
+from numpy import sqrt, array, diag, ones, zeros
+from numpy import where, newaxis, exp, log
+from numpy import newaxis
+import yaml
+import biggles
+
+import fitsio
+
+import ngmix
+import nsim
+from nsim import files
+from nsim.averaging import SummerNocorr
+
+import argparse
+import esutil as eu
+from esutil.numpy_util import between
+
+import reredux
+
+
+fclass=argparse.ArgumentDefaultsHelpFormatter
+parser=argparse.ArgumentParser(formatter_class=fclass)
+
+parser.add_argument('runs', nargs='+',help='run to use in fit')
+
+parser.add_argument('--select',default=None,
+                    help='string for selection, refer to data[field] etc.')
+parser.add_argument('--select-from',default=None,
+                    help='read the selection from the given yaml file')
+parser.add_argument('--reflect',action='store_true',
+                    help='reflect e1,e2 for select/weights corrections')
+
+parser.add_argument('--nrand',type=int,default=1,
+                    help=('number of times to randomize for '
+                          'selection/weighting corrections'))
+
+parser.add_argument('--ntest',default=None,type=int,
+                    help='work on a small subset for quick tests')
+
+parser.add_argument('--nocorr-select',action='store_true',
+                    help='do not apply corrections for the selection')
+
+parser.add_argument('--boot',action='store_true',
+                    help='bootstrap over fields')
+
+parser.add_argument('--weights',default=None,help='type of weight to use, noise or s2n')
+parser.add_argument('--s2n-soft',type=float,default=10.0)
+parser.add_argument('--shapenoise',type=float,default=0.20)
+
+parser.add_argument('--show',action='store_true',help='show plot')
+parser.add_argument('--yrange', help="yrange of plot")
+parser.add_argument('--xrange', help="xrange of plot")
+
+parser.add_argument('--fit-only',action='store_true',
+                    help='get the means from the written file')
+
+
+def main():
+    args = parser.parse_args()
+
+    conf = nsim.files.read_config(args.runs[0])
+    conf['simc'] = nsim.files.read_config(conf['sim'])
+
+    summer=SummerNocorr(conf, args)
+    summer.go()
+
+    summer.plot_fits()
+    summer.plot_resid_hist()
+
+    return
+
+main()

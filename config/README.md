@@ -1161,6 +1161,11 @@ sim-bd22
     - so it isn't smallness of galaxies, but smallness relative to the PSF, that
         is the problem
 
+- sim-bd26
+    - low noise, no detrend
+          m1: -1.433e-03 +/- 4.588e-04 c1: -1.828e-06 +/- 1.650e-05  r1: -0.13
+          m2: -6.354e-04 +/- 5.440e-04 c2: 6.356e-05 +/- 1.888e-05  r2: -0.00774
+
 - sim-stars01
     - stars, goes with bd21
 

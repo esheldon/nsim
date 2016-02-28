@@ -1743,6 +1743,7 @@ def get_Rnoise_line(conf, args, data, extra, weights=None, sums=None):
                 xvals, Rdt_psf[:,i],res,
                 r'$2 n \Delta n$',
                 r'$\Delta R^{PSF}_%d$' % (i+1),
+                label_error=False,
             )
 
         for j in xrange(2):
@@ -1766,6 +1767,7 @@ def get_Rnoise_line(conf, args, data, extra, weights=None, sums=None):
                 xvals, Rdt[:,i,j],res,
                 r'$2 n \Delta n$',
                 r'$\Delta R_{%d,%d}$' % (i+1,j+1),
+                label_error=False,
             )
 
     Rnoise = A*noise0**2
@@ -1854,7 +1856,7 @@ def fitline_zero_offset(x, y):
             'slope':a[0],
             'slope_err':0.0}
 
-def plot_line_fit(args, extra, x, y, res, xlabel, ylabel):
+def plot_line_fit(args, extra, x, y, res, xlabel, ylabel, label_error=True):
     plt=biggles.FramedPlot()
 
     ymin=y.min()
@@ -1878,8 +1880,12 @@ def plot_line_fit(args, extra, x, y, res, xlabel, ylabel):
     pts = biggles.Points(x,y,type='filled circle')
     c = biggles.Curve(xfit, yfit, color='blue')
 
-    alab=r'$slope = %.3g \pm %.3g' % (res['slope'],res['slope_err'])
-    blab=r'$offset = %.3g \pm %.3g' % (res['offset'],res['offset_err'])
+    if label_error:
+        alab=r'$slope = %.3g \pm %.3g' % (res['slope'],res['slope_err'])
+        blab=r'$offset = %.3g \pm %.3g' % (res['offset'],res['offset_err'])
+    else:
+        alab=r'$slope = %.3g' % (res['slope'],)
+        blab=r'$offset = %.3g' % (res['offset'],)
     alabel=biggles.PlotLabel(0.9, 0.9, alab, halign='right')
     blabel=biggles.PlotLabel(0.9, 0.85, blab, halign='right')
 

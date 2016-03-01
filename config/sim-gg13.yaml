@@ -2,7 +2,6 @@ name: "sim-gg13"
 
 simulator: "galsim"
 
-# these sims are never rings
 do_ring: False
 
 noise: 0.85

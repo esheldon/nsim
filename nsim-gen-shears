@@ -1,0 +1,37 @@
+from __future__ import print_function
+import sys
+from sys import stderr
+import numpy
+from numpy import sqrt
+import galsim
+from biggles import plot_hist
+
+def gen_shear(n):
+
+    minshear = 0.01
+    maxshear = 0.08
+    g = numpy.random.uniform(low=minshear, high=maxshear, size=n)
+    theta = numpy.random.uniform(low=0.0, high=numpy.pi*2, size=n)
+
+    g1=g*numpy.cos(2.0*theta)
+    g2=g*numpy.sin(2.0*theta)
+
+    return g1, g2
+
+n=1000
+g1,g2 = gen_shear(n)
+
+print("<g1>: %g +/- %g" % (g1.mean(), g1.std()/sqrt(n)),file=stderr)
+print("<g2>: %g +/- %g" % (g2.mean(), g2.std()/sqrt(n)),file=stderr)
+
+plt=plot_hist(g1, nbin=20, visible=False)
+plot_hist(g2, nbin=20, visible=False, color='red', plt=plt)
+
+plt.xlabel='g1 or g2'
+
+plt.show()
+
+print('[')
+for i in xrange(n):
+    print('[%g, %g],' % (g1[i],g2[i]))
+print(']')

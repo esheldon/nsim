@@ -47,6 +47,7 @@ class SimGS(dict):
             print("    using seed:",self['seed'])
             numpy.random.seed(self['seed'])
 
+        self.counter=0
 
     def get_image(self):
         """
@@ -76,6 +77,7 @@ class SimGS(dict):
         else:
             psf_save_pars=psf_pars['fwhm']
 
+        self.counter += 1
         return {'obs':gal_obs,
                 's2n':s2n,
                 'model':self['model'],
@@ -396,10 +398,23 @@ class SimGS(dict):
         else:
             cenoff=None
 
-        if self.g_pdf is not None:
-            g1,g2 = self.g_pdf.sample2d()
+        if self['do_ring'] and (self.counter % 2) != 0:
+            print("doing ring")
+            gold=self.old_pars['g']
+            shape=ngmix.Shape(gold[0],gold[1])
+            shape=shape.get_rotated(numpy.pi/2.0)
+            g1,g2=shape.g1,shape.g2
+
+            pars=self.old_pars
+            pars['g'] = (g1,g2)
+
+            return pars
+
         else:
-            g1,g2=None,None
+            if self.g_pdf is not None:
+                g1,g2 = self.g_pdf.sample2d()
+            else:
+                g1,g2=None,None
 
         flux = self.flux_pdf.sample()
         if self.flux_is_in_log:
@@ -424,6 +439,7 @@ class SimGS(dict):
             pars['shear'] = shear
             pars['shear_index'] = shindex
 
+        self.old_pars=pars
         return pars
 
     '''

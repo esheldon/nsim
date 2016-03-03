@@ -825,10 +825,6 @@ class Summer(SummerDT):
 
     def do_sums(self, fake_shear=None):
 
-        nrand=1
-        if fake_shear is not None:
-            nrand=self.args.nrand
-
         chunksize=self.chunksize
         args=self.args
 
@@ -864,9 +860,6 @@ class Summer(SummerDT):
 
                     g1all=data['mcal_g'][:,0]
                     g2all=data['mcal_g'][:,1]
-
-                    for irand in xrange(nrand):
-                        if nrand > 1: print("        irand: %d/%d" % (irand+1,nrand))
 
                     if fake_shear is not None:
                         g1send, g2send=self.add_fake_shear(fake_shear, data)
@@ -1032,7 +1025,7 @@ class Summer(SummerDT):
         dt=self._get_sums_dt()
         return numpy.zeros(self['nshear'], dtype=dt)
 
-    def _get_sums_dt(self, n_detrend):
+    def _get_sums_dt(self):
         dt=[
             ('wsum','f8'),
             ('g','f8',2),

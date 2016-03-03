@@ -2,22 +2,56 @@
 from __future__ import print_function
 import sys
 import os
+from pprint import pprint
 import numpy
-from numpy import sqrt, array, diag, ones, zeros, where, newaxis
+from numpy import sqrt, array, diag, ones, zeros
+from numpy import where, newaxis, exp, log
+from numpy import newaxis
+import yaml
+import biggles
 
 import fitsio
 
 import ngmix
 import nsim
+from nsim import files
+from nsim.averaging import Summer
 
 import argparse
 import esutil as eu
+from esutil.numpy_util import between
+
+import reredux
 
 
 fclass=argparse.ArgumentDefaultsHelpFormatter
 parser=argparse.ArgumentParser(formatter_class=fclass)
 
-parser.add_argument('run', help='run to use in fit')
+parser.add_argument('runs', nargs='+',help='run to use in fit')
+
+parser.add_argument('--max-shear',type=float,default=None,
+                    help='only fit m/c for shear < this value')
+
+parser.add_argument('--select',default=None,
+                    help='string for selection, refer to data[field] etc.')
+parser.add_argument('--select-from',default=None,
+                    help='read the selection from the given yaml file')
+parser.add_argument('--reflect',action='store_true',
+                    help='reflect e1,e2 for select/weights corrections')
+
+
+parser.add_argument('--ntest',default=None,type=int,
+                    help='work on a small subset for quick tests')
+
+parser.add_argument('--nocorr-select',action='store_true',
+                    help='do not apply corrections for the selection')
+
+parser.add_argument('--boot',action='store_true',
+                    help='bootstrap over fields')
+
+parser.add_argument('--weights',default=None,help='type of weight to use, noise or s2n')
+parser.add_argument('--s2n-soft',type=float,default=10.0)
+parser.add_argument('--shapenoise',type=float,default=0.20)
 
 parser.add_argument('--show',action='store_true',help='show plot')
 parser.add_argument('--yrange', help="yrange of plot")
@@ -26,363 +60,19 @@ parser.add_argument('--xrange', help="xrange of plot")
 parser.add_argument('--fit-only',action='store_true',
                     help='get the means from the written file')
 
-parser.add_argument('--cache',action='store_true',
-                    help=('cache the file subset locally; use the cache '
-                          'if available'))
-
-
-
-def read_data(conf):
-    columns=[
-        'mcal_g',
-        'mcal_gpsf',
-        'mcal_R',
-        'mcal_Rpsf',
-        'shear_index']
-
-    data=nsim.files.read_output(conf['run'], 0, columns=columns)
-    return data
-
-def get_cache_file(conf):
-    tdir=os.environ['TMPDIR']
-    tfile= nsim.files.get_output_url(conf['run'], 0, 0)
-    tfile=os.path.basename(tfile)
-
-    tfile=os.path.join(tdir, tfile)
-    return tfile
-
-def read_cached_data(conf):
-    tfile=get_cache_file(conf['run'])
-    if os.path.exists(tfile):
-        print("reading cache:",tfile)
-        data=fitsio.read(tfile)
-    else:
-        data=read_data(conf)
-        print("writing cache:",tfile)
-        fitsio.write(tfile, data, clobber=True)
-
-    return data
-
-
-SIGMA2_MIN_CONSTANT_GROUND = 4.     # 2**2
-NORMALIZATION_CONSTANT_SPACE = 1.232
-NORMALIZATION_CONSTANT_GROUND = NORMALIZATION_CONSTANT_SPACE
-
-CFID = 2.e-4
-MFID = 2.e-3
-
-
-# quick line fit pulled from great3-public code
-def _calculateSvalues(xarr, yarr, sigma2=1.):
-    """Calculates the intermediate S values required for basic linear regression.
-
-    See, e.g., Numerical Recipes (Press et al 1992) Section 15.2.
-    """
-    if len(xarr) != len(yarr):
-        raise ValueError("Input xarr and yarr differ in length!")
-    if len(xarr) <= 1:
-        raise ValueError("Input arrays must have 2 or more values elements.")
-
-    S = len(xarr) / sigma2
-    Sx = numpy.sum(xarr / sigma2)
-    Sy = numpy.sum(yarr / sigma2)
-    Sxx = numpy.sum(xarr * xarr / sigma2)
-    Sxy = numpy.sum(xarr * yarr / sigma2)
-    return (S, Sx, Sy, Sxx, Sxy)
-
-def fitline(xarr, yarr):
-    """Fit a line y = a + b * x to input x and y arrays by least squares.
-
-    Returns the tuple (a, b, Var(a), Cov(a, b), Var(b)), after performing an internal estimate of
-    measurement errors from the best-fitting model residuals.
-
-    See Numerical Recipes (Press et al 1992; Section 15.2) for a clear description of the details
-    of this simple regression.
-    """
-    # Get the S values (use default sigma2, best fit a and b still valid for stationary data)
-    S, Sx, Sy, Sxx, Sxy = _calculateSvalues(xarr, yarr)
-    # Get the best fit a and b
-    Del = S * Sxx - Sx * Sx
-    a = (Sxx * Sy - Sx * Sxy) / Del
-    b = (S * Sxy - Sx * Sy) / Del
-    # Use these to estimate the sigma^2 by residuals from the best-fitting model
-    ymodel = a + b * xarr
-    sigma2 = numpy.mean((yarr - ymodel)**2)
-    # And use this to get model parameter error estimates
-    var_a  = sigma2 * Sxx / Del
-    cov_ab = - sigma2 * Sx / Del
-    var_b  = sigma2 * S / Del
-
-    a_err = numpy.sqrt(var_a)
-    b_err = numpy.sqrt(var_b)
-    return a, a_err, b, b_err, cov_ab
-
-
-def calc_q(fits):
-
-    m1=fits['m'][0,0]
-    m2=fits['m'][0,1]
-    c1=fits['c'][0,0]
-    c2=fits['c'][0,1]
-
-    sigma2_min = SIGMA2_MIN_CONSTANT_GROUND 
-    norm = NORMALIZATION_CONSTANT_GROUND 
-
-    num = 2000.0 * norm
-    denom = numpy.sqrt(  (c1 / CFID)**2 
-                       + (c2 / CFID)**2
-                       + (m1 / MFID)**2
-                       + (m2 / MFID)**2
-                       + sigma2_min)
-
-    Q = num/denom
-    
-    print("  Q: %g" % Q)
-
-    return Q
-
-def doplot(args, data, fits):
-    import biggles
-
-    Q=calc_q(fits)
-
-    if args.yrange is not None:
-        yrange=[float(r) for r in args.yrange.split(',')]
-    else:
-        yrange=[-0.01,0.01]
-
-    xrng=args.xrange
-    if xrng is not None:
-        xrng=[float(r) for r in args.xrange.split(',')]
-
-    tab=biggles.Table(1,2)
-    tab.aspect_ratio=0.5
-
-    diff = data['shear'] - data['shear_true']
-
-    plts=[]
-    for i in [0,1]:
-
-        x = data['shear_true'][:,i]
-        plt =biggles.plot(
-            x,
-            diff[:,i],
-            xlabel='shear%d true' % (i+1,),
-            ylabel='shear%d diff' % (i+1,),
-            yrange=yrange,
-            xrange=xrng,
-            visible=False,
-        )
-        yfit=fits['m'][0,i]*x + fits['c'][0,i]
-
-        c=biggles.Curve(x, yfit, color='red')
-        z=biggles.Curve(x, x*0, color='black')
-        plt.add(c,z)
-
-        mstr='m%d: %.2g +/- %.2g' % (i+1,fits['m'][0,i],fits['merr'][0,i])
-        cstr='c%d: %.2g +/- %.2g' % (i+1,fits['c'][0,i],fits['cerr'][0,i])
-        mlab=biggles.PlotLabel(0.1,0.9,
-                               mstr,
-                               halign='left')
-        clab=biggles.PlotLabel(0.1,0.85,
-                               cstr,
-                               halign='left')
-        plt.add(mlab,clab)
-        if i==0:
-            Qstr='Q: %d' % (int(Q),)
-            Qlab=biggles.PlotLabel(0.1,0.8,
-                                   Qstr,
-                                   halign='left')
-            plt.add(Qlab)
-
-
-        tab[0,i] = plt
-
-    #fname=reredux.files.get_fit_file(args.run,
-    #                                 extra='fit-m-c',
-    #                                 ext='eps')
-    #eu.ostools.makedirs_fromfile(fname)
-    #print("writing:",fname)
-    #tab.write_eps(fname)
-
-    if args.show:
-        tab.show(width=1000, height=1000)
-
-def write_fits(args, fits):
-    fname=reredux.files.get_fit_file(args.run, extra='fit-m-c')
-
-    eu.ostools.makedirs_fromfile(fname)
-    print("writing fit data to file:",fname)
-    fitsio.write(fname, fits, clobber=True)
-
-def get_mean_struct(n):
-    dt=[('shear','f8',2),
-        ('shear_true','f8',2),
-        ('shear_err','f8',2)]
-
-    means = numpy.zeros(n, dtype=dt)
-    return means
-
-def read_means(args):
-    return reredux.files.read_fit_file(args.run,
-                                       extra='shear-means')
-def write_means(args, means):
-    fname=reredux.files.get_fit_file(args.run,
-                                     extra='shear-means')
-    eu.ostools.makedirs_fromfile(fname)
-
-    print("writing:",fname)
-    fitsio.write(fname, means, clobber=True)
-
-
-def print_shear(ind, num, shear, shear_err):
-    mess="  %d: %d  %g +/- %g  %g +/- %g"
-    tup=(ind, num, shear[0],shear_err[0], shear[1],shear_err[1])
-    print(mess % tup)
-
-
-def get_arrays(conf, data):
-
-    gfield = 'mcal_g'
-    gpsf_field = 'mcal_gpsf'
-
-    Rfield = 'mcal_R'
-    Rpsf_field = 'mcal_Rpsf'
-
-    g = data[gfield]
-    gpsf = data[gpsf_field]
-
-    R = data[Rfield]
-    Rpsf = data[Rpsf_field]
-
-    return g, gpsf, R, Rpsf
-
-def get_averages(conf, data, show_progress=False):
-
-    sconf=conf['simc']
-    shears = sconf['shear']['shears']
-
-    h,rev = eu.stat.histogram(data['shear_index'], rev=True)
-    nind = h.size
-
-    g, gpsf, R, Rpsf = get_arrays(conf, data)
-
-    R = R.mean(axis=0)
-    Rpsf = Rpsf.mean(axis=0)
-    Rinv = numpy.linalg.inv(R)
-
-    means=get_mean_struct(nind)
-
-    for i in xrange(nind):
-        if show_progress:
-            print("shear index:",i)
-
-        w=rev[ rev[i]:rev[i+1] ]
-
-        shear_true = shears[i]
-
-        #Rmean = R[w].mean(axis=0)
-        #Rinv = numpy.linalg.inv(Rmean)
-
-        #psf_corr  = (gpsf[w]*Rpsf[w]).mean(axis=0)
-        psf_corr  = Rpsf*gpsf[w].mean(axis=0)
-
-        gmean     = g[w].mean(axis=0)
-        shear     = numpy.dot(Rinv, gmean-psf_corr)
-        shear_err = g[w].std(axis=0)/numpy.sqrt(w.size)
-        shear_err = numpy.dot(Rinv, shear_err)
-
-        means['shear'][i] = shear
-        means['shear_err'][i] = shear_err
-        means['shear_true'][i] = shear_true
-
-    return means
-
-def print_m_c(sindex, m, merr, c, cerr, r=None):
-    fmt = '  m{i}: %.3e +/- %.3e c{i}: %.3e +/- %.3e'.format(i=sindex)
-    if r is not None:
-        fmt += '  r{i}: %.3g'.format(i=sindex)
-        print(fmt % (m, merr, c, cerr,r))
-    else:
-        print(fmt % (m, merr, c, cerr))
-
-def fit_m_c(data, doprint=True):
-    import fitting
-    import mcmc
-    import esutil as eu
-
-    strue = data['shear_true']
-    sdiff = data['shear'] - data['shear_true']
-    #serr = data['shear_err']
-
-    m = numpy.zeros(2)
-    merr = numpy.zeros(2)
-    c = numpy.zeros(2)
-    cerr = numpy.zeros(2)
-
-    fits=numpy.zeros(1, dtype=[('m','f8',2),
-                               ('merr','f8',2),
-                               ('c','f8',2),
-                               ('cerr','f8',2),
-                               ('r','f8',2)])
-    for i in [0,1]:
-        w,=numpy.where(strue[:,i] != 0.0)
-        if w.size == 0:
-            print("shear is zero, mean for all is")
-            m,e=eu.stat.wmom(data['shear'][:,i],
-                             1.0/data['shear_err'][:,i]**2,
-                             calc_err=True)
-            print("s%d: %.3e +/- %.3e" % (i+1,m,e))
-        else:
-            if True:
-                c, c_err, m, m_err, covar = fitline(strue[:,i], sdiff[:,i])
-                r = covar/numpy.sqrt(m_err**2 * c_err**2)
-                fits['m'][0,i] = m
-                fits['merr'][0,i] = m_err
-                fits['c'][0,i] = c
-                fits['cerr'][0,i] = c_err
-                fits['r'][0,i] = r
-
-                if doprint:
-                    print_m_c(i+1, m,m_err,c,c_err, r=r)
-            else:
-                fit = fitting.fit_line(strue[:,i],
-                                       sdiff[:,i],
-                                       yerr=serr[:,i])
-                res = fit.get_result()
-                p=res['pars']
-                perr=res['perr']
-
-                if doprint:
-                    print_m_c(i+1, p[0],perr[0],p[1],perr[1])
-
-                fits['m'][0,i] = p[0]
-                fits['merr'][0,i] = perr[0]
-                fits['c'][0,i] = p[1]
-                fits['cerr'][0,i] = perr[1]
-
-    return fits
-
 
 def main():
     args = parser.parse_args()
 
-    conf = nsim.files.read_config(args.run)
+    conf = nsim.files.read_config(args.runs[0])
     conf['simc'] = nsim.files.read_config(conf['sim'])
 
-    if args.fit_only:
-        means = read_means(args)
-    else:
+    summer=Summer(conf, args)
+    summer.go()
 
-        if args.cache:
-            data=read_cached_data(conf)
-        else:
-            data=read_data(conf)
+    summer.plot_fits()
+    summer.plot_resid_hist()
 
-        means = get_averages(conf, data)
-
-    fits=fit_m_c(means)
-    #write_fits(args, fits)
-    doplot(args, means, fits)
+    return
 
 main()

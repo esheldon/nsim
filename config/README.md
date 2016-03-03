@@ -1139,11 +1139,15 @@ sim-bd22
 
 - sim-bd24
     - gaussian psf, just to see if bias decreases relative to bd23
+    - run-bd24mcal-dt01
         m1: 3.063e-03 +/- 7.314e-04 c1: 2.836e-07 +/- 2.575e-05  r1: 0.00989
         m2: 3.012e-03 +/- 7.893e-04 c2: -5.842e-06 +/- 2.700e-05  r2: -0.0404
         m:  3.038e-03 +/- 5.378e-04
         c1: 2.751e-07 +/- 2.639e-05
         c2: -5.877e-06 +/- 2.640e-05
+
+    - run-bd24mcal01
+        - fix noise run
 
     - run-bd24pcal-t01
         - trying pcal

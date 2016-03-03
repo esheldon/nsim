@@ -1,8 +1,8 @@
 run: "run-bd24mcal01"
 sim: "sim-bd24"
 
-ngmix_hash: ""
-nsim_hash: ""
+ngmix_hash: "b3370cdf9aeb041ea854c5b56df003d42f7baf2a"
+nsim_hash: "c8b8d0e2c96a70f28f9912f7a8481dd6c6556229"
 
 fitter: "metacal-max"
 fit_model: "gauss"
@@ -10,7 +10,7 @@ fit_model: "gauss"
 g_prior_during: True
 use_logpars: True
 
-global_seed: 13022
+global_seed: 6528
 
 metacal_pars:
     step: 0.01

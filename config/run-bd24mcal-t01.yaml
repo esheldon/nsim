@@ -54,7 +54,7 @@ max_pars:
 
 ngal: 2000000
 
-desired_hours: 0.25
+desired_hours: 0.5
 
 # doubled
 sec_per: 0.8

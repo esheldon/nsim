@@ -2,7 +2,7 @@ run: "run-bd24mcal02"
 sim: "sim-bd24"
 
 ngmix_hash: "b3370cdf9aeb041ea854c5b56df003d42f7baf2a"
-nsim_hash: ""
+nsim_hash: "5fba24b9cfdba6a142911deed1319b490ab45394"
 
 fitter: "metacal-max"
 fit_model: "gauss"

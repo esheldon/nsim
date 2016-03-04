@@ -39,10 +39,11 @@ parser.add_argument('--select-from',default=None,
 parser.add_argument('--reflect',action='store_true',
                     help='reflect e1,e2 for select/weights corrections')
 
+parser.add_argument('-d',default=None,help='file is in a local dir')
 
 parser.add_argument('--ntest',default=None,type=int,
                     help='work on a small subset for quick tests')
-parser.add_argument('--nrand',default=1,type=int,
+parser.add_argument('--nrand',default=None,type=int,
                     help='randomized')
 
 parser.add_argument('--nocorr-select',action='store_true',

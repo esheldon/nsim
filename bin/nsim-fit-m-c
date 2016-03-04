@@ -42,6 +42,8 @@ parser.add_argument('--reflect',action='store_true',
 
 parser.add_argument('--ntest',default=None,type=int,
                     help='work on a small subset for quick tests')
+parser.add_argument('--nrand',default=1,type=int,
+                    help='randomized')
 
 parser.add_argument('--nocorr-select',action='store_true',
                     help='do not apply corrections for the selection')

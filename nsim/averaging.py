@@ -277,6 +277,13 @@ class SummerDT(dict):
 
         sconf=self['simc']
 
+        if 'Rnoise_sel' in self:
+            Rnoise=self['Rnoise']
+            Rnoise_sel=self['Rnoise_sel']
+        else:
+            Rnoise=None
+            Rnoise_sel=None
+
         sums=None
         sums_select=None
         ntot=0
@@ -312,9 +319,8 @@ class SummerDT(dict):
                         if nrand > 1: print("        irand: %d/%d" % (irand+1,nrand))
 
                         if fake_shear is not None:
-                            #tmp_data=self.add_fake_shear(fake_shear, data, self['Rnoise'])
-                            # use sheared values
-                            g1send, g2send=self.add_fake_shear_rand(fake_shear, data, self['Rnoise'])
+                            #g1send,g2send=self.add_fake_shear(fake_shear, data, Rnoise=Rnoise)
+                            g1send, g2send=self.add_fake_shear_rand(fake_shear, data, Rnoise=Rnoise)
                         else:
                             g1send=g1all
                             g2send=g2all
@@ -331,11 +337,10 @@ class SummerDT(dict):
                                     raise ValueError("bad weight type: '%s'" % args.weights)
 
                             if fake_shear is not None:
-                                #tmp_data=self.add_fake_shear(fake_shear, data, self['Rnoise_sel'])
-                                # use sheared values, with different Rnoise
+                                #g1send,g2send=self.add_fake_shear(fake_shear, data, Rnoise=Rnoise_sel)
                                 g1send,g2send=self.add_fake_shear_rand(fake_shear,
                                                                        data,
-                                                                       self['Rnoise_sel'])
+                                                                       Rnoise=Rnoise_sel)
                             else:
                                 g1send=g1all
                                 g2send=g2all
@@ -359,10 +364,10 @@ class SummerDT(dict):
                             # the selected data
 
                             if fake_shear is not None:
-                                #tmp_sdata=self.add_fake_shear(fake_shear, sdata, self['Rnoise_sel'])
+                                #g1send,g2send=self.add_fake_shear(fake_shear, sdata, Rnoise=Rnoise_sel)
                                 g1send,g2send=self.add_fake_shear_rand(fake_shear,
                                                                        sdata,
-                                                                       self['Rnoise_sel'])
+                                                                       Rnoise=Rnoise_sel)
 
                             sums_select=self.do_sums1(sdata, g1send, g2send, sums=sums_select)
 
@@ -375,8 +380,9 @@ class SummerDT(dict):
             # the shear is being simulated
             # we don't add the Rpsf when adding fake shear; should we?
             for n in ['Rpsf','Rdt_psf']:
-                sums[n] = 0.0
-                sums_select[n] = 0.0
+                if n in sums.dtype.names:
+                    sums[n] = 0.0
+                    sums_select[n] = 0.0
 
         return sums, sums_select
 
@@ -503,7 +509,7 @@ class SummerDT(dict):
         ]
         return dt
 
-    def add_fake_shear(self, shear, data_in, Rnoise):
+    def add_fake_shear(self, shear, data_in, Rnoise=None):
         """
         add shear using the individual R values
         """
@@ -516,11 +522,15 @@ class SummerDT(dict):
         n=g.shape[0]
 
         R = data['mcal_R']
-        R11 = R[:,0,0].copy()
-        R22 = R[:,1,1].copy()
 
-        R11 -= Rnoise[0,0]
-        R22 -= Rnoise[1,1]
+        if Rnoise is not None:
+            R11 = R[:,0,0].copy()
+            R22 = R[:,1,1].copy()
+            R11 -= Rnoise[0,0]
+            R22 -= Rnoise[1,1]
+        else:
+            R11 = R[:,0,0]
+            R22 = R[:,1,1]
 
         if self.args.reflect:
             tR11 = R11
@@ -550,13 +560,11 @@ class SummerDT(dict):
             g2 = g[:,1] - g[:,1].mean()
 
         shear1 = shear*R11
-        #print("        shear1 min max:",shear1.min(),shear1.max())
         sg1,junk = ngmix.shape.shear_reduced(g1,
                                              g2,
                                              shear1,
                                              0.0)
         shear2=shear*R22
-        #print("        shear2 min max:",shear2.min(),shear2.max())
         junk,sg2 = ngmix.shape.shear_reduced(g1,
                                              g2,
                                              0.0,
@@ -568,13 +576,12 @@ class SummerDT(dict):
             data[0:n] = tdata
             data[n:] = tdata
 
-        data['mcal_g'][:,0] = sg1
-        data['mcal_g'][:,1] = sg2
+        return sg1, sg2
 
-        return data
-
-    def add_fake_shear_rand(self, shear, data, Rnoise):
+    def add_fake_shear_rand(self, shear, data, Rnoise=None):
         """
+        randomize the orientations
+
         add shear using the individual R values
         """
 
@@ -594,11 +601,15 @@ class SummerDT(dict):
         g2 *= gtot
 
         R = data['mcal_R']
-        R11 = R[:,0,0].copy()
-        R22 = R[:,1,1].copy()
 
-        R11 -= Rnoise[0,0]
-        R22 -= Rnoise[1,1]
+        if Rnoise is not None:
+            R11 = R[:,0,0].copy()
+            R22 = R[:,1,1].copy()
+            R11 -= Rnoise[0,0]
+            R22 -= Rnoise[1,1]
+        else:
+            R11 = R[:,0,0]
+            R22 = R[:,1,1]
 
         shear1 = shear*R11
         sg1,junk = ngmix.shape.shear_reduced(g1,
@@ -823,7 +834,7 @@ class Summer(SummerDT):
             self.fits=reredux.averaging.fit_m_c(self.means)
             self.fitsone=reredux.averaging.fit_m_c(self.means,onem=True)
 
-    def do_sums(self, fake_shear=None):
+    def do_sums_comment(self, fake_shear=None):
 
         chunksize=self.chunksize
         args=self.args
@@ -862,6 +873,7 @@ class Summer(SummerDT):
                     g2all=data['mcal_g'][:,1]
 
                     if fake_shear is not None:
+                        print("    running add fake shear")
                         g1send, g2send=self.add_fake_shear(fake_shear, data)
                     else:
                         g1send=g1all
@@ -901,6 +913,7 @@ class Summer(SummerDT):
                         # the selected data
 
                         if fake_shear is not None:
+                            print("    running add fake shear selected")
                             g1send,g2send=self.add_fake_shear(fake_shear, sdata)
 
                         sums_select=self.do_sums1(sdata, g1send, g2send, sums=sums_select)
@@ -909,6 +922,14 @@ class Summer(SummerDT):
 
                     if args.ntest is not None and ntot > args.ntest:
                         break
+
+        if fake_shear is not None:
+            # the shear is being simulated
+            # we don't add the Rpsf when adding fake shear
+            for n in ['Rpsf']:
+                sums[n] = 0.0
+                sums_select[n] = 0.0
+
 
         return sums, sums_select
 
@@ -940,7 +961,6 @@ class Summer(SummerDT):
 
 
                 sums['wsum'][i] += w.size
-                #sums['g'][i] += t['mcal_g'].sum(axis=0)
                 sums['g'][i,0] += g1[w].sum()
                 sums['g'][i,1] += g2[w].sum()
                 sums['gpsf'][i] += t['mcal_gpsf'].sum(axis=0)
@@ -977,7 +997,6 @@ class Summer(SummerDT):
                 wts=weights[w]
                 wa = wts[:,newaxis]
                 wa2 = wts[:,newaxis,newaxis]
-                wa3 = wts[:,newaxis,newaxis,newaxis]
                 wsum = wts.sum()
 
                 sums['wsum'][i] += wsum
@@ -995,6 +1014,8 @@ class Summer(SummerDT):
         """
         add shear using the individual R values
         """
+
+        print("    doing add fake shear")
 
         g = data['mcal_g'].copy()
         n=g.shape[0]

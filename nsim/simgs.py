@@ -8,6 +8,8 @@ from pprint import pprint
 import numpy
 
 import ngmix
+from ngmix.priors import LogNormal
+
 from . import sim as ngmixsim
 from .sim import srandu
 
@@ -567,11 +569,17 @@ class SimGS(dict):
 
         if 'fwhm' in pspec:
             if isinstance(pspec['fwhm'], dict):
-                assert pspec['fwhm']['type']=='discrete-pdf'
-                fname=os.path.expandvars( pspec['fwhm']['file'] )
-                print("Reading fwhm values from file:",fname)
-                vals=numpy.fromfile(fname, sep='\n')
-                self.psf_fwhm_pdf=DiscreteSampler(vals)
+                type=pspec['fwhm']['type']
+                if type=='discrete-pdf':
+                    fname=os.path.expandvars( pspec['fwhm']['file'] )
+                    print("Reading fwhm values from file:",fname)
+                    vals=numpy.fromfile(fname, sep='\n')
+                    self.psf_fwhm_pdf=DiscreteSampler(vals)
+                elif type=='lognormal':
+                    self.psf_fwhm_pdf=LogNormal(pspec['fwhm']['mean'],
+                                                pspec['fwhm']['sigma'])
+                else:
+                    raise ValueError("bad fwhm type: '%s'" % type)
         else:
             if isinstance(pspec['r50'], dict):
                 r50pdf = pspec['r50']

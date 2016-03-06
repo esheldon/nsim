@@ -2,7 +2,7 @@ run: "run-bdmask01mcal01"
 sim: "sim-bdmask01"
 
 ngmix_hash: "b3370cdf9aeb041ea854c5b56df003d42f7baf2a"
-nsim_hash: ""
+nsim_hash: "5622ad7d0d39ca984d5f90bede25c53d806b2885"
 
 fitter: "metacal-max"
 fit_model: "gauss"

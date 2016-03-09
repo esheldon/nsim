@@ -45,7 +45,9 @@ class FitterBase(dict):
         self['ngal']=ngal
         self['use_round_T'] = self.get('use_round_T',False)
 
-        self._set_prior()
+        self.prior = self._get_prior()
+        if 'masking' in self:
+            self.replace_prior = self._get_prior(self['masking']['priors'])
 
         self._setup_checkpoints(**keys)
         if self.data is None:
@@ -195,7 +197,7 @@ class FitterBase(dict):
         self['make_plots']=keys.get('make_plots',False)
         self['plot_base']=keys.get('plot_base',None)
 
-    def _set_prior(self):
+    def _get_prior(self):
         raise RuntimeError("over-ride me")
 
     def _start_timer(self):
@@ -334,35 +336,33 @@ class SimpleFitterBase(FitterBase):
         d['s2n_w'][i] = res['s2n_w']
         d['psf_T'][i] = res['psf_T']
 
-    def _set_prior(self):
+    def _get_prior(self, prior_info=None):
         """
         Set all the priors
         """
         import ngmix
         from ngmix.joint_prior import PriorSimpleSep
 
-        ppars=self['priors']
+        if 'masking' in self:
+            self
+
+        if prior_info is None:
+            ppars=self['priors']
+        else:
+            ppars=prior_info
 
         gp = ppars['g']
         if gp['type']=='ba':
-            self.g_prior = ngmix.priors.GPriorBA(gp['sigma'])
+            g_prior = ngmix.priors.GPriorBA(gp['sigma'])
         elif gp['type']=='cosmos':
-            self.g_prior=ngmix.priors.make_gprior_cosmos_sersic(type='erf')
+            g_prior=ngmix.priors.make_gprior_cosmos_sersic(type='erf')
         elif gp['type']=='great-des':
-            self.g_prior = ngmix.priors.GPriorGreatDES(pars=gp['pars'],
+            g_prior = ngmix.priors.GPriorGreatDES(pars=gp['pars'],
                                                        gmax=1.0)
         elif gp['type']=='flat':
-            self.g_prior = ngmix.priors.ZDisk2D(1.0)
+            g_prior = ngmix.priors.ZDisk2D(1.0)
         else:
             raise ValueError("implement other g prior")
-
-        self.g_prior_during = self.get('g_prior_during',False)
-        if self.g_prior_during:
-            print("    Using full g prior for fits")
-            fit_g_prior = self.g_prior
-        else:
-            print("    Using flat g prior for fits")
-            fit_g_prior = ngmix.priors.ZDisk2D(1.0)
 
         print("using input search prior")
 
@@ -375,17 +375,17 @@ class SimpleFitterBase(FitterBase):
                 T=self.sim['obj_T_mean']
                 T_sigma = self.sim['obj_T_sigma_frac']*T
                 logT_mean, logT_sigma=ngmix.priors.lognorm_convert(T,T_sigma)
-                fit_T_prior = ngmix.priors.Normal(logT_mean, logT_sigma)
+                T_prior = ngmix.priors.Normal(logT_mean, logT_sigma)
 
             else:
-                fit_T_prior = self.sim.T_pdf
+                T_prior = self.sim.T_pdf
 
         elif Tp['type']=="gmixnd":
-            fit_T_prior = load_gmixnd(Tp)
+            T_prior = load_gmixnd(Tp)
 
         elif Tp['type']=='normal':
             Tpars=Tp['pars']
-            fit_T_prior=ngmix.priors.Normal(Tpars[0], Tpars[1])
+            T_prior=ngmix.priors.Normal(Tpars[0], Tpars[1])
 
         elif Tp['type']=='lognormal':
 
@@ -393,14 +393,14 @@ class SimpleFitterBase(FitterBase):
                 print("    converting T prior to log")
                 logT_mean, logT_sigma=ngmix.priors.lognorm_convert(Tp['mean'],
                                                                    Tp['sigma'])
-                fit_T_prior = ngmix.priors.Normal(logT_mean, logT_sigma)
+                T_prior = ngmix.priors.Normal(logT_mean, logT_sigma)
 
             else:
-                fit_T_prior = ngmix.priors.LogNormal(Tp['mean'],Tp['sigma'])
+                T_prior = ngmix.priors.LogNormal(Tp['mean'],Tp['sigma'])
 
         elif Tp['type']=="two-sided-erf":
             T_prior_pars = Tp['pars']
-            fit_T_prior=ngmix.priors.TwoSidedErf(*T_prior_pars)
+            T_prior=ngmix.priors.TwoSidedErf(*T_prior_pars)
         else:
             raise ValueError("bad Tprior: '%s'" % Tp['type'])
 
@@ -421,14 +421,14 @@ class SimpleFitterBase(FitterBase):
 
                 logc_mean, logc_sigma=ngmix.priors.lognorm_convert(counts,
                                                                    counts_sigma)
-                fit_counts_prior = ngmix.priors.Normal(logc_mean, logc_sigma)
+                counts_prior = ngmix.priors.Normal(logc_mean, logc_sigma)
 
             else:
-                fit_counts_prior = self.sim.counts_pdf
+                counts_prior = self.sim.counts_pdf
 
         elif cp['type']=="gmixnd":
 
-            fit_counts_prior = load_gmixnd(cp)
+            counts_prior = load_gmixnd(cp)
 
         elif cp['type']=='lognormal':
 
@@ -436,39 +436,39 @@ class SimpleFitterBase(FitterBase):
                 print("    converting counts prior to log")
                 logcounts_mean, logcounts_sigma=ngmix.priors.lognorm_convert(cp['mean'],
                                                                    cp['sigma'])
-                fit_counts_prior = ngmix.priors.Normal(logcounts_mean, logcounts_sigma)
+                counts_prior = ngmix.priors.Normal(logcounts_mean, logcounts_sigma)
 
             else:
-                fit_counts_prior = ngmix.priors.LogNormal(cp['mean'],cp['sigma'])
+                counts_prior = ngmix.priors.LogNormal(cp['mean'],cp['sigma'])
 
 
         elif cp['type']=='normal':
             cpars=cp['pars']
-            fit_counts_prior=ngmix.priors.Normal(cpars[0], cpars[1])
+            counts_prior=ngmix.priors.Normal(cpars[0], cpars[1])
 
         elif cp['type']=="two-sided-erf":
             counts_prior_pars = cp['pars']
-            fit_counts_prior=ngmix.priors.TwoSidedErf(*counts_prior_pars)
+            counts_prior=ngmix.priors.TwoSidedErf(*counts_prior_pars)
         else:
             raise ValueError("bad counts prior: '%s'" % cp['type'])
 
         cp=ppars['cen']
         if cp['type']=="truth":
-            fit_cen_prior=self.sim.cen_pdf
+            cen_prior=self.sim.cen_pdf
         elif cp['type'] == "normal2d":
             fit_cen_sigma=cp['sigma']
-            fit_cen_prior=ngmix.priors.CenPrior(0.0,
+            cen_prior=ngmix.priors.CenPrior(0.0,
                                                 0.0,
                                                 fit_cen_sigma,
                                                 fit_cen_sigma)
         else:
             raise ValueError("bad cen prior: '%s'" % cp['type'])
 
-
-        self.prior = PriorSimpleSep(fit_cen_prior,
-                                    fit_g_prior,
-                                    fit_T_prior,
-                                    fit_counts_prior)
+        prior = PriorSimpleSep(cen_prior,
+                               g_prior,
+                               T_prior,
+                               counts_prior)
+        return prior
 
 
 
@@ -645,12 +645,12 @@ class MaxMetacalFitter(MaxFitter):
         """
         from ngmix import Bootstrapper
 
-        intpars=self.get('intpars',None)
+        if 'masking' in self:
+            replace_fitter=self._do_fits_for_replacement(obs)
 
         use_round_T=self['use_round_T']
         boot=Bootstrapper(obs,
                           use_logpars=self['use_logpars'],
-                          intpars=intpars,
                           use_round_T=use_round_T,
                           verbose=False)
 
@@ -660,7 +660,12 @@ class MaxMetacalFitter(MaxFitter):
         psf_fit_pars = ppars.get('fit_pars',None)
 
         try:
-            boot.fit_psfs(ppars['model'], Tguess, ntry=ppars['ntry'],fit_pars=psf_fit_pars)
+            # redo psf in case we did replacement fit above
+            boot.fit_psfs(ppars['model'],
+                          Tguess,
+                          ntry=ppars['ntry'],
+                          skip_already_done=False,
+                          fit_pars=psf_fit_pars)
 
         except BootPSFFailure:
             raise TryAgainError("failed to fit psf")
@@ -691,7 +696,9 @@ class MaxMetacalFitter(MaxFitter):
             if self['use_round_T']:
                 res['T_s2n_r'] = boot.get_max_fitter().get_T_s2n()
 
-            boot.replace_masked_pixels()
+            if 'masking' in self:
+                boot.replace_masked_pixels(fitter=replace_fitter)
+
             self._do_metacal(boot)
 
         except BootPSFFailure:
@@ -708,6 +715,50 @@ class MaxMetacalFitter(MaxFitter):
         return {'fitter':fitter,
                 'boot':boot,
                 'res':res}
+
+    def _do_fits_for_replacement(self, obs):
+        """
+        the basic fitter for this class
+        """
+        from ngmix import Bootstrapper
+
+        rpars=self['masking']
+
+        boot=Bootstrapper(
+            obs,
+            use_logpars=self['use_logpars'],
+            verbose=False
+        )
+
+        Tguess=self.sim.get('psf_T',4.0)
+        ppars=rpars['psf_pars']
+
+        psf_fit_pars = ppars.get('fit_pars',None)
+
+        try:
+            boot.fit_psfs(
+                ppars['model'],
+                Tguess,
+                ntry=ppars['ntry'],
+                fit_pars=psf_fit_pars
+            )
+
+        except BootPSFFailure:
+            raise TryAgainError("failed to fit replace psf")
+
+        mconf=rpars['max_pars']
+
+        try:
+            boot.fit_max(
+                rpars['fit_model'],
+                mconf['pars'],
+                prior=self.replace_prior,
+                ntry=mconf['ntry']
+            )
+        except BootGalFailure:
+            raise TryAgainError("failed to fit replace galaxy")
+
+        return boot.get_max_fitter()
 
     def _do_metacal(self, boot, metacal_obs=None):
 
@@ -2592,7 +2643,7 @@ class EMMetacalFitter(SimpleFitterBase):
             Tguess=4.0
         return Tguess*(1.0 + 0.05*srandu())
 
-    def _set_prior(self):
+    def _get_prior(self):
         """
         Set all the priors
         """

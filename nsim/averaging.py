@@ -183,15 +183,16 @@ class SummerDT(dict):
 
         extra=self._get_fname_extra()
         fname=files.get_means_url(self.args.runs[0], extra=extra)
+        fname=fname.replace('.fits','-dt.fits')
         return fname
 
     def _get_fit_plot_file(self):
-        extra=self._get_fname_extra(last='fit-m-c')
+        extra=self._get_fname_extra(last='fit-m-c-dt')
         fname=files.get_plot_url(self.args.runs[0], extra=extra)
         return fname
 
     def _get_resid_hist_file(self):
-        extra=self._get_fname_extra(last='resid-hist')
+        extra=self._get_fname_extra(last='resid-hist-dt')
         fname=files.get_plot_url(self.args.runs[0], extra=extra)
         return fname
 
@@ -671,6 +672,7 @@ class SummerDT(dict):
 
     def plot_fits(self):
         import biggles
+        biggles.configure('default','fontsize_min',1.5)
 
         means=self.means
         fits=self.fits
@@ -698,8 +700,8 @@ class SummerDT(dict):
             plt =biggles.plot(
                 x,
                 diff[:,i],
-                xlabel='shear%d true' % (i+1,),
-                ylabel='shear%d diff' % (i+1,),
+                xlabel=r'$\gamma_{%d}$ true' % (i+1,),
+                ylabel=r'$\Delta \gamma_{%d}$' % (i+1,),
                 yrange=yrange,
                 xrange=xrng,
                 visible=False,
@@ -1056,6 +1058,23 @@ class Summer(SummerDT):
 
         return sg1, sg2
 
+    def _get_means_file(self):
+
+        extra=self._get_fname_extra()
+        fname=files.get_means_url(self.args.runs[0], extra=extra)
+        return fname
+
+
+    def _get_fit_plot_file(self):
+        extra=self._get_fname_extra(last='fit-m-c')
+        fname=files.get_plot_url(self.args.runs[0], extra=extra)
+        return fname
+
+    def _get_resid_hist_file(self):
+        extra=self._get_fname_extra(last='resid-hist')
+        fname=files.get_plot_url(self.args.runs[0], extra=extra)
+        return fname
+
 
 
     def _get_sums_struct(self):
@@ -1282,6 +1301,25 @@ class SummerNocorr(SummerDT):
                 sums['g'][i,1] += g2[w].sum()
 
         return sums
+
+    def _get_means_file(self):
+
+        extra=self._get_fname_extra()
+        fname=files.get_means_url(self.args.runs[0], extra=extra)
+        fname=fname.replace('.fits','-nocorr.fits')
+        return fname
+
+
+    def _get_fit_plot_file(self):
+        extra=self._get_fname_extra(last='fit-m-c-nocorr')
+        fname=files.get_plot_url(self.args.runs[0], extra=extra)
+        return fname
+
+    def _get_resid_hist_file(self):
+        extra=self._get_fname_extra(last='resid-hist-nocorr')
+        fname=files.get_plot_url(self.args.runs[0], extra=extra)
+        return fname
+
 
     def _get_sums_struct(self):
         dt=self._get_sums_dt()
@@ -1917,6 +1955,7 @@ class SummerPCal(dict):
 
     def plot_fits(self):
         import biggles
+        biggles.configure('default','fontsize_min',1.5)
 
         means=self.means
         fits=self.fits
@@ -1944,8 +1983,8 @@ class SummerPCal(dict):
             plt =biggles.plot(
                 x,
                 diff[:,i],
-                xlabel='shear%d true' % (i+1,),
-                ylabel='shear%d diff' % (i+1,),
+                xlabel=r'$\gamma_{%d}$ true' % (i+1,),
+                ylabel=r'$\Delta \gamma_{%d}$' % (i+1,),
                 yrange=yrange,
                 xrange=xrng,
                 visible=False,

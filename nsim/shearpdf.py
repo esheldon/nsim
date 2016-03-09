@@ -6,7 +6,11 @@ class ShearGeneratorBase(object):
         raise NotImplementedError("implement get_shear()")
 
 class ConstShearGenerator(ShearGeneratorBase):
-    def __init__(self, shears):
+    def __init__(self, shears, rng=None):
+
+        if rng is None:
+            rng=numpy.random.RandomState()
+        self.rng=rng
 
         if not isinstance(shears[0], list):
             shears = [shears]
@@ -20,5 +24,5 @@ class ConstShearGenerator(ShearGeneratorBase):
         """
         return a random shear from the input list, plus an index
         """
-        ri = numpy.random.randint(0, self.nshear)
+        ri = self.rng.randint(0, self.nshear)
         return self.shears[ri], ri

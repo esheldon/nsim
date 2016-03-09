@@ -458,11 +458,16 @@ class NGMixSim(dict):
         return dims_pix, cen_pix
 
 
-def srandu(num=None):
+def srandu(num=None, rng=None):
     """
     Generate random numbers in the symmetric distribution [-1,1]
     """
-    return 2*(numpy.random.random(num)-0.5)
+    if rng is not None:
+        r=rng.uniform(size=num)
+    else:
+        r=numpy.random.random(num)
+
+    return 2*(r-0.5)
 
 
 

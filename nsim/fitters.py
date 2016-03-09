@@ -9,11 +9,8 @@ from pprint import pprint
 import numpy
 from numpy import array, zeros, ones, log, log10, exp, sqrt, diag
 from numpy import where, isfinite
-from numpy.random import random as randu
-from numpy.random import randn
 
 import ngmix
-from ngmix import srandu
 from ngmix.fitting import print_pars
 from ngmix.gexceptions import GMixRangeError
 from ngmix.observation import Observation
@@ -946,85 +943,6 @@ class MaxMetacalDetrendFitter(MaxMetacalFitter):
         ]
         return dt
 
-
-class MaxMetacalDetrendFitterOld(MaxMetacalFitter):
-
-    def __init__(self, *args, **kw):
-        super(MaxMetacalDetrendFitter,self).__init__(*args, **kw)
-
-        sim_seed = self.sim['seed']
-        rs_seed = sim_seed + 35
-        self.random_state=numpy.random.RandomState(rs_seed)
-
-    def _do_fits(self, oobs):
-        res=super(MaxMetacalDetrendFitter,self)._do_fits(oobs)
-
-        im=oobs.image
-        wt=oobs.weight
-
-        sim_noise=self['noise']
-        new_results=[]
-
-        noise_image1 = self.random_state.normal(loc=0.0,
-                                                scale=1.0,
-                                                size=im.shape)
-        for i in xrange(len(self['target_noises'])):
-            target_noise=self['target_noises'][i]
-            extra_noise = sqrt(target_noise**2 - sim_noise**2)
-
-            # same noise image, just scaled
-            noise_image = noise_image1*extra_noise
-
-            print("    doing target_noise: %.3f "
-                  "extra_noise: %.2f" % (target_noise,extra_noise))
-
-            new_im=im + noise_image
-            new_weight = wt*0 + (1.0/target_noise**2)
-
-            new_obs = Observation(new_im,
-                                  weight=new_weight,
-                                  jacobian=oobs.jacobian.copy(),
-                                  psf=deepcopy(oobs.psf))
-
-            new_resd=super(MaxMetacalDetrendFitter,self)._do_fits(new_obs)
-            new_res=new_resd['res']
-
-            print("        s2n_w:",new_res['s2n_w'])
-            new_results.append(new_res)
-
-        res['res']['dt_results'] = new_results
-        return res
-
-    def _copy_to_output(self, res, i):
-        """
-        copy parameters specific to this class
-        """
-        super(MaxMetacalDetrendFitter,self)._copy_to_output(res, i)
-
-        d=self.data
-
-        for idt in xrange(len(self['target_noises'])):
-            dtres=res['dt_results'][idt]
-
-            d['mcal_dt_g'][i,idt,:] = dtres['mcal_g']
-            d['mcal_dt_R'][i,idt,:,:] = dtres['mcal_R']
-            d['mcal_dt_Rpsf'][i,idt,:] = dtres['mcal_Rpsf']
-
-
-    def _get_dtype(self):
-        """
-        get the dtype for the output struct
-        """
-        dt=super(MaxMetacalDetrendFitter,self)._get_dtype()
-
-        ndt = len(self['target_noises'])
-
-        dt += [
-            ('mcal_dt_g','f8',(ndt,2)),
-            ('mcal_dt_R','f8',(ndt,2,2)),
-            ('mcal_dt_Rpsf','f8',(ndt,2)),
-        ]
-        return dt
 
 
 
@@ -2666,6 +2584,7 @@ class EMMetacalFitter(SimpleFitterBase):
         """
         Get the starting guess.
         """
+        from ngmix import srandu
 
         if type=='gal':
             Tguess=6.0

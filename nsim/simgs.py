@@ -11,7 +11,7 @@ import ngmix
 from ngmix.priors import LogNormal
 
 from . import sim as ngmixsim
-from .sim import srandu
+from ngmix.priors import srandu
 
 from .util import TryAgainError, load_gmixnd
 
@@ -39,15 +39,21 @@ class SimGS(dict):
 
         self.update(sim_conf)
 
+        seed=self.get('seed',None)
+        print("    using seed:",self['seed'])
+
+        # seeding both the global and the local rng.  With the
+        # local, we produce the same sim independent of the fitting
+        # code which may use the global. We also seed the global
+        numpy.random.seed(seed)
+        self.rng=numpy.random.RandomState(seed=numpy.random.randint(0,2**30))
+
         self._setup()
 
         for k in self:
             if k != "shear":
                 pprint(self[k])
 
-        if 'seed' in self:
-            print("    using seed:",self['seed'])
-            numpy.random.seed(self['seed'])
 
         self.counter=0
 
@@ -145,13 +151,15 @@ class SimGS(dict):
         wtravel = weight.ravel()
         bmravel = bmask.ravel()
 
-        ibad = numpy.random.randint(0, imravel.size)
+        #ibad = numpy.random.randint(0, imravel.size)
+        ibad = self.rng.randint(0, imravel.size)
 
         if self['bad_pixels']['replace_with']=='noise':
-            imravel[ibad] = numpy.random.normal(
+            #imravel[ibad] = numpy.random.normal(
+            imravel[ibad] = self.rng.normal(
                 loc=0.0,
                 scale=self['noise'],
-                size=1
+                size=ibad.size
             )
         else:
             imravel[ibad] = -9999.0
@@ -184,7 +192,8 @@ class SimGS(dict):
 
         rep=self['masks']['replace_with']
         if rep =='noise':
-            imravel[ibad] = numpy.random.normal(
+            #imravel[ibad] = numpy.random.normal(
+            imravel[ibad] = self.rng.normal(
                 loc=0.0,
                 scale=self['noise'],
                 size=ibad.size
@@ -216,9 +225,10 @@ class SimGS(dict):
 
 
     def _add_noise(self, im0):
-        nim = numpy.random.normal(loc=0.0,
-                                  scale=self['noise'],
-                                  size=im0.shape)
+        #nim = numpy.random.normal(loc=0.0,
+        nim = self.rng.normal(loc=0.0,
+                              scale=self['noise'],
+                              size=im0.shape)
         noisy_image = im0 + nim
         return noisy_image
 
@@ -236,9 +246,10 @@ class SimGS(dict):
 
         scaled_image = im0 * factor
 
-        nim = numpy.random.normal(loc=0.0,
-                                  scale=self['noise'],
-                                  size=im0.shape)
+        #nim = numpy.random.normal(loc=0.0,
+        nim = self.rng.normal(loc=0.0,
+                              scale=self['noise'],
+                              size=im0.shape)
         noisy_image = scaled_image + nim
 
         return scaled_image, noisy_image, flux
@@ -247,7 +258,7 @@ class SimGS(dict):
         """
         find the best center and set the jacobian center there
         """
-        fitter = quick_fit_gauss(image)
+        fitter = quick_fit_gauss(image, self.rng)
         row,col = fitter.get_gmix().get_cen()
         #print("    row,col:",row,col)
 
@@ -370,7 +381,8 @@ class SimGS(dict):
         elif 'randomized_orientation' in pspec:
             ro=pspec['randomized_orientation']
             if ro["dist"]=="uniform":
-                angle = numpy.random.random()*2*numpy.pi
+                #angle = numpy.random.random()*2*numpy.pi
+                angle = self.rng.uniform()*2*numpy.pi
                 psf_shape = ngmix.Shape(ro['magnitude'], 0.0)
                 psf_shape.rotate(angle)
                 psf_g1 = psf_shape.g1
@@ -526,11 +538,13 @@ class SimGS(dict):
         get a random mask, rotated by a random multiple
         of 90 degrees
         """
-        i = numpy.random.randint(0, len(self.mask_list))
+        #i = numpy.random.randint(0, len(self.mask_list))
+        i = self.rng.randint(0, len(self.mask_list))
         #print("    loading mask:",i)
         mask=self.mask_list[i]
 
-        ri=numpy.random.randint(0,4)
+        #ri=numpy.random.randint(0,4)
+        ri=self.rng.randint(0,4)
         mask = numpy.rot90(mask, k=ri)
 
         return mask
@@ -553,7 +567,8 @@ class SimGS(dict):
         if 'shear' in self:
             shconf = self['shear']
             if shconf['type'] == 'const':
-                pdf = ConstShearGenerator(shconf['shears'])
+                pdf = ConstShearGenerator(shconf['shears'],
+                                          rng=self.rng)
             else:
                 raise ValueError("only shear 'const' for now")
 
@@ -574,10 +589,12 @@ class SimGS(dict):
                     fname=os.path.expandvars( pspec['fwhm']['file'] )
                     print("Reading fwhm values from file:",fname)
                     vals=numpy.fromfile(fname, sep='\n')
-                    self.psf_fwhm_pdf=DiscreteSampler(vals)
+                    self.psf_fwhm_pdf=DiscreteSampler(vals,
+                                                      rng=self.rng)
                 elif type=='lognormal':
                     self.psf_fwhm_pdf=LogNormal(pspec['fwhm']['mean'],
-                                                pspec['fwhm']['sigma'])
+                                                pspec['fwhm']['sigma'],
+                                                rng=self.rng)
                 else:
                     raise ValueError("bad fwhm type: '%s'" % type)
         else:
@@ -586,7 +603,8 @@ class SimGS(dict):
                 assert r50pdf['type']=="lognormal","r50 pdf log normal for now"
 
                 self.psf_r50_pdf = ngmix.priors.LogNormal(r50pdf['mean'],
-                                                          r50pdf['sigma'])
+                                                          r50pdf['sigma'],
+                                                          rng=self.rng)
 
         if isinstance(pspec['shape'],dict):
             ppdf=pspec['shape']
@@ -594,14 +612,16 @@ class SimGS(dict):
             self.psf_ellip_pdf=ngmix.priors.SimpleGauss2D(ppdf['cen'][0],
                                                           ppdf['cen'][1],
                                                           ppdf['sigma'][0],
-                                                          ppdf['sigma'][1])
+                                                          ppdf['sigma'][1],
+                                                          rng=self.rng)
         else:
             self.psf_ellip_pdf=None
 
     def _set_g_pdf(self):
         if 'g' in self['obj_model']:
             g_spec=self['obj_model']['g']
-            self.g_pdf=ngmix.priors.GPriorBA(g_spec['sigma'])
+            self.g_pdf=ngmix.priors.GPriorBA(g_spec['sigma'],
+                                             rng=self.rng)
         else:
             self.g_pdf=None
 
@@ -611,10 +631,12 @@ class SimGS(dict):
 
             if r50spec['type']=='uniform':
                 r50_r = r50spec['range']
-                self.r50_pdf=ngmix.priors.FlatPrior(r50_r[0], r50_r[1])
+                self.r50_pdf=ngmix.priors.FlatPrior(r50_r[0], r50_r[1],
+                                                    rng=self.rng)
             elif r50spec['type']=='lognormal':
                 self.r50_pdf=ngmix.priors.LogNormal(r50spec['mean'],
-                                                    r50spec['sigma'])
+                                                    r50spec['sigma'],
+                                                    rng=self.rng)
             else:
                 raise ValueError("bad r50 pdf type: '%s'" % r50spec['type'])
         else:
@@ -626,20 +648,8 @@ class SimGS(dict):
         if cr is None:
             self.cen_pdf=None
         else:
-            self.cen_pdf=ngmix.priors.FlatPrior(-cr['radius'], cr['radius'])
-
-    '''
-    def _set_s2n_pdf(self):
-        s2nspec = self['obj_model']['s2n']
-
-        if s2nspec['type']=='uniform':
-            s2n_r = s2nspec['range']
-            self.s2n_pdf=ngmix.priors.FlatPrior(s2n_r[0], s2n_r[1])
-        elif s2nspec['type']=='lognormal':
-            self.s2n_pdf=ngmix.priors.LogNormal(s2nspec['mean'],s2nspec['sigma'])
-        else:
-            raise ValueError("bad s2n pdf type: '%s'" % s2nspec['type'])
-    '''
+            self.cen_pdf=ngmix.priors.FlatPrior(-cr['radius'], cr['radius'],
+                                                rng=self.rng)
 
     def _set_flux_pdf(self):
         fluxspec = self['obj_model']['flux']
@@ -650,11 +660,14 @@ class SimGS(dict):
 
         if fluxspec['type']=='uniform':
             flux_r = fluxspec['range']
-            self.flux_pdf=ngmix.priors.FlatPrior(flux_r[0], flux_r[1])
+            self.flux_pdf=ngmix.priors.FlatPrior(flux_r[0], flux_r[1],
+                                                 rng=self.rng)
         elif fluxspec['type']=='lognormal':
-            self.flux_pdf=ngmix.priors.LogNormal(fluxspec['mean'],fluxspec['sigma'])
+            self.flux_pdf=ngmix.priors.LogNormal(fluxspec['mean'],
+                                                 fluxspec['sigma'],
+                                                 rng=self.rng)
         elif fluxspec['type']=='gmixnd':
-            self.flux_pdf=load_gmixnd(fluxspec)
+            self.flux_pdf=load_gmixnd(fluxspec,self.rng)
         else:
             raise ValueError("bad flux pdf type: '%s'" % fluxspec['type'])
 
@@ -754,9 +767,10 @@ class SimGMix(SimGS):
 
         if spec['type']=='lognormal':
             self.T_pdf=ngmix.priors.LogNormal(spec['mean'],
-                                              spec['sigma'])
+                                              spec['sigma'],
+                                              rng=self.rng)
         elif spec['type']=='gmixnd':
-            self.T_pdf=load_gmixnd(spec)
+            self.T_pdf=load_gmixnd(spec, self.rng)
         else:
             raise ValueError("bad r50 pdf type: '%s'" % r50spec['type'])
 
@@ -847,13 +861,15 @@ class SimBD(SimGS):
         ds_spec=self['obj_model']['dev_shift']
         if ds_spec is not None:
             # radius in units of r50
-            self.dev_offset_pdf = ngmix.priors.ZDisk2D(ds_spec['radius'])
+            self.dev_offset_pdf = ngmix.priors.ZDisk2D(ds_spec['radius'],
+                                                       rng=self.rng)
         else:
             self.dev_offset_pdf = None
 
     def _set_fracdev_pdf(self):
         bdr = self['obj_model']['fracdev']['range']
-        self.fracdev_pdf=ngmix.priors.FlatPrior(bdr[0], bdr[1])
+        self.fracdev_pdf=ngmix.priors.FlatPrior(bdr[0], bdr[1],
+                                                rng=self.rng)
 
 class SimBDD(SimBD):
     """
@@ -940,7 +956,7 @@ class SimBDD(SimBD):
         self.bulge_rot_pdf = ngmix.priors.Normal(0.0, sigma)
 
 
-def quick_fit_gauss(image, maxiter=4000, tol=1.0e-6, ntry=4):
+def quick_fit_gauss(image, rng, maxiter=4000, tol=1.0e-6, ntry=4):
     """
     use EM to fit a single gaussian
     """
@@ -955,12 +971,12 @@ def quick_fit_gauss(image, maxiter=4000, tol=1.0e-6, ntry=4):
     guess_T = 4.0
 
     for i in xrange(ntry):
-        guess_pars = [cenguess[0] + 0.1*srandu(),
-                      cenguess[1] + 0.1*srandu(),
-                      0.0 + 0.02*srandu(),
-                      0.0 + 0.02*srandu(),
-                      guess_T*(1.0 + 0.05*srandu()),
-                      1.0 + 0.05*srandu() ]
+        guess_pars = [cenguess[0] + 0.1*srandu(rng=rng),
+                      cenguess[1] + 0.1*srandu(rng=rng),
+                      0.0 + 0.02*srandu(rng=rng),
+                      0.0 + 0.02*srandu(rng=rng),
+                      guess_T*(1.0 + 0.05*srandu(rng=rng)),
+                      1.0 + 0.05*srandu(rng=rng) ]
 
         guess=ngmix.gmix.GMixModel(guess_pars, "gauss")
 

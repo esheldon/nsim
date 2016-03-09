@@ -3,6 +3,13 @@ REAL METACAL
 
 important sims for paper
 --------------------------
+
+bd29mcal01
+    - r50 match cosmos, psf fwhm match DES, ellip dist matching DES
+bdmask01mcal01
+    - same as bd29 but with masking
+
+older
 bd16: slightly undersampled (fwhm=0.8?), round psf. small galaxies
 bd22: same as bd16 but non-round PSF
 bd15: fwhm=0.9, larger galaxies, non-round psf
@@ -11,6 +18,8 @@ bd21: same as bd16 but non-round PSF and with masking
 bd23: psf sizes drawn from examples from DES, gal sizes similar to COSMOS
 bd24: same as 23 but gauss psf.
     - also added round size
+
+
 
 new style simgs
 =================
@@ -1186,11 +1195,18 @@ sim-bd22
         to DES
     - run-bd29mcal01
         200 million run
-          m1: -3.807e-04 +/- 6.894e-04 c1: 3.754e-06 +/- 2.421e-05  r1: 0.0223
-          m2: -4.066e-04 +/- 6.881e-04 c2: 9.684e-05 +/- 2.363e-05  r2: -0.0198
-          m:  -3.934e-04 +/- 4.874e-04
-          c1: 3.744e-06 +/- 2.394e-05
-          c2: 9.683e-05 +/- 2.393e-05
+          m1: -3.933e-04 +/- 6.790e-04 c1: 5.177e-06 +/- 2.385e-05  r1: 0.0223
+          m2: -3.105e-04 +/- 6.843e-04 c2: 9.410e-05 +/- 2.350e-05  r2: -0.0198
+          m:  -3.528e-04 +/- 4.823e-04
+          c1: 5.208e-06 +/- 2.369e-05
+          c2: 9.413e-05 +/- 2.369e-05
+
+        - max like
+          m1: -4.958e-01 +/- 2.921e-04 c1: 1.145e-05 +/- 1.026e-05  r1: 0.0223
+          m2: -4.955e-01 +/- 3.127e-04 c2: 1.510e-03 +/- 1.073e-05  r2: -0.0198
+          m:  -4.956e-01 +/- 2.140e-04
+          c1: 1.158e-05 +/- 1.051e-05
+          c2: 1.510e-03 +/- 1.051e-05
 
 - sim-stars01
     - stars, goes with bd21

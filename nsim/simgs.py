@@ -141,6 +141,22 @@ class SimGS(dict):
         return obs
 
     def _set_bad_pixels(self, image, weight):
+
+        bp=self['bad_pixels']
+        bcrate = bp['bad_column_rate']
+        bprate = bp['bad_pixel_rate']
+
+        bsum = bcrate + bprate
+
+        r = self.rng.uniform()
+        if r < bcrate:
+            print("        doing bad column")
+            return self._set_bad_column(image, weight)
+        elif r < bsum:
+            print("        doing bad pixel")
+            return self._set_bad_pixel(image, weight)
+
+    def _set_bad_pixel(self, image, weight):
         """
         currently one per stamp, random location
         """
@@ -151,23 +167,41 @@ class SimGS(dict):
         wtravel = weight.ravel()
         bmravel = bmask.ravel()
 
-        #ibad = numpy.random.randint(0, imravel.size)
         ibad = self.rng.randint(0, imravel.size)
 
-        if self['bad_pixels']['replace_with']=='noise':
-            #imravel[ibad] = numpy.random.normal(
-            imravel[ibad] = self.rng.normal(
-                loc=0.0,
-                scale=self['noise'],
-                size=ibad.size
-            )
-        else:
-            imravel[ibad] = -9999.0
+        badval=self['bad_pixels']['replace_with']
+        imravel[ibad] = badval
 
         wtravel[ibad] = 0.0
         bmravel[ibad] = 1
 
         return bmask
+
+    def _set_bad_column(self, image, weight):
+        """
+        one per stamp, random location but not
+        within 5 pixels of the center
+        """
+
+        cencol = int( (image.shape[1]-1.0)/2.0 )
+        lowlim = cencol-4.0
+        highlim = cencol+4.0
+
+        bmask=numpy.zeros(image.shape, dtype='i2')
+
+        while True:
+            badcol=self.rng.randint(0,image.shape[1])
+
+            if badcol < lowlim or badcol > highlim:
+                break
+
+        badval=self['bad_pixels']['replace_with']
+        image[:,badcol] = badval
+        weight[:,badcol] = 0.0
+        bmask[:,badcol] = 1
+
+        return bmask
+
 
     def _set_mask(self, image, weight):
         """
@@ -511,8 +545,6 @@ class SimGS(dict):
         self['model'] = self['obj_model']['model']
 
         self['bad_pixels'] = self.get('bad_pixels',None)
-        if self['bad_pixels'] is not None:
-                assert self['bad_pixels']['replace_with']=='noise'
 
         self['masks'] = self.get('masks',None)
         if self['masks'] is not None:

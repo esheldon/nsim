@@ -1,0 +1,62 @@
+run: "run-bd29stars-mcal01"
+sim: "sim-bd29stars"
+
+ngmix_hash: "99e5b98fc72b8dd94c7eac81cd2b728cb38bc414"
+nsim_hash: "2e7f6cd6f9efe8fa1f14ac6d4554d0244f392f36"
+
+fitter: "metacal-max"
+fit_model: "gauss"
+
+g_prior_during: True
+use_logpars: True
+
+global_seed: 31984
+
+metacal_pars:
+    step: 0.01
+    fixnoise: True
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    T:
+        type: "gmixnd"
+        run: "run-bd23zmax-lownoise01"
+        extra: "log_T"
+        cov_factor: 1.44
+
+    counts:
+        type: "gmixnd"
+        run: "run-bd23zmax-lownoise01"
+        extra: "log_F"
+        cov_factor: 1.44
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+ngal: 20000000
+
+desired_hours: 1.0
+
+# doubled
+sec_per: 0.8
+
+verbose: False

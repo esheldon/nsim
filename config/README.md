@@ -8,6 +8,8 @@ bd29mcal01
     - r50 match cosmos, psf fwhm match DES, ellip dist matching DES
 bdmask01mcal01
     - same as bd29 but with masking
+bdmask01mcal02
+    - same as bd29 but with masking
 
 older
 bd16: slightly undersampled (fwhm=0.8?), round psf. small galaxies

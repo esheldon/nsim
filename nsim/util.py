@@ -543,14 +543,14 @@ def fit_prior(run, is2n=0, field='pars_noshear',show=False):
         biggles.configure('screen','height',700)
         tab.show()
 
-def load_gmixnd(spec, rng=None):
+def load_gmixnd(spec, rng):
     if 'run' in spec:
         extra=spec['extra']
         fname=files.get_fitprior_url(spec['run'], 0, extra=extra)
     else:
         fname=files.get_extra_url(spec['file'])
 
-    pdf=ngmix.gmix.GMixND(file=fname, rng=rng)
+    pdf=ngmix.gmix.GMixND(file=fname, rng)
 
     if 'cov_factor' in spec:
         print("    using cov factor:",spec['cov_factor'])

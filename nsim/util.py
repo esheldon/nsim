@@ -550,7 +550,7 @@ def load_gmixnd(spec, rng):
     else:
         fname=files.get_extra_url(spec['file'])
 
-    pdf=ngmix.gmix.GMixND(file=fname, rng)
+    pdf=ngmix.gmix.GMixND(file=fname, rng=rng)
 
     if 'cov_factor' in spec:
         print("    using cov factor:",spec['cov_factor'])

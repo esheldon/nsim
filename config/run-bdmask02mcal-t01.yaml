@@ -1,8 +1,8 @@
 run: "run-bdmask02mcal-t01"
 sim: "sim-bdmask02"
 
-ngmix_hash: "99e5b98fc72b8dd94c7eac81cd2b728cb38bc414"
-nsim_hash: "bee289a67ac70916f8b2a441c9c82eba377c0a6b"
+ngmix_hash: "a99796c86099c20c5adc23f59ec8ac49b77e2462"
+nsim_hash: "c535d0a498218fce7a94a5f62d4170c8bc406dab"
 
 fitter: "metacal-max"
 fit_model: "gauss"
@@ -94,9 +94,9 @@ masking:
           h: 1.0e-3
 
 
-ngal: 200000000
+ngal: 2000000
 
-desired_hours: 2.0
+desired_hours: 0.5
 
 # doubled
 sec_per: 1.0

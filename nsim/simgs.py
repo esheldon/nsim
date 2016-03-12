@@ -699,7 +699,7 @@ class SimGS(dict):
                                                  fluxspec['sigma'],
                                                  rng=self.rng)
         elif fluxspec['type']=='gmixnd':
-            self.flux_pdf=load_gmixnd(fluxspec,self.rng)
+            self.flux_pdf=load_gmixnd(fluxspec,rng=self.rng)
         else:
             raise ValueError("bad flux pdf type: '%s'" % fluxspec['type'])
 
@@ -802,7 +802,7 @@ class SimGMix(SimGS):
                                               spec['sigma'],
                                               rng=self.rng)
         elif spec['type']=='gmixnd':
-            self.T_pdf=load_gmixnd(spec, self.rng)
+            self.T_pdf=load_gmixnd(spec, rng=self.rng)
         else:
             raise ValueError("bad r50 pdf type: '%s'" % r50spec['type'])
 

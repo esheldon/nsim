@@ -543,7 +543,7 @@ def fit_prior(run, is2n=0, field='pars_noshear',show=False):
         biggles.configure('screen','height',700)
         tab.show()
 
-def load_gmixnd(spec, rng):
+def load_gmixnd(spec, rng=None):
     if 'run' in spec:
         extra=spec['extra']
         fname=files.get_fitprior_url(spec['run'], 0, extra=extra)

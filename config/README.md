@@ -10,6 +10,8 @@ bdmask01mcal01
     - same as bd29 but with masking
 bdmask01mcal02
     - same as bd29 but with masking
+bd29stars-mcal01
+    - 20,000,000 stars
 
 older
 bd16: slightly undersampled (fwhm=0.8?), round psf. small galaxies
@@ -1209,6 +1211,14 @@ sim-bd22
           m:  -4.956e-01 +/- 2.140e-04
           c1: 1.158e-05 +/- 1.051e-05
           c2: 1.510e-03 +/- 1.051e-05
+- sim-bd29stars
+    - run-bd29stars-mcal01
+        combined with run-bd29mcal
+          m1: -2.741e-04 +/- 7.027e-04 c1: 1.959e-06 +/- 2.468e-05  r1: 0.0223
+          m2: -1.984e-04 +/- 7.256e-04 c2: 1.093e-04 +/- 2.491e-05  r2: -0.0198
+          m:  -2.371e-04 +/- 5.052e-04
+          c1: 1.988e-06 +/- 2.481e-05
+          c2: 1.094e-04 +/- 2.481e-05
 
 - sim-stars01
     - stars, goes with bd21

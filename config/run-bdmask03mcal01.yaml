@@ -96,7 +96,7 @@ masking:
 
 ngal: 200000000
 
-desired_hours: 2.0
+desired_hours: 1.0
 
 # doubled
 sec_per: 1.0

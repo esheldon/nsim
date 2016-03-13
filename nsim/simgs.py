@@ -552,13 +552,27 @@ class SimGS(dict):
     def _load_masks(self):
         """
         load masks from a multi-extension fits file
+
+        if add_rotated is set, a 90 degree rotated version
+        is added to cancel symmetries in the mask, such as
+        bad columns
         """
         import fitsio
         mask_file=self['masks']['mask_file']
+        add_rotated=self['mask']['add_rotated']
 
         print("Loading masks from:",mask_file)
+
+        mask_list=[]
         with fitsio.FITS(mask_file) as fits:
-            mask_list = [hdu.read() for hdu in fits]
+
+            for hdu in fits:
+                mask = hdu.read()
+                if add_rotated:
+                    rm = mask.rot90(mask)
+                    mask = mask + rm
+
+                mask_list.append( mask )
 
         self.mask_list=mask_list
 

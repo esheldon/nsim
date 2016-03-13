@@ -10,6 +10,12 @@ bdmask01mcal01
     - same as bd29 but with masking
 bdmask01mcal02
     - same as bd29 but with masking
+
+bdmask03mcal01
+    - just bad pixels from DES
+bdmask04mcal01
+    - just bad pixels from DES, with rotated added (not run)
+
 bd29stars-mcal01
     - 20,000,000 stars
 

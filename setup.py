@@ -25,7 +25,8 @@ scripts=['nsim-average-outputs',
          'nsim-fit-prior',
          'nsim-plot',
          'nsim-make-paper-plots',
-         'nsim-run']
+         'nsim-run',
+         'extract-meds-bmasks']
 
 
 scripts=[os.path.join('bin',s) for s in scripts]

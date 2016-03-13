@@ -209,24 +209,22 @@ class SimGS(dict):
         """
         mask = self._get_random_mask()
 
+        # make a local copy
         bmask = numpy.zeros(mask.shape, dtype='i2')
+        bmask[:,:] = mask[:,:]
 
         # ravel returns a view
-        #imorig=image.copy()
         imravel = image.ravel()
         wtravel = weight.ravel()
-
-        mask_ravel = mask.ravel()
         bmravel = bmask.ravel()
 
         mess="mask size does not match image"
-        assert imravel.size == mask_ravel.size,mess
+        assert imravel.size == bmravel.size,mess
 
-        ibad, = numpy.where(mask_ravel == 0)
+        ibad, = numpy.where(bmravel != 0)
 
         rep=self['masks']['replace_with']
         if rep =='noise':
-            #imravel[ibad] = numpy.random.normal(
             imravel[ibad] = self.rng.normal(
                 loc=0.0,
                 scale=self['noise'],
@@ -236,7 +234,6 @@ class SimGS(dict):
             imravel[ibad] = rep
 
         wtravel[ibad] = 0.0
-        bmravel[ibad] = 1
 
         if False:
             import images
@@ -575,9 +572,8 @@ class SimGS(dict):
         #print("    loading mask:",i)
         mask=self.mask_list[i]
 
-        #ri=numpy.random.randint(0,4)
-        ri=self.rng.randint(0,4)
-        mask = numpy.rot90(mask, k=ri)
+        #ri=self.rng.randint(0,4)
+        #mask = numpy.rot90(mask, k=ri)
 
         return mask
 

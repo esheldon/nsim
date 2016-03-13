@@ -1,0 +1,104 @@
+run: "run-bdmask04mcal01"
+sim: "sim-bdmask04"
+
+ngmix_hash: "d2be7456608dbd0f3ad31d30bde8d425da7d1af5"
+nsim_hash: ""
+
+fitter: "metacal-max"
+fit_model: "gauss"
+
+use_logpars: True
+
+global_seed: 660
+
+metacal_pars:
+    step: 0.01
+    fixnoise: True
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    T:
+        type: "gmixnd"
+        run: "run-bd23zmax-lownoise01"
+        extra: "log_T"
+        cov_factor: 1.44
+
+    counts:
+        type: "gmixnd"
+        run: "run-bd23zmax-lownoise01"
+        extra: "log_F"
+        cov_factor: 1.44
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+
+
+
+masking:
+  fit_model: "exp"
+
+  priors:
+      cen:
+          type: "normal2d"
+          sigma: 1.0
+
+      T:
+          type: "gmixnd"
+          run: "run-bd23zmax-lownoise02"
+          extra: "log_T"
+          cov_factor: 1.44
+
+      counts:
+          type: "gmixnd"
+          run: "run-bd23zmax-lownoise02"
+          extra: "log_F"
+          cov_factor: 1.44
+
+      g:
+          type: "ba"
+          sigma: 0.3
+
+  psf_pars:
+      model: "coellip3"
+      ntry: 10
+
+
+  max_pars:
+      ntry: 5
+      pars:
+          method: "lm"
+          lm_pars:
+              maxfev: 4000
+      cov_pars:
+          m: 5
+          h: 1.0e-3
+
+
+ngal: 200000000
+
+desired_hours: 1.0
+
+# doubled
+sec_per: 1.0
+
+verbose: False

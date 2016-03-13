@@ -1,0 +1,124 @@
+#!/usr/bin/env python
+from __future__ import print_function
+import os
+from glob import glob
+import yaml
+import numpy
+import meds
+import biggles
+import fitsio
+import images
+from esutil.numpy_util import between
+
+seed=10
+rng=numpy.random.RandomState(seed)
+
+NKEEP_TOT=1400
+NKEEP_PER_TILE=100
+
+# max masking should be a column plus one bad pixel
+MAX_MASKED_FRAC=(48.0+1.0)/(48.0*48.0)
+MIN_GOOD_FRAC=1.0-MAX_MASKED_FRAC
+
+
+def get_output_dir():
+    output_dir=os.path.expanduser('~/lensing/shapesim/bmask-examples')
+
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    return output_dir
+
+def get_meds_flist():
+    md=os.path.expandvars('$DESDATA/meds')
+    md=os.path.join(md, 'tb-y1a1-us82-000')
+
+    pattern=os.path.join(md, '*', '*-i-meds*.fz')
+
+    flist=glob(pattern)
+    return flist
+
+def main():
+
+    biggles.configure('default','fontsize_min',1.5)
+
+    meds_files=get_meds_flist()
+    output_dir=get_output_dir()
+
+    output_file=os.path.join(output_dir, 'bmask-examples.fits')
+
+    nkeep=0
+
+    with fitsio.FITS(output_file,'rw',clobber=True) as fits:
+        for fname in meds_files:
+
+            tilename=os.path.basename(fname)[0:12]
+            print(fname)
+
+            m=meds.MEDS(fname)
+            ii=m.get_image_info()
+            catfile=ii['image_path'][0].strip().replace('.fits.fz','_cat.fits')
+            #catfile=os.path.basename(catfile)
+            #catfile=os.path.join('cats',catfile)
+
+            cat=fitsio.read(catfile,lower=True)
+
+            w,=numpy.where(
+                (m['box_size'] == 48)
+                & (cat['flags'] == 0)
+            )
+            print("    ",w.size)
+
+
+            # get twice as many in order to remove the
+            # crazy ones
+            rints = rng.randint(0, w.size, NKEEP_PER_TILE*2)
+
+            for i,rint in enumerate(rints):
+
+                ii=w[rint]
+
+                cutout=m.get_cutout(ii, 1)
+                wt=m.get_cutout(ii, 1,type='weight')
+                bmask=m.get_cutout(ii, 1, type='bmask')
+
+                wgood=numpy.where( (bmask==0) & (wt > 0.002) )
+                middle_ok = numpy.all(bmask[20:28, 20:28] == 0)
+
+                if (middle_ok) and (wgood[0].size > MIN_GOOD_FRAC*wt.size):
+
+                    title='%s-%06d' % (tilename,ii)
+
+                    epsfile='%s-bmask-%06d.eps' % (tilename,ii)
+                    epsfile=os.path.join(output_dir,epsfile)
+
+
+                    print(epsfile)
+
+                    # make the mask either 0 for OK for 1 for masked
+                    out_mask = numpy.ones(bmask.shape, dtype='i2')
+                    out_mask[wgood]=0
+                    # new extension
+                    fits.write(out_mask)
+
+                    # for plotting, reverse the mask
+                    plot_mask = numpy.zeros(bmask.shape, dtype='i2')
+                    plot_mask[wgood]=1
+
+                    plt=biggles.Table(1,2)
+
+                    show=False
+                    plt[0,0]=images.view(cutout, show=show, nonlinear=0.1)
+                    plt[0,1]=images.view(plot_mask, show=show)
+
+                    plt.write_eps(epsfile)
+
+                    i += 1
+                    nkeep += 1
+
+                if i >= NKEEP_PER_TILE:
+                    break
+
+            if nkeep >= NKEEP_TOT:
+                break
+
+main()

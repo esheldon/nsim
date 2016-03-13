@@ -48,6 +48,8 @@ def main():
                               xlabel=r'$(S/N)$',
                               xrange=[xmin,xmax])
 
+    lin_plt.y1.draw_ticklabels=False
+
     xmin=0.0
     xmax=4.0
     log_plt=biggles.plot_hist(log_s2n,
@@ -57,6 +59,7 @@ def main():
                               xlabel=r'$log_{10}(S/N)$',
                               visible=False,
                               xrange=[xmin,xmax])
+    log_plt.y1.draw_ticklabels=False
 
     tab[0,0] = lin_plt
     tab[0,1] = log_plt

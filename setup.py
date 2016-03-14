@@ -24,7 +24,7 @@ scripts=['nsim-average-outputs',
          'nsim-make-slr',
          'nsim-fit-prior',
          'nsim-plot',
-         'nsim-make-paper-plots',
+         'nsim-make-bafit-paper-plots',
          'nsim-run',
          'extract-meds-bmasks']
 

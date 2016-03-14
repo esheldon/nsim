@@ -2,8 +2,8 @@
 run: "run-bd29mcal-t02"
 sim: "sim-bd29"
 
-ngmix_hash: "b3370cdf9aeb041ea854c5b56df003d42f7baf2a"
-nsim_hash: "da769d985ebe055e4b1c49f1fcc95f2e16c7e571"
+ngmix_hash: "3a87cb3f6182ca6648cdd2c9374b9a5735ba1025"
+nsim_hash: "473f45b95ec52cb3185beaf46e016ef79bb3f34a"
 
 fitter: "metacal-max"
 fit_model: "gauss"

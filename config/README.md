@@ -13,8 +13,15 @@ bdmask01mcal02
 
 bdmask03mcal01
     - just bad pixels from DES
+          m1: -4.615e-04 +/- 6.542e-04 c1: -1.720e-05 +/- 2.273e-05  r1: -0.00836
+          m2: -7.305e-04 +/- 6.516e-04 c2: 7.453e-05 +/- 2.345e-05  r2: -0.033
+          m:  -6.006e-04 +/- 4.620e-04
+          c1: -1.716e-05 +/- 2.310e-05
+          c2: 7.438e-05 +/- 2.311e-05
+
 bdmask04mcal01
     - just bad pixels from DES, with rotated added (not run)
+    - not run
 
 bd29stars-mcal01
     - 20,000,000 stars

@@ -1242,6 +1242,32 @@ sim-bd22
           c1: 1.090e-05 +/- 9.987e-06
           c2: 1.829e-03 +/- 9.987e-06
 
+tests of full wcs
+    - run-bd29mcal-t04
+        - this might be exactly reversed, so would not notice in this calculation
+        - JacobianWCS(dudrow,dudcol,dvdrow,dvdcol)
+              m1: -3.001e-03 +/- 6.635e-03 c1: -1.659e-04 +/- 2.330e-04  r1: 0.0223
+              m2: -1.916e-02 +/- 6.880e-03 c2: -8.835e-05 +/- 2.362e-04  r2: -0.0198
+              m:  -1.090e-02 +/- 4.784e-03
+              c1: -1.720e-04 +/- 2.350e-04
+              c2: -9.396e-05 +/- 2.349e-04
+    - run-bd29mcal-t05
+        - Mike's suggestion
+        - JacobianWCS(dudcol,dudrow,dvdcol,dvdrow)
+              m1: -1.996e+00 +/- 6.683e-03 c1: -2.218e-04 +/- 2.347e-04  r1: 0.0223
+              m2: 7.540e-03 +/- 6.874e-03 c2: 2.545e-04 +/- 2.360e-04  r2: -0.0198
+              m:  -1.017e+00 +/- 2.292e-02
+              c1: 5.452e-04 +/- 1.125e-03
+              c2: 9.508e-04 +/- 1.125e-03
+    - run-bd29mcal-t06
+        - this might be exactly reversed, so would not notice in this calculation
+        - JacobianWCS(dvdcol,dvdrow,dudcol,dudrow)
+              m1: -2.453e-04 +/- 6.583e-03 c1: 1.897e-05 +/- 2.312e-04  r1: 0.0223
+              m2: 1.031e-04 +/- 6.735e-03 c2: 3.031e-04 +/- 2.312e-04  r2: -0.0198
+              m:  -7.505e-05 +/- 4.711e-03
+              c1: 1.910e-05 +/- 2.314e-04
+              c2: 3.032e-04 +/- 2.314e-04
+
 
 - sim-stars01
     - stars, goes with bd21

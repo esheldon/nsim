@@ -5,7 +5,7 @@ sim: "sim-bd29"
 
 # this is the on the metacalwcs branch
 ngmix_hash: "467d10fa5a261b5b7cbbe76a7e0fba735ee327f4"
-nsim_hash: "473f45b95ec52cb3185beaf46e016ef79bb3f34a"
+nsim_hash: "1cdde3403400b2ad28fe850fbf238387abeaaa60"
 
 fitter: "metacal-max"
 fit_model: "gauss"

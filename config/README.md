@@ -6,6 +6,8 @@ important sims for paper
 
 bd29mcal01
     - r50 match cosmos, psf fwhm match DES, ellip dist matching DES
+bd29mcal-t02, bd29mcal02
+    - Mike's rotate noise idea
 bdmask01mcal01
     - same as bd29 but with masking
 bdmask01mcal02

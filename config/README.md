@@ -1276,6 +1276,15 @@ tests of full wcs
               m:  -1.017e+00 +/- 2.292e-02
               c1: 5.452e-04 +/- 1.125e-03
               c2: 9.508e-04 +/- 1.125e-03
+    -run-bd29mcal-t05c
+        - after adjusting ngmix conventions.  Too noisy to be totally
+            conclusive
+              m1: 3.928e-03 +/- 6.799e-03 c1: 3.412e-04 +/- 2.388e-04  r1: 0.0223
+              m2: -4.129e-04 +/- 6.885e-03 c2: 5.653e-05 +/- 2.364e-04  r2: -0.0198
+              m:  1.807e-03 +/- 4.841e-03
+              c1: 3.395e-04 +/- 2.378e-04
+              c2: 5.502e-05 +/- 2.378e-04
+
     - run-bd29mcal-t06
         - this might be exactly reversed, so would not notice in this calculation
         - JacobianWCS(dvdcol,dvdrow,dudcol,dudrow)

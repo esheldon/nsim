@@ -288,10 +288,17 @@ class SimGS(dict):
         return scaled_image, noisy_image, flux
 
     def _set_galsim_wcs(self):
-        dudx=1.0
-        dudy=0.0
-        dvdx=0.0
-        dvdy=1.0
+        if 'wcs' in self:
+            ws=self['wcs']
+            dudx=ws['dudx']
+            dudy=ws['dudy']
+            dvdx=ws['dvdx']
+            dvdy=ws['dvdy']
+        else:
+            dudx=1.0
+            dudy=0.0
+            dvdx=0.0
+            dvdy=1.0
         self.galsim_wcs=galsim.JacobianWCS(dudx, dudy, dvdx, dvdy)
 
     def _get_jacobian(self, image):

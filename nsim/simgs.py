@@ -308,18 +308,9 @@ class SimGS(dict):
         fitter = quick_fit_gauss(image, self.rng)
         row,col = fitter.get_gmix().get_cen()
 
-        return ngmix.jacobian.from_galsim_wcs(self.galsim_wcs,
-                                              row=row,
-                                              col=col)
-        '''
-        gw=self.galsim_wcs
-        return ngmix.Jacobian(row=row,
-                              col=col,
-                              dvdrow=gw.dvdy,
-                              dvdcol=gw.dvdx,
-                              dudrow=gw.dudy,
-                              dudcol=gw.dudx)
-        '''
+        return ngmix.Jacobian(wcs=self.galsim_wcs,
+                              row=row,
+                              col=col)
 
     def _get_galsim_objects(self):
         """

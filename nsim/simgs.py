@@ -293,12 +293,7 @@ class SimGS(dict):
         row,col = fitter.get_gmix().get_cen()
         #print("    row,col:",row,col)
 
-        scale=1.0
-        return ngmix.Jacobian(row, col,
-                              scale,
-                              0.0,
-                              0.0,
-                              scale)
+        return ngmix.UnitJacobian(row=row, col=col)
 
     def _get_galsim_objects(self):
         """
@@ -1006,7 +1001,7 @@ def quick_fit_gauss(image, rng, maxiter=4000, tol=1.0e-6, ntry=4):
     dims = numpy.array(image.shape)
     cenguess = (dims-1)/2.0
 
-    j=ngmix.UnitJacobian(0.0, 0.0)
+    j=ngmix.UnitJacobian(row=0.0, col=0.0)
 
     obs = ngmix.Observation(image, jacobian=j)
 

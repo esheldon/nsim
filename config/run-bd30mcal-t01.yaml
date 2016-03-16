@@ -3,8 +3,8 @@ sim: "sim-bd30"
 
 # this is the on the metacalwcs branch, with fix for
 # convention u->v
-ngmix_hash: ""
-nsim_hash: ""
+ngmix_hash: "d4f0ce90dbad29a73df27eb0d82ba388a736fd0b"
+nsim_hash: "ded9fa64fa53c0d528226141215c05d11ff7a6e0"
 
 fitter: "metacal-max"
 fit_model: "gauss"

@@ -1,0 +1,68 @@
+# use full wcs.  bug fix
+# rotate noise
+run: "run-bd29mcal-t05c"
+sim: "sim-bd29"
+
+# this is the on the metacalwcs branch, with fix for
+# convention u->v
+ngmix_hash: "5b4873eb51e81db3329fdf9e16c53f73a00026af"
+nsim_hash: ""
+
+fitter: "metacal-max"
+fit_model: "gauss"
+
+g_prior_during: True
+use_logpars: True
+
+global_seed: 21624
+
+metacal_pars:
+    step: 0.01
+    fixnoise: True
+    rotnoise: True
+    wcs_convention: 2
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    T:
+        type: "gmixnd"
+        run: "run-bd23zmax-lownoise01"
+        extra: "log_T"
+        cov_factor: 1.44
+
+    counts:
+        type: "gmixnd"
+        run: "run-bd23zmax-lownoise01"
+        extra: "log_F"
+        cov_factor: 1.44
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+ngal: 2000000
+
+desired_hours: 0.50
+
+# doubled
+sec_per: 0.8
+
+verbose: False

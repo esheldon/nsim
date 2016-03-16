@@ -54,6 +54,7 @@ class SimGS(dict):
             if k != "shear":
                 pprint(self[k])
 
+        self._set_galsim_wcs()
 
         self.counter=0
 
@@ -103,11 +104,12 @@ class SimGS(dict):
         for psfs, send s2n=
         """
 
+        #gsimage = galsim.ImageD(ncols, nrows, wcs=self.galsim_wcs)
+        #gs_obj.drawImage(image=gsimage)
         gsimage = gs_obj.drawImage(nx=ncols,
                                    ny=nrows,
-                                   scale=1.0,
+                                   wcs=self.galsim_wcs,
                                    dtype=numpy.float64)
-
         im0 = gsimage.array
         if s2n is not None:
             image_nonoise, image, flux = self._scale_and_add_noise(im0, s2n)
@@ -285,15 +287,27 @@ class SimGS(dict):
 
         return scaled_image, noisy_image, flux
 
+    def _set_galsim_wcs(self):
+        dudx=1.0
+        dudy=0.0
+        dvdx=0.0
+        dvdy=1.0
+        self.galsim_wcs=galsim.JacobianWCS(dudx, dudy, dvdx, dvdy)
+
     def _get_jacobian(self, image):
         """
         find the best center and set the jacobian center there
         """
         fitter = quick_fit_gauss(image, self.rng)
         row,col = fitter.get_gmix().get_cen()
-        #print("    row,col:",row,col)
 
-        return ngmix.UnitJacobian(row=row, col=col)
+        gw=self.galsim_wcs
+        return ngmix.Jacobian(row=row,
+                              col=col,
+                              dvdrow=gw.dvdy,
+                              dvdcol=gw.dvdx,
+                              dudrow=gw.dudy,
+                              dudcol=gw.dudx)
 
     def _get_galsim_objects(self):
         """

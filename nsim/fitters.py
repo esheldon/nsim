@@ -789,6 +789,7 @@ class MaxMetacalFitter(MaxFitter):
         print_pars(res['mcal_pars'],       front='    mcal pars: ')
         print_pars(res['mcal_R'].ravel(),  front='    mcal R:    ')
         print_pars(res['mcal_Rpsf'],       front='    mcal Rpsf: ')
+        #print_pars(res['mcal_Rpsf'],       front='    mcal Rpsf: ',fmt='%.16g')
 
     def _get_dtype(self):
         """

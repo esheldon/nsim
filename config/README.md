@@ -6,8 +6,9 @@ important sims for paper
 
 bd29mcal01
     - r50 match cosmos, psf fwhm match DES, ellip dist matching DES
+
 bd29mcal-t02, bd29mcal02
-    - Mike's rotate noise idea
+
 bdmask01mcal01
     - same as bd29 but with masking
 bdmask01mcal02
@@ -1242,6 +1243,14 @@ sim-bd22
           c1: 1.090e-05 +/- 9.987e-06
           c2: 1.829e-03 +/- 9.987e-06
 
+- run-bd29mcal02
+    - Mike's rotate noise idea
+          m1: -4.208e-04 +/- 6.575e-04 c1: -3.798e-06 +/- 2.309e-05  r1: 0.0223
+          m2: 4.346e-05 +/- 6.863e-04 c2: 1.292e-04 +/- 2.357e-05  r2: -0.0198
+          m:  -1.939e-04 +/- 4.754e-04
+          c1: -3.620e-06 +/- 2.335e-05
+          c2: 1.294e-04 +/- 2.335e-05
+
 tests of full wcs
     - run-bd29mcal-t04
         - this might be exactly reversed, so would not notice in this calculation
@@ -1251,6 +1260,14 @@ tests of full wcs
               m:  -1.090e-02 +/- 4.784e-03
               c1: -1.720e-04 +/- 2.350e-04
               c2: -9.396e-05 +/- 2.349e-04
+    - run-bd29mcal-t04b
+        - 10 million
+            m1: -3.326e-03 +/- 3.057e-03 c1: 3.015e-05 +/- 1.074e-04  r1: 0.0223
+            m2: 2.848e-03 +/- 3.028e-03 c2: 1.908e-05 +/- 1.040e-04  r2: -0.0198
+            m:  -3.083e-04 +/- 2.154e-03
+            c1: 3.251e-05 +/- 1.058e-04
+            c2: 2.123e-05 +/- 1.058e-04
+
     - run-bd29mcal-t05
         - Mike's suggestion
         - JacobianWCS(dudcol,dudrow,dvdcol,dvdrow)
@@ -1267,7 +1284,13 @@ tests of full wcs
               m:  -7.505e-05 +/- 4.711e-03
               c1: 1.910e-05 +/- 2.314e-04
               c2: 3.032e-04 +/- 2.314e-04
-
+    - run-bd29mcal-t06b
+        - 10 million
+              m1: -2.560e-03 +/- 3.044e-03 c1: -1.382e-04 +/- 1.069e-04  r1: 0.0223
+              m2: 2.633e-03 +/- 2.980e-03 c2: -9.002e-05 +/- 1.023e-04  r2: -0.0198
+              m:  -2.206e-05 +/- 2.133e-03
+              c1: -1.362e-04 +/- 1.047e-04
+              c2: -8.822e-05 +/- 1.047e-04
 
 - sim-stars01
     - stars, goes with bd21

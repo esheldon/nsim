@@ -1301,6 +1301,20 @@ tests of full wcs
               c1: -1.362e-04 +/- 1.047e-04
               c2: -8.822e-05 +/- 1.047e-04
 
+- sim-bd30
+    - complex wcs
+- sim-bd31
+    - complex wcs
+    - grid of shears
+    - run-bd31mcal01
+        # partial run
+        m1: 5.269e-04 +/- 8.985e-04 c1: -6.240e-04 +/- 3.151e-05  r1: 6.48e-18
+        m2: -9.701e-04 +/- 8.712e-04 c2: 4.938e-04 +/- 3.055e-05  r2: -5.76e-18
+        m:  -2.216e-04 +/- 6.264e-04
+        c1: -6.240e-04 +/- 3.107e-05
+        c2: 4.938e-04 +/- 3.107e-05
+    - clearly something very wrong with the psf shear correction
+
 - sim-stars01
     - stars, goes with bd21
 

@@ -1251,6 +1251,13 @@ sim-bd22
           c1: -3.620e-06 +/- 2.335e-05
           c2: 1.294e-04 +/- 2.335e-05
 
+- combined 01 and 02
+      m1: -4.072e-04 +/- 4.830e-04 c1: 6.922e-07 +/- 1.696e-05  r1: 0.0223
+      m2: -1.346e-04 +/- 4.892e-04 c2: 1.116e-04 +/- 1.680e-05  r2: -0.0198
+      m:  -2.740e-04 +/- 3.440e-04
+      c1: 7.965e-07 +/- 1.689e-05
+      c2: 1.116e-04 +/- 1.689e-05
+
 tests of full wcs
     - run-bd29mcal-t04
         - this might be exactly reversed, so would not notice in this calculation

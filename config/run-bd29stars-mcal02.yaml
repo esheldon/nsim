@@ -15,6 +15,7 @@ global_seed: 31037
 metacal_pars:
     step: 0.01
     fixnoise: True
+    wcs_convention: 2
 
 priors:
     cen:

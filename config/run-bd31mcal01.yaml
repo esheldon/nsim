@@ -12,7 +12,7 @@ fit_model: "gauss"
 g_prior_during: True
 use_logpars: True
 
-global_seed: 16219
+global_seed: 185
 
 metacal_pars:
     step: 0.01
@@ -56,9 +56,9 @@ max_pars:
         m: 5
         h: 1.0e-3
 
-ngal: 10000000
+ngal: 200000000
 
-desired_hours: 1.0
+desired_hours: 2.0
 
 # doubled
 sec_per: 0.8

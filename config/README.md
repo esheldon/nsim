@@ -6,6 +6,8 @@ important sims for paper
 
 bd29mcal01
     - r50 match cosmos, psf fwhm match DES, ellip dist matching DES
+bd29mcal02
+    - same but with noise rotation; can combine with above
 
 bd29mcal-t02, bd29mcal02
 
@@ -21,6 +23,13 @@ bdmask03mcal01
           m:  -6.006e-04 +/- 4.620e-04
           c1: -1.716e-05 +/- 2.310e-05
           c2: 7.438e-05 +/- 2.311e-05
+    - max like
+          m1: -4.955e-01 +/- 2.887e-04 c1: 8.638e-06 +/- 1.003e-05  r1: -0.00836
+          m2: -4.959e-01 +/- 2.814e-04 c2: 1.508e-03 +/- 1.013e-05  r2: -0.033
+          m:  -4.957e-01 +/- 2.017e-04
+          c1: 8.706e-06 +/- 1.009e-05
+          c2: 1.507e-03 +/- 1.009e-05
+
 
 bdmask04mcal01
     - just bad pixels from DES, with rotated added (not run)
@@ -28,6 +37,8 @@ bdmask04mcal01
 
 bd29stars-mcal01
     - 20,000,000 stars
+bd29stars-mcal02
+    - 20,000,000 stars, but using new code might have been broken
 
 older
 bd16: slightly undersampled (fwhm=0.8?), round psf. small galaxies
@@ -1243,6 +1254,16 @@ sim-bd22
           c1: 1.090e-05 +/- 9.987e-06
           c2: 1.829e-03 +/- 9.987e-06
 
+    - run-bd29stars-mcal02
+        combined all run-bd29mcal01 run-bd29mcal02 run-bd29stars-mcal01 run-bd29stars-mcal02
+          m1: -3.341e-04 +/- 5.013e-04 c1: 3.023e-06 +/- 1.761e-05  r1: 0.0223
+          m2: -9.095e-05 +/- 5.136e-04 c2: 1.206e-04 +/- 1.763e-05  r2: -0.0198
+          m:  -2.153e-04 +/- 3.590e-04
+          c1: 3.116e-06 +/- 1.763e-05
+          c2: 1.207e-04 +/- 1.763e-05
+
+
+
 - run-bd29mcal02
     - Mike's rotate noise idea
           m1: -4.208e-04 +/- 6.575e-04 c1: -3.798e-06 +/- 2.309e-05  r1: 0.0223
@@ -1250,6 +1271,12 @@ sim-bd22
           m:  -1.939e-04 +/- 4.754e-04
           c1: -3.620e-06 +/- 2.335e-05
           c2: 1.294e-04 +/- 2.335e-05
+    -combined with bd29stars-mcal02
+          m1: -3.942e-04 +/- 6.818e-04 c1: 4.155e-06 +/- 2.395e-05  r1: 0.0223
+          m2: 1.826e-05 +/- 7.104e-04 c2: 1.321e-04 +/- 2.439e-05  r2: -0.0198
+          m:  -1.926e-04 +/- 4.925e-04
+          c1: 4.313e-06 +/- 2.419e-05
+          c2: 1.322e-04 +/- 2.419e-05
 
 - combined 01 and 02
       m1: -4.072e-04 +/- 4.830e-04 c1: 6.922e-07 +/- 1.696e-05  r1: 0.0223
@@ -1257,6 +1284,13 @@ sim-bd22
       m:  -2.740e-04 +/- 3.440e-04
       c1: 7.965e-07 +/- 1.689e-05
       c2: 1.116e-04 +/- 1.689e-05
+
+      max like
+      m1: -4.958e-01 +/- 2.095e-04 c1: 4.918e-06 +/- 7.356e-06  r1: 0.0223
+      m2: -4.956e-01 +/- 2.187e-04 c2: 1.521e-03 +/- 7.509e-06  r2: -0.0198
+      m:  -4.957e-01 +/- 1.515e-04
+      c1: 4.995e-06 +/- 7.438e-06
+      c2: 1.521e-03 +/- 7.438e-06
 
 tests of full wcs
     - run-bd29mcal-t04

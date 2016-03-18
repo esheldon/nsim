@@ -4,8 +4,8 @@ sim: "sim-bd31"
 
 # this is the on the metacalwcs branch, with fix for
 # convention u->v
-ngmix_hash: "37671e6df54b62c0aa71f3aa4b34b68ef1a7775b"
-nsim_hash: ""
+ngmix_hash: "ce45edd4cff3382953bd9f75b25ce874ae86ec87"
+nsim_hash: "1de8072e8c12dc0840b6eff4ffaa857118b7d02f"
 
 fitter: "metacal-max"
 fit_model: "gauss"
@@ -57,9 +57,9 @@ max_pars:
         m: 5
         h: 1.0e-3
 
-ngal: 200000000
+ngal: 2000000
 
-desired_hours: 2.0
+desired_hours: 0.5
 
 # doubled
 sec_per: 0.8

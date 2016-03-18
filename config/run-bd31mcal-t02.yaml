@@ -1,0 +1,67 @@
+# mike's new pixel
+run: "run-bd31mcal-t02"
+sim: "sim-bd31"
+
+# this is the on the metacalwcs branch, with fix for
+# convention u->v
+ngmix_hash: "37671e6df54b62c0aa71f3aa4b34b68ef1a7775b"
+nsim_hash: ""
+
+fitter: "metacal-max"
+fit_model: "gauss"
+
+g_prior_during: True
+use_logpars: True
+
+global_seed: 16217
+
+metacal_pars:
+    step: 0.01
+    fixnoise: True
+    rotnoise: True
+    wcs_convention: 2
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    T:
+        type: "gmixnd"
+        run: "run-bd23zmax-lownoise01"
+        extra: "log_T"
+        cov_factor: 1.44
+
+    counts:
+        type: "gmixnd"
+        run: "run-bd23zmax-lownoise01"
+        extra: "log_F"
+        cov_factor: 1.44
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+ngal: 200000000
+
+desired_hours: 2.0
+
+# doubled
+sec_per: 0.8
+
+verbose: False

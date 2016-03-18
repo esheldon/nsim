@@ -1261,6 +1261,13 @@ sim-bd22
           m:  -2.153e-04 +/- 3.590e-04
           c1: 3.116e-06 +/- 1.763e-05
           c2: 1.207e-04 +/- 1.763e-05
+        max likelihood
+          m1: -5.417e-01 +/- 1.975e-04 c1: 6.938e-06 +/- 6.938e-06  r1: 0.0223
+          m2: -5.415e-01 +/- 2.072e-04 c2: 1.840e-03 +/- 7.114e-06  r2: -0.0198
+          m:  -5.416e-01 +/- 1.432e-04
+          c1: 7.004e-06 +/- 7.031e-06
+          c2: 1.840e-03 +/- 7.031e-06
+
 
 
 
@@ -1355,6 +1362,11 @@ tests of full wcs
         c1: -6.240e-04 +/- 3.107e-05
         c2: 4.938e-04 +/- 3.107e-05
     - clearly something very wrong with the psf shear correction
+
+
+    - run-bd31mcal-t02
+        - mike's new suggestion for the pixel
+
 
 - sim-stars01
     - stars, goes with bd21

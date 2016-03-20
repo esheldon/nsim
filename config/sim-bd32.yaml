@@ -1,5 +1,5 @@
 # same as bd31 but with zeros for the small parts of wcs
-name: "sim-bd31"
+name: "sim-bd32"
 
 simulator: "galsim"
 

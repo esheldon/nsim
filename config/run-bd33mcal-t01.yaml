@@ -4,7 +4,7 @@ sim: "sim-bd33"
 # this is the on the metacalwcs branch, with fix for
 # convention u->v
 ngmix_hash: "b1880ed53c221932426a79e2c5afc0d6a09610e8"
-nsim_hash: ""
+nsim_hash: "eb4dedcb5a5488effb347f9e5c595006f0e557a0"
 
 fitter: "metacal-max"
 fit_model: "gauss"

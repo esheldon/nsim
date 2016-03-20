@@ -54,8 +54,6 @@ class SimGS(dict):
             if k != "shear":
                 pprint(self[k])
 
-        self._set_galsim_wcs()
-
         self.counter=0
 
     def get_image(self):
@@ -108,7 +106,7 @@ class SimGS(dict):
         #gs_obj.drawImage(image=gsimage)
         gsimage = gs_obj.drawImage(nx=ncols,
                                    ny=nrows,
-                                   wcs=self.galsim_wcs,
+                                   wcs=self.get_galsim_wcs(),
                                    dtype=numpy.float64)
         im0 = gsimage.array
         if s2n is not None:
@@ -287,7 +285,7 @@ class SimGS(dict):
 
         return scaled_image, noisy_image, flux
 
-    def _set_galsim_wcs(self):
+    def get_galsim_wcs(self):
         if 'wcs' in self:
             ws=self['wcs']
             dudx=ws['dudx']
@@ -299,7 +297,7 @@ class SimGS(dict):
             dudy=0.0
             dvdx=0.0
             dvdy=1.0
-        self.galsim_wcs=galsim.JacobianWCS(dudx, dudy, dvdx, dvdy)
+        return galsim.JacobianWCS(dudx, dudy, dvdx, dvdy)
 
     def _get_jacobian(self, image):
         """
@@ -308,7 +306,7 @@ class SimGS(dict):
         fitter = quick_fit_gauss(image, self.rng)
         row,col = fitter.get_gmix().get_cen()
 
-        return ngmix.Jacobian(wcs=self.galsim_wcs,
+        return ngmix.Jacobian(wcs=self.get_galsim_wcs(),
                               row=row,
                               col=col)
 
@@ -1039,8 +1037,7 @@ def quick_fit_gauss(image, rng, maxiter=4000, tol=1.0e-6, ntry=4):
         res=fitter.get_result()
         if res['flags']==0:
             break
-    
+
     if res['flags'] != 0:
         raise TryAgainError("could not fit 1 gauss")
-
     return fitter

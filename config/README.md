@@ -1373,6 +1373,11 @@ tests of full wcs
   m:  -9.137e-03 +/- 4.664e-03
   c1: -6.673e-04 +/- 2.313e-04
   c2: 6.271e-04 +/- 2.313e-04
+- run-bd31mcal-t04
+    - using regular fixnoise
+- run-bd31mcal-t05
+    - same as t03 but now with Mike's fix in the deconvolution, where
+        1/smallnumber was happening for very sheared wcs
 
 
  - run-bd32mcal-t01
@@ -1383,6 +1388,11 @@ tests of full wcs
   c2: 1.083e-04 +/- 2.343e-04
 
  - run-bd33mcal-t01
+  m1: 1.648e-03 +/- 6.553e-03 c1: -5.598e-04 +/- 2.298e-04  r1: 6.48e-18
+  m2: 7.067e-03 +/- 6.772e-03 c2: -2.632e-04 +/- 2.375e-04  r2: -5.76e-18
+  m:  4.357e-03 +/- 4.715e-03
+  c1: -5.598e-04 +/- 2.339e-04
+  c2: -2.632e-04 +/- 2.339e-04
 
 - sim-stars01
     - stars, goes with bd21

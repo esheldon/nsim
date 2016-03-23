@@ -7,7 +7,7 @@ sim: "sim-bd31"
 # this is the on the metacalwcs branch, with fix for
 # convention u->v
 ngmix_hash: "b1880ed53c221932426a79e2c5afc0d6a09610e8"
-nsim_hash: ""
+nsim_hash: "3a63abb89a02e240fa352f0f292e64a5c2c1d322"
 # branch #720
 galsim_hash: "993044f1eb13d577e27d6f48fed23b5059ed8387"
 
@@ -17,7 +17,7 @@ fit_model: "gauss"
 g_prior_during: True
 use_logpars: True
 
-global_seed: 7496
+global_seed: 14146
 
 metacal_pars:
     step: 0.01

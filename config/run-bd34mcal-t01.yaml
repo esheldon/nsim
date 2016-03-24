@@ -15,7 +15,7 @@ fit_model: "gauss"
 g_prior_during: True
 use_logpars: True
 
-global_seed: 9226
+global_seed: 17108
 
 metacal_pars:
     step: 0.01

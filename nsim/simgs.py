@@ -298,7 +298,6 @@ class SimGS(dict):
             dvdy=ws['dvdy']
 
             if 'dudx_std' in ws:
-                print("adding wcs scatter")
                 rng=self.rng
                 dudx += rng.normal(scale=ws['dudx_std'])
                 dudy += rng.normal(scale=ws['dudy_std'])
@@ -312,13 +311,13 @@ class SimGS(dict):
 
         # our sims are always in pixels for now
         det = numpy.abs( dudy*dvdx-dudx*dvdy )
-        scale = sqrt(det)
+        scale = numpy.sqrt(det)
 
         wcs=galsim.JacobianWCS(dudx/scale,
                                dudy/scale,
                                dvdx/scale,
                                dvdy/scale)
-        print("galsim wcs:",wcs)
+
         return wcs
 
     def _get_jacobian(self, image, wcs):

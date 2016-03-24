@@ -5,7 +5,7 @@ sim: "sim-bd35"
 # this is the on the metacalwcs branch, with fix for
 # convention u->v
 ngmix_hash: "516f5c18ed6e34c85f037a5ba28841e1c433ca49"
-nsim_hash: "1d3b2b3d975c3ab25a631704ee01130328a8915a"
+nsim_hash: "2eba3bffcdf5cc973e3cab1e2c181bb56158a66e"
 # branch #720
 galsim_hash: "993044f1eb13d577e27d6f48fed23b5059ed8387"
 

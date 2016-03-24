@@ -1,5 +1,5 @@
 # same as bd31 but with lower limit on fwhm
-name: "sim-bd31"
+name: "sim-bd34"
 
 simulator: "galsim"
 
@@ -31,8 +31,8 @@ psf:
       mean: 3.660
       sigma: 0.377
       
-      # ~0.85'' 
-      range: [3.2, 1.e6]
+      # ~[0.85'' 2.0]''
+      range: [3.2, 7.55]
 
     shape:
       type: "normal2d"

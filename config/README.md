@@ -1409,7 +1409,13 @@ tests of full wcs
 - sim-bd34
     - crazy wcs like bd31
     - limiting fwhm for this crazy wcs
+      m1: 6.608e-05 +/- 3.308e-03 c1: -5.381e-04 +/- 1.160e-04  r1: 6.48e-18
+      m2: 3.071e-04 +/- 3.375e-03 c2: 2.330e-04 +/- 1.184e-04  r2: -5.76e-18
+      m:  1.866e-04 +/- 2.365e-03
+      c1: -5.381e-04 +/- 1.173e-04
+      c2: 2.330e-04 +/- 1.173e-04
 
+      still big c1
 
 - sim-stars01
     - stars, goes with bd21
@@ -3159,3 +3165,47 @@ older stuff
           good then it might not be the sampling of the tails after
           burnin that was the fixer, just the burnin (or good guess).
 
+
+#
+# mike's notes on using a galsim config from within python, rather
+# than writing the files
+#
+
+# Define the configuration dict
+config = {}
+config['gal'] = ...
+config['psf'] = ...
+config['image'] = ... # Just things like noise, wcs, etc. that matter for the postage stamps
+# Or can read from a config file 
+config = galsim.config.ReadConfig(config_file)
+
+# If necessary, prepare anything that uses an input field:
+galsim.config.ProcessInput(config)
+
+# Initialize the rng.  We normally reset the rng for each obj_num, but in this use case, you don't 
+# have to.  You can just let it run through the whole simulation if you want.
+galsim.config.SetupConfigRNG(config)
+# Or if you prefer to set it directly, you can just do this:
+config['rng'] = galsim.BaseDeviate(seed)
+
+# Depending on how you want to interact with the image parameters, you might want to 
+# run this once here at the top, which will use a common wcs, etc. for all stamps.  Or you might
+# want to run it inside the loop with image_num=i, which will re-parse those parameters for
+# each stamp.
+galsim.config.SetupConfigImageNum(config, image_num=0)
+
+# Similarly, this will define the full image if you want.  But you might want to redo this for each
+# stamp with its size.  This is where the wcs actually gets processed, so if you want a different
+# wcs for each stamp, this needs to be inside the loop.  Otherwise, fine to put it here.
+galsim.config.SetupConfigImageSize(config, full_xsize, full_ysize)
+
+# Now it should all be ready to run through the building of postage stamps:
+for i in xrange(ngal):
+    # xsize,ysize may be omitted, in which case it will check the config dict for a stamp size 
+    # specification, or if none, it will use GalSim's automatic image size for that object.
+    stamp, current_var = galsim.config.BuildStamp(config, obj_num=i, xsize=xsize, ysize=ysize)
+
+    # If you want to grab the generated PSF for something, it is stored as
+    psf = config['psf']['current_val']
+    # Likewise the galaxy profile will be at
+    gal = config['gal']['current_val']

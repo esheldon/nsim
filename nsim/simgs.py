@@ -61,16 +61,20 @@ class SimGS(dict):
         get a randomized galaxy image
         """
 
+        wcs=self.get_galsim_wcs()
+
         gal, gal_pars, psf, psf_pars = self._get_galsim_objects()
 
         if 'psf_stamp_size' in self:
             nrows,ncols=self['psf_stamp_size']
         else:
             nrows,ncols=self['stamp_size']
-        psf_obs = self._make_obs(psf, nrows, ncols, s2n=self['psf']['s2n'], isgal=False)
+        psf_obs = self._make_obs(psf, nrows, ncols, wcs,
+                                 s2n=self['psf']['s2n'], isgal=False)
 
         nrows,ncols=self['stamp_size']
-        gal_obs = self._make_obs(gal, nrows, ncols, isgal=True)
+        gal_obs = self._make_obs(gal, nrows, ncols, wcs,
+                                 isgal=True)
 
         s2n = self._get_expected_s2n(gal_obs.image_nonoise)
         print("    s2n expected:",s2n)
@@ -95,7 +99,7 @@ class SimGS(dict):
                 'gal_obj': gal}
 
 
-    def _make_obs(self, gs_obj, nrows, ncols, s2n=None, isgal=True):
+    def _make_obs(self, gs_obj, nrows, ncols, wcs, s2n=None, isgal=True):
         """
         get an ngmix Observation
 
@@ -106,7 +110,7 @@ class SimGS(dict):
         #gs_obj.drawImage(image=gsimage)
         gsimage = gs_obj.drawImage(nx=ncols,
                                    ny=nrows,
-                                   wcs=self.get_galsim_wcs(),
+                                   wcs=wcs,
                                    dtype=numpy.float64)
         im0 = gsimage.array
         if s2n is not None:
@@ -115,7 +119,7 @@ class SimGS(dict):
             image_nonoise = im0.copy()
             image = self._add_noise(image_nonoise)
 
-        jacob = self._get_jacobian(image_nonoise)
+        jacob = self._get_jacobian(image_nonoise,gsimage.wcs)
 
         weight = numpy.zeros( image.shape ) + self['ivar']
 
@@ -292,21 +296,39 @@ class SimGS(dict):
             dudy=ws['dudy']
             dvdx=ws['dvdx']
             dvdy=ws['dvdy']
+
+            if 'dudx_std' in ws:
+                print("adding wcs scatter")
+                rng=self.rng
+                dudx += rng.normal(scale=ws['dudx_std'])
+                dudy += rng.normal(scale=ws['dudy_std'])
+                dvdx += rng.normal(scale=ws['dvdx_std'])
+                dvdy += rng.normal(scale=ws['dvdy_std'])
         else:
             dudx=1.0
             dudy=0.0
             dvdx=0.0
             dvdy=1.0
-        return galsim.JacobianWCS(dudx, dudy, dvdx, dvdy)
 
-    def _get_jacobian(self, image):
+        # our sims are always in pixels for now
+        det = numpy.abs( dudy*dvdx-dudx*dvdy )
+        scale = sqrt(det)
+
+        wcs=galsim.JacobianWCS(dudx/scale,
+                               dudy/scale,
+                               dvdx/scale,
+                               dvdy/scale)
+        print("galsim wcs:",wcs)
+        return wcs
+
+    def _get_jacobian(self, image, wcs):
         """
         find the best center and set the jacobian center there
         """
         fitter = quick_fit_gauss(image, self.rng)
         row,col = fitter.get_gmix().get_cen()
 
-        return ngmix.Jacobian(wcs=self.get_galsim_wcs(),
+        return ngmix.Jacobian(wcs=wcs,
                               row=row,
                               col=col)
 

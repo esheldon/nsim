@@ -641,14 +641,21 @@ class SimGS(dict):
                     fname=os.path.expandvars( pspec['fwhm']['file'] )
                     print("Reading fwhm values from file:",fname)
                     vals=numpy.fromfile(fname, sep='\n')
-                    self.psf_fwhm_pdf=DiscreteSampler(vals,
-                                                      rng=self.rng)
+                    psf_fwhm_pdf=DiscreteSampler(vals,
+                                                 rng=self.rng)
                 elif type=='lognormal':
-                    self.psf_fwhm_pdf=LogNormal(pspec['fwhm']['mean'],
-                                                pspec['fwhm']['sigma'],
-                                                rng=self.rng)
+                    psf_fwhm_pdf=LogNormal(pspec['fwhm']['mean'],
+                                           pspec['fwhm']['sigma'],
+                                           rng=self.rng)
                 else:
                     raise ValueError("bad fwhm type: '%s'" % type)
+
+                if 'range' in pspec['fwhm']:
+                    bounds=pspec['fwhm']['range']
+                    print("   bounding psf fwhm to:",bounds)
+                    psf_fwhm_pdf = ngmix.priors.Bounded1D(psf_fwhm_pdf,bounds)
+
+            self.psf_fwhm_pdf  = psf_fwhm_pdf 
         else:
             if isinstance(pspec['r50'], dict):
                 r50pdf = pspec['r50']

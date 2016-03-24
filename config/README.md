@@ -1349,6 +1349,15 @@ tests of full wcs
               c1: -1.362e-04 +/- 1.047e-04
               c2: -8.822e-05 +/- 1.047e-04
 
+    - run-bd29mcal-t07
+        - testing new pixel in metacal
+              m1: 3.031e-03 +/- 3.154e-03 c1: -1.737e-04 +/- 1.108e-04  r1: 0.0223
+              m2: -4.077e-03 +/- 3.330e-03 c2: -6.198e-05 +/- 1.143e-04  r2: -0.0198
+              m:  -4.428e-04 +/- 2.295e-03
+              c1: -1.764e-04 +/- 1.127e-04
+              c2: -6.445e-05 +/- 1.127e-04
+
+
 - sim-bd30
     - complex wcs
 - sim-bd31
@@ -1376,9 +1385,11 @@ tests of full wcs
 - run-bd31mcal-t04
     - using regular fixnoise
 - run-bd31mcal-t05
+- run-bd31mcal-t06
     - same as t03 but now with Mike's fix in the deconvolution, where
         1/smallnumber was happening for very sheared wcs
-
+      m1: 6.767e-03 +/- 3.122e-03 c1: -3.862e-04 +/- 1.095e-04
+      m2: -2.213e-03 +/- 3.174e-03 c2: 7.835e-04 +/- 1.113e-04
 
  - run-bd32mcal-t01
   m1: 1.722e-03 +/- 6.500e-03 c1: -5.394e-04 +/- 2.279e-04  r1: 6.48e-18
@@ -1393,6 +1404,12 @@ tests of full wcs
   m:  4.357e-03 +/- 4.715e-03
   c1: -5.598e-04 +/- 2.339e-04
   c2: -2.632e-04 +/- 2.339e-04
+
+
+- sim-bd34
+    - crazy wcs like bd31
+    - limiting fwhm for this crazy wcs
+
 
 - sim-stars01
     - stars, goes with bd21

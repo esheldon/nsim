@@ -1417,6 +1417,15 @@ tests of full wcs
 
       still big c1
 
+- sim-bd35
+    - wcs like real DES data, with variations
+    - run-bd35mcal-t01
+      m1: 1.053e-03 +/- 3.003e-03 c1: -6.642e-05 +/- 1.053e-04
+      m2: 2.473e-03 +/- 3.057e-03 c2: 6.086e-05 +/- 1.072e-04
+      m:  1.763e-03 +/- 2.144e-03
+      c1: -6.642e-05 +/- 1.063e-04
+      c2: 6.086e-05 +/- 1.063e-04
+
 - sim-stars01
     - stars, goes with bd21
 

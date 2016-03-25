@@ -808,6 +808,14 @@ class MaxMetacalFitter(MaxFitter):
             ('mcal_Rpsf','f8',2),
             ('mcal_gpsf','f8',2),
             ('mcal_Tpsf','f8'),
+            #('mcal_g_1p','f8',npars),
+            #('mcal_g_1m','f8',npars),
+            #('mcal_g_2p','f8',npars),
+            #('mcal_g_2m','f8',npars),
+            #('mcal_s2n_r_1p','f8',npars),
+            #('mcal_s2n_r_1m','f8',npars),
+            #('mcal_s2n_r_2p','f8',npars),
+            #('mcal_s2n_r_2m','f8',npars),
         ]
 
         return dt

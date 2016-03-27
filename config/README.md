@@ -1431,6 +1431,8 @@ tests of full wcs
       m:  -2.440e-04 +/- 4.541e-04
       c1: 8.581e-06 +/- 2.252e-05
       c2: 1.479e-04 +/- 2.252e-05
+    - run-bd35mcal02
+        - adding prepix psf shape
 
 - sim-stars01
     - stars, goes with bd21

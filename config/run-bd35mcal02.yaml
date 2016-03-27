@@ -6,7 +6,7 @@ sim: "sim-bd35"
 # convention u->v
 # also adding prepix psf
 ngmix_hash: "923720bdfb9db717fc5becfceae37fe9c183652b"
-nsim_hash: "2eba3bffcdf5cc973e3cab1e2c181bb56158a66e"
+nsim_hash: "97ce6ebfc75f2f1156e2ca4e3fe4623aa5ecacd3"
 # branch #720
 galsim_hash: "993044f1eb13d577e27d6f48fed23b5059ed8387"
 

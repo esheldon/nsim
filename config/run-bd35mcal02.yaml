@@ -1,0 +1,69 @@
+# DES wcs
+run: "run-bd35mcal02"
+sim: "sim-bd35"
+
+# this is the on the metacalwcs branch, with fix for
+# convention u->v
+# also adding prepix psf
+ngmix_hash: "923720bdfb9db717fc5becfceae37fe9c183652b"
+nsim_hash: "2eba3bffcdf5cc973e3cab1e2c181bb56158a66e"
+# branch #720
+galsim_hash: "993044f1eb13d577e27d6f48fed23b5059ed8387"
+
+fitter: "metacal-max"
+fit_model: "gauss"
+
+g_prior_during: True
+use_logpars: True
+
+global_seed: 3724
+
+metacal_pars:
+    step: 0.01
+    fixnoise: True
+    rotnoise: True
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    T:
+        type: "gmixnd"
+        run: "run-bd23zmax-lownoise01"
+        extra: "log_T"
+        cov_factor: 1.44
+
+    counts:
+        type: "gmixnd"
+        run: "run-bd23zmax-lownoise01"
+        extra: "log_F"
+        cov_factor: 1.44
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+ngal: 200000000
+
+desired_hours: 2.0
+
+# doubled
+sec_per: 0.8
+
+verbose: False

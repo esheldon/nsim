@@ -64,6 +64,6 @@ ngal: 200000000
 desired_hours: 2.0
 
 # doubled
-sec_per: 0.8
+sec_per: 1.4
 
 verbose: False

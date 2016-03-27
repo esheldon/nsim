@@ -507,8 +507,14 @@ class MaxFitter(SimpleFitterBase):
 
         Tguess=self.sim.get('psf_T',4.0)
         ppars=self['psf_pars']
+        psf_fit_pars = ppars.get('fit_pars',None)
         try:
-            boot.fit_psfs(ppars['model'], Tguess, ntry=ppars['ntry'])
+            boot.fit_psfs(
+                ppars['model'],
+                Tguess,
+                ntry=ppars['ntry'],
+                fit_pars=psf_fit_pars
+            )
         except BootPSFFailure:
             raise TryAgainError("failed to fit psf")
 
@@ -807,6 +813,7 @@ class MaxMetacalFitter(MaxFitter):
             ('mcal_R','f8',(2,2)),
             ('mcal_Rpsf','f8',2),
             ('mcal_gpsf','f8',2),
+            ('mcal_gpsf_prepix','f8',2),
             ('mcal_Tpsf','f8'),
             #('mcal_g_1p','f8',npars),
             #('mcal_g_1m','f8',npars),
@@ -838,6 +845,7 @@ class MaxMetacalFitter(MaxFitter):
         d['mcal_R'][i] = res['mcal_R']
         d['mcal_Rpsf'][i] = res['mcal_Rpsf']
         d['mcal_gpsf'][i] = res['mcal_gpsf']
+        d['mcal_gpsf_prepix'][i] = res['mcal_gpsf_prepix']
         d['mcal_Tpsf'][i] = res['mcal_psf_T']
 
     def _compare_psf_obs_fit(self, obs, **keys):

@@ -507,14 +507,9 @@ class MaxFitter(SimpleFitterBase):
 
         Tguess=self.sim.get('psf_T',4.0)
         ppars=self['psf_pars']
-        psf_fit_pars = ppars.get('fit_pars',None)
+        #psf_fit_pars = ppars.get('fit_pars',None)
         try:
-            boot.fit_psfs(
-                ppars['model'],
-                Tguess,
-                ntry=ppars['ntry'],
-                fit_pars=psf_fit_pars
-            )
+            boot.fit_psfs(ppars['model'], Tguess, ntry=ppars['ntry'])
         except BootPSFFailure:
             raise TryAgainError("failed to fit psf")
 

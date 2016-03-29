@@ -1434,6 +1434,9 @@ tests of full wcs
     - run-bd35mcal02
         - adding prepix psf shape
 
+    - run-bd35mcal04
+        ngmix: fccf742687df5c59b9daa8756117a5430d04dcb4
+        nsim:   
 - sim-stars01
     - stars, goes with bd21
 

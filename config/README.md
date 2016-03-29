@@ -1432,10 +1432,15 @@ tests of full wcs
       c1: 8.581e-06 +/- 2.252e-05
       c2: 1.479e-04 +/- 2.252e-05
     - run-bd35mcal02
-        - adding prepix psf shape
+        - adding prepix psf shape, same seed
             - c1,c2 look great,but big m bias
     - run-bd35mcal03
-        - revert best I can: looks fine
+        - revert best I can, same seed: looks fine
+      m1: -1.249e-03 +/- 6.756e-04 c1: 6.680e-06 +/- 2.369e-05  r1: 6.48e-18
+      m2: 4.142e-04 +/- 6.643e-04 c2: 1.571e-04 +/- 2.330e-05  r2: -5.76e-18
+      m:  -4.175e-04 +/- 4.744e-04
+      c1: 6.680e-06 +/- 2.353e-05
+      c2: 1.571e-04 +/- 2.353e-05
 
     - run-bd35mcal04
         - back to head of the branches but without prepix

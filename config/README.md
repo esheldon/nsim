@@ -1434,6 +1434,12 @@ tests of full wcs
     - run-bd35mcal02
         - adding prepix psf shape, same seed
             - c1,c2 look great,but big m bias
+      m1: -2.553e-03 +/- 6.680e-04 c1: 1.663e-05 +/- 2.343e-05  r1: 6.48e-18
+      m2: -9.024e-04 +/- 6.456e-04 c2: 2.104e-05 +/- 2.264e-05  r2: -5.76e-18
+      m:  -1.728e-03 +/- 4.652e-04
+      c1: 1.663e-05 +/- 2.307e-05
+      c2: 2.104e-05 +/- 2.307e-05
+
     - run-bd35mcal03
         - revert best I can, same seed: looks fine
       m1: -1.249e-03 +/- 6.756e-04 c1: 6.680e-06 +/- 2.369e-05  r1: 6.48e-18
@@ -1441,6 +1447,9 @@ tests of full wcs
       m:  -4.175e-04 +/- 4.744e-04
       c1: 6.680e-06 +/- 2.353e-05
       c2: 1.571e-04 +/- 2.353e-05
+        ngmix/metacalwcs: b7b249c0197ea5af8071f44d9233a82b1fef8a10
+        nsim:             b9b729dec16bbae9e143a1a8c0dbbe942c5590bf
+        galsim/#720:      993044f1eb13d577e27d6f48fed23b5059ed8387
 
     - run-bd35mcal04
         - back to head of the branches but without prepix
@@ -1450,6 +1459,25 @@ tests of full wcs
         ngmix/metacalwcs fccf742687df5c59b9daa8756117a5430d04dcb4
         nsim/prepix      b9b59c2f78f5f3c9741ae386dfcd2fecf390b442
         galsim/#720      993044f1eb13d577e27d6f48fed23b5059ed8387
+      m1: -2.677e-03 +/- 7.411e-04 c1: -4.449e-06 +/- 2.599e-05  r1: 6.48e-18
+      m2: 2.500e-04 +/- 7.393e-04 c2: 1.405e-04 +/- 2.593e-05  r2: -5.76e-18
+      m:  -1.214e-03 +/- 5.248e-04
+      c1: -4.449e-06 +/- 2.603e-05
+      c2: 1.405e-04 +/- 2.603e-05
+
+- sim-bd36
+    - DES wcs with -1 on dudy and dvdx, but no variation
+    - run-bd35mcal-t01
+        500,000
+        ngmix/metacalwcs: f523769f24cba190e881569457a5d870ca198058
+        nsim/prepix:      ed45fce2c18cfe0d97779dde63da0ae31b363800
+        galsim/#720       993044f1eb13d577e27d6f48fed23b5059ed8387
+
+    - run-bd35mcal-t01
+        10 million
+        ngmix/metacalwcs: f523769f24cba190e881569457a5d870ca198058
+        nsim/prepix:      4f42b9bacdcc31c1bcbb9c277ed1b026cab11aa6
+        galsim/#720       993044f1eb13d577e27d6f48fed23b5059ed8387
 
 - sim-stars01
     - stars, goes with bd21

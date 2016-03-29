@@ -1433,10 +1433,19 @@ tests of full wcs
       c2: 1.479e-04 +/- 2.252e-05
     - run-bd35mcal02
         - adding prepix psf shape
+            - c1,c2 look great,but big m bias
+    - run-bd35mcal03
+        - revert best I can: looks fine
 
     - run-bd35mcal04
-        ngmix: fccf742687df5c59b9daa8756117a5430d04dcb4
-        nsim:   
+        - back to head of the branches but without prepix
+        - also fixed rng
+
+        # branch metacalwcs
+        ngmix/metacalwcs fccf742687df5c59b9daa8756117a5430d04dcb4
+        nsim/prepix      b9b59c2f78f5f3c9741ae386dfcd2fecf390b442
+        galsim/#720      993044f1eb13d577e27d6f48fed23b5059ed8387
+
 - sim-stars01
     - stars, goes with bd21
 

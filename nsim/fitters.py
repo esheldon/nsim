@@ -873,6 +873,170 @@ class MaxMetacalFitter(MaxFitter):
         keys['height']=1000
         images.compare_images(im1, im2, **keys)
 
+
+class MaxMetacalFitterNew(MaxMetacalFitter):
+    """
+    metacal with a maximum likelihood fit
+    """
+
+    def _do_fits(self, obs):
+        """
+        the basic fitter for this class
+        """
+        from ngmix.bootstrap import MetacalBootstrapper
+
+        if 'masking' in self:
+            replace_fitter=self._do_fits_for_replacement(obs)
+
+        boot=MetacalBootstrapper(obs,
+                                 use_logpars=self['use_logpars'],
+                                 verbose=False)
+
+        Tguess=self.sim.get('psf_T',4.0)
+        ppars=self['psf_pars']
+
+        psf_fit_pars = ppars.get('fit_pars',None)
+
+        try:
+            # redo psf in case we did replacement fit above
+            boot.fit_psfs(ppars['model'],
+                          Tguess,
+                          ntry=ppars['ntry'],
+                          skip_already_done=False,
+                          fit_pars=psf_fit_pars)
+
+        except BootPSFFailure:
+            raise TryAgainError("failed to fit psf")
+
+        mconf=self['max_pars']
+
+        try:
+            boot.fit_max(self['fit_model'],
+                         mconf['pars'],
+                         prior=self.prior,
+                         ntry=mconf['ntry'])
+
+            boot.set_round_s2n()
+            rres=boot.get_round_result()
+            res=boot.get_max_fitter().get_result()
+
+            res['psf_pars'] = boot.mb_obs_list[0][0].psf.gmix.get_full_pars()
+
+            res['s2n_r'] = rres['s2n_r']
+            res['T_r'] = rres['T_r']
+
+            res['psf_T'] = obs.psf.gmix.get_T()
+            res['psf_T_r'] = rres['psf_T_r']
+
+            if mconf['pars']['method']=='lm':
+                boot.try_replace_cov(mconf['cov_pars'])
+
+            if 'masking' in self:
+                boot.replace_masked_pixels(fitter=replace_fitter)
+
+            self._do_metacal(boot)
+
+        except BootPSFFailure:
+            raise TryAgainError("failed to fit metacal psfs")
+        except BootGalFailure:
+            raise TryAgainError("failed to fit galaxy")
+
+        fitter=boot.get_max_fitter()
+        res=fitter.get_result()
+
+        mres = boot.get_metacal_result()
+        res.update(mres)
+
+        return {'fitter':fitter,
+                'boot':boot,
+                'res':res}
+
+    def _do_metacal(self, boot):
+
+        ppars=self['psf_pars']
+        mconf=self['max_pars']
+        Tguess=self.sim.get('psf_T',4.0)
+        psf_fit_pars = ppars.get('fit_pars',None)
+
+        boot.fit_metacal(
+            ppars['model'],
+            self['fit_model'],
+            mconf['pars'],
+            Tguess,
+            psf_fit_pars=psf_fit_pars,
+            prior=self.prior,
+            ntry=mconf['ntry'],
+            metacal_pars=self['metacal_pars'],
+        )
+
+    def _get_dtype(self):
+        """
+        get the dtype for the output struct
+        """
+        dt=super(MaxMetacalFitter,self)._get_dtype()
+
+        npars=self['npars']
+        for type in ngmix.metacal.METACAL_TYPES:
+
+            if type=='noshear':
+                back=''
+            else:
+                back='_%s' % type
+
+            dt += [
+                ('mcal_pars%s' % back,'f8',npars)
+                ('mcal_g%s' % back,'f8',2)
+            ]
+
+            if type=='noshear':
+                dt += [
+                    ('mcal_pars_cov','f8',(npars,npars)),
+                    ('mcal_gpsf','f8',2),
+                    ('mcal_Tpsf','f8'),
+                ]
+
+            dt += [
+                ('mcal_s2n_r%s' % back,'f8'),
+            ]
+
+        return dt
+
+
+    def _copy_to_output(self, res, i):
+        """
+        copy parameters specific to this class
+        """
+        super(MaxMetacalFitter,self)._copy_to_output(res, i)
+
+        d=self.data
+
+        for type in ngmix.metacal.METACAL_TYPES:
+            tres=res[type]
+            if type=='noshear':
+                back=''
+            else:
+                back='_%s' % type
+
+            d['mcal_pars%s' % back][i] = tres['pars']
+            d['mcal_s2n_r%s' % back][i] = tres['s2n_r']
+
+            if type=='noshear':
+                for p in ['pars_cov','gpsf','Tpsf','g']:
+                    name='mcal_%s' % p
+                    d[name][i] = tres[p]
+
+    def _print_res(self,resfull):
+        """
+        print some stats
+        """
+
+        super(MaxMetacalFitter,self)._print_res(resfull)
+
+        res=resfull['noshear']
+        print("    mcal s2n_r:",res['s2n_r'])
+        print_pars(res['pars'],       front='    mcal pars: ')
+
+
 class MaxMetacalDetrendFitter(MaxMetacalFitter):
 
     def __init__(self, sim, run_conf, ngal, **keys):

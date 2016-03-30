@@ -984,8 +984,8 @@ class MaxMetacalFitterNew(MaxMetacalFitter):
                 back='_%s' % type
 
             dt += [
-                ('mcal_pars%s' % back,'f8',npars)
-                ('mcal_g%s' % back,'f8',2)
+                ('mcal_g%s' % back,'f8',2),
+                ('mcal_pars%s' % back,'f8',npars),
             ]
 
             if type=='noshear':
@@ -1018,10 +1018,11 @@ class MaxMetacalFitterNew(MaxMetacalFitter):
                 back='_%s' % type
 
             d['mcal_pars%s' % back][i] = tres['pars']
+            d['mcal_g%s' % back][i] = tres['g']
             d['mcal_s2n_r%s' % back][i] = tres['s2n_r']
 
             if type=='noshear':
-                for p in ['pars_cov','gpsf','Tpsf','g']:
+                for p in ['pars_cov','gpsf','Tpsf']:
                     name='mcal_%s' % p
                     d[name][i] = tres[p]
 

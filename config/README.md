@@ -1502,6 +1502,12 @@ tests of full wcs
           c1: 2.650e-05 +/- 3.156e-05
           c2: 9.254e-06 +/- 3.156e-05
 
+- refactored metacal, saving individual pars instead of R
+    - run-bd36mcal-t03
+        500,000
+            ngmix/mcalrefactor: f1a8535b199be605de227fe0a4157ecbf912c89c
+            nsim/prepix: fdb2ed197ebff90238344c823e24eb68af541b0a
+            galsim/#720       993044f1eb13d577e27d6f48fed23b5059ed8387
 
 - sim-stars01
     - stars, goes with bd21

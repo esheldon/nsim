@@ -13,10 +13,7 @@ use_logpars: True
 global_seed: 26001
 
 metacal_pars:
-    step: 0.01
     prepix: True
-    fixnoise: True
-    rotnoise: True
 
 priors:
     cen:
@@ -54,9 +51,9 @@ max_pars:
         m: 5
         h: 1.0e-3
 
-ngal: 10000000
+ngal: 500000
 
-desired_hours: 0.5
+desired_hours: 0.25
 
 # doubled
 sec_per: 1.0

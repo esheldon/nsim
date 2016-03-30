@@ -1509,6 +1509,10 @@ tests of full wcs
             nsim/prepix: fdb2ed197ebff90238344c823e24eb68af541b0a
             galsim/#720       993044f1eb13d577e27d6f48fed23b5059ed8387
 
+            ngmix/mcalrefactor: 128d86904f068a2b85f3bbdb642685bd24829015
+            nsim/prepix: d583592b53f65ab3383b4a4602e8c7ef1480d073
+            galsim/#720       993044f1eb13d577e27d6f48fed23b5059ed8387
+
 - sim-stars01
     - stars, goes with bd21
 

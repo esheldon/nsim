@@ -835,6 +835,9 @@ class Summer(SummerDT):
 
                 gmean = g[i]
                 shear = numpy.dot(Rinv, gmean-psf_corr)
+                #shear = gmean-psf_corr
+                #shear[0] /= self[n('R')][0,0]
+                #shear[1] /= self[n('R')][1,1]
 
                 means['shear'][i] = shear
                 means['shear_err'][i] = 1.0

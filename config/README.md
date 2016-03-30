@@ -1467,17 +1467,33 @@ tests of full wcs
 
 - sim-bd36
     - DES wcs with -1 on dudy and dvdx, but no variation
-    - run-bd35mcal-t01
+    - run-bd36mcal-t01
         500,000
         ngmix/metacalwcs: f523769f24cba190e881569457a5d870ca198058
         nsim/prepix:      ed45fce2c18cfe0d97779dde63da0ae31b363800
         galsim/#720       993044f1eb13d577e27d6f48fed23b5059ed8387
 
-    - run-bd35mcal-t01
+    - run-bd36mcal-t02
         10 million
         ngmix/metacalwcs: f523769f24cba190e881569457a5d870ca198058
         nsim/prepix:      4f42b9bacdcc31c1bcbb9c277ed1b026cab11aa6
         galsim/#720       993044f1eb13d577e27d6f48fed23b5059ed8387
+
+          m1: 2.957e-03 +/- 2.882e-03 c1: -7.198e-05 +/- 1.042e-04  r1: -0.0143
+          m2: 1.200e-03 +/- 3.043e-03 c2: 2.458e-04 +/- 1.040e-04  r2: 0.0275
+          m:  2.128e-03 +/- 2.094e-03
+          c1: -7.155e-05 +/- 1.042e-04
+          c2: 2.466e-04 +/- 1.042e-04
+
+    - run-bd36mcal01
+        - prepix
+        - 100 million
+
+          m1: 2.729e-04 +/- 8.897e-04 c1: 2.189e-05 +/- 3.217e-05  r1: -0.0143
+          m2: -1.281e-03 +/- 9.085e-04 c2: 7.723e-06 +/- 3.104e-05  r2: 0.0275
+          m:  -4.598e-04 +/- 6.361e-04
+          c1: 2.227e-05 +/- 3.164e-05
+          c2: 8.494e-06 +/- 3.164e-05
 
 - sim-stars01
     - stars, goes with bd21

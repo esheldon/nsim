@@ -9,3 +9,4 @@ from . import psample
 from . import shearpdf
 from . import pdfs
 from . import averaging
+from . import averaging_new

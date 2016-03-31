@@ -52,25 +52,42 @@ class Summer(dict):
 
             args=self.args
 
-            g,gpsf,R,Rpsf=self._average_sums(sums)
+            g,gpsf,R,Rpsf,Rsel,Rsel_psf=self._average_sums(sums)
 
             shears=self['simc']['shear']['shears']
+
             means=get_mean_struct(self['nshear'])
+            means_nocorr=get_mean_struct(self['nshear'])
+
             for i in xrange(self['nshear']):
 
                 shear_true = shears[i]
 
-                psf_corr  = Rpsf*gpsf[i]
-
                 gmean = g[i]
-                shear = (gmean-psf_corr)/R
+
+                c        = (Rpsf+Rsel_psf)*gpsf[i]
+                c_nocorr = Rpsf*gpsf[i]
+
+                shear        = (gmean-c)/(R+Rsel)
+                shear_nocorr = (gmean-c_nocorr)/R
 
                 means['shear'][i] = shear
                 means['shear_err'][i] = 1.0
                 means['shear_true'][i] = shear_true
 
+                means_nocorr['shear'][i] = shear_nocorr
+                means_nocorr['shear_err'][i] = 1.0
+                means_nocorr['shear_true'][i] = shear_true
+
             self.means=means
+            self.means_nocorr=means_nocorr
             self._write_means()
+
+        if self.select is not None:
+            print("without correction")
+            junk=reredux.averaging.fit_m_c(self.means_nocorr)
+            junk=reredux.averaging.fit_m_c(self.means_nocorr,onem=True)
+            print("\nwith correction")
 
         self.fits=reredux.averaging.fit_m_c(self.means)
         self.fitsone=reredux.averaging.fit_m_c(self.means,onem=True)
@@ -169,10 +186,8 @@ class Summer(dict):
                     sums[sumname][i] += data[mcalname][w].sum(axis=0)
 
                 # now the selection terms
-                # we select on the sheared parameters, but sum the unsheared
-                # if nocorr_select, then these remain zero
 
-                if self.select is not None and not args.nocorr_select:
+                if self.select is not None:
                     for type in ngmix.metacal.METACAL_TYPES_SUB:
                         s2n_name='mcal_s2n_r_%s' % type
                         wsumname = 's_wsum_%s' % type
@@ -183,7 +198,8 @@ class Summer(dict):
                         sums[wsumname][i] += w.size
                         sums[sumname][i]  += data['mcal_g'][w].sum(axis=0)
 
-        self._print_frac(ntot,nkeep)
+        if self.select is not None:
+            self._print_frac(ntot,nkeep)
         return sums
 
     def _average_sums(self, sums):
@@ -206,8 +222,8 @@ class Summer(dict):
         # responses averaged over all fields
         R = zeros(2)
         Rpsf = zeros(2)
-        R_select = zeros(2)
-        Rpsf_select = zeros(2)
+        Rsel = zeros(2)
+        Rsel_psf = zeros(2)
 
         factor = 1.0/(2.0*self.step)
 
@@ -233,7 +249,7 @@ class Summer(dict):
         print("Rpsf:",Rpsf)
 
         # selection terms
-        if self.select is not None and not self.args.nocorr_select:
+        if self.select is not None:
             s_g1p = sums['s_g_1p'][:,0].sum()/sums['s_wsum_1p'].sum()
             s_g1m = sums['s_g_1m'][:,0].sum()/sums['s_wsum_1m'].sum()
             s_g2p = sums['s_g_2p'][:,1].sum()/sums['s_wsum_2p'].sum()
@@ -244,23 +260,16 @@ class Summer(dict):
             s_g2p_psf = sums['s_g_2p_psf'][:,1].sum()/sums['s_wsum_2p_psf'].sum()
             s_g2m_psf = sums['s_g_2m_psf'][:,1].sum()/sums['s_wsum_2m_psf'].sum()
 
-            R_select[0] = (s_g1p - s_g1m)*factor
-            R_select[1] = (s_g2p - s_g2m)*factor
-            Rpsf_select[0] = (s_g1p_psf - s_g1m_psf)*factor
-            Rpsf_select[1] = (s_g2p_psf - s_g2m_psf)*factor
-
-
-            R += R_select
-            Rpsf += Rpsf_select
+            Rsel[0] = (s_g1p - s_g1m)*factor
+            Rsel[1] = (s_g2p - s_g2m)*factor
+            Rsel_psf[0] = (s_g1p_psf - s_g1m_psf)*factor
+            Rsel_psf[1] = (s_g2p_psf - s_g2m_psf)*factor
 
             print()
-            print("Rsel:",R_select)
-            print("Rpsf_sel:",Rpsf_select)
-            print()
-            print("R:",R)
-            print("Rpsf:",Rpsf)
+            print("Rsel:",Rsel)
+            print("Rpsf_sel:",Rsel_psf)
 
-        return g, gpsf, R, Rpsf
+        return g, gpsf, R, Rpsf, Rsel, Rsel_psf
 
     def _print_frac(self, ntot, nkeep):
         frac=float(nkeep)/ntot

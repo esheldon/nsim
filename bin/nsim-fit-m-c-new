@@ -39,9 +39,6 @@ parser.add_argument('-d',default=None,help='file is in a local dir')
 parser.add_argument('--ntest',default=None,type=int,
                     help='work on a small subset for quick tests')
 
-parser.add_argument('--nocorr-select',action='store_true',
-                    help='do not apply corrections for the selection')
-
 parser.add_argument('--weights',default=None,help='type of weight to use, noise or s2n')
 parser.add_argument('--s2n-soft',type=float,default=10.0)
 parser.add_argument('--shapenoise',type=float,default=0.20)

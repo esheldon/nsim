@@ -1521,7 +1521,7 @@ tests of full wcs
           c2: 1.146e-04 +/- 1.045e-04
     - run-bd36mcal03
             ngmix/mcalrefactor: 128d86904f068a2b85f3bbdb642685bd24829015
-            nsim/prepix:        04333fb340e05a73b02102ca4e69b763a402fcb5
+            nsim/prepix:        8373ee9742ba766bff1afff9de18709d8dc0a759
             galsim/#720         993044f1eb13d577e27d6f48fed23b5059ed8387
 
 - sim-stars01

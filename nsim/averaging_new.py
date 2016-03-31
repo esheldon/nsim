@@ -31,6 +31,7 @@ class Summer(dict):
         self.update(conf)
         self.args=args
 
+        self._set_select()
 
         sconf=self['simc']
         self.step = self['metacal_pars'].get('step',0.01)
@@ -53,23 +54,23 @@ class Summer(dict):
 
 
             # averated over all shear fields
-            wtot=sums['wsum'].sum()
-            self['R'] = sums['R'].sum(axis=0)/wtot
-            self['Rpsf'] = sums['Rpsf'].sum(axis=0)/wtot
-            print("R:",self['R'])
+            if True:
+                g,gpsf,R,Rpsf=self._average_sums(sums)
+            else:
+                wtot=sums['wsum'].sum()
 
-            g = sums['g'].copy()
-            gpsf = sums['gpsf'].copy()
+                R = sums['R'].sum(axis=0)/wtot
+                Rpsf = sums['Rpsf'].sum(axis=0)/wtot
 
-            winv = 1.0/sums['wsum']
-            g[:,0]    *= winv
-            g[:,1]    *= winv
-            gpsf[:,0] *= winv
-            gpsf[:,1] *= winv
 
-            # using mean responses
-            Rpsf = self['Rpsf']
-            R=self['R']
+                g = sums['g'].copy()
+                gpsf = sums['gpsf'].copy()
+
+                winv = 1.0/sums['wsum']
+                g[:,0]    *= winv
+                g[:,1]    *= winv
+                gpsf[:,0] *= winv
+                gpsf[:,1] *= winv
 
             shears=self['simc']['shear']['shears']
             means=get_mean_struct(self['nshear'])
@@ -91,6 +92,82 @@ class Summer(dict):
 
         self.fits=reredux.averaging.fit_m_c(self.means)
         self.fitsone=reredux.averaging.fit_m_c(self.means,onem=True)
+
+    def _average_sums(self, sums):
+        """
+        divide by sum of weights and get g for each field
+
+        Also average the responses over all data
+        """
+
+        # g averaged in each field
+        g = sums['g'].copy()
+        gpsf = sums['gpsf'].copy()
+
+        winv = 1.0/sums['wsum']
+        g[:,0]    *= winv
+        g[:,1]    *= winv
+        gpsf[:,0] *= winv
+        gpsf[:,1] *= winv
+
+        # responses averaged over all fields
+        R = zeros(2)
+        Rpsf = zeros(2)
+        R_select = zeros(2)
+        Rpsf_select = zeros(2)
+
+        factor = 1.0/(2.0*self.step)
+
+        wsum=sums['wsum'].sum()
+
+        g1p = sums['g_1p'][:,0].sum()/wsum
+        g1m = sums['g_1m'][:,0].sum()/wsum
+        g2p = sums['g_2p'][:,1].sum()/wsum
+        g2m = sums['g_2m'][:,1].sum()/wsum
+
+        g1p_psf = sums['g_1p_psf'][:,0].sum()/wsum
+        g1m_psf = sums['g_1m_psf'][:,0].sum()/wsum
+        g2p_psf = sums['g_2p_psf'][:,1].sum()/wsum
+        g2m_psf = sums['g_2m_psf'][:,1].sum()/wsum
+
+        R[0] = (g1p - g1m)*factor
+        R[1] = (g2p - g2m)*factor
+        Rpsf[0] = (g1p_psf - g1m_psf)*factor
+        Rpsf[1] = (g2p_psf - g2m_psf)*factor
+
+
+        print("R:",R)
+        print("Rpsf:",Rpsf)
+
+        # selection terms
+        if self.select is not None:
+            s_g1p = sums['s_g_1p'][:,0].sum()/sums['s_wsum_1p'].sum()
+            s_g1m = sums['s_g_1m'][:,0].sum()/sums['s_wsum_1m'].sum()
+            s_g2p = sums['s_g_2p'][:,1].sum()/sums['s_wsum_2p'].sum()
+            s_g2m = sums['s_g_2m'][:,1].sum()/sums['s_wsum_2m'].sum()
+
+            s_g1p_psf = sums['s_g_1p_psf'][:,0].sum()/sums['s_wsum_1p_psf'].sum()
+            s_g1m_psf = sums['s_g_1m_psf'][:,0].sum()/sums['s_wsum_1m_psf'].sum()
+            s_g2p_psf = sums['s_g_2p_psf'][:,1].sum()/sums['s_wsum_2p_psf'].sum()
+            s_g2m_psf = sums['s_g_2m_psf'][:,1].sum()/sums['s_wsum_2m_psf'].sum()
+
+            R_select[0] = (s_g1p - s_g1m)*factor
+            R_select[1] = (s_g2p - s_g2m)*factor
+            Rpsf_select[0] = (s_g1p_psf - s_g1m_psf)*factor
+            Rpsf_select[1] = (s_g2p_psf - s_g2m_psf)*factor
+
+
+            R += R_select
+            Rpsf += Rpsf_select
+
+            print()
+            print("Rsel:",R_select)
+            print("Rpsf_sel:",Rpsf_select)
+            print()
+            print("R:",R)
+            print("Rpsf:",Rpsf)
+
+        return g, gpsf, R, Rpsf
 
     def do_sums(self):
 
@@ -126,7 +203,8 @@ class Summer(dict):
                     data = hdu[beg:end]
                     ntot += data.size
 
-                    sums=self.do_sums1(data, sums=sums)
+                    #sums=self.do_sums1(data, sums=sums)
+                    sums=self.do_sums1_with_select(data, sums=sums)
 
                     beg = beg + CHUNKSIZE
 
@@ -189,7 +267,83 @@ class Summer(dict):
 
         return sums
 
+    def do_sums1_with_select(self, data, sums=None):
+        """
+        just a binner and summer, no logic here
+        """
 
+        nshear=self['nshear']
+        args=self.args
+
+        h,rev = eu.stat.histogram(data['shear_index'],
+                                  min=0,
+                                  max=nshear-1,
+                                  rev=True)
+        nind = h.size
+        assert nshear==nind
+
+        if sums is None:
+            sums=self._get_sums_struct()
+
+        R = zeros(2)
+        Rpsf = zeros(2)
+        factor = 1.0/(2.0*self.step)
+
+        ntot=0
+        nkeep=0
+        for i in xrange(nshear):
+            if rev[i] != rev[i+1]:
+                wfield=rev[ rev[i]:rev[i+1] ]
+
+                # first select on the noshear measurement
+                if self.select is not None:
+                    w=self._do_select(data['mcal_s2n_r'][wfield])
+                    w=wfield[w]
+                else:
+                    w=wfield
+
+                ntot  += wfield.size
+                nkeep += w.size
+
+                sums['wsum'][i] += w.size
+                sums['g'][i]    += data['mcal_g'][w].sum(axis=0)
+                sums['gpsf'][i] += data['mcal_gpsf'][w].sum(axis=0)
+
+                for type in ngmix.metacal.METACAL_TYPES_SUB:
+                    mcalname='mcal_g_%s' % type
+                    sumname='g_%s' % type
+
+                    sums[sumname][i] += data[mcalname][w].sum(axis=0)
+
+                # now the selection terms
+                # we select on the sheared parameters, but sum the unsheared
+
+                if self.select is not None:
+                    for type in ngmix.metacal.METACAL_TYPES_SUB:
+                        s2n_name='mcal_s2n_r_%s' % type
+                        wsumname = 's_wsum_%s' % type
+                        sumname = 's_g_%s' % type
+
+                        w=self._do_select(data[s2n_name][wfield])
+                        w=wfield[w]
+                        sums[wsumname][i] += w.size
+                        sums[sumname][i]  += data['mcal_g'][w].sum(axis=0)
+
+        self._print_frac(ntot,nkeep)
+        return sums
+
+    def _print_frac(self, ntot, nkeep):
+        frac=float(nkeep)/ntot
+        print("        kept: %d/%d = %g" % (nkeep,ntot,frac))
+
+    def _do_select(self, s2n):
+        """
+        currently only s/n
+        """
+        logic=eval(self.select)
+        w,=numpy.where(logic)
+        #print("   kept: %d/%d" % (w.size,s2n.size))
+        return w
 
     def _read_means(self):
         fname=self._get_means_file()
@@ -214,7 +368,7 @@ class Summer(dict):
 
         if self.args.select is not None:
             s=self.select.replace(' ','-').replace('(','').replace(')','').replace('[','').replace(']','').replace('"','').replace("'",'')
-            extra += ['select-',s]
+            extra += ['select',s]
 
         if self.args.ntest is not None:
             extra += ['test%d' % self.args.ntest]
@@ -248,6 +402,7 @@ class Summer(dict):
         fname=files.get_plot_url(self.args.runs[0], extra=extra)
         return fname
 
+
     def _get_sums_struct(self):
         dt=self._get_sums_dt()
         return numpy.zeros(self['nshear'], dtype=dt)
@@ -257,10 +412,51 @@ class Summer(dict):
             ('wsum','f8'),
             ('g','f8',2),
             ('gpsf','f8',2),
+
+            ('g_1p','f8',2),
+            ('g_1m','f8',2),
+            ('g_2p','f8',2),
+            ('g_2m','f8',2),
+            ('g_1p_psf','f8',2),
+            ('g_1m_psf','f8',2),
+            ('g_2p_psf','f8',2),
+            ('g_2m_psf','f8',2),
+
+            # selection terms
+            ('s_wsum_1p','f8'),
+            ('s_wsum_1m','f8'),
+            ('s_wsum_2p','f8'),
+            ('s_wsum_2m','f8'),
+            ('s_g_1p','f8',2),
+            ('s_g_1m','f8',2),
+            ('s_g_2p','f8',2),
+            ('s_g_2m','f8',2),
+
+            ('s_wsum_1p_psf','f8'),
+            ('s_wsum_1m_psf','f8'),
+            ('s_wsum_2p_psf','f8'),
+            ('s_wsum_2m_psf','f8'),
+            ('s_g_1p_psf','f8',2),
+            ('s_g_1m_psf','f8',2),
+            ('s_g_2p_psf','f8',2),
+            ('s_g_2m_psf','f8',2),
+
+            # these get filled in at the end
             ('R','f8',2),
             ('Rpsf','f8',2),
         ]
         return dt
+
+    def _set_select(self):
+        self.select=None
+        if self.args.select is not None:
+            self.select = self.args.select
+        elif self.args.select_from is not None:
+            with open(self.args.select_from) as fobj:
+                d=yaml.load(fobj)
+
+            self.select = d['select'].strip()
+
 
 
 

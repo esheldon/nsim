@@ -1,7 +1,7 @@
 # DES wcs no variation
 # random shears
 # new metacal stuff
-run: "run-bd36mcal01"
+run: "run-bd36mcal03"
 sim: "sim-bd36"
 
 fitter: "metacal-new"

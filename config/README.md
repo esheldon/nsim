@@ -1512,6 +1512,17 @@ tests of full wcs
             ngmix/mcalrefactor: 128d86904f068a2b85f3bbdb642685bd24829015
             nsim/prepix: d583592b53f65ab3383b4a4602e8c7ef1480d073
             galsim/#720       993044f1eb13d577e27d6f48fed23b5059ed8387
+    - run-bd36mcal-t04
+        10,000,000
+          m1: -3.964e-03 +/- 2.889e-03 c1: -1.385e-05 +/- 1.044e-04  r1: -0.0143
+          m2: -1.573e-03 +/- 3.056e-03 c2: 1.158e-04 +/- 1.044e-04  r2: 0.0275
+          m:  -2.836e-03 +/- 2.101e-03
+          c1: -1.443e-05 +/- 1.045e-04
+          c2: 1.146e-04 +/- 1.045e-04
+    - run-bd36mcal03
+            ngmix/mcalrefactor: 128d86904f068a2b85f3bbdb642685bd24829015
+            nsim/prepix:        04333fb340e05a73b02102ca4e69b763a402fcb5
+            galsim/#720         993044f1eb13d577e27d6f48fed23b5059ed8387
 
 - sim-stars01
     - stars, goes with bd21

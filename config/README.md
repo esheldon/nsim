@@ -1558,8 +1558,14 @@ tests of full wcs
             nsim/prepix:        5f274ad1f22430334bfbd9a9c3fc4769f008f2b3
             galsim/#720         993044f1eb13d577e27d6f48fed23b5059ed8387
 
+    - run-bd36mcal05
+          300 M
+            ngmix/master:   8fa011902b3d60c286e329a4ad1836528ab9a3c4
+            nsim/master:    6e4c7e5547afc42a164dc2a2c0ab5d30a0b5f9fd
+            galsim/#720     993044f1eb13d577e27d6f48fed23b5059ed8387
 
-         - combined
+
+         - combined 03/04
           m1: -7.287e-04 +/- 4.650e-04 c1: 6.408e-06 +/- 1.681e-05  r1: -0.0143
           m2: -9.944e-04 +/- 4.850e-04 c2: 1.206e-05 +/- 1.657e-05  r2: 0.0275
           m:  -8.540e-04 +/- 3.358e-04

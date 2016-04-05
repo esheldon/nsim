@@ -1662,7 +1662,11 @@ tests of full wcs
           c1: 1.691e-05 +/- 2.221e-05
           c2: 2.531e-05 +/- 2.222e-05
 
-
+    - run-bd36mcal-t05
+        - keeping prepix psf and that shape
+            ngmix/keep_prepix: 40ba9d5e6afce5422e47c26aaf209cd21e74a5fc
+            nsim/master: c1f42392907bfbf2c56e0bf953f9c7ea0f909325
+            galsim/#720: e11369f15e70d8b8b5e3ef8024bbc0f5f1dd0113
 
 - sim-stars01
     - stars, goes with bd21

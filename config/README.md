@@ -1570,6 +1570,11 @@ tests of full wcs
               m:  -8.272e-04 +/- 2.361e-04
               c1: 3.002e-06 +/- 1.174e-05
               c2: 2.754e-05 +/- 1.175e-05
+                      m1: -7.575e-04 +/- 3.208e-04 c1: 4.936e-06 +/- 1.160e-05
+                      m2: -1.020e-03 +/- 3.394e-04 c2: 2.506e-05 +/- 1.160e-05
+                      m:  -8.813e-04 +/- 2.333e-04
+                      c1: 5.000e-06 +/- 1.161e-05
+                      c2: 2.519e-05 +/- 1.161e-05 
 
         - s/n > 3.5 (4.9)
             without correction
@@ -1638,12 +1643,17 @@ tests of full wcs
               c2: 2.296e-05 +/- 1.294e-05
 
         -run-bd36mcal06
-
+            - dilate additional 1/dim
             100M
 
             ngmix/dilate:   cf920178222249cbbc0c4bfdcdb8e466dc76ed6e
             nsim/master:    f9f24fef016841bea50352fb58245bbfb3a28cbb
             galsim/#720     993044f1eb13d577e27d6f48fed23b5059ed8387
+        -run-bd36mcal06
+            ngmix/dilate:   cf920178222249cbbc0c4bfdcdb8e466dc76ed6e
+            nsim/master:    5d35ead4b8df6b6adb87ea821db7fd11dac24635
+            galsim/#720     993044f1eb13d577e27d6f48fed23b5059ed8387
+
 
 
 - sim-stars01

@@ -1649,10 +1649,18 @@ tests of full wcs
             ngmix/dilate:   cf920178222249cbbc0c4bfdcdb8e466dc76ed6e
             nsim/master:    f9f24fef016841bea50352fb58245bbfb3a28cbb
             galsim/#720     993044f1eb13d577e27d6f48fed23b5059ed8387
-        -run-bd36mcal06
+        -run-bd36mcal07
             ngmix/dilate:   cf920178222249cbbc0c4bfdcdb8e466dc76ed6e
             nsim/master:    5d35ead4b8df6b6adb87ea821db7fd11dac24635
             galsim/#720     993044f1eb13d577e27d6f48fed23b5059ed8387
+
+
+         combined 06/07 so far
+          m1: -1.141e-03 +/- 6.080e-04 c1: 1.697e-05 +/- 2.198e-05  r1: -0.0143
+          m2: -9.139e-04 +/- 6.561e-04 c2: 2.542e-05 +/- 2.242e-05  r2: 0.0275
+          m:  -1.034e-03 +/- 4.466e-04
+          c1: 1.691e-05 +/- 2.221e-05
+          c2: 2.531e-05 +/- 2.222e-05
 
 
 

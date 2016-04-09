@@ -6,6 +6,7 @@ import os
 from pprint import pprint
 
 import numpy
+import fitsio
 
 import ngmix
 from ngmix.priors import LogNormal
@@ -588,7 +589,6 @@ class SimGS(dict):
         is added to cancel symmetries in the mask, such as
         bad columns
         """
-        import fitsio
         mask_file=self['masks']['mask_file']
         add_rotated=self['mask']['add_rotated']
 
@@ -717,6 +717,12 @@ class SimGS(dict):
                 self.r50_pdf=ngmix.priors.LogNormal(r50spec['mean'],
                                                     r50spec['sigma'],
                                                     rng=self.rng)
+            elif r50spec['type']=='discrete-pdf':
+                fname=os.path.expandvars( r50spec['file'] )
+                print("Reading r50 values from file:",fname)
+                vals=fitsio.read(fname)
+                self.r50_pdf=DiscreteSampler(vals, rng=self.rng)
+
             else:
                 raise ValueError("bad r50 pdf type: '%s'" % r50spec['type'])
         else:

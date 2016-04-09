@@ -27,41 +27,89 @@ def main():
 
     args = parser.parse_args()
     data=files.read_output(args.run, 0, 0,
-                           columns=['s2n_w'],
+                           columns=['s2n_w','mcal_s2n_r'],
                            rows=arange(args.n))
 
     s2n = data['s2n_w']
+    s2n_mcal=data['mcal_s2n_r']
 
-    w,=where(s2n > 0.001)
+    w,=where( (s2n > 0.001) & (s2n_mcal > 0.001) )
 
     log_s2n = log10(data['s2n_w'][w])
+    log_s2n_mcal = log10(data['mcal_s2n_r'][w])
 
     tab=biggles.Table(1,2)
 
     xmin=1
     xmax=20.1
-    lin_plt=biggles.plot_hist(s2n,
-                              min=xmin,max=xmax, nbin=100,
-                              aspect_ratio=1.0,
-                              visible=False,
-                              norm=10,
-                              xlabel=r'$(S/N)$',
-                              xrange=[xmin,xmax])
+    norm=1
+    s2n_curve=biggles.make_histc(
+        s2n,
+        min=xmin,max=xmax, nbin=100,
+        norm=norm,
+        smooth=True,
+        label='no fixnoise',
+    )
+    s2n_mcal_curve=biggles.make_histc(
+        s2n_mcal,
+        min=xmin,max=xmax, nbin=100,
+        norm=norm,
+        color='red',
+        type='dashed',
+        smooth=True,
+        label='fixnoise',
+    )
+    key=biggles.PlotKey(
+        0.9,0.9,
+        [s2n_curve,s2n_mcal_curve],
+        halign='right'
+    )
+    plt=biggles.FramedPlot()
+    plt.xlabel=xlabel=r'$(S/N)$'
+    plt.y1.draw_ticklabels=False
+    plt.aspect_ratio=1.0
+    plt.yrange=[0.0, 0.16]
+    plt.xrange=[0.0,xmax]
 
-    lin_plt.y1.draw_ticklabels=False
+    plt.add(
+        s2n_curve,
+        s2n_mcal_curve,
+        key,
+    )
+
 
     xmin=0.0
     xmax=4.0
-    log_plt=biggles.plot_hist(log_s2n,
-                              min=xmin,max=xmax, nbin=100,
-                              aspect_ratio=1.0,
-                              norm=1,
-                              xlabel=r'$log_{10}(S/N)$',
-                              visible=False,
-                              xrange=[xmin,xmax])
+    log_s2n_curve=biggles.make_histc(
+        log_s2n,
+        min=xmin,max=xmax, nbin=100,
+        norm=norm,
+        smooth=True,
+        label='no fixnoise',
+    )
+    log_s2n_mcal_curve=biggles.make_histc(
+        log_s2n_mcal,
+        min=xmin,max=xmax, nbin=100,
+        norm=norm,
+        color='red',
+        type='dashed',
+        smooth=True,
+        label='fixnoise',
+    )
+    log_plt=biggles.FramedPlot()
+    log_plt.xlabel=xlabel=r'$log_{10}(S/N)$'
     log_plt.y1.draw_ticklabels=False
+    log_plt.aspect_ratio=1.0
+    log_plt.xrange=[xmin,xmax]
+    log_plt.yrange=[0.0, 1.7]
 
-    tab[0,0] = lin_plt
+    log_plt.add(
+        log_s2n_curve,
+        log_s2n_mcal_curve,
+    )
+
+
+    tab[0,0] = plt
     tab[0,1] = log_plt
 
     print("writing:",args.epsfile)

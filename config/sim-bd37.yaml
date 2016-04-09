@@ -6,8 +6,8 @@ simulator: "galsim"
 # these sims are never rings
 do_ring: False
 
-#noise: 0.76
-noise: 0.95
+#noise: 0.95
+noise: 0.893
 
 wcs:
   dudx:     0.0

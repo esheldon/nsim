@@ -152,6 +152,48 @@ def get_lsf_master_url(run):
     d=get_lsf_dir(run)
     return path_join(d,'%s.sh' % run)
 
+#
+# condor
+#
+
+def get_condor_dir(run):
+    dir=get_run_dir(run)
+    dir=path_join(dir, 'condor')
+    return dir
+
+def get_condor_job_url(run, filenum, missing=False):
+    d=get_condor_dir(run)
+
+    end = '-%06d' % filenum
+    if missing:
+        end='%s-missing' % end
+
+    fname='{run}{end}.condor'.format(run=run,end=end)
+    return path_join(d,fname)
+
+def get_condor_submit_script(run, chunk=None):
+    """
+    chunks are just splitting into multiple condor
+    submit scripts
+    """
+    d=get_condor_dir(run)
+    name=[run]
+    if chunk is not None:
+        name += ['%02d' % chunk]
+    name='-'.join(name)
+
+    return path_join(d,'%s.condor' % name)
+
+
+def get_condor_master_url(run):
+    d=get_condor_dir(run)
+    return path_join(d,'%s.sh' % run)
+
+
+#
+# slr
+#
+
 
 def get_slr_dir(run):
     dir=get_run_dir(run)

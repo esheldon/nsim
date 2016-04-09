@@ -1,0 +1,60 @@
+run: "run-bd37mcal02"
+sim: "sim-bd37"
+
+fitter: "metacal-new"
+fit_model: "gauss"
+
+g_prior_during: True
+use_logpars: True
+
+global_seed: 25792
+
+metacal_pars:
+    prepix: False
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    T:
+        type: "gmixnd"
+        run: "run-bd37zmax-lownoise01"
+        extra: "log_T"
+        cov_factor: 1.44
+
+    counts:
+        type: "gmixnd"
+        run: "run-bd37zmax-lownoise01"
+        extra: "log_F"
+        cov_factor: 1.44
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+ngal: 200000000
+
+# for condor, we need to keep it under 2 hours
+desired_hours: 0.5
+jobs_per_condor_sub: 10000
+
+# doubled
+sec_per: 1.0
+
+verbose: False

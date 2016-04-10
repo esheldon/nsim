@@ -1789,6 +1789,11 @@ tests of full wcs
         nsim/master: 878af72c52a49b7f12a06f2d68a2a27c43a7d599
         ngmix/keep_prepix: 40ba9d5e6afce5422e47c26aaf209cd21e74a5fc
         galsim/#720: 993044f1eb13d577e27d6f48fed23b5059ed8387
+    - run-bd37mcal02
+        at bnl
+        nsim/master: e94dc404f95fe368f92faf0481e3c9d35cfd06a5
+        ngmix/keep_prepix: 8537b9dacde34d75907cb3dc0c92022384470a9f
+        galsim/#720: 993044f1eb13d577e27d6f48fed23b5059ed8387
 
 - sim-stars01
     - stars, goes with bd21

@@ -155,10 +155,6 @@ class Summer(dict):
         if sums is None:
             sums=self._get_sums_struct()
 
-        R = zeros(2)
-        Rpsf = zeros(2)
-        factor = 1.0/(2.0*self.step)
-
         ntot=0
         nkeep=0
         for i in xrange(nshear):

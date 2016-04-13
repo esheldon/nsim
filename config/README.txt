@@ -1946,6 +1946,14 @@ tests of full wcs
               c1: 5.436e-06 +/- 1.158e-05
               c2: 1.960e-05 +/- 1.158e-05
 
+    - run-bd36stars-mcal01
+        nsim/master:       5d29414fbd835db70fbd14cca12aa17eba925431
+        ngmix/keep_prepix: 8537b9dacde34d75907cb3dc0c92022384470a9f
+        galsim/#720:       993044f1eb13d577e27d6f48fed23b5059ed8387
+    - run-bd36stars-mcal02
+        nsim/master:       5d29414fbd835db70fbd14cca12aa17eba925431
+        ngmix/keep_prepix: 8537b9dacde34d75907cb3dc0c92022384470a9f
+        galsim/#720:       993044f1eb13d577e27d6f48fed23b5059ed8387
 
 
 - sim-bd37

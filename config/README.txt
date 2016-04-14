@@ -1946,6 +1946,13 @@ tests of full wcs
               c1: 5.436e-06 +/- 1.158e-05
               c2: 1.960e-05 +/- 1.158e-05
 
+        - max like
+          m1: -4.958e-01 +/- 1.107e-04 c1: -2.130e-06 +/- 4.004e-06  r1: -0.0143
+          m2: -4.956e-01 +/- 1.227e-04 c2: 1.516e-03 +/- 4.191e-06  r2: 0.0275
+          m:  -4.957e-01 +/- 8.248e-05
+          c1: -2.175e-06 +/- 4.102e-06
+          c2: 1.516e-03 +/- 4.103e-06
+
     - run-bd36stars-mcal01
         nsim/master:       5d29414fbd835db70fbd14cca12aa17eba925431
         ngmix/keep_prepix: 8537b9dacde34d75907cb3dc0c92022384470a9f
@@ -1955,12 +1962,11 @@ tests of full wcs
         ngmix/keep_prepix: 8537b9dacde34d75907cb3dc0c92022384470a9f
         galsim/#720:       993044f1eb13d577e27d6f48fed23b5059ed8387
 
-        - max like
-          m1: -4.958e-01 +/- 1.107e-04 c1: -2.130e-06 +/- 4.004e-06  r1: -0.0143
-          m2: -4.956e-01 +/- 1.227e-04 c2: 1.516e-03 +/- 4.191e-06  r2: 0.0275
-          m:  -4.957e-01 +/- 8.248e-05
-          c1: -2.175e-06 +/- 4.102e-06
-          c2: 1.516e-03 +/- 4.103e-06
+    - run-bd36stars-mcal03
+        nsim/master:       aff87d126ee0f019a64a55e2e305ae9969390127
+        ngmix/keep_prepix: 60ce3ba996ea220a5c781e078611262883faf7e5
+        galsim/#720:       64192dfbf2bd7f9a616cf6dae7cf7476adace9c4
+
 
 - sim-bd37
     - actual r50 drawn from cosmos sample used in great3

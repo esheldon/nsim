@@ -1967,6 +1967,15 @@ tests of full wcs
         ngmix/keep_prepix: 60ce3ba996ea220a5c781e078611262883faf7e5
         galsim/#720:       64192dfbf2bd7f9a616cf6dae7cf7476adace9c4
 
+- sim-bdmask05
+    - goes with sim-bd36
+- run-bdmask05mcal01
+    - 200 M
+    038830db2c03db9601bf0c9cd53afaee2f3dcb0d
+        nsim/master:       038830db2c03db9601bf0c9cd53afaee2f3dcb0d
+        ngmix/keep_prepix: 60ce3ba996ea220a5c781e078611262883faf7e5
+        galsim/#720:       64192dfbf2bd7f9a616cf6dae7cf7476adace9c4
+
 
 - sim-bd37
     - actual r50 drawn from cosmos sample used in great3

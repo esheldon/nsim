@@ -1,0 +1,60 @@
+# same as bd36 but with masking
+run: "run-bdmask05mcal01"
+sim: "sim-bdmask05"
+
+fitter: "metacal-new"
+fit_model: "gauss"
+
+g_prior_during: True
+use_logpars: True
+
+global_seed: 793
+
+metacal_pars:
+    prepix: False
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    T:
+        type: "gmixnd"
+        run: "run-bd23zmax-lownoise01"
+        extra: "log_T"
+        cov_factor: 1.44
+
+    counts:
+        type: "gmixnd"
+        run: "run-bd23zmax-lownoise01"
+        extra: "log_F"
+        cov_factor: 1.44
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+ngal: 200000000
+
+desired_hours: 1.0
+jobs_per_condor_sub: 5000
+
+# doubled
+sec_per: 1.0
+
+verbose: False

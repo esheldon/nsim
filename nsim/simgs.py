@@ -590,7 +590,7 @@ class SimGS(dict):
         bad columns
         """
         mask_file=self['masks']['mask_file']
-        add_rotated=self['mask']['add_rotated']
+        add_rotated=self['masks']['add_rotated']
 
         print("Loading masks from:",mask_file)
 
@@ -600,7 +600,7 @@ class SimGS(dict):
             for hdu in fits:
                 mask = hdu.read()
                 if add_rotated:
-                    rm = mask.rot90(mask)
+                    rm = numpy.rot90(mask)
                     mask = mask + rm
 
                 mask_list.append( mask )

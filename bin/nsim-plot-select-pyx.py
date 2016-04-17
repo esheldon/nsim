@@ -178,7 +178,7 @@ def plot_c2thresh():
     corr       = [0.17, 0.17, 0.15, 0.13, 0.14, 0.12]
     err_corr   = [0.09, 0.10, 0.10, 0.10, 0.11, 0.11]
     xlabel=r'$S/N$ threshold'
-    ymin,ymax=-2,2
+    ymin,ymax=-3,3
 
     xaxis=axis.lin(min=xrng[0],max=xrng[1],title=xlabel)
 

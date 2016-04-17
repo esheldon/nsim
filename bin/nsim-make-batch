@@ -475,6 +475,7 @@ class CondorMaker(MakerBase):
         """
         currently only one written
         """
+
         self._remove_sub_files()
         overall_name = '-'.join( (self['run'].split('-'))[1:] )
 
@@ -494,19 +495,6 @@ class CondorMaker(MakerBase):
         fobj=None
 
         for isplit in xrange(nsplit):
-            if (isplit % self['jobs_per_condor_sub'])==0:
-                if fobj is not None:
-                    fobj.close()
-
-                subfile=files.get_condor_submit_script(self['run'],chunk=icondor)
-                icondor+=1
-
-                print("writing sub file",subfile)
-                fobj=open(subfile,'w')
-
-                head= _condor_submit_head % self
-                fobj.write(head)
-
 
             seed = numpy.random.randint(0,2**31-1)
 
@@ -518,6 +506,25 @@ class CondorMaker(MakerBase):
                 do_write=False
 
             if do_write:
+
+                if (njobs % self['jobs_per_condor_sub'])==0:
+
+                    if fobj is not None:
+                        fobj.close()
+
+                    subfile=files.get_condor_submit_script(
+                        self['run'],
+                        chunk=icondor,
+                        missing=self['missing']
+                    )
+                    icondor+=1
+
+                    print("writing sub file",subfile)
+                    fobj=open(subfile,'w')
+
+                    head= _condor_submit_head % self
+                    fobj.write(head)
+
 
                 logfile = output.replace('.fits','.log')
                 job_name='%s-%05d' % (overall_name,isplit)

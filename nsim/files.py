@@ -171,7 +171,7 @@ def get_condor_job_url(run, filenum, missing=False):
     fname='{run}{end}.condor'.format(run=run,end=end)
     return path_join(d,fname)
 
-def get_condor_submit_script(run, chunk=None):
+def get_condor_submit_script(run, chunk=None, missing=False):
     """
     chunks are just splitting into multiple condor
     submit scripts
@@ -180,6 +180,9 @@ def get_condor_submit_script(run, chunk=None):
     name=[run]
     if chunk is not None:
         name += ['%02d' % chunk]
+    if missing:
+        name += ['missing']
+
     name='-'.join(name)
 
     return path_join(d,'%s.condor' % name)

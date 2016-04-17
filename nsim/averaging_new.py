@@ -27,18 +27,16 @@ except ImportError:
     pass
 
 class Summer(dict):
-    def __init__(self, conf, args):
+    def __init__(self, conf, shears, args):
         self.update(conf)
         self.args=args
 
         self._set_select()
 
-        sconf=self['simc']
         self.step = self['metacal_pars'].get('step',0.01)
 
-        self['nshear']=len(self['simc']['shear']['shears'])
-
-        shears_array=array(self['simc']['shear']['shears'])
+        self.shears = shears
+        self['nshear']=len(self.shears)
 
     def go(self):
 
@@ -54,14 +52,12 @@ class Summer(dict):
 
             g,gpsf,R,Rpsf,Rsel,Rsel_psf=self._average_sums(sums)
 
-            shears=self['simc']['shear']['shears']
-
             means=get_mean_struct(self['nshear'])
             means_nocorr=get_mean_struct(self['nshear'])
 
             for i in xrange(self['nshear']):
 
-                shear_true = shears[i]
+                shear_true = self.shears[i]
 
                 gmean = g[i]
 
@@ -93,11 +89,16 @@ class Summer(dict):
         self.fitsone=reredux.averaging.fit_m_c(self.means,onem=True)
 
 
+    def get_run_output(self, run):
+        """
+        collated file
+        """
+        fname = nsim.files.get_output_url(run, 0, 0)
+        return fname
+
     def do_sums(self):
 
         args=self.args
-
-        sconf=self['simc']
 
         sums=None
         ntot=0
@@ -105,7 +106,7 @@ class Summer(dict):
             if args.ntest is not None and ntot > args.ntest:
                 break
 
-            fname = nsim.files.get_output_url(run, 0, 0)
+            fname=self.get_run_output(run)
             print(fname)
             with fitsio.FITS(fname) as fits:
 
@@ -124,6 +125,9 @@ class Summer(dict):
                     end=beg+CHUNKSIZE
 
                     data = hdu[beg:end]
+
+                    data=self._preselect(data)
+
                     ntot += data.size
 
                     #sums=self.do_sums1(data, sums=sums)
@@ -136,6 +140,11 @@ class Summer(dict):
 
         return sums
 
+    def _preselect(self, data):
+        """
+        sub-classes might make a pre-selection, e.g. of some flags
+        """
+        return data
 
     def do_sums1(self, data, sums=None):
         """
@@ -490,6 +499,15 @@ class Summer(dict):
 
         if args.show:
             plt.show(width=1000, height=1000)
+
+class SummerNSim(Summer):
+    """
+    For NSim we have the shears in the simulation config
+    """
+    def __init__(self, conf, args):
+        shears = conf['simc']['shear']['shears']
+
+        super(SummerNSim,self).__init__(conf, shears, args)
 
 
 # quick line fit pulled from great3-public code

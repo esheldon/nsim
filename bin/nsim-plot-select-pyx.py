@@ -13,17 +13,6 @@ s2n_means= [8.68, 15.47, 97.44]
 xrng = [-2, 21]
 log_xrng=[5, 140]
 
-def add_mbounds(plt, xb, maxbias):
-    mrng=biggles.FillBetween(xb, [maxbias]*2,
-                        xb, [-maxbias]*2,
-                        color='grey80')
-    plt.add(mrng)
-
-    z=[0,0]
-    zline=biggles.Curve(xb, z)
-    plt.add(zline)
-
-
 def doplot(plt,xvals, yvals, yerr, yvals_corr, yerr_corr):
 
     corr_color=colors('blue')
@@ -113,7 +102,7 @@ def plot_m(x, corr, err_corr, nocorr, err_nocorr, ymin, ymax, cplt):
     xaxis=graph.axis.linkedaxis(cplt.axes["x"])
 
     ylabel=r'$m~[10^{-3}]$'
-    yaxis=axis.lin(min=ymin,max=ymax,title=ylabel)
+    yaxis=axis.lin(min=ymin,max=ymax,title=ylabel,density=2)
 
     ypos=cplt.height+0.5
     key=graph.key.key(pos="br")
@@ -124,7 +113,7 @@ def plot_m(x, corr, err_corr, nocorr, err_nocorr, ymin, ymax, cplt):
 def plot_c(x, corr, err_corr, nocorr, err_nocorr, ymin, ymax, xaxis):
 
     ylabel=r'$c~[10^{-4}]$'
-    yaxis=axis.lin(min=ymin,max=ymax,title=ylabel)
+    yaxis=axis.lin(min=ymin,max=ymax,title=ylabel,density=2)
 
     ypos=0.0
     key=None
@@ -189,7 +178,7 @@ def plot_c2thresh():
     corr       = [0.17, 0.17, 0.15, 0.13, 0.14, 0.12]
     err_corr   = [0.09, 0.10, 0.10, 0.10, 0.11, 0.11]
     xlabel=r'$S/N$ threshold'
-    ymin,ymax=-2,2
+    ymin,ymax=-3,3
 
     xaxis=axis.lin(min=xrng[0],max=xrng[1],title=xlabel)
 

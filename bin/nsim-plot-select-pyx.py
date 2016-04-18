@@ -1,4 +1,5 @@
 from __future__ import print_function
+from numpy import array
 from pyx import *
 from pyx.graph import axis
 
@@ -13,14 +14,20 @@ from pyxtools import colors, linestyles
 unit.set(xscale=1.25, vscale=1.4)
 
 thresh=[0,7,10,13,16,19]
-s2n_means= [8.68, 15.47, 97.44]
+#s2n_means= [8.68, 15.47, 97.44]
+s2n_means = [10.3982, 24.0881, 55.41, 127.428]
 
 xrng = [-2, 21]
-log_xrng=[5, 140]
+log_xrng=[7, 200]
+
+symsize=0.1
+
+corr_color=colors('chocolate3')
+#nocorr_color=colors('SpringGreen4')
+nocorr_color=colors('firebrick2')
 
 def doplot(plt,xvals, yvals, yerr, yvals_corr, yerr_corr):
 
-    corr_color=colors('blue')
     corr_values=graph.data.values(
         x=list(xvals),
         y=list(yvals_corr),
@@ -30,7 +37,7 @@ def doplot(plt,xvals, yvals, yerr, yvals_corr, yerr_corr):
 
     corr_symbol=graph.style.symbol(
         symbol=graph.style.symbol.circle,
-        size=0.1,
+        size=symsize,
         symbolattrs=[deco.filled([corr_color])],
         #symbolattrs=[corr_color],
     )
@@ -41,7 +48,6 @@ def doplot(plt,xvals, yvals, yerr, yvals_corr, yerr_corr):
     corr_styles=[corr_line,corr_errorbars,corr_symbol]
     plt.plot(corr_values,corr_styles)
 
-    nocorr_color=colors('red')
     nocorr_values=graph.data.values(
         x=list(xvals),
         y=list(yvals),
@@ -51,7 +57,7 @@ def doplot(plt,xvals, yvals, yerr, yvals_corr, yerr_corr):
 
     nocorr_symbol=graph.style.symbol(
         symbol=graph.style.symbol.triangle,
-        size=0.1,
+        size=symsize,
         symbolattrs=[deco.filled([nocorr_color])],
         #symbolattrs=[nocorr_color],
     )
@@ -130,13 +136,31 @@ def plot_mrng(cplt):
 
     c=canvas.canvas()
 
-    ymin,ymax=-10,10
+    ymin,ymax=-6,6
 
-    nocorr=[-0.37, 7.44, 0.47]
-    err_nocorr=[0.55, 0.37, 0.23]
+    #nocorr=[-0.37, 7.44, 0.47]
+    #err_nocorr=[0.55, 0.37, 0.23]
 
-    corr=[-0.11, -0.41, -0.02]
-    err_corr=[0.55, 0.37, 0.23]
+    #corr=[-0.11, -0.41, -0.02]
+    #err_corr=[0.55, 0.37, 0.23]
+
+    nocorr=array([ 3.676e-03,
+                  4.550e-03,
+                  2.095e-04,
+                  -1.998e-03])/1.0e-3
+    err_nocorr=array([3.817e-04,
+                      3.341e-04,
+                      3.717e-04,
+                      5.190e-04])/1.0e-3
+
+    corr=array([-3.725e-04,
+                -4.067e-04,
+                1.429e-04,
+                2.215e-04])/1.0e-3
+    err_corr=array([3.802e-04,
+                    3.325e-04,
+                    3.717e-04,
+                    5.202e-04 ])/1.0e-3
 
     c,g=plot_m(s2n_means, corr, err_corr, nocorr, err_nocorr, ymin, ymax, cplt)
 
@@ -147,7 +171,8 @@ def plot_mthresh(cplt):
 
     c=canvas.canvas()
 
-    ymin,ymax=-5,5
+    #ymin,ymax=-5,5
+    ymin,ymax=-6,6
     corr=[-0.91, -0.15, -0.10, -0.09, -0.04, -0.23]
     err_corr=[0.19,0.19,0.20,0.20,0.21,0.22]
 
@@ -160,11 +185,31 @@ def plot_mthresh(cplt):
 
 
 def plot_c2rng():
-    nocorr     = [1.78, 1.16, 0.46]
-    err_nocorr = [0.27, 0.18, 0.12]
+    #nocorr     = [1.78, 1.16, 0.46]
+    #err_nocorr = [0.27, 0.18, 0.12]
 
-    corr       = [0.27, 0.09, 0.20]
-    err_corr   = [0.27, 0.18, 0.12]
+    #corr       = [0.27, 0.09, 0.20]
+    #err_corr   = [0.27, 0.18, 0.12]
+
+    nocorr=array([1.702e-04,
+                  7.042e-05,
+                  4.098e-06,
+                  8.133e-05])/1.0e-4
+
+    err_nocorr=array([1.899e-05,
+                      1.662e-05,
+                      1.849e-05,
+                      2.582e-05])/1.0e-4
+
+    corr=array([2.279e-05,
+                2.110e-05,
+                -1.680e-05,
+                6.090e-05])/1.0e-4
+
+    err_corr=array([1.891e-05,
+                    1.654e-05,
+                    1.849e-05,
+                    2.588e-05])/1.0e-4
 
     ymin,ymax=-3,3
     xlabel=r'$\langle S/N \rangle$'

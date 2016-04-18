@@ -15,7 +15,7 @@ import fitsio
 import ngmix
 import nsim
 from nsim import files
-from nsim.averaging_new import Summer
+from nsim.averaging_new import SummerNSim
 
 import argparse
 import esutil as eu
@@ -57,7 +57,7 @@ def main():
     conf = nsim.files.read_config(args.runs[0])
     conf['simc'] = nsim.files.read_config(conf['sim'])
 
-    summer=Summer(conf, args)
+    summer=SummerNSim(conf, args)
     summer.go()
 
     summer.plot_fits()

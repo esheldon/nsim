@@ -5,6 +5,11 @@ from pyx.graph import axis
 import pyxtools
 from pyxtools import colors, linestyles
 
+# xscale scales everything by that factor, such as
+# text, ticks etc.
+# vscale: used for sizes of visual elements, like arrows, graph symbols, axis ticks, etc.
+# wscale: widths such as line widths
+
 unit.set(xscale=1.25, vscale=1.4)
 
 thresh=[0,7,10,13,16,19]

@@ -22,7 +22,7 @@ log_xrng=[7, 200]
 
 symsize=0.1
 
-corr_color=colors('chocolate3')
+corr_color=colors('steelblue')
 #nocorr_color=colors('SpringGreen4')
 nocorr_color=colors('firebrick2')
 

@@ -676,7 +676,7 @@ class SimGS(dict):
                     print("   bounding psf fwhm to:",bounds)
                     psf_fwhm_pdf = ngmix.priors.Bounded1D(psf_fwhm_pdf,bounds)
 
-            self.psf_fwhm_pdf  = psf_fwhm_pdf 
+                self.psf_fwhm_pdf  = psf_fwhm_pdf 
         else:
             if isinstance(pspec['r50'], dict):
                 r50pdf = pspec['r50']

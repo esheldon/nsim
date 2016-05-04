@@ -117,8 +117,7 @@ class FitterBase(dict):
 
         res=fitter.get_result()
         if res['flags'] != 0:
-            raise TryAgainError("failed at %s "
-                                "flags %s" % (key,res['flags']))
+            raise TryAgainError("failed with flags %s" % res['flags'])
 
         res['pars_true'] = imdict['pars']
         res['psf_pars_true'] = imdict['psf_pars']
@@ -183,15 +182,20 @@ class FitterBase(dict):
         self.update(run_conf)
 
         self['use_logpars']=self.get('use_logpars',False)
-        self['npars']=ngmix.gmix.get_model_npars(self['fit_model'])
+
+        if 'fit_model' in self:
+            self['npars']=ngmix.gmix.get_model_npars(self['fit_model'])
 
         # this is "full" pars
-        self['psf_npars']=6*ngmix.gmix._gmix_ngauss_dict[self['psf_pars']['model']]
+        if 'psf_pars' in self:
+            self['psf_npars']=\
+                6*ngmix.gmix._gmix_ngauss_dict[self['psf_pars']['model']]
 
         if isinstance(self.sim['obj_model'], dict):
             npars=2
         else:
             npars = ngmix.gmix.get_model_npars(self.sim['obj_model'])
+
         self['npars_true']=npars
 
         self['make_plots']=keys.get('make_plots',False)
@@ -618,7 +622,7 @@ class MaxFitter(SimpleFitterBase):
                 d['T_s2n_r'][i] = res['T_s2n_r']
 
 
-class MaxMetacalFitter(MaxFitter):
+class MaxMetacalFitterOld(MaxFitter):
     """
     metacal with a maximum likelihood fit
     """
@@ -873,8 +877,7 @@ class MaxMetacalFitter(MaxFitter):
         keys['height']=1000
         images.compare_images(im1, im2, **keys)
 
-
-class MaxMetacalFitterNew(MaxMetacalFitter):
+class MaxMetacalFitter(MaxFitter):
     """
     metacal with a maximum likelihood fit
     """
@@ -1036,6 +1039,9 @@ class MaxMetacalFitterNew(MaxMetacalFitter):
         res=resfull['noshear']
         print("    mcal s2n_r:",res['s2n_r'])
         print_pars(res['pars'],       front='    mcal pars: ')
+
+class DeconvMetacalFitter(MaxMetacalFitter):
+    pass
 
 
 class MaxMetacalDetrendFitter(MaxMetacalFitter):
@@ -3117,6 +3123,69 @@ class MaxResid(MaxFitter):
         self.im_diff_sum += imdiff
 
         return fitter
+
+
+
+class Deconvolver(FitterBase):
+    def _dofit(self, imdict):
+        import deconv
+
+        obs=imdict['obs']
+
+        meas=deconv.measure.calcmom_ksigma_obs(
+            obs,
+            self['sigma_weight'],
+        )
+
+        return meas
+
+    def _make_plots(self, fitter, key):
+        """
+        Write a plot file of the trials
+        """
+        import biggles
+
+        biggles.configure('default','fontsize_min',1.0)
+
+        width,height=1100,1100
+
+        #pdict=fitter.make_plots(do_residual=True, title=self.fit_model)
+
+        resid_pname=self['plot_base']+'-%06d-%s-gal-resid.png' % (self.igal,key)
+        print(resid_pname)
+        rplt=fitter.plot_residuals()
+        rplt[0][0].write_img(width,height,resid_pname)
+
+    def _get_prior(self):
+        pass
+
+    def _print_res(self,res):
+        """
+        print some stats
+        """
+
+        print("    T: %g e1: %g e2: %g" % (res['T'],res['e'][0],res['e'][1]))
+
+    def _get_dtype(self):
+        """
+        get the dtype for the output struct
+        """
+
+        dt=super(Deconvolver,self)._get_dtype()
+        dt += [
+            ('e','f8',2),
+            ('T','f8'),
+        ]
+
+        return dt
+
+    def _copy_to_output(self, res, i):
+
+        super(Deconvolver,self)._copy_to_output(res, i)
+        d=self.data
+
+        d['e'][i] = res['e']
+        d['T'][i] = res['T']
 
 def make_sheared_pars(pars, shear_g1, shear_g2):
     from ngmix import Shape

@@ -141,10 +141,13 @@ def run_sim(sim_conf,
         fitclass=nsim.fitters.ISampleGaussMomMetacal
 
 
-    elif ftype=='metacal-max':
+    elif ftype in ['metacal-max','metacal-new']:
         fitclass=nsim.fitters.MaxMetacalFitter
-    elif ftype=='metacal-new':
-        fitclass=nsim.fitters.MaxMetacalFitterNew
+    elif ftype=='metacal-old':
+        fitclass=nsim.fitters.MaxMetacalFitterOld
+
+    elif ftype=='metacal-deconv':
+        fitclass=nsim.fitters.DeconvMetacalFitter
 
     elif ftype=='metacal-max-simn':
         fitclass=nsim.fitters.MaxMetacalSimnFitter
@@ -219,6 +222,8 @@ def run_sim(sim_conf,
     elif ftype=='metacal-em':
         fitclass=nsim.fitters.EMMetacalFitter
 
+    elif ftype=='deconv':
+        fitclass=nsim.fitters.Deconvolver
     else:
         raise RuntimeError("bad fitter: '%s'" % ftype)
 

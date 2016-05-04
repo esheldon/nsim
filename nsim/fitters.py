@@ -3132,9 +3132,12 @@ class Deconvolver(FitterBase):
 
         obs=imdict['obs']
 
+        dk=self.get('dk',None)
+
         meas=deconv.measure.calcmom_ksigma_obs(
             obs,
             self['sigma_weight'],
+            dk=dk,
         )
 
         res=meas.get_result()
@@ -3171,7 +3174,8 @@ class Deconvolver(FitterBase):
         print some stats
         """
 
-        print("    T: %g e1: %g e2: %g" % (res['T'],res['e'][0],res['e'][1]))
+        tup=(res['dk'],res['T'],res['e'][0],res['e'][1])
+        print("    dk: %g T: %g e1: %g e2: %g" % tup)
 
     def _get_dtype(self):
         """
@@ -3182,6 +3186,7 @@ class Deconvolver(FitterBase):
         dt += [
             ('e','f8',2),
             ('T','f8'),
+            ('dk','f8'),
         ]
 
         return dt
@@ -3193,6 +3198,7 @@ class Deconvolver(FitterBase):
 
         d['e'][i] = res['e']
         d['T'][i] = res['T']
+        d['dk'][i] = res['dk']
 
 def make_sheared_pars(pars, shear_g1, shear_g2):
     from ngmix import Shape

@@ -3137,6 +3137,13 @@ class Deconvolver(FitterBase):
             self['sigma_weight'],
         )
 
+        res=meas.get_result()
+
+        # due to weight this cut should not bias anything
+        e=numpy.sqrt(res['e'][0]**2 + res['e'][1]**2)
+        if e > 0.999999999:
+            raise TryAgainError("e out of bounds")
+
         return meas
 
     def _make_plots(self, fitter, key):

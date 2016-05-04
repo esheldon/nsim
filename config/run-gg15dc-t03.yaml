@@ -1,0 +1,20 @@
+run: "run-gg15dc-t03"
+sim: "sim-gg15"
+
+fitter: "deconv"
+
+sigma_weight: 3.5
+dk: 0.1
+
+global_seed: 29375
+
+# batch system stuff
+ngal: 10000000
+
+desired_hours: 0.10
+# doubled
+sec_per: 0.02
+
+jobs_per_condor_sub: 5000
+
+verbose: False

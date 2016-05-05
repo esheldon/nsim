@@ -127,7 +127,7 @@ class FitterBase(dict):
         self._print_res(res)
 
         if self['make_plots']:
-            self._make_plots(fitter,self['fit_model'])
+            self._make_plots(fitter,self.get('fit_model',''))
 
         return res
 
@@ -3142,29 +3142,81 @@ class Deconvolver(FitterBase):
 
         res=meas.get_result()
 
-        # due to weight this cut should not bias anything
-        e=numpy.sqrt(res['e'][0]**2 + res['e'][1]**2)
-        if e > 0.999999999:
-            raise TryAgainError("e out of bounds")
+        # we know there is a single observation, so dig out
+        # the dk for that
+        meas0=meas.get_meas_list()[0]
+        res['dk'] = meas0.get_result()['dk']
 
         return meas
 
-    def _make_plots(self, fitter, key):
+    def _scale_im_for_plot(self, im):
+        maxval=im.max()
+        lim = numpy.log10(im.clip(min=1.0e-4*maxval))
+        lim -= lim.min()
+        lim /= lim.max()
+        return lim
+
+    def _make_plots(self, fitterall, key):
         """
         Write a plot file of the trials
         """
         import biggles
+        import images
+        import deconv
+
+        res=fitterall.get_result()
+        fitter=fitterall.get_meas_list()[0]
 
         biggles.configure('default','fontsize_min',1.0)
 
         width,height=1100,1100
 
-        #pdict=fitter.make_plots(do_residual=True, title=self.fit_model)
+        nrows,ncols=2,2
+        tab=biggles.Table(nrows,ncols)
 
-        resid_pname=self['plot_base']+'-%06d-%s-gal-resid.png' % (self.igal,key)
-        print(resid_pname)
-        rplt=fitter.plot_residuals()
-        rplt[0][0].write_img(width,height,resid_pname)
+        gim=self._scale_im_for_plot(fitter.gal_image.array)
+        pim=self._scale_im_for_plot(fitter.psf_image.array)
+        kim=self._scale_im_for_plot(fitter.gs_kimage.array)
+        wkim=self._scale_im_for_plot(fitter.kimage*fitter.kweight)
+
+        #wim=self._scale_im_for_plot(fitter.kweight)
+        wim=fitter.kweight
+
+        tab[0,0]=images.view(gim, title='galaxy', show=False)
+        tab[0,1]=images.view(pim, title='psf', show=False)
+        tab[1,0]=images.view(kim, title='k image', show=False)
+        tab[1,1]=images.view(wkim, title='wt k image', show=False)
+        tab.aspect_ratio=ncols/float(nrows)
+
+        #iplt=images.multiview(fitter.kimage, title='k image', show=False)
+        itab=biggles.Table(2,1)
+        iplt=images.multiview(kim, show=False)
+        iplt.title='k image  dk: %g' % res['dk']
+        iplt.aspect_ratio=0.5
+        wiplt=images.multiview(wkim, show=False)
+        wiplt.title='weighted k image dk: %g' % res['dk']
+        wiplt.aspect_ratio=0.5
+        itab[0,0]=iplt
+        itab[1,0]=wiplt
+
+
+        wplt=images.multiview(wim, title='wt image', show=False)
+        wplt.title='dk: %g' % res['dk']
+        wplt.aspect_ratio=0.5
+
+        pname=self['plot_base']+'-%06d-kim.png' % self.igal
+        wpname=self['plot_base']+'-%06d-kwt.png' % self.igal
+        ipname=self['plot_base']+'-%06d-kim.png' % self.igal
+
+        print(pname)
+        tab.write_img(width,height,pname)
+
+        print(wpname)
+        wplt.write_img(800,400,wpname)
+
+        print(ipname)
+        itab.write_img(800,800,ipname)
+
 
     def _get_prior(self):
         pass

@@ -3147,6 +3147,8 @@ class Deconvolver(FitterBase):
         meas0=meas.get_meas_list()[0]
         res['dk'] = meas0.get_result()['dk']
 
+        res['imsum'] = obs.image.sum()
+
         return meas
 
     def _scale_im_for_plot(self, im):
@@ -3226,8 +3228,9 @@ class Deconvolver(FitterBase):
         print some stats
         """
 
-        tup=(res['dk'],res['T'],res['e'][0],res['e'][1])
-        print("    dk: %g T: %g e1: %g e2: %g" % tup)
+        rat=res['imsum']/res['wflux']
+        tup=(res['dk'],res['T'],res['imsum'],res['wflux'],rat,res['e'][0],res['e'][1])
+        print("    dk: %g T: %g imsum: %g wflux: %g rat: %g e1: %g e2: %g" % tup)
 
     def _get_dtype(self):
         """
@@ -3238,6 +3241,7 @@ class Deconvolver(FitterBase):
         dt += [
             ('e','f8',2),
             ('T','f8'),
+            ('wflux','f8'),
             ('dk','f8'),
         ]
 
@@ -3250,6 +3254,7 @@ class Deconvolver(FitterBase):
 
         d['e'][i] = res['e']
         d['T'][i] = res['T']
+        d['wflux'][i] = res['wflux']
         d['dk'][i] = res['dk']
 
 def make_sheared_pars(pars, shear_g1, shear_g2):

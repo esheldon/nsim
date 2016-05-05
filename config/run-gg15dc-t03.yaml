@@ -6,7 +6,7 @@ fitter: "deconv"
 sigma_weight: 3.5
 dk: 0.1
 
-global_seed: 29375
+global_seed: 3423
 
 # batch system stuff
 ngal: 10000000

@@ -1,0 +1,20 @@
+run: "run-gg16z-dc01"
+sim: "sim-gg16z"
+
+fitter: "deconv"
+
+sigma_weight: 3.5
+dk: 0.1
+
+global_seed: 20605
+
+# batch system stuff
+ngal: 200000000
+
+desired_hours: 0.50
+# doubled
+sec_per: 0.02
+
+jobs_per_condor_sub: 5000
+
+verbose: False

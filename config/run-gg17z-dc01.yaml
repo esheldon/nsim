@@ -1,0 +1,19 @@
+run: "run-gg17z-dc01"
+sim: "sim-gg17z"
+
+fitter: "deconv"
+
+sigma_weight: 3.5
+
+global_seed: 24617
+
+# batch system stuff
+ngal: 200000000
+
+desired_hours: 0.5
+# doubled
+sec_per: 0.02
+
+jobs_per_condor_sub: 5000
+
+verbose: False

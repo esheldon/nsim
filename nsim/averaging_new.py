@@ -186,22 +186,30 @@ class Summer(dict):
 
                 for type in ngmix.metacal.METACAL_TYPES_SUB:
                     mcalname='mcal_g_%s' % type
-                    sumname='g_%s' % type
 
-                    sums[sumname][i] += data[mcalname][w].sum(axis=0)
+                    if mcalname in data.dtype.names:
+                        sumname='g_%s' % type
+
+                        sums[sumname][i] += data[mcalname][w].sum(axis=0)
+                    else:
+                        print("    skipping:",mcalname)
 
                 # now the selection terms
 
                 if self.select is not None:
                     for type in ngmix.metacal.METACAL_TYPES_SUB:
                         s2n_name='mcal_s2n_r_%s' % type
-                        wsumname = 's_wsum_%s' % type
-                        sumname = 's_g_%s' % type
 
-                        w=self._do_select(data[s2n_name][wfield])
-                        w=wfield[w]
-                        sums[wsumname][i] += w.size
-                        sums[sumname][i]  += data['mcal_g'][w].sum(axis=0)
+                        if s2n_name in data.dtype.names:
+                            wsumname = 's_wsum_%s' % type
+                            sumname = 's_g_%s' % type
+
+                            w=self._do_select(data[s2n_name][wfield])
+                            w=wfield[w]
+                            sums[wsumname][i] += w.size
+                            sums[sumname][i]  += data['mcal_g'][w].sum(axis=0)
+                        else:
+                            print("    skipping:",s2n_name)
 
         if self.select is not None:
             self._print_frac(ntot,nkeep)

@@ -1,6 +1,3 @@
-# DES wcs no variation
-# random shears
-# new metacal stuff
 run: "run-gg16z-rnd-t01"
 sim: "sim-gg16z"
 
@@ -54,11 +51,10 @@ max_pars:
         m: 5
         h: 1.0e-3
 
-ngal: 100000000
+ngal: 500000
 
-desired_hours: 2.0
+desired_hours: 0.1
 
-# doubled
-sec_per: 1.0
+sec_per: 0.5
 
 verbose: False

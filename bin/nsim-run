@@ -31,28 +31,6 @@ parser.add_argument("--profile-image", default=None,
                   help=("Profile the code and create the specified "
                         "image using pycallgraph"))
 
-def get_checkpoint_data(output_file):
-    """
-    Read in checkpoint data if it exists
-    """
-    checkpoint_file=output_file.replace('.fits','-checkpoint.fits')
-    data=None
-
-    if os.path.exists(checkpoint_file):
-        print('reading checkpoint data:',checkpoint_file)
-        data=fitsio.read(checkpoint_file)
-
-    return checkpoint_file, data
-
-def cleanup_checkpoint(checkpoint_file):
-    """
-    if we get this far, we have succeeded in writing the data. We can remove
-    the checkpoint file
-    """
-    if os.path.exists(checkpoint_file):
-        print('removing checkpoint file',checkpoint_file)
-        os.remove(checkpoint_file)
-
 def profile_sim(sim_conf,run_conf,npairs,output_file,args):
     # don't want to see the JIT
     import cProfile
@@ -114,12 +92,9 @@ def run_sim(sim_conf,
         else:
             sim=nsim.simgs.SimGS(sim_conf)
 
-    checkpoint_file, checkpoint_data=get_checkpoint_data(output_file)
     plot_base=output_file.replace('.fits','')
 
-    kw=dict(checkpoint_file=checkpoint_file,
-            checkpoint_data=checkpoint_data,
-            make_plots=args.make_plots,
+    kw=dict(make_plots=args.make_plots,
             plot_base=plot_base)
 
     ftype=run_conf['fitter']
@@ -145,6 +120,10 @@ def run_sim(sim_conf,
         fitclass=nsim.fitters.MaxMetacalFitter
     elif ftype=='metacal-old':
         fitclass=nsim.fitters.MaxMetacalFitterOld
+
+
+    elif ftype=='metacal-round-psf':
+        fitclass=nsim.fitters.MaxMetacalRoundPSFFitter
 
     elif ftype=='metacal-deconv':
         fitclass=nsim.fitters.DeconvMetacalFitter
@@ -240,15 +219,6 @@ def run_sim(sim_conf,
 
         imdiff_sum = imdiff_sum/model_sum.sum()
         success=nsim.util.write_fits(resid_file, imdiff_sum)
-
-
-    if success:
-        cleanup_checkpoint(checkpoint_file)
-    else:
-        print('not removing checkpoint due to write failure')
-
-
-
 
 def main():
     args=parser.parse_args()

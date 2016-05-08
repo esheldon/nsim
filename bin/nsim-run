@@ -121,9 +121,8 @@ def run_sim(sim_conf,
     elif ftype=='metacal-old':
         fitclass=nsim.fitters.MaxMetacalFitterOld
 
-
-    elif ftype=='metacal-round-psf':
-        fitclass=nsim.fitters.MaxMetacalRoundPSFFitter
+    elif ftype=='metacal-round-analytic-psf':
+        fitclass=nsim.fitters.MaxMetacalRoundAnalyticPSFFitter
 
     elif ftype=='metacal-deconv':
         fitclass=nsim.fitters.DeconvMetacalFitter

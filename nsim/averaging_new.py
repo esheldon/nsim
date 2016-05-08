@@ -192,7 +192,8 @@ class Summer(dict):
 
                         sums[sumname][i] += data[mcalname][w].sum(axis=0)
                     else:
-                        print("    skipping:",mcalname)
+                        #print("    skipping:",mcalname)
+                        pass
 
                 # now the selection terms
 
@@ -209,7 +210,8 @@ class Summer(dict):
                             sums[wsumname][i] += w.size
                             sums[sumname][i]  += data['mcal_g'][w].sum(axis=0)
                         else:
-                            print("    skipping:",s2n_name)
+                            #print("    skipping:",s2n_name)
+                            pass
 
         if self.select is not None:
             self._print_frac(ntot,nkeep)
@@ -268,15 +270,19 @@ class Summer(dict):
             s_g2p = sums['s_g_2p'][:,1].sum()/sums['s_wsum_2p'].sum()
             s_g2m = sums['s_g_2m'][:,1].sum()/sums['s_wsum_2m'].sum()
 
-            s_g1p_psf = sums['s_g_1p_psf'][:,0].sum()/sums['s_wsum_1p_psf'].sum()
-            s_g1m_psf = sums['s_g_1m_psf'][:,0].sum()/sums['s_wsum_1m_psf'].sum()
-            s_g2p_psf = sums['s_g_2p_psf'][:,1].sum()/sums['s_wsum_2p_psf'].sum()
-            s_g2m_psf = sums['s_g_2m_psf'][:,1].sum()/sums['s_wsum_2m_psf'].sum()
-
             Rsel[0] = (s_g1p - s_g1m)*factor
             Rsel[1] = (s_g2p - s_g2m)*factor
-            Rsel_psf[0] = (s_g1p_psf - s_g1m_psf)*factor
-            Rsel_psf[1] = (s_g2p_psf - s_g2m_psf)*factor
+
+            # can be zero if we aren't calculating psf terms (roundified psf)
+            tsum=sums['s_wsum_1p_psf'].sum()
+            if tsum != 0.0:
+                s_g1p_psf = sums['s_g_1p_psf'][:,0].sum()/sums['s_wsum_1p_psf'].sum()
+                s_g1m_psf = sums['s_g_1m_psf'][:,0].sum()/sums['s_wsum_1m_psf'].sum()
+                s_g2p_psf = sums['s_g_2p_psf'][:,1].sum()/sums['s_wsum_2p_psf'].sum()
+                s_g2m_psf = sums['s_g_2m_psf'][:,1].sum()/sums['s_wsum_2m_psf'].sum()
+
+                Rsel_psf[0] = (s_g1p_psf - s_g1m_psf)*factor
+                Rsel_psf[1] = (s_g2p_psf - s_g2m_psf)*factor
 
             print()
             print("Rsel:",Rsel)

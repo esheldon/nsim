@@ -812,7 +812,7 @@ class MaxMetacalFitter(MaxFitter):
         print_pars(res['pars'],       front='    mcal pars: ')
 
 
-class MaxMetacalRoundPSFFitter(MaxMetacalFitter):
+class MaxMetacalRoundAnalyticPSFFitter(MaxMetacalFitter):
     """
     round psf
     """

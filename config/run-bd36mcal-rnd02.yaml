@@ -5,6 +5,9 @@ fitter: "metacal-round-psf"
 #fitter: "metacal-max"
 fit_model: "gauss"
 
+round_psf:
+  method: 'model'
+
 g_prior_during: True
 use_logpars: True
 

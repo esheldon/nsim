@@ -1,7 +1,7 @@
 run: "run-bd36mcal-rnd-t01"
 sim: "sim-bd36"
 
-fitter: "metacal-round-psf"
+fitter: "metacal-round-analytic-psf"
 #fitter: "metacal-max"
 fit_model: "gauss"
 

@@ -1,7 +1,7 @@
 run: "run-gg16z-rnd-t02"
 sim: "sim-gg16z"
 
-fitter: "metacal-round-psf"
+fitter: "metacal-round-analytic-psf"
 #fitter: "metacal-max"
 fit_model: "gauss"
 

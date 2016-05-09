@@ -1,3 +1,4 @@
+# added dilation of symmetrized psf
 run: "run-bd38-rnd-t02"
 sim: "sim-bd38"
 

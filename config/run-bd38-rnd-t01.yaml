@@ -1,0 +1,58 @@
+run: "run-bd38-rnd-t01"
+sim: "sim-bd38"
+
+fitter: "metacal-max"
+fit_model: "gauss"
+
+g_prior_during: True
+use_logpars: True
+
+global_seed: 708
+
+metacal_pars:
+  symmetrize_psf: True
+  types: ['noshear','1p','1m','2p','2m']
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    T:
+        type: "gmixnd"
+        run: "run-bd23zmax-lownoise01"
+        extra: "log_T"
+        cov_factor: 1.44
+
+    counts:
+        type: "gmixnd"
+        run: "run-bd23zmax-lownoise01"
+        extra: "log_F"
+        cov_factor: 1.44
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+ngal: 10000000
+
+desired_hours: 1.0
+
+sec_per: 1.0
+
+verbose: False

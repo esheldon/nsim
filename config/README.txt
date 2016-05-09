@@ -2263,6 +2263,9 @@ tests of full wcs
 - sim-bd38
     - new sim for testing symmetrizing round psf
     - run-bd38-rnd-t01 10 Million test
+        - detected bias
+    - run-bd38-rnd-t02 10 Million test
+        - added dilation of psf
 
 
 - sim-stars01

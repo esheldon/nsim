@@ -184,7 +184,9 @@ class Summer(dict):
                 sums['g'][i]    += data['mcal_g'][w].sum(axis=0)
                 sums['gpsf'][i] += data['mcal_gpsf'][w].sum(axis=0)
 
-                for type in ngmix.metacal.METACAL_TYPES_SUB:
+                for type in ngmix.metacal.METACAL_TYPES:
+                    if type=='noshear':
+                        continue
                     mcalname='mcal_g_%s' % type
 
                     if mcalname in data.dtype.names:
@@ -198,7 +200,9 @@ class Summer(dict):
                 # now the selection terms
 
                 if self.select is not None:
-                    for type in ngmix.metacal.METACAL_TYPES_SUB:
+                    for type in ngmix.metacal.METACAL_TYPES:
+                        if type=='noshear':
+                            continue
                         s2n_name='mcal_s2n_r_%s' % type
 
                         if s2n_name in data.dtype.names:

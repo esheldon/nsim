@@ -13,7 +13,8 @@ stamp_size: [48,48]
 
 psf:
 
-    s2n: 10000.0
+    #s2n: 10000.0
+    s2n: 1000.0
 
     model: "gauss"
     r50: 1.60

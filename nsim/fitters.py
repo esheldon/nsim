@@ -745,7 +745,15 @@ class MaxMetacalFitter(MaxFitter):
         dt=super(MaxMetacalFitter,self)._get_dtype()
 
         npars=self['npars']
-        for type in ngmix.metacal.METACAL_TYPES:
+
+        mpars=self['metacal_pars']
+        types=mpars.get('types',ngmix.metacal.METACAL_TYPES)
+
+        for t in ngmix.metacal.METACAL_REQUIRED_TYPES:
+            if t not in types:
+                types.append(t)
+
+        for type in types:
 
             if type=='noshear':
                 back=''

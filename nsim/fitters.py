@@ -3185,7 +3185,8 @@ class MetacalMoments(SimpleFitterBase):
         currently no errors are allowed, which
         would be having an ivar <= 0 
         """
-        weight_gmix = boot.get_max_fitter().get_gmix()
+        weight_gmix0 = boot.get_max_fitter().get_gmix()
+        weight_gmix = weight_gmix0.make_round(preserve_size=True)
         weight_gmix.set_flux(1.0)
 
         mpars=self['metacal_pars']

@@ -115,7 +115,11 @@ class FitterBase(dict):
 
         fitter=self._dofit(imdict)
 
-        res=fitter.get_result()
+        if isinstance(fitter, dict):
+            res=fitter
+        else:
+            res=fitter.get_result()
+
         if res['flags'] != 0:
             raise TryAgainError("failed with flags %s" % res['flags'])
 
@@ -3129,6 +3133,162 @@ class Deconvolver(FitterBase):
         d['T'][i] = res['T']
         d['wflux'][i] = res['wflux']
         d['dk'][i] = res['dk']
+
+
+class MetacalMoments(SimpleFitterBase):
+    def _dofit(self, imdict):
+        from .bootstrappers import MetacalMomentBootstrapper
+
+        obs=imdict['obs']
+
+        boot=MetacalMomentBootstrapper(
+            obs,
+            use_logpars=self['use_logpars'],
+        )
+
+        # note doing *before* psf fit, so this is not
+        # deconvolved
+        self._fit_max(boot)
+        self._fit_psf(boot)
+
+        return self._do_moments_metacal(boot)
+
+    def _fit_max(self, boot):
+        """
+        fit to convolved object
+        """
+        try:
+            mconf=self['max_pars']
+            boot.fit_max(self['fit_model'],
+                         mconf['pars'],
+                         prior=self.prior,
+                         ntry=mconf['ntry'])
+        except BootGalFailure:
+            raise TryAgainError("failed to fit galaxy")
+
+    def _fit_psf(self, boot):
+        """
+        only for symmetrizing the psf
+
+        run after gal fit to avoid forward modeling
+        """
+
+        ppars=self['psf_pars']
+        Tguess=4.0
+        try:
+            boot.fit_psfs(ppars['model'], Tguess, ntry=ppars['ntry'])
+        except BootPSFFailure:
+            raise TryAgainError("failed to fit psf")
+
+    def _do_moments_metacal(self, boot):
+        """
+        currently no errors are allowed, which
+        would be having an ivar <= 0 
+        """
+        weight_gmix = boot.get_max_fitter().get_gmix()
+        weight_gmix.set_flux(1.0)
+
+        mpars=self['metacal_pars']
+
+        obsdict=ngmix.metacal.get_all_metacal(
+            boot.mb_obs_list,
+            **mpars
+        )
+
+        res={}
+        for type in obsdict:
+
+            mbobs=obsdict[type]
+
+            # now do sums over all bands and epochs
+            tres={}
+            for obslist in mbobs:
+                for obs in obslist:
+                    sumres=weight_gmix.get_weighted_moments(obs)
+
+                    if sumres['flags'] != 0:
+                        tup=(sumres['flags'],sumres['flagstr'])
+                        raise RuntimeError("got flags %d (%s) in moms" % tup)
+
+                    if len(tres)==0:
+                        tres=sumres
+                    else:
+                        for key in sumres:
+                            if 'flag' not in key:
+                                tres[key] += sumres[key]
+
+            tres['s2n'] = tres['s2n_numer_sum']/sqrt(tres['s2n_denom_sum'])
+            res[type] = tres
+
+        res['flags']=0
+        return res
+
+    def _print_res(self,resall):
+        """
+        print some stats
+        """
+
+        res=resall['noshear']
+        tup=(res['s2n'],
+             res['pars'][4],
+             res['pars'][2],
+             res['pars'][3])
+        print("    s2n: %g T: %g M1: %g M2: %g" % tup)
+
+    def _get_dtype(self):
+        """
+        get the dtype for the output struct
+        """
+        dt=FitterBase._get_dtype(self)
+
+        npars=6
+
+        mpars=self['metacal_pars']
+        types=mpars.get('types',ngmix.metacal.METACAL_TYPES)
+
+        for t in ngmix.metacal.METACAL_REQUIRED_TYPES:
+            if t not in types:
+                types.append(t)
+
+        for type in types:
+
+            if type=='noshear':
+                back=''
+            else:
+                back='_%s' % type
+
+            dt += [
+                ('mcal_pars%s' % back,'f8',npars),
+                ('mcal_pars_cov%s' % back,'f8',(npars,npars)),
+                ('mcal_s2n%s' % back,'f8'),
+            ]
+
+        return dt
+
+
+    def _copy_to_output(self, res, i):
+        """
+        copy parameters specific to this class
+        """
+        FitterBase._copy_to_output(self, res, i)
+
+        d=self.data
+
+        for type in ngmix.metacal.METACAL_TYPES:
+
+            # sometimes we don't calculate all
+            if type not in res:
+                continue
+
+            tres=res[type]
+            if type=='noshear':
+                back=''
+            else:
+                back='_%s' % type
+
+            d['mcal_pars%s' % back][i] = tres['pars']
+            d['mcal_pars_cov%s' % back][i] = tres['pars_cov']
+            d['mcal_s2n%s' % back][i] = tres['s2n']
 
 def make_sheared_pars(pars, shear_g1, shear_g2):
     from ngmix import Shape

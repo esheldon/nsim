@@ -127,6 +127,9 @@ def run_sim(sim_conf,
     elif ftype=='metacal-deconv':
         fitclass=nsim.fitters.DeconvMetacalFitter
 
+    elif ftype=='metacal-moments':
+        fitclass=nsim.fitters.MetacalMoments
+
     elif ftype=='metacal-max-simn':
         fitclass=nsim.fitters.MaxMetacalSimnFitter
     elif ftype=='metacal-max-subn':

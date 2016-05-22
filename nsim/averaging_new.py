@@ -151,6 +151,10 @@ class Summer(dict):
         just a binner and summer, no logic here
         """
 
+        if 'mcal_g' in data.dtype.names:
+            bname='mcal_g'
+        else:
+            bname='mcal_pars'
         nshear=self['nshear']
         args=self.args
 
@@ -181,13 +185,15 @@ class Summer(dict):
                 nkeep += w.size
 
                 sums['wsum'][i] += w.size
-                sums['g'][i]    += data['mcal_g'][w].sum(axis=0)
-                sums['gpsf'][i] += data['mcal_gpsf'][w].sum(axis=0)
+                sums['g'][i]    += data[bname][w].sum(axis=0)
+
+                if 'mcal_gpsf' in data.dtype.names:
+                    sums['gpsf'][i] += data['mcal_gpsf'][w].sum(axis=0)
 
                 for type in ngmix.metacal.METACAL_TYPES:
                     if type=='noshear':
                         continue
-                    mcalname='mcal_g_%s' % type
+                    mcalname='%s_%s' % (bname,type)
 
                     if mcalname in data.dtype.names:
                         sumname='g_%s' % type
@@ -212,7 +218,7 @@ class Summer(dict):
                             w=self._do_select(data[s2n_name][wfield])
                             w=wfield[w]
                             sums[wsumname][i] += w.size
-                            sums[sumname][i]  += data['mcal_g'][w].sum(axis=0)
+                            sums[sumname][i]  += data[bname][w].sum(axis=0)
                         else:
                             #print("    skipping:",s2n_name)
                             pass

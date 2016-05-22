@@ -144,6 +144,29 @@ class Summer(dict):
         """
         sub-classes might make a pre-selection, e.g. of some flags
         """
+        #return data
+
+        norig=data.size
+
+        w,=where(
+            (data['mcal_pars_cov'][:,0,0] > 0) &
+            (data['mcal_pars_cov'][:,1,1] > 0)
+        )
+        data=data[w]
+
+        movsig1=data['mcal_pars'][:,0]/sqrt(data['mcal_pars_cov'][:,0,0])
+        movsig2=data['mcal_pars'][:,1]/sqrt(data['mcal_pars_cov'][:,1,1])
+
+        w,=where(
+            (numpy.abs(movsig1) < 2 ) &
+            (numpy.abs(movsig2) < 2 ) &
+            (numpy.abs(data['mcal_pars'][:,2]) < 100.0) &
+            (numpy.abs(data['mcal_pars'][:,3]) < 100.0) &
+            (data['mcal_pars'][:,4] < 200.0)
+        )
+        print("kept %d/%d preselect" % (w.size, norig))
+
+        data=data[w]
         return data
 
     def do_sums1(self, data, sums=None):
@@ -153,8 +176,11 @@ class Summer(dict):
 
         if 'mcal_g' in data.dtype.names:
             bname='mcal_g'
+            beg=0
         else:
             bname='mcal_pars'
+            beg=2
+
         nshear=self['nshear']
         args=self.args
 
@@ -185,7 +211,7 @@ class Summer(dict):
                 nkeep += w.size
 
                 sums['wsum'][i] += w.size
-                sums['g'][i]    += data[bname][w].sum(axis=0)
+                sums['g'][i]    += data[bname][w,beg:beg+2].sum(axis=0)
 
                 if 'mcal_gpsf' in data.dtype.names:
                     sums['gpsf'][i] += data['mcal_gpsf'][w].sum(axis=0)
@@ -198,7 +224,7 @@ class Summer(dict):
                     if mcalname in data.dtype.names:
                         sumname='g_%s' % type
 
-                        sums[sumname][i] += data[mcalname][w].sum(axis=0)
+                        sums[sumname][i] += data[mcalname][w,beg:beg+2].sum(axis=0)
                     else:
                         #print("    skipping:",mcalname)
                         pass
@@ -218,7 +244,7 @@ class Summer(dict):
                             w=self._do_select(data[s2n_name][wfield])
                             w=wfield[w]
                             sums[wsumname][i] += w.size
-                            sums[sumname][i]  += data[bname][w].sum(axis=0)
+                            sums[sumname][i]  += data[bname][w,beg:beg+2].sum(axis=0)
                         else:
                             #print("    skipping:",s2n_name)
                             pass

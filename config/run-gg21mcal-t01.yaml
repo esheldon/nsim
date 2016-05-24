@@ -1,0 +1,71 @@
+# preserve_size=False
+# this version using em for gal fit
+# low noise
+run: "run-gg21mcal-t01"
+sim: "sim-gg21"
+
+ngmix_hash: ""
+nsim_hash: ""
+
+fitter: "metacal-max"
+
+# do moments, but do an initial fit first
+fit_model: "gauss"
+
+g_prior_during: True
+use_logpars: True
+
+global_seed: 7754
+
+metacal_pars:
+  step: 0.01
+  # psf is round
+  fixnoise: False
+  symmetrize_psf: False
+  types: ['noshear','1p','1m','2p','2m']
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    T:
+        type: "gmixnd"
+        # same underlying sim
+        run: "run-gg12zmax-lownoise01"
+        extra: "log_T"
+        cov_factor: 1.44
+
+    counts:
+        type: "gmixnd"
+        run: "run-gg12zmax-lownoise01"
+        extra: "log_F"
+        cov_factor: 1.44
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+
+ngal: 500000
+
+desired_hours: 0.25
+
+# doubled for slac
+sec_per: 0.4
+
+verbose: False

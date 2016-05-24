@@ -3148,10 +3148,23 @@ class MetacalMoments(SimpleFitterBase):
 
         # note doing *before* psf fit, so this is not
         # deconvolved
-        self._fit_max(boot)
+        #self._fit_max(boot)
+
+        self._fit_em(boot)
         self._fit_psf(boot)
 
         return self._do_moments_metacal(boot)
+
+    def _fit_em(self, boot):
+        """
+        fit to convolved object
+        """
+        try:
+            Tguess=4.0
+            em_pars={'maxiter':2000, 'tol':1.0e-6}
+            boot.fit_em(Tguess, em_pars, ntry=4)
+        except BootGalFailure:
+            raise TryAgainError("failed to fit galaxy")
 
     def _fit_max(self, boot):
         """
@@ -3185,8 +3198,10 @@ class MetacalMoments(SimpleFitterBase):
         currently no errors are allowed, which
         would be having an ivar <= 0 
         """
-        weight_gmix0 = boot.get_max_fitter().get_gmix()
-        weight_gmix = weight_gmix0.make_round(preserve_size=True)
+        #weight_gmix0 = boot.get_max_fitter().get_gmix()
+        weight_gmix0 = boot.get_em_fitter().get_gmix()
+        #weight_gmix = weight_gmix0.make_round(preserve_size=True)
+        weight_gmix = weight_gmix0.make_round(preserve_size=False)
         weight_gmix.set_flux(1.0)
 
         mpars=self['metacal_pars']
@@ -3205,18 +3220,27 @@ class MetacalMoments(SimpleFitterBase):
             tres={}
             for obslist in mbobs:
                 for obs in obslist:
-                    sumres=weight_gmix.get_weighted_moments(obs)
+                    psf_sumres=weight_gmix.get_weighted_moments(obs.psf)
+                    if psf_sumres['flags'] != 0:
+                        tup=(psf_sumres['flags'],psf_sumres['flagstr'])
+                        raise RuntimeError("got flags %d (%s) in moms" % tup)
 
+                    sumres=weight_gmix.get_weighted_moments(obs)
                     if sumres['flags'] != 0:
                         tup=(sumres['flags'],sumres['flagstr'])
                         raise RuntimeError("got flags %d (%s) in moms" % tup)
 
                     if len(tres)==0:
                         tres=sumres
+                        for key in list(sumres.keys()):
+                            psf_key = 'psf_%s' % key
+                            tres[psf_key] = psf_sumres[key]
                     else:
-                        for key in sumres:
+                        for key in list(sumres.keys()):
+                            psf_key = 'psf_%s' % key
                             if 'flag' not in key:
                                 tres[key] += sumres[key]
+                                tres[psf_key] += psf_sumres[key]
 
             tres['s2n'] = tres['s2n_numer_sum']/sqrt(tres['s2n_denom_sum'])
             res[type] = tres
@@ -3262,6 +3286,8 @@ class MetacalMoments(SimpleFitterBase):
                 ('mcal_pars%s' % back,'f8',npars),
                 ('mcal_pars_cov%s' % back,'f8',(npars,npars)),
                 ('mcal_s2n%s' % back,'f8'),
+
+                ('mcal_psf_pars%s' % back,'f8',npars),
             ]
 
         return dt
@@ -3290,6 +3316,8 @@ class MetacalMoments(SimpleFitterBase):
             d['mcal_pars%s' % back][i] = tres['pars']
             d['mcal_pars_cov%s' % back][i] = tres['pars_cov']
             d['mcal_s2n%s' % back][i] = tres['s2n']
+
+            d['mcal_psf_pars%s' % back][i] = tres['psf_pars']
 
 def make_sheared_pars(pars, shear_g1, shear_g2):
     from ngmix import Shape

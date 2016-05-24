@@ -70,11 +70,16 @@ class SimGS(dict):
             nrows,ncols=self['psf_stamp_size']
         else:
             nrows,ncols=self['stamp_size']
-        psf_obs = self._make_obs(psf, nrows, ncols, wcs,
+
+        cenoff=gal_pars['cenoff']
+        if cenoff is not None:
+            print("    cenoff: %g,%g" % cenoff)
+
+        psf_obs = self._make_obs(psf, nrows, ncols, wcs, cenoff,
                                  s2n=self['psf']['s2n'], isgal=False)
 
         nrows,ncols=self['stamp_size']
-        gal_obs = self._make_obs(gal, nrows, ncols, wcs,
+        gal_obs = self._make_obs(gal, nrows, ncols, wcs, cenoff,
                                  isgal=True)
 
         s2n = self._get_expected_s2n(gal_obs.image_nonoise)
@@ -100,7 +105,7 @@ class SimGS(dict):
                 'gal_obj': gal}
 
 
-    def _make_obs(self, gs_obj, nrows, ncols, wcs, s2n=None, isgal=True):
+    def _make_obs(self, gs_obj, nrows, ncols, wcs, cenoff, s2n=None, isgal=True):
         """
         get an ngmix Observation
 
@@ -112,7 +117,8 @@ class SimGS(dict):
         gsimage = gs_obj.drawImage(nx=ncols,
                                    ny=nrows,
                                    wcs=wcs,
-                                   dtype=numpy.float64)
+                                   dtype=numpy.float64,
+                                   offset=cenoff)
         im0 = gsimage.array
         if s2n is not None:
             image_nonoise, image, flux = self._scale_and_add_noise(im0, s2n)
@@ -339,7 +345,7 @@ class SimGS(dict):
 
         gal_pars=self._get_galaxy_pars()
 
-        psf, psf_pars  = self._get_psf_obj(gal_pars['cenoff'])
+        psf, psf_pars  = self._get_psf_obj()
 
         if gal_pars['model']=='star':
             gal = psf.withFlux(gal_pars['flux'])
@@ -360,8 +366,6 @@ class SimGS(dict):
 
         g1,g2=pars['g']
 
-        cenoff = pars['cenoff']
-
         if pars['model']=='gauss':
             gal = galsim.Gaussian(flux=flux, half_light_radius=r50)
         elif pars['model']=='exp':
@@ -379,18 +383,12 @@ class SimGS(dict):
             shear=pars['shear']
             gal = gal.shear(g1=shear.g1, g2=shear.g2)
 
-        # in the demos, the shift was always applied after the shear, not sure
-        # if it matters
-        if cenoff is not None:
-            gal = gal.shift(dx=cenoff[0], dy=cenoff[1])
-
-        tup=(r50,cenoff)
-        print("    r50: %g cenoff: %s" % tup)
+        print("    r50: %g" % r50)
 
         return gal
 
 
-    def _get_psf_obj(self, cenoff):
+    def _get_psf_obj(self):
         """
         get the galsim object for the psf
         """
@@ -413,9 +411,6 @@ class SimGS(dict):
 
         psf_g1, psf_g2 = self._get_psf_shape()
         psf = psf.shear(g1=psf_g1, g2=psf_g2)
-
-        if cenoff is not None:
-            psf = psf.shift(dx=cenoff[0], dy=cenoff[1])
 
         return psf, {'fwhm':fwhm, 'r50':r50}
 

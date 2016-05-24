@@ -132,8 +132,8 @@ class Summer(dict):
 
                     #sums=self.do_sums1(data, sums=sums)
                     if True and 'mcal_g' not in data.dtype.names:
-                        #sums=self.do_sums1_moms(data, sums=sums)
-                        sums=self.do_sums1_moms_psfcorr(data, sums=sums)
+                        sums=self.do_sums1_moms(data, sums=sums)
+                        #sums=self.do_sums1_moms_psfcorr(data, sums=sums)
                     else:
                         sums=self.do_sums1(data, sums=sums)
 
@@ -195,6 +195,11 @@ class Summer(dict):
         just a binner and summer, no logic here
         """
 
+        if 'mcal_s2n_r' in data.dtype.names:
+            s2n_name='mcal_s2n_r'
+        elif 'mcal_s2n' in data.dtype.names:
+            s2n_name='mcal_s2n'
+
         if 'mcal_g' in data.dtype.names:
             bname='mcal_g'
             beg=0
@@ -223,7 +228,7 @@ class Summer(dict):
 
                 # first select on the noshear measurement
                 if self.select is not None:
-                    w=self._do_select(data['mcal_s2n_r'][wfield])
+                    w=self._do_select(data[s2n_name][wfield])
                     w=wfield[w]
                 else:
                     w=wfield
@@ -256,18 +261,18 @@ class Summer(dict):
                     for type in ngmix.metacal.METACAL_TYPES:
                         if type=='noshear':
                             continue
-                        s2n_name='mcal_s2n_r_%s' % type
+                        ts2n_name='%s_%s' % (s2n_name,type)
 
-                        if s2n_name in data.dtype.names:
+                        if ts2n_name in data.dtype.names:
                             wsumname = 's_wsum_%s' % type
                             sumname = 's_g_%s' % type
 
-                            w=self._do_select(data[s2n_name][wfield])
+                            w=self._do_select(data[ts2n_name][wfield])
                             w=wfield[w]
                             sums[wsumname][i] += w.size
                             sums[sumname][i]  += data[bname][w,beg:beg+2].sum(axis=0)
                         else:
-                            #print("    skipping:",s2n_name)
+                            #print("    skipping:",ts2n_name)
                             pass
 
         if self.select is not None:
@@ -290,9 +295,32 @@ class Summer(dict):
         M2 = M2 - psfM2*Frat
         T = T - psfT*Frat
 
+        w,=numpy.where(T == 0)
+        if w.size > 0:
+            print("found",w.size,"zeros")
         e1=M1/T
         e2=M2/T
         return e1,e2
+
+    def _get_M1M2corr_nodiv(self, pars, psf_pars):
+        M1 = pars[:,2]
+        M2 = pars[:,3]
+        T = pars[:,4]
+        Fsum = pars[:,5]
+
+        psfM1 = psf_pars[:,2]
+        psfM2 = psf_pars[:,3]
+        psfT = psf_pars[:,4]
+        psfFsum = psf_pars[:,5]
+
+        Frat = Fsum/psfFsum
+        M1 = M1 - psfM1*Frat
+        M2 = M2 - psfM2*Frat
+        T = T - psfT*Frat
+
+        return M1, M2
+
+
 
 
     def do_sums1_moms_psfcorr(self, data, sums=None):
@@ -300,6 +328,8 @@ class Summer(dict):
         just a binner and summer, no logic here
         """
 
+        #getfunc=self._get_M1M2corr
+        getfunc=self._get_M1M2corr_nodiv
 
         nshear=self['nshear']
         args=self.args
@@ -332,7 +362,10 @@ class Summer(dict):
 
                 sums['wsum'][i] += w.size
 
-                M1, M2 = self._get_M1M2corr(data['mcal_pars'][w],data['mcal_psf_pars'][w])
+                M1, M2 = getfunc(
+                    data['mcal_pars'][w],
+                    data['mcal_psf_pars'][w],
+                )
 
                 sums['g'][i,0] += M1.sum()
                 sums['g'][i,1] += M2.sum()
@@ -349,7 +382,7 @@ class Summer(dict):
                     if mcalname in data.dtype.names:
                         sumname='g_%s' % type
 
-                        M1, M2 = self._get_M1M2corr(data[mcalname][w],data[psf_mcalname][w])
+                        M1, M2 = getfunc(data[mcalname][w],data[psf_mcalname][w])
                         sums[sumname][i,0] += M1.sum()
                         sums[sumname][i,1] += M2.sum()
                     else:
@@ -362,7 +395,7 @@ class Summer(dict):
                     for type in ngmix.metacal.METACAL_TYPES:
                         if type=='noshear':
                             continue
-                        s2n_name='mcal_s2n_r_%s' % type
+                        s2n_name='mcal_s2n_%s' % type
 
                         if s2n_name in data.dtype.names:
                             wsumname = 's_wsum_%s' % type
@@ -372,7 +405,7 @@ class Summer(dict):
                             w=wfield[w]
                             sums[wsumname][i] += w.size
 
-                            M1, M2 = self._get_M1M2corr(data['mcal_pars'][w],data['mcal_psf_pars'][w])
+                            M1, M2 = getfunc(data['mcal_pars'][w],data['mcal_psf_pars'][w])
 
                             sums[sumname][i,0]  += M1.sum()
                             sums[sumname][i,1]  += M2.sum()
@@ -390,6 +423,12 @@ class Summer(dict):
         just a binner and summer, no logic here
         """
 
+        di=5
+
+        if 'mcal_s2n_r' in data.dtype.names:
+            s2n_name='mcal_s2n_r'
+        elif 'mcal_s2n' in data.dtype.names:
+            s2n_name='mcal_s2n'
 
         nshear=self['nshear']
         args=self.args
@@ -412,7 +451,7 @@ class Summer(dict):
 
                 # first select on the noshear measurement
                 if self.select is not None:
-                    w=self._do_select(data['mcal_s2n_r'][wfield])
+                    w=self._do_select(data[s2n_name][wfield])
                     w=wfield[w]
                 else:
                     w=wfield
@@ -423,8 +462,10 @@ class Summer(dict):
                 sums['wsum'][i] += w.size
 
                 e=data['mcal_pars'][w,2:2+2]
-                e[:,0] /= data['mcal_pars'][w,4]
-                e[:,1] /= data['mcal_pars'][w,4]
+                #e[:,0] /= data['mcal_pars'][w,4]
+                #e[:,1] /= data['mcal_pars'][w,4]
+                e[:,0] /= data['mcal_pars'][w,di]
+                e[:,1] /= data['mcal_pars'][w,di]
 
                 sums['g'][i]    += e.sum(axis=0)
 
@@ -440,8 +481,8 @@ class Summer(dict):
                         sumname='g_%s' % type
 
                         e = data[mcalname][w,2:2+2]
-                        e[:,0] /= data[mcalname][w,4]
-                        e[:,1] /= data[mcalname][w,4]
+                        e[:,0] /= data[mcalname][w,di]
+                        e[:,1] /= data[mcalname][w,di]
                         sums[sumname][i] += e.sum(axis=0)
                     else:
                         #print("    skipping:",mcalname)
@@ -453,22 +494,22 @@ class Summer(dict):
                     for type in ngmix.metacal.METACAL_TYPES:
                         if type=='noshear':
                             continue
-                        s2n_name='mcal_s2n_r_%s' % type
+                        ts2n_name='%s_%s' % (s2n_name,type)
 
-                        if s2n_name in data.dtype.names:
+                        if ts2n_name in data.dtype.names:
                             wsumname = 's_wsum_%s' % type
                             sumname = 's_g_%s' % type
 
-                            w=self._do_select(data[s2n_name][wfield])
+                            w=self._do_select(data[ts2n_name][wfield])
                             w=wfield[w]
                             sums[wsumname][i] += w.size
 
                             e=data['mcal_pars'][w,2:2+2]
-                            e[:,0] /= data['mcal_pars'][w,4]
-                            e[:,1] /= data['mcal_pars'][w,4]
+                            e[:,0] /= data['mcal_pars'][w,di]
+                            e[:,1] /= data['mcal_pars'][w,di]
                             sums[sumname][i]  += e.sum(axis=0)
                         else:
-                            #print("    skipping:",s2n_name)
+                            #print("    skipping:",ts2n_name)
                             pass
 
         if self.select is not None:

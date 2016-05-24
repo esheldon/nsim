@@ -3201,8 +3201,17 @@ class MetacalMoments(SimpleFitterBase):
         #weight_gmix0 = boot.get_max_fitter().get_gmix()
         weight_gmix0 = boot.get_em_fitter().get_gmix()
         #weight_gmix = weight_gmix0.make_round(preserve_size=True)
-        weight_gmix = weight_gmix0.make_round(preserve_size=False)
-        weight_gmix.set_flux(1.0)
+        #weight_gmix = weight_gmix0.make_round(preserve_size=False)
+        #weight_gmix.set_flux(1.0)
+
+        cen1,cen2=weight_gmix0.get_cen()
+
+        # use fixed weight
+        T=self['weight_T']
+        weight_gmix = ngmix.GMixModel(
+            [cen1,cen2,0.0,0.0,T,1.0],
+            'gauss',
+        )
 
         mpars=self['metacal_pars']
 

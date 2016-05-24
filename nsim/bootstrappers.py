@@ -1,9 +1,32 @@
 from __future__ import print_function
-from ngmix.bootstrap import Bootstrapper, MaxRunner
+from ngmix.bootstrap import Bootstrapper, MaxRunner, EMRunner
 from ngmix.gexceptions import GMixRangeError, BootPSFFailure, BootGalFailure
 from ngmix.guessers import TFluxGuesser, TFluxAndPriorGuesser
 
 class MetacalMomentBootstrapper(Bootstrapper):
+
+    def get_em_fitter(self):
+        return self.em_fitter
+
+    def fit_em(self, Tguess, em_pars, ntry=1, **kw):
+
+        obs = self.mb_obs_list
+
+        runner=EMRunner(obs[0][0], Tguess, 1, em_pars)
+        # note in this version we do not require  psfs
+
+        runner.go(ntry=ntry)
+
+        fitter=runner.fitter
+
+        res=fitter.get_result()
+
+        if res['flags'] != 0:
+            raise BootGalFailure("failed to fit galaxy with maxlike")
+
+        self.em_fitter=fitter
+
+
 
     def fit_max(self,
                 gal_model,

@@ -79,7 +79,7 @@ class Summer(dict):
             self.means_nocorr=means_nocorr
             self._write_means()
 
-        if self.select is not None:
+        if self.do_selection:
             print("without correction")
             junk=reredux.averaging.fit_m_c(self.means_nocorr)
             junk=reredux.averaging.fit_m_c(self.means_nocorr,onem=True)
@@ -132,8 +132,12 @@ class Summer(dict):
 
                     #sums=self.do_sums1(data, sums=sums)
                     if True and 'mcal_g' not in data.dtype.names:
-                        sums=self.do_sums1_moms(data, sums=sums)
-                        #sums=self.do_sums1_moms_psfcorr(data, sums=sums)
+                        if True:
+                            sums=self.do_sums1_moms_wt(data, sums=sums)
+                        elif False:
+                            sums=self.do_sums1_moms(data, sums=sums)
+                        elif False:
+                            sums=self.do_sums1_moms_psfcorr(data, sums=sums)
                     else:
                         sums=self.do_sums1(data, sums=sums)
 
@@ -252,7 +256,6 @@ class Summer(dict):
 
                         sums[sumname][i] += data[mcalname][w,beg:beg+2].sum(axis=0)
                     else:
-                        #print("    skipping:",mcalname)
                         pass
 
                 # now the selection terms
@@ -516,6 +519,135 @@ class Summer(dict):
             self._print_frac(ntot,nkeep)
         return sums
 
+    def _get_noise_weight(self, data, w, type):
+        if type=='noshear':
+            tstr=''
+        else:
+            tstr='_%s' % type
+        parname='mcal_pars%s' % tstr
+        covname='mcal_pars_cov%s' % tstr
+
+        M1=data[parname][w,2]
+        M2=data[parname][w,3]
+        T=data[parname][w,4]
+
+        e1=M1/T
+        e2=M2/T
+
+        VM1=data[covname][w,2,2]
+        VM2=data[covname][w,3,3]
+        VT=data[covname][w,4,4]
+        Ve = VM1/T + VM2/T + VT*M1/T**2 + VT*M2/T**2
+
+        Ti2=1/T**2
+        Ve = ( VM1*Ti2 + e1**2 *VT * Ti2  +
+               VM2*Ti2 + e2**2 *VT * Ti2 )
+        wt = 1.0/(2*0.3**2 + Ve)
+
+        return wt
+
+
+    def do_sums1_moms_wt(self, data, sums=None):
+        """
+        just a binner and summer, no logic here
+        """
+
+        self.do_selection=True
+
+        nshear=self['nshear']
+        args=self.args
+
+        h,rev = eu.stat.histogram(data['shear_index'],
+                                  min=0,
+                                  max=nshear-1,
+                                  rev=True)
+        nind = h.size
+        assert nshear==nind
+
+        if sums is None:
+            sums=self._get_sums_struct()
+
+        ntot=0
+        nkeep=0
+        for i in xrange(nshear):
+            if rev[i] != rev[i+1]:
+                wfield=rev[ rev[i]:rev[i+1] ]
+
+                # first select on the noshear measurement
+                if self.select is not None:
+                    w=self._do_select(data['mcal_s2n'][wfield])
+                    w=wfield[w]
+                else:
+                    w=wfield
+
+                ntot  += wfield.size
+                nkeep += w.size
+
+
+                M1=data['mcal_pars'][w,2]
+                M2=data['mcal_pars'][w,3]
+
+                wt=self._get_noise_weight(data, w, 'noshear')
+
+                sums['wsum'][i] += wt.sum()
+                sums['g'][i,0]  += (M1*wt).sum()
+                sums['g'][i,1]  += (M2*wt).sum()
+
+                if 'mcal_gpsf' in data.dtype.names:
+                    sums['gpsf'][i] += data['mcal_gpsf'][w].sum(axis=0)
+
+                # must use the same weight for these, equivalent to same
+                # selection
+                for type in ngmix.metacal.METACAL_TYPES:
+                    if type=='noshear':
+                        continue
+                    mcalname='mcal_pars_%s' % type
+
+                    if mcalname in data.dtype.names:
+                        sumname='g_%s' % type
+
+                        M1 = data[mcalname][w,2]
+                        M2 = data[mcalname][w,3]
+                        sums[sumname][i,0] += (M1*wt).sum()
+                        sums[sumname][i,1] += (M2*wt).sum()
+                    else:
+                        #print("    skipping:",mcalname)
+                        pass
+
+                # now the selection terms, always needed since
+                # we are weighting
+                for type in ngmix.metacal.METACAL_TYPES:
+                    if type=='noshear':
+                        continue
+                    ts2n_name='mcal_s2n_%s' % type
+
+                    if ts2n_name in data.dtype.names:
+                        wsumname = 's_wsum_%s' % type
+                        sumname = 's_g_%s' % type
+
+                        if self.select is not None:
+                            w=self._do_select(data[ts2n_name][wfield])
+                            w=wfield[w]
+                        else:
+                            w=wfield
+
+                        M1=data['mcal_pars'][w,2]
+                        M2=data['mcal_pars'][w,3]
+
+                        wt=self._get_noise_weight(data, w, type)
+
+                        sums[wsumname][i]  += wt.sum()
+                        sums[sumname][i,0] += (M1*wt).sum()
+                        sums[sumname][i,1] += (M2*wt).sum()
+                    else:
+                        #print("    skipping:",ts2n_name)
+                        pass
+
+        if self.select is not None:
+            self._print_frac(ntot,nkeep)
+        return sums
+
+
     def _average_sums(self, sums):
         """
         divide by sum of weights and get g for each field
@@ -563,7 +695,7 @@ class Summer(dict):
         print("Rpsf:",Rpsf)
 
         # selection terms
-        if self.select is not None:
+        if self.do_selection:
             s_g1p = sums['s_g_1p'][:,0].sum()/sums['s_wsum_1p'].sum()
             s_g1m = sums['s_g_1m'][:,0].sum()/sums['s_wsum_1m'].sum()
             s_g2p = sums['s_g_2p'][:,1].sum()/sums['s_wsum_2p'].sum()
@@ -706,11 +838,15 @@ class Summer(dict):
 
     def _set_select(self):
         self.select=None
+        self.do_selection=False
+
         if self.args.select is not None:
             self.select = self.args.select
+            self.do_selection=True
         elif self.args.select_from is not None:
             with open(self.args.select_from) as fobj:
                 d=yaml.load(fobj)
+            self.do_selection=True
 
             self.select = d['select'].strip()
 

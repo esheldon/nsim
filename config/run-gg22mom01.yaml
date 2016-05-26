@@ -1,4 +1,4 @@
-run: "run-gg22mom-t01"
+run: "run-gg22mom01"
 sim: "sim-gg22"
 
 fitter: "metacal-moments"
@@ -6,7 +6,7 @@ fitter: "metacal-moments"
 # do moments, but do an initial fit first
 fit_model: "gauss"
 
-global_seed: 3902
+global_seed: 26962
 
 metacal_pars:
   step: 0.01
@@ -50,9 +50,9 @@ max_pars:
         lm_pars:
             maxfev: 4000
 
-ngal: 10000000
+ngal: 100000000
 
-desired_hours: 0.50
+desired_hours: 1.0
 
 # doubled for slac
 sec_per: 0.2

@@ -1,24 +1,31 @@
-run: "run-gg22mom-t01"
-sim: "sim-gg22"
+# fixed weight function
+# preserve_size=False
+# this version using em for gal fit
+# low noise
+run: "run-gg21mom-t03"
+sim: "sim-gg21"
 
 fitter: "metacal-moments"
 
 # do moments, but do an initial fit first
 fit_model: "gauss"
 
-global_seed: 3902
+g_prior_during: True
+use_logpars: True
+
+global_seed: 25135
 
 metacal_pars:
   step: 0.01
   fixnoise: False
-  symmetrize_psf: True
+  symmetrize_psf: False
   types: ['noshear','1p','1m','2p','2m']
 
-weight_T: 5.5
+# roughly the T for the mean galaxy, convolved
+# with the psf in this sim
+weight_T: 9.5
 
 # not used, we fit with em
-g_prior_during: True
-use_logpars: True
 priors:
     cen:
         type: "normal2d"
@@ -50,13 +57,11 @@ max_pars:
         lm_pars:
             maxfev: 4000
 
-ngal: 10000000
+ngal: 100000000
 
-desired_hours: 0.50
+desired_hours: 1.0
 
 # doubled for slac
-sec_per: 0.2
-
-jobs_per_condor_sub: 5000
+sec_per: 0.3
 
 verbose: False

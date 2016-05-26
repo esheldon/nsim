@@ -132,9 +132,9 @@ class Summer(dict):
 
                     #sums=self.do_sums1(data, sums=sums)
                     if True and 'mcal_g' not in data.dtype.names:
-                        if True:
+                        if False:
                             sums=self.do_sums1_moms_wt(data, sums=sums)
-                        elif False:
+                        elif True:
                             sums=self.do_sums1_moms(data, sums=sums)
                         elif False:
                             sums=self.do_sums1_moms_psfcorr(data, sums=sums)
@@ -194,22 +194,41 @@ class Summer(dict):
         data=data[w]
         return data
 
-    def do_sums1(self, data, sums=None):
-        """
-        just a binner and summer, no logic here
-        """
-
+    def _get_s2n_name(self, data):
         if 'mcal_s2n_r' in data.dtype.names:
             s2n_name='mcal_s2n_r'
         elif 'mcal_s2n' in data.dtype.names:
             s2n_name='mcal_s2n'
 
+    def _get_bname_and_beg(self, data):
         if 'mcal_g' in data.dtype.names:
             bname='mcal_g'
             beg=0
         else:
             bname='mcal_pars'
             beg=2
+
+        return bname, beg
+
+    def _get_g(self, data, w, type):
+        bname, beg=self._get_bname_and_beg(data):
+        if type=='noshear':
+            name=bname
+        else:
+            name='%s_%s' % (bname, type)
+
+        if name not in data.dtype.names:
+            g=None
+        else:
+            g = data[name][w,beg:beg+2]
+        return g
+
+    def do_sums1(self, data, sums=None):
+        """
+        just a binner and summer, no logic here
+        """
+
+        s2n_name=self._get_s2n_name(data)
 
         nshear=self['nshear']
         args=self.args
@@ -241,7 +260,8 @@ class Summer(dict):
                 nkeep += w.size
 
                 sums['wsum'][i] += w.size
-                sums['g'][i]    += data[bname][w,beg:beg+2].sum(axis=0)
+                g=self._get_g(data, w, 'noshear')
+                sums['g'][i] += g.sum(axis=0)
 
                 if 'mcal_gpsf' in data.dtype.names:
                     sums['gpsf'][i] += data['mcal_gpsf'][w].sum(axis=0)
@@ -251,10 +271,11 @@ class Summer(dict):
                         continue
                     mcalname='%s_%s' % (bname,type)
 
-                    if mcalname in data.dtype.names:
+                    g=self._get_g(data, w, type)
+                    if g is not None:
                         sumname='g_%s' % type
 
-                        sums[sumname][i] += data[mcalname][w,beg:beg+2].sum(axis=0)
+                        sums[sumname][i] += g.sum(axis=0)
                     else:
                         pass
 
@@ -273,7 +294,9 @@ class Summer(dict):
                             w=self._do_select(data[ts2n_name][wfield])
                             w=wfield[w]
                             sums[wsumname][i] += w.size
-                            sums[sumname][i]  += data[bname][w,beg:beg+2].sum(axis=0)
+
+                            g=self._get_g(data, w, 'noshear')
+                            sums[sumname][i] += g.sum(axis=0)
                         else:
                             #print("    skipping:",ts2n_name)
                             pass
@@ -426,12 +449,9 @@ class Summer(dict):
         just a binner and summer, no logic here
         """
 
-        di=5
+        di=4
 
-        if 'mcal_s2n_r' in data.dtype.names:
-            s2n_name='mcal_s2n_r'
-        elif 'mcal_s2n' in data.dtype.names:
-            s2n_name='mcal_s2n'
+        s2n_name=self._get_s2n_name(data)
 
         nshear=self['nshear']
         args=self.args
@@ -465,12 +485,10 @@ class Summer(dict):
                 sums['wsum'][i] += w.size
 
                 e=data['mcal_pars'][w,2:2+2]
-                #e[:,0] /= data['mcal_pars'][w,4]
-                #e[:,1] /= data['mcal_pars'][w,4]
                 e[:,0] /= data['mcal_pars'][w,di]
                 e[:,1] /= data['mcal_pars'][w,di]
 
-                sums['g'][i]    += e.sum(axis=0)
+                sums['g'][i] += e.sum(axis=0)
 
                 if 'mcal_gpsf' in data.dtype.names:
                     sums['gpsf'][i] += data['mcal_gpsf'][w].sum(axis=0)
@@ -519,7 +537,7 @@ class Summer(dict):
             self._print_frac(ntot,nkeep)
         return sums
 
-    def _get_noise_weight(self, data, w, type):
+    def _get_noise_weight_mom(self, data, w, type):
         if type=='noshear':
             tstr=''
         else:
@@ -587,7 +605,7 @@ class Summer(dict):
                 M1=data['mcal_pars'][w,2]
                 M2=data['mcal_pars'][w,3]
 
-                wt=self._get_noise_weight(data, w, 'noshear')
+                wt=self._get_noise_weight_mom(data, w, 'noshear')
 
                 sums['wsum'][i] += wt.sum()
                 sums['g'][i,0]  += (M1*wt).sum()
@@ -634,7 +652,7 @@ class Summer(dict):
                         M1=data['mcal_pars'][w,2]
                         M2=data['mcal_pars'][w,3]
 
-                        wt=self._get_noise_weight(data, w, type)
+                        wt=self._get_noise_weight_mom(data, w, type)
 
                         sums[wsumname][i]  += wt.sum()
                         sums[sumname][i,0] += (M1*wt).sum()

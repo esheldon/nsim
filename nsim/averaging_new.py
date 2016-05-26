@@ -269,7 +269,6 @@ class Summer(dict):
                 for type in ngmix.metacal.METACAL_TYPES:
                     if type=='noshear':
                         continue
-                    mcalname='%s_%s' % (bname,type)
 
                     g=self._get_g(data, w, type)
                     if g is not None:

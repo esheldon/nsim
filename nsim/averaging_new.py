@@ -131,7 +131,7 @@ class Summer(dict):
                     ntot += data.size
 
                     #sums=self.do_sums1(data, sums=sums)
-                    if True and 'mcal_g' not in data.dtype.names:
+                    if False and 'mcal_g' not in data.dtype.names:
                         if False:
                             sums=self.do_sums1_moms_wt(data, sums=sums)
                         elif True:

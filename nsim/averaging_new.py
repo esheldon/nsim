@@ -211,7 +211,7 @@ class Summer(dict):
         return bname, beg
 
     def _get_g(self, data, w, type):
-        bname, beg=self._get_bname_and_beg(data):
+        bname, beg=self._get_bname_and_beg(data)
         if type=='noshear':
             name=bname
         else:

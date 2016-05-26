@@ -1,0 +1,53 @@
+# same as gg22 but better shear dist
+# high noise, non-round psf
+name: "sim-gg23"
+
+simulator: "galsim"
+
+# these sims are never rings
+do_ring: False
+
+noise: 0.85
+
+stamp_size: [48,48]
+
+psf:
+
+    s2n: 10000.0
+
+    model: "gauss"
+    r50: 1.60
+
+    shape: [0.0, 0.025]
+
+obj_model:
+
+    model: "gauss"
+
+    flux:
+        type: "gmixnd"
+        file: "great-des-fdist-shift.fits"
+        is_in_log: True
+
+    # both components get the same scale length and ellipticity
+    g:
+        type: "ba"
+        sigma: 0.2
+
+    r50:
+        type: "lognormal"
+        mean: 2.0
+        sigma: 0.5
+
+    cen_shift:
+        radius: 0.5
+
+label: "gg"
+
+shear:
+  type: 'const-dist'
+
+  seed: 19157
+  nshear: 1000
+  min_shear: 0.01
+  max_shear: 0.08

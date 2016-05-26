@@ -132,9 +132,9 @@ class Summer(dict):
 
                     #sums=self.do_sums1(data, sums=sums)
                     if False and 'mcal_g' not in data.dtype.names:
-                        if False:
+                        if True:
                             sums=self.do_sums1_moms_wt(data, sums=sums)
-                        elif True:
+                        elif False:
                             sums=self.do_sums1_moms(data, sums=sums)
                         elif False:
                             sums=self.do_sums1_moms_psfcorr(data, sums=sums)
@@ -199,6 +199,8 @@ class Summer(dict):
             s2n_name='mcal_s2n_r'
         elif 'mcal_s2n' in data.dtype.names:
             s2n_name='mcal_s2n'
+
+        return s2n_name
 
     def _get_bname_and_beg(self, data):
         if 'mcal_g' in data.dtype.names:

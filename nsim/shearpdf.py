@@ -2,6 +2,31 @@ import numpy
 from ngmix import Shape
 from esutil.stat import print_stats
 
+def get_shear_pdf(conf, rng=None):
+    from .shearpdf import ConstShearSelector, ConstShearGenerator
+
+    if 'shear' in conf:
+        shconf = conf['shear']
+        # shears are imbedded in the config
+        if shconf['type'] == 'const':
+            pdf = ConstShearSelector(shconf['shears'], rng=rng)
+        elif shconf['type'] == 'const-dist':
+            # a seed is specified and we generate them
+            rng=numpy.random.RandomState(seed=shconf['seed'])
+            pdf = ConstShearGenerator(
+                rng,
+                shconf['nshear'],
+                min_shear=shconf['min_shear'],
+                max_shear=shconf['max_shear'],
+            )
+        else:
+            raise ValueError("only shear 'const' for now")
+
+    else:
+        pdf=None
+
+    return pdf
+
 class ShearGeneratorBase(object):
     def get_shear(self):
         raise NotImplementedError("implement get_shear()")
@@ -39,12 +64,12 @@ class ConstShearGenerator(ShearGeneratorBase):
         self.gen_shear()
 
     def gen_shear(self):
-        g = numpy.random.uniform(
+        g = self.rng.uniform(
             low=self.min_shear,
             high=self.max_shear,
             size=self.nshear,
         )
-        theta = numpy.random.uniform(
+        theta = self.rng.uniform(
             low=0.0,
             high=numpy.pi*2,
             size=self.nshear,

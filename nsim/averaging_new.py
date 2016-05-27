@@ -14,6 +14,7 @@ import fitsio
 import ngmix
 import nsim
 from . import files
+from . import shearpdf
 
 import argparse
 import esutil as eu
@@ -69,11 +70,15 @@ class Summer(dict):
 
                 means['shear'][i] = shear
                 means['shear_err'][i] = 1.0
-                means['shear_true'][i] = shear_true
+                if isinstance(shear_true,ngmix.Shape):
+                    means['shear_true'][i,0] = shear_true.g1
+                    means['shear_true'][i,1] = shear_true.g2
+                else:
+                    means['shear_true'][i] = shear_true
 
                 means_nocorr['shear'][i] = shear_nocorr
                 means_nocorr['shear_err'][i] = 1.0
-                means_nocorr['shear_true'][i] = shear_true
+                means_nocorr['shear_true'][i] = means['shear_true'][i]
 
             self.means=means
             self.means_nocorr=means_nocorr
@@ -973,8 +978,9 @@ class SummerNSim(Summer):
     For NSim we have the shears in the simulation config
     """
     def __init__(self, conf, args):
-        shears = conf['simc']['shear']['shears']
 
+        shear_pdf = shearpdf.get_shear_pdf(conf['simc'])
+        shears=shear_pdf.shears
         super(SummerNSim,self).__init__(conf, shears, args)
 
 

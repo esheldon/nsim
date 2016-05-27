@@ -630,8 +630,12 @@ class SimGS(dict):
         self._set_shear_pdf()
 
     def _set_shear_pdf(self):
-        from .shearpdf import ConstShearSelector, ConstShearGenerator
+        from . import shearpdf
 
+        # self.rng only used for a Selector
+        self.shear_pdf = shearpdf.get_shear_pdf(self, rng=self.rng)
+
+        '''
         if 'shear' in self:
             shconf = self['shear']
             # shears are imbedded in the config
@@ -653,6 +657,7 @@ class SimGS(dict):
             self.shear_pdf=pdf
         else:
             self.shear_pdf=None
+        '''
 
     def _set_psf_pdf(self):
         pspec = self['psf']

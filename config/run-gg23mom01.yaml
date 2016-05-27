@@ -6,7 +6,7 @@ fitter: "metacal-moments"
 # do moments, but do an initial fit first
 fit_model: "gauss"
 
-global_seed: 30185
+global_seed: 19129
 
 metacal_pars:
   step: 0.01
@@ -14,7 +14,7 @@ metacal_pars:
   symmetrize_psf: True
   types: ['noshear','1p','1m','2p','2m']
 
-weight_T: 9.5
+weight_T: 5.5
 
 # not used, we fit with em
 g_prior_during: True
@@ -50,12 +50,12 @@ max_pars:
         lm_pars:
             maxfev: 4000
 
-ngal: 10000000
+ngal: 100000000
 
 desired_hours: 1.0
 
 # doubled for slac
-sec_per: 0.3
+sec_per: 0.2
 
 jobs_per_condor_sub: 5000
 

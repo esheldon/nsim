@@ -267,27 +267,55 @@ class Summer(dict):
                 nkeep += w.size
 
                 sums['wsum'][i] += w.size
-                g=self._get_g(data, w, 'noshear')
-                sums['g'][i] += g.sum(axis=0)
 
-                if 'mcal_gpsf' in data.dtype.names:
-                    sums['gpsf'][i] += data['mcal_gpsf'][w].sum(axis=0)
+                if 'mcal_psf_pars' in data.dtype.names:
+                    pars=data['mcal_pars'][w]
+                    psf_pars=data['mcal_psf_pars'][w]
+
+                    M1, M2 = pars[:,2], pars[:,3]
+                    #M1, M2 = self._get_M1M2corr_nodiv(pars, psf_pars)
+                    sums['g'][i,0] += M1.sum()
+                    sums['g'][i,1] += M2.sum()
+
+                    pe1=psf_pars[:,2]/psf_pars[:,4]
+                    pe2=psf_pars[:,3]/psf_pars[:,4]
+                    pg1,pg2=ngmix.shape.e1e2_to_g1g2(pe1,pe2)
+                    sums['gpsf'][i,0] += pg1.sum()
+                    sums['gpsf'][i,1] += pg2.sum()
+                else:
+                    g=self._get_g(data, w, 'noshear')
+                    sums['g'][i] += g.sum(axis=0)
+
+                    if 'mcal_gpsf' in data.dtype.names:
+                        sums['gpsf'][i] += data['mcal_gpsf'][w].sum(axis=0)
 
                 for type in ngmix.metacal.METACAL_TYPES:
                     if type=='noshear':
                         continue
 
-                    g=self._get_g(data, w, type)
-                    if g is not None:
-                        sumname='g_%s' % type
+                    sumname='g_%s' % type
 
-                        sums[sumname][i] += g.sum(axis=0)
+                    if 'mcal_psf_pars' in data.dtype.names:
+                        name='mcal_pars_%s' % type
+                        pname='mcal_psf_pars_%s' % type
+                        if name in data.dtype.names:
+                            pars=data[name][w]
+                            psf_pars=data[pname][w]
+
+                            M1, M2 = pars[:,2], pars[:,3]
+                            #M1, M2 = self._get_M1M2corr_nodiv(pars, psf_pars)
+                            sums[sumname][i,0] += M1.sum()
+                            sums[sumname][i,1] += M2.sum()
                     else:
-                        pass
+                        g=self._get_g(data, w, type)
+
+                        if g is not None:
+                            sums[sumname][i] += g.sum(axis=0)
 
                 # now the selection terms
 
                 if self.select is not None:
+                    raise NotImplementedError("fix for psf corr")
                     for type in ngmix.metacal.METACAL_TYPES:
                         if type=='noshear':
                             continue

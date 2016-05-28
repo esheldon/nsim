@@ -1,0 +1,60 @@
+# much broader centroid prior, no fixnoise
+run: "run-bd36mcal-t06"
+sim: "sim-bd36"
+
+fitter: "metacal-new"
+fit_model: "gauss"
+
+g_prior_during: True
+use_logpars: True
+
+global_seed: 9838
+
+metacal_pars:
+    fixnoise: False
+    prepix: False
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 4.0
+
+    T:
+        type: "gmixnd"
+        run: "run-bd23zmax-lownoise01"
+        extra: "log_T"
+        cov_factor: 1.44
+
+    counts:
+        type: "gmixnd"
+        run: "run-bd23zmax-lownoise01"
+        extra: "log_F"
+        cov_factor: 1.44
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+ngal: 500000
+
+desired_hours: 0.25
+
+# doubled
+sec_per: 1.0
+
+verbose: False

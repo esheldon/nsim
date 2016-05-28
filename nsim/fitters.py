@@ -3212,6 +3212,13 @@ class MetacalMoments(SimpleFitterBase):
             [cen1,cen2,0.0,0.0,T,1.0],
             'gauss',
         )
+        # we will reset the center
+        psf_weight_gmix = ngmix.GMixModel(
+            [cen1,cen2,0.0,0.0,T,1.0],
+            'gauss',
+        )
+
+
 
         mpars=self['metacal_pars']
 
@@ -3227,9 +3234,16 @@ class MetacalMoments(SimpleFitterBase):
 
             # now do sums over all bands and epochs
             tres={}
-            for obslist in mbobs:
-                for obs in obslist:
-                    psf_sumres=weight_gmix.get_weighted_moments(obs.psf)
+            # get the psf centers from the main bootstrapper
+            for imobs,obslist in enumerate(mbobs):
+                for iobs,obs in enumerate(obslist):
+
+                    # center from original fits
+                    oobs=boot.mb_obs_list[imobs][iobs]
+                    prow,pcol=oobs.psf.gmix.get_cen()
+
+                    psf_weight_gmix.set_cen(prow,pcol)
+                    psf_sumres=psf_weight_gmix.get_weighted_moments(obs.psf)
                     if psf_sumres['flags'] != 0:
                         tup=(psf_sumres['flags'],psf_sumres['flagstr'])
                         raise RuntimeError("got flags %d (%s) in moms" % tup)

@@ -630,19 +630,34 @@ class SimGS(dict):
         self._set_shear_pdf()
 
     def _set_shear_pdf(self):
-        from .shearpdf import ConstShearGenerator
+        from . import shearpdf
 
+        # self.rng only used for a Selector
+        self.shear_pdf = shearpdf.get_shear_pdf(self, rng=self.rng)
+
+        '''
         if 'shear' in self:
             shconf = self['shear']
+            # shears are imbedded in the config
             if shconf['type'] == 'const':
-                pdf = ConstShearGenerator(shconf['shears'],
+                pdf = ConstShearSelector(shconf['shears'],
                                           rng=self.rng)
+            elif shconf['type'] == 'const-dist':
+                # a seed is specified and we generate them
+                rng=numpy.random.RandomState(seed=shconf['seed'])
+                pdf = ConstShearGenerator(
+                    rng,
+                    shconf['nshear'],
+                    min_shear=shconf['min_shear'],
+                    max_shear=shconf['max_shear'],
+                )
             else:
                 raise ValueError("only shear 'const' for now")
 
             self.shear_pdf=pdf
         else:
             self.shear_pdf=None
+        '''
 
     def _set_psf_pdf(self):
         pspec = self['psf']

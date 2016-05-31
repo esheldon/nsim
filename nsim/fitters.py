@@ -540,7 +540,7 @@ class MaxFitter(SimpleFitterBase):
             res['psf_T'] = imdict['obs'].psf.gmix.get_T()
             res['psf_T_r'] = rres['psf_T_r']
 
-            if mconf['pars']['method']=='lm':
+            if mconf['replace_cov']:
                 boot.try_replace_cov(mconf['cov_pars'])
 
             if self['use_round_T']:
@@ -701,7 +701,7 @@ class MaxMetacalFitter(MaxFitter):
             res['psf_T'] = obs.psf.gmix.get_T()
             res['psf_T_r'] = rres['psf_T_r']
 
-            if mconf['pars']['method']=='lm':
+            if mconf['replace_cov']:
                 boot.try_replace_cov(mconf['cov_pars'])
 
             if 'masking' in self:
@@ -766,6 +766,7 @@ class MaxMetacalFitter(MaxFitter):
 
             dt += [
                 ('mcal_g%s' % back,'f8',2),
+                ('mcal_g_cov%s' % back,'f8',(2,2)),
                 ('mcal_pars%s' % back,'f8',npars),
             ]
 
@@ -805,6 +806,7 @@ class MaxMetacalFitter(MaxFitter):
 
             d['mcal_pars%s' % back][i] = tres['pars']
             d['mcal_g%s' % back][i] = tres['g']
+            d['mcal_g_cov%s' % back][i] = tres['g_cov']
             d['mcal_s2n_r%s' % back][i] = tres['s2n_r']
 
             if type=='noshear':
@@ -1509,7 +1511,7 @@ class PostcalFitter(MaxFitter):
             res['psf_T'] = obs.psf.gmix.get_T()
             res['psf_T_r'] = rres['psf_T_r']
 
-            if mconf['pars']['method']=='lm':
+            if mconf['replace_cov']:
                 boot.try_replace_cov(mconf['cov_pars'])
 
         except BootPSFFailure:
@@ -2376,7 +2378,7 @@ class PPMetacalFitter(MaxFitter):
             res['psf_T'] = obs.psf.gmix.get_T()
             res['psf_T_r'] = rres['psf_T_r']
 
-            if mconf['pars']['method']=='lm':
+            if mconf['replace_cov']:
                 boot.try_replace_cov(mconf['cov_pars'])
 
         except BootPSFFailure:
@@ -2828,7 +2830,7 @@ class NCalFitter(MaxFitter):
                          ntry=mconf['ntry'])
 
 
-            if mconf['pars']['method']=='lm':
+            if mconf['replace_cov']:
                 boot.try_replace_cov(mconf['cov_pars'])
 
 
@@ -3193,6 +3195,45 @@ class MetacalMoments(SimpleFitterBase):
         except BootPSFFailure:
             raise TryAgainError("failed to fit psf")
 
+    def _get_moments(self, mbobs_ref, mbobs, weight_gmix, psf_weight_gmix):
+
+        # now do sums over all bands and epochs
+        res={}
+        # get the psf centers from the main bootstrapper
+        for imobs,obslist in enumerate(mbobs):
+            for iobs,obs in enumerate(obslist):
+
+                # center from original fits
+                #oobs=boot.mb_obs_list[imobs][iobs]
+                oobs=mbobs_ref[imobs][iobs]
+                prow,pcol=oobs.psf.gmix.get_cen()
+
+                psf_weight_gmix.set_cen(prow,pcol)
+                psf_sumres=psf_weight_gmix.get_weighted_moments(obs.psf)
+                if psf_sumres['flags'] != 0:
+                    tup=(psf_sumres['flags'],psf_sumres['flagstr'])
+                    raise RuntimeError("got flags %d (%s) in moms" % tup)
+
+                sumres=weight_gmix.get_weighted_moments(obs)
+                if sumres['flags'] != 0:
+                    tup=(sumres['flags'],sumres['flagstr'])
+                    raise RuntimeError("got flags %d (%s) in moms" % tup)
+
+                if len(res)==0:
+                    res=sumres
+                    for key in list(sumres.keys()):
+                        psf_key = 'psf_%s' % key
+                        res[psf_key] = psf_sumres[key]
+                else:
+                    for key in list(sumres.keys()):
+                        psf_key = 'psf_%s' % key
+                        if 'flag' not in key:
+                            res[key] += sumres[key]
+                            res[psf_key] += psf_sumres[key]
+
+        res['s2n'] = res['s2n_numer_sum']/sqrt(res['s2n_denom_sum'])
+        return res
+
     def _do_moments_metacal(self, boot):
         """
         currently no errors are allowed, which
@@ -3218,7 +3259,12 @@ class MetacalMoments(SimpleFitterBase):
             'gauss',
         )
 
-
+        res=self._get_moments(
+            boot.mb_obs_list,
+            boot.mb_obs_list,
+            weight_gmix,
+            psf_weight_gmix,
+        )
 
         mpars=self['metacal_pars']
 
@@ -3227,11 +3273,17 @@ class MetacalMoments(SimpleFitterBase):
             **mpars
         )
 
-        res={}
         for type in obsdict:
 
             mbobs=obsdict[type]
 
+            tres=self._get_moments(
+                boot.mb_obs_list,
+                mbobs,
+                weight_gmix,
+                psf_weight_gmix,
+            )
+            '''
             # now do sums over all bands and epochs
             tres={}
             # get the psf centers from the main bootstrapper
@@ -3264,8 +3316,8 @@ class MetacalMoments(SimpleFitterBase):
                             if 'flag' not in key:
                                 tres[key] += sumres[key]
                                 tres[psf_key] += psf_sumres[key]
-
             tres['s2n'] = tres['s2n_numer_sum']/sqrt(tres['s2n_denom_sum'])
+            '''
             res[type] = tres
 
         res['flags']=0
@@ -3298,6 +3350,12 @@ class MetacalMoments(SimpleFitterBase):
             if t not in types:
                 types.append(t)
 
+        dt += [
+            ('pars','f8',npars),
+            ('pars_cov','f8',(npars,npars)),
+            ('s2n','f8'),
+            ('psf_pars','f8',npars),
+        ]
         for type in types:
 
             if type=='noshear':
@@ -3323,6 +3381,11 @@ class MetacalMoments(SimpleFitterBase):
         FitterBase._copy_to_output(self, res, i)
 
         d=self.data
+
+        d['pars'][i] = res['pars']
+        d['pars_cov'][i] = res['pars_cov']
+        d['s2n'][i] = res['s2n']
+        d['psf_pars'][i] = res['psf_pars']
 
         for type in ngmix.metacal.METACAL_TYPES:
 

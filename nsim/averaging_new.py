@@ -1,6 +1,7 @@
 from __future__ import print_function
 import sys
 import os
+import shutil
 from pprint import pprint
 import numpy
 from numpy import sqrt, array, diag, ones, zeros
@@ -20,8 +21,6 @@ import argparse
 import esutil as eu
 from esutil.numpy_util import between
 
-CHUNKSIZE=1000000
-
 try:
     import reredux
 except ImportError:
@@ -31,6 +30,7 @@ class Summer(dict):
     def __init__(self, conf, shears, args):
         self.update(conf)
         self.args=args
+        self.chunksize=args.chunksize
 
         self._set_select()
 
@@ -98,12 +98,23 @@ class Summer(dict):
         """
         collated file
         """
+
         fname = nsim.files.get_output_url(run, 0, 0)
+        if self.args.cache:
+            origname=fname
+            bname = os.path.basename(origname)
+            fname=os.path.join('$TMPDIR', bname)
+            fname=os.path.expandvars(fname)
+            if not os.path.exists(fname):
+                print("copying to cache: %s -> %s" % (origname,fname))
+                shutil.copy(origname, fname)
+
         return fname
 
     def do_sums(self):
 
         args=self.args
+        chunksize=self.chunksize
 
         sums=None
         ntot=0
@@ -118,16 +129,16 @@ class Summer(dict):
                 hdu=fits[1]
 
                 nrows=hdu.get_nrows()
-                nchunks = nrows//CHUNKSIZE
+                nchunks = nrows//chunksize
 
-                if (nrows % CHUNKSIZE) > 0:
+                if (nrows % chunksize) > 0:
                     nchunks += 1
 
                 beg=0
                 for i in xrange(nchunks):
                     print("    chunk %d/%d" % (i+1,nchunks))
 
-                    end=beg+CHUNKSIZE
+                    end=beg+chunksize
 
                     data = hdu[beg:end]
 
@@ -146,7 +157,7 @@ class Summer(dict):
                     else:
                         sums=self.do_sums1(data, sums=sums)
 
-                    beg = beg + CHUNKSIZE
+                    beg = beg + chunksize
 
                     if args.ntest is not None and ntot > args.ntest:
                         break
@@ -217,17 +228,35 @@ class Summer(dict):
 
         return bname, beg
 
-    def _get_g(self, data, w, type):
-        bname, beg=self._get_bname_and_beg(data)
-        if type=='noshear':
-            name=bname
+    def _get_weights(self, data, w, type):
+
+        if self.args.weighted:
+            if type=='noshear':
+                name='mcal_g_cov'
+            else:
+                name='mcal_g_cov_%s' % type
+
+            g_cov=data[name][w]
+
+            wts=get_noise_weights(g_cov, self.args)
         else:
-            name='%s_%s' % (bname, type)
+            wts=numpy.ones(w.size)
+
+        wa = wts[:,numpy.newaxis]
+        return wts, wa
+
+    def _get_g(self, data, w, type):
+
+        if type=='noshear':
+            name='mcal_g'
+        else:
+            name='mcal_g_%s' % type
 
         if name not in data.dtype.names:
-            g=None
+            g = None
         else:
-            g = data[name][w,beg:beg+2]
+            g = data[name][w]
+
         return g
 
     def do_sums1(self, data, sums=None):
@@ -266,28 +295,12 @@ class Summer(dict):
                 ntot  += wfield.size
                 nkeep += w.size
 
-                sums['wsum'][i] += w.size
+                g = self._get_g(data, w, 'noshear')
+                wts, wa = self._get_weights(data, w, 'noshear')
 
-                if 'mcal_psf_pars' in data.dtype.names:
-                    pars=data['mcal_pars'][w]
-                    psf_pars=data['mcal_psf_pars'][w]
-
-                    M1, M2 = pars[:,2], pars[:,3]
-                    #M1, M2 = self._get_M1M2corr_nodiv(pars, psf_pars)
-                    sums['g'][i,0] += M1.sum()
-                    sums['g'][i,1] += M2.sum()
-
-                    pe1=psf_pars[:,2]/psf_pars[:,4]
-                    pe2=psf_pars[:,3]/psf_pars[:,4]
-                    pg1,pg2=ngmix.shape.e1e2_to_g1g2(pe1,pe2)
-                    sums['gpsf'][i,0] += pg1.sum()
-                    sums['gpsf'][i,1] += pg2.sum()
-                else:
-                    g=self._get_g(data, w, 'noshear')
-                    sums['g'][i] += g.sum(axis=0)
-
-                    if 'mcal_gpsf' in data.dtype.names:
-                        sums['gpsf'][i] += data['mcal_gpsf'][w].sum(axis=0)
+                sums['g'][i]    += (g*wa).sum(axis=0)
+                sums['gpsf'][i] += (data['mcal_gpsf'][w]*wa).sum(axis=0)
+                sums['wsum'][i] += wts.sum()
 
                 for type in ngmix.metacal.METACAL_TYPES:
                     if type=='noshear':
@@ -295,42 +308,38 @@ class Summer(dict):
 
                     sumname='g_%s' % type
 
-                    if 'mcal_psf_pars' in data.dtype.names:
-                        name='mcal_pars_%s' % type
-                        pname='mcal_psf_pars_%s' % type
-                        if name in data.dtype.names:
-                            pars=data[name][w]
-                            psf_pars=data[pname][w]
+                    g=self._get_g(data, w, type)
 
-                            M1, M2 = pars[:,2], pars[:,3]
-                            #M1, M2 = self._get_M1M2corr_nodiv(pars, psf_pars)
-                            sums[sumname][i,0] += M1.sum()
-                            sums[sumname][i,1] += M2.sum()
-                    else:
-                        g=self._get_g(data, w, type)
-
-                        if g is not None:
-                            sums[sumname][i] += g.sum(axis=0)
+                    if g is not None:
+                        # using the same weights, based on unsheared
+                        # parameters
+                        sums[sumname][i] += (g*wa).sum(axis=0)
 
                 # now the selection terms
-
-                if self.select is not None:
-                    raise NotImplementedError("fix for psf corr")
+                if self.do_selection is not None:
                     for type in ngmix.metacal.METACAL_TYPES:
                         if type=='noshear':
                             continue
+
                         ts2n_name='%s_%s' % (s2n_name,type)
 
                         if ts2n_name in data.dtype.names:
+
                             wsumname = 's_wsum_%s' % type
                             sumname = 's_g_%s' % type
 
-                            w=self._do_select(data[ts2n_name][wfield])
-                            w=wfield[w]
-                            sums[wsumname][i] += w.size
+                            if self.select is not None:
+                                w=self._do_select(data[ts2n_name][wfield])
+                                w=wfield[w]
+                            else:
+                                w=wfield
 
+                            # weights based on sheared parameters
                             g=self._get_g(data, w, 'noshear')
-                            sums[sumname][i] += g.sum(axis=0)
+                            wts,wa=self._get_weights(data, w, type)
+
+                            sums[sumname][i] += (g*wa).sum(axis=0)
+                            sums[wsumname][i] += wts.sum()
                         else:
                             #print("    skipping:",ts2n_name)
                             pass
@@ -804,8 +813,8 @@ class Summer(dict):
         else:
             extra=[]
 
-        if self.args.weights is not None:
-            extra += ['wts', self.args.weights]
+        if self.args.weighted:
+            extra += ['weighted']
 
         if self.args.select is not None:
             s=self.select.replace(' ','-').replace('(','').replace(')','').replace('[','').replace(']','').replace('"','').replace("'",'')
@@ -882,9 +891,6 @@ class Summer(dict):
             ('s_g_2p_psf','f8',2),
             ('s_g_2m_psf','f8',2),
 
-            # these get filled in at the end
-            ('R','f8',2),
-            ('Rpsf','f8',2),
         ]
         return dt
 
@@ -901,8 +907,8 @@ class Summer(dict):
             self.do_selection=True
 
             self.select = d['select'].strip()
-
-
+        elif self.args.weighted:
+            self.do_selection=True
 
 
     def plot_fits(self):
@@ -1010,6 +1016,309 @@ class SummerNSim(Summer):
         shear_pdf = shearpdf.get_shear_pdf(conf['simc'])
         shears=shear_pdf.shears
         super(SummerNSim,self).__init__(conf, shears, args)
+
+
+class SummerMoments(SummerNSim):
+    def go(self):
+
+        if self.args.fit_only:
+            self.means=self._read_means()
+        else:
+
+            extra=self._get_fname_extra()
+
+            sums = self.do_sums()
+
+            args=self.args
+
+            e,R,Rsel=self._average_sums(sums)
+
+            means=get_mean_struct(self['nshear'])
+            means_nocorr=get_mean_struct(self['nshear'])
+
+            for i in xrange(self['nshear']):
+
+                shear_true = self.shears[i]
+
+                emean = e[i]
+
+                shear        = emean/(R+Rsel)
+                shear_nocorr = emean/R
+
+                means['shear'][i] = shear
+                means['shear_err'][i] = 1.0
+                if isinstance(shear_true,ngmix.Shape):
+                    means['shear_true'][i,0] = shear_true.g1
+                    means['shear_true'][i,1] = shear_true.g2
+                else:
+                    means['shear_true'][i] = shear_true
+
+                means_nocorr['shear'][i] = shear_nocorr
+                means_nocorr['shear_err'][i] = 1.0
+                means_nocorr['shear_true'][i] = means['shear_true'][i]
+
+            self.means=means
+            self.means_nocorr=means_nocorr
+            self._write_means()
+
+        if self.do_selection:
+            print("without correction")
+            junk=reredux.averaging.fit_m_c(self.means_nocorr)
+            junk=reredux.averaging.fit_m_c(self.means_nocorr,onem=True)
+            print("\nwith correction")
+
+        self.fits=reredux.averaging.fit_m_c(self.means)
+        self.fitsone=reredux.averaging.fit_m_c(self.means,onem=True)
+
+
+    def _get_M_T(self, data, w, type):
+        if type=='noshear':
+            name='mcal_pars'
+        else:
+            name='mcal_pars_%s' % type
+
+        #Finv = 1.0/data[name][w,5]
+        #Finv = 1.0/data['pars'][w,5]
+
+        M = data[name][w,2:2+2].copy()
+        T = data[name][w,4].copy()
+
+        #M[:,0] *= Finv
+        #M[:,1] *= Finv
+        #T      *= Finv
+
+        return M,T
+
+
+    def _get_M_T_as_e(self, data, w, type):
+        if type=='noshear':
+            name='mcal_pars'
+        else:
+            name='mcal_pars_%s' % type
+
+        #Finv = 1.0/data[name][w,5]
+        #Finv = 1.0/data['pars'][w,5]
+
+        M = data[name][w,2:2+2].copy()
+        T = data[name][w,4].copy()
+
+        M[:,0] /= T
+        M[:,1] /= T
+
+        T[:] = 1.0
+
+        return M,T
+
+
+    def do_sums1(self, data, sums=None):
+        """
+        just a binner and summer, no logic here
+        """
+
+        s2n_name='mcal_s2n'
+
+        nshear=self['nshear']
+        args=self.args
+
+        h,rev = eu.stat.histogram(data['shear_index'],
+                                  min=0,
+                                  max=nshear-1,
+                                  rev=True)
+        nind = h.size
+        assert nshear==nind
+
+        if sums is None:
+            sums=self._get_sums_struct()
+
+        ntot=0
+        nkeep=0
+        for i in xrange(nshear):
+            if rev[i] != rev[i+1]:
+                wfield=rev[ rev[i]:rev[i+1] ]
+
+                # first select on the noshear measurement
+                if self.select is not None:
+                    w=self._do_select(data[s2n_name][wfield])
+                    w=wfield[w]
+                else:
+                    w=wfield
+
+                ntot  += wfield.size
+                nkeep += w.size
+
+                sums['wsum'][i] += w.size
+
+                M,T = self._get_M_T(data, w, 'noshear')
+                sums['M'][i] += M.sum(axis=0)
+                sums['T'][i] += T.sum()
+
+                for type in ngmix.metacal.METACAL_TYPES:
+                    if type=='noshear':
+                        continue
+
+                    Msumname='M_%s' % type
+                    Tsumname='T_%s' % type
+
+                    name='mcal_pars_%s' % type
+                    if name in data.dtype.names:
+                        M,T = self._get_M_T(data, w, type)
+                        sums[Msumname][i] += M.sum(axis=0)
+                        sums[Tsumname][i] += T.sum()
+
+                # now the selection terms
+                if self.select is not None:
+                    for type in ngmix.metacal.METACAL_TYPES:
+                        if type=='noshear':
+                            continue
+
+                        ts2n_name='%s_%s' % (s2n_name,type)
+
+                        if ts2n_name in data.dtype.names:
+
+                            wsumname = 's_wsum_%s' % type
+                            Msumname = 's_M_%s' % type
+                            Tsumname = 's_T_%s' % type
+
+                            w=self._do_select(data[ts2n_name][wfield])
+                            w=wfield[w]
+                            sums[wsumname][i] += w.size
+
+                            M,T = self._get_M_T(data, w, 'noshear')
+                            sums[Msumname][i] += M.sum(axis=0)
+                            sums[Tsumname][i] += T.sum()
+                        else:
+                            pass
+
+        if self.select is not None:
+            self._print_frac(ntot,nkeep)
+        return sums
+
+
+
+
+    def _average_sums(self, sums):
+        """
+        divide by sum of weights and get g for each field
+
+        Also average the responses over all data
+        """
+
+        M = sums['M'].copy()
+        T = sums['T'].copy()
+
+        #
+        # averaged in each field
+        #
+
+
+        winv = 1.0/sums['wsum']
+        M[:,0] *= winv
+        M[:,1] *= winv
+        T      *= winv
+
+        Ta = T[:,numpy.newaxis]
+        e = 0.5*M/Ta
+
+        # overall means for responses
+
+        wsum=sums['wsum'].sum()
+        M_mean = sums['M'].sum(axis=0)/wsum
+        T_mean = sums['T'].sum()/wsum
+        T_meana = zeros(2) + T_mean
+
+        factor = 1.0/(2.0*self.step)
+
+        M1p = sums['M_1p'][:,0].sum()/wsum
+        M1m = sums['M_1m'][:,0].sum()/wsum
+        M2p = sums['M_2p'][:,1].sum()/wsum
+        M2m = sums['M_2m'][:,1].sum()/wsum
+
+        T1p = sums['T_1p'].sum()/wsum
+        T1m = sums['T_1m'].sum()/wsum
+        T2p = sums['T_2p'].sum()/wsum
+        T2m = sums['T_2m'].sum()/wsum
+
+        RM = zeros(2)
+        RT = zeros(2)
+
+        RM[0] = (M1p - M1m)*factor
+        RM[1] = (M2p - M2m)*factor
+
+        RT[0] = (T1p - T1m)*factor
+        RT[1] = (T2p - T2m)*factor
+
+        R = (1.0/T_meana) * RM  -  (M_mean/T_meana**2) * RT
+        R *= 0.5
+
+        print("RM:",RM)
+        print("RT:",RT)
+        print("R: ",R)
+
+        # selection terms
+        if self.do_selection:
+
+            RMsel = zeros(2)
+            RTsel = zeros(2)
+
+            s_M1p = sums['s_M_1p'][:,0].sum()/sums['s_wsum_1p'].sum()
+            s_M1m = sums['s_M_1m'][:,0].sum()/sums['s_wsum_1m'].sum()
+            s_M2p = sums['s_M_2p'][:,1].sum()/sums['s_wsum_2p'].sum()
+            s_M2m = sums['s_M_2m'][:,1].sum()/sums['s_wsum_2m'].sum()
+
+            s_T1p = sums['s_T_1p'].sum()/sums['s_wsum_1p'].sum()
+            s_T1m = sums['s_T_1m'].sum()/sums['s_wsum_1m'].sum()
+            s_T2p = sums['s_T_2p'].sum()/sums['s_wsum_2p'].sum()
+            s_T2m = sums['s_T_2m'].sum()/sums['s_wsum_2m'].sum()
+
+
+            RMsel[0] = (s_M1p - s_M1m)*factor
+            RMsel[1] = (s_M2p - s_M2m)*factor
+            RTsel[0] = (s_T1p - s_T1m)*factor
+            RTsel[1] = (s_T2p - s_T2m)*factor
+
+            Rsel = (1.0/T_meana) * RMsel  -  (M_mean/T_meana**2) * RTsel
+            Rsel *= 0.5
+
+            print("Rsel:",Rsel)
+        else:
+            Rsel=zeros(2)
+
+        return e, R, Rsel
+
+    def _get_sums_dt(self):
+        dt=[
+            ('wsum','f8'),
+            ('M','f8',2),
+            ('T','f8'),
+
+            ('M_1p','f8',2),
+            ('M_1m','f8',2),
+            ('M_2p','f8',2),
+            ('M_2m','f8',2),
+
+            ('T_1p','f8'),
+            ('T_1m','f8'),
+            ('T_2p','f8'),
+            ('T_2m','f8'),
+
+
+            # selection terms
+            ('s_wsum_1p','f8'),
+            ('s_wsum_1m','f8'),
+            ('s_wsum_2p','f8'),
+            ('s_wsum_2m','f8'),
+            ('s_M_1p','f8',2),
+            ('s_M_1m','f8',2),
+            ('s_M_2p','f8',2),
+            ('s_M_2m','f8',2),
+
+            ('s_T_1p','f8'),
+            ('s_T_1m','f8'),
+            ('s_T_2p','f8'),
+            ('s_T_2m','f8'),
+
+        ]
+        return dt
 
 
 # quick line fit pulled from great3-public code
@@ -1153,9 +1462,14 @@ def get_s2n_weights(s2n, args):
 
 
 def get_noise_weights(g_cov, args):
-    #return numpy.ones(s2n.size)
-    #print("s2n soft:",args.s2n_soft)
     wts = 1.0/(2*args.shapenoise**2 + g_cov[:,0,0] + g_cov[:,1,1])
+
+    '''
+    w,=numpy.where( numpy.isnan(wts) )
+    if w.size > 0:
+        print("fixing %d/%d isnan" % (w.size, g_cov.shape[0]))
+        wts[w] = 0.0
+    '''
     return wts
 
 

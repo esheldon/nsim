@@ -2081,6 +2081,448 @@ class PostcalSimShearpFitter(PostcalSimpFitter):
 
         return odict
 
+class PSFSymmetrizedImageShearer(object):
+    """
+    class to produce sheared images.  The PSF is symmetrized
+    """
+
+    def __init__(self, obs, **kw):
+
+        self.obs=obs
+
+        self._setup(**kw)
+        self._set_data()
+
+    def get_obs_galshear(self, shear):
+        """
+        get a sheared observation
+        """
+        sheared_im = self.sym_gal_int.shear(g1=shear.g1, g2=shear.g2)
+
+        # this should carry over the wcs
+        newim = self.image.copy()
+        sheared_im.drawImage(
+            image=newim,
+            method='no_pixel' # pixel is in the PSF
+        )
+
+        newobs = self._make_obs(newim, self.sym_psf_image)
+        return newobs
+
+    def _setup(self, **kw):
+        """
+        set up the Galsim objects, Galsim version of Jacobian/wcs, and
+        the interpolation
+        """
+
+        obs=self.obs
+        if not obs.has_psf():
+            raise ValueError("observation must have a psf observation set")
+
+        self._set_pixel()
+        self._set_interp()
+
+    def _set_data(self):
+        """
+        create galsim objects based on the input observation
+        """
+
+        obs=self.obs
+
+        # these would share data with the original numpy arrays, make copies
+        # to be sure they don't get modified
+        #
+        self.image = galsim.Image(obs.image.copy(),
+                                  wcs=self.get_wcs())
+        self.psf_image = galsim.Image(obs.psf.image.copy(),
+                                      wcs=self.get_psf_wcs())
+
+        # interpolated psf image
+        psf_int = galsim.InterpolatedImage(self.psf_image,
+                                           x_interpolant = self.interp)
+
+        # this can be used to deconvolve the psf from the galaxy image
+        psf_int_inv = galsim.Deconvolve(psf_int)
+
+        image_int = galsim.InterpolatedImage(self.image,
+                                             x_interpolant=self.interp)
+
+
+        # deconvolved galaxy image, psf+pixel removed
+        image_int_nopsf = galsim.Convolve(image_int, psf_int_inv)
+
+        # interpolated psf deconvolved from pixel.  This is what
+        # we dilate, shear, etc and reconvolve the image by
+        psf_int_nopix = self._get_symmetrized_psf_nopix()
+
+        # now with the pixel back in
+        self.sym_psf_int = galsim.Convolve(psf_int_nopix,self.pixel)
+        self.sym_psf_image = self.psf_image.copy()
+        self.sym_psf_int.drawImage(
+            image=self.sym_psf_image,
+            method='no_pixel' # pixel is in the psf
+        )
+
+        self.sym_gal_int = galsim.Convolve(self.sym_psf_int, image_int_nopsf)
+
+    def _get_symmetrized_psf_nopix(self):
+        #print("    Getting symmetrized psf")
+        sym_psf_int = ngmix.metacal._make_symmetrized_gsimage_int(
+            self.obs.psf.image,
+            self.get_psf_wcs(),
+            self.interp,
+        )
+
+        psf_int_nopix = galsim.Convolve([sym_psf_int, self.pixel_inv])
+
+        dilation=self._get_symmetrize_dilation()
+        print("    dilating by:",dilation)
+
+        psf_int_nopix = psf_int_nopix.dilate(dilation)
+        return psf_int_nopix
+
+    def _get_symmetrize_dilation(self):
+
+        if not self.obs.has_psf_gmix():
+            raise RuntimeError("you need to fit the psf "
+                               "before symmetrizing")
+
+        psf_gmix = self.obs.psf.gmix
+
+        # g1,g2,T = psf_gmix.get_g1g2T()
+        e1,e2,T = psf_gmix.get_e1e2T()
+
+        irr, irc, icc = ngmix.moments.e2mom(e1,e2,T)
+
+        mat=numpy.zeros( (2,2) )
+        mat[0,0]=irr
+        mat[0,1]=irc
+        mat[1,0]=irc
+        mat[1,1]=icc
+
+        eigs=numpy.linalg.eigvals(mat)
+
+        dilation = eigs.max()/(T/2.)
+        dilation=sqrt(dilation)
+
+        return dilation
+
+
+
+
+    def get_wcs(self):
+        """
+        get a galsim wcs from the input jacobian
+        """
+        return self.obs.jacobian.get_galsim_wcs()
+
+    def get_psf_wcs(self):
+        """
+        get a galsim wcs from the input jacobian
+        """
+        return self.obs.psf.jacobian.get_galsim_wcs()
+
+    def _set_pixel(self):
+        """
+        set the pixel based on the pixel scale, for convolutions
+
+        Thanks to M. Jarvis for the suggestion to use toWorld
+        to get the proper pixel
+        """
+
+        wcs=self.get_wcs()
+        self.pixel     = wcs.toWorld(galsim.Pixel(scale=1))
+        self.pixel_inv = galsim.Deconvolve(self.pixel)
+
+    def _set_interp(self):
+        """
+        set the laczos interpolation configuration
+        """
+        self.interp = galsim.Lanczos(LANCZOS_PARS_DEFAULT['order'],
+                                     LANCZOS_PARS_DEFAULT['conserve_dc'],
+                                     LANCZOS_PARS_DEFAULT['tol'])
+
+    def _make_obs(self, im, psf_im):
+        """
+        Make new Observation objects for the image and psf.
+        Copy out the weight maps and jacobians from the original
+        Observation.
+
+        parameters
+        ----------
+        im: Galsim Image
+        psf_im: Galsim Image
+
+        returns
+        -------
+        A new Observation
+        """
+
+        obs=self.obs
+
+        psf_obs = Observation(psf_im.array,
+                              weight=obs.psf.weight.copy(),
+                              jacobian=obs.psf.jacobian.copy())
+
+        newobs=Observation(im.array,
+                           jacobian=obs.jacobian.copy(),
+                           weight=obs.weight.copy(),
+                           psf=psf_obs)
+        return newobs
+
+
+class ShearNullFitterPrepsf(SimpleFitterBase):
+    def _dofit(self, imdict):
+
+        from .bootstrappers import MetacalMomentBootstrapper
+
+        obs=imdict['obs']
+        boot=MetacalMomentBootstrapper(
+            obs,
+            use_logpars=self['use_logpars'],
+        )
+
+        self._fit_em(boot)
+        self._fit_psf(boot)
+        res=self._fit_shear(boot)
+
+        res['psf_pars'] = boot.mb_obs_list[0][0].psf.gmix.get_full_pars()
+
+        return res
+
+    def _fit_em(self, boot):
+        """
+        fit to convolved object; we are trying to find a center
+        """
+        try:
+            Tguess=4.0
+            em_pars={'maxiter':2000, 'tol':1.0e-6}
+            boot.fit_em(Tguess, em_pars, ntry=4)
+        except BootGalFailure:
+            raise TryAgainError("failed to fit galaxy")
+
+    def _fit_psf(self, boot):
+        """
+        only for symmetrizing the psf
+
+        run after gal fit to avoid forward modeling
+        """
+
+        ppars=self['psf_pars']
+        Tguess=4.0
+        try:
+            boot.fit_psfs(ppars['model'], Tguess, ntry=ppars['ntry'])
+        except BootPSFFailure:
+            raise TryAgainError("failed to fit psf")
+
+
+    def _test_null(self, shear_vec):
+
+        try:
+            shear=ngmix.Shape(shear_vec[0], shear_vec[1])
+        except GMixRangeError:
+            return array([-9999.9e9, -9999.9e9])
+
+        if shear.g > self['shmax']:
+            return array([-9999.9e9, -9999.9e9])
+
+        try:
+            sheared_obs = self.shearer.get_obs_galshear(shear)
+        except RuntimeError:
+            # argh, galsim throws a generic RuntimeError when the
+            # requested size of the fft is too big
+            return array([-9999.9e9, -9999.9e9])
+
+        res=self.weight_gmix.get_weighted_moments(sheared_obs)
+
+        self.last_res=res
+
+        return res['pars'][2:2+2]
+
+    def _get_shearer(self):
+        return ngmix.metacal.Metacal
+
+    def _fit_shear(self, boot):
+        import math
+
+        self.last_res=None
+
+        cls=self._get_shearer()
+        self.shearer=cls(boot.mb_obs_list[0][0])
+
+        emgm = boot.get_em_fitter().get_gmix()
+        cen1,cen2=emgm.get_cen()
+
+        # use fixed weight
+        T=self['weight_T']
+        self.weight_gmix = ngmix.GMixModel(
+            [cen1,cen2,0.0,0.0,T,1.0],
+            'gauss',
+        )
+
+        max_pars=self['max_pars']
+        lm_pars=max_pars['pars']['lm_pars']
+        for i in xrange(max_pars['ntry']):
+            shearmag_guess=numpy.random.uniform(
+                low=0.0,
+                high=0.1,
+            )
+            theta_guess=numpy.random.uniform(
+                low=0.0,
+                high=2.0*numpy.pi,
+            )
+            shguess=numpy.zeros(2)
+            shguess[0]=shearmag_guess*math.cos(2*theta_guess)
+            shguess[1]=shearmag_guess*math.sin(2*theta_guess)
+
+            res=self._run_leastsq(shguess, self._test_null, **lm_pars)
+
+            if res['flags']==0:
+                break
+
+        if res['flags'] != 0:
+            raise TryAgainError("no good fit found")
+
+        res['pars'] = -res['pars']
+
+        res['ntry'] = i+1
+
+        lres=self.last_res
+        lres['s2n'] = lres['s2n_numer_sum']/sqrt(lres['s2n_denom_sum'])
+
+        res['moments'] = lres['pars']
+        res['moments_cov'] = lres['pars_cov']
+        res['s2n_w'] = lres['s2n']
+
+        res['g'] = res['pars'].copy()
+        res['g_cov'] = res['pars_cov'].copy()
+
+        return res
+
+    def _run_leastsq(self, guess, func, **keys):
+        from scipy.optimize import leastsq
+
+        npars=guess.size
+
+        res={}
+        try:
+            lm_tup = leastsq(func, guess, full_output=1, **keys)
+
+            pars, pcov, infodict, errmsg, ier = lm_tup
+
+            if ier == 0:
+                # wrong args, this is a bug
+                raise ValueError(errmsg)
+
+            flags = 0
+            if ier > 4:
+                flags = 2**(ier-5)
+                pars,pcov,perr=ngmix.fitting._get_def_stuff(npars)
+                print('    ',errmsg)
+
+            elif pcov is None:
+                # why on earth is this not in the flags?
+                flags += ngmix.fitting.LM_SINGULAR_MATRIX
+                errmsg = "singular covariance"
+                print('    ',errmsg)
+                print_pars(pars,front='    pars at singular:')
+                junk,pcov,perr=ngmix.fitting._get_def_stuff(npars)
+            else:
+                # only if we reach here did everything go well
+                perr=sqrt( numpy.diag(pcov) )
+
+            res['flags']=flags
+            res['nfev'] = infodict['nfev']
+            res['ier'] = ier
+            res['errmsg'] = errmsg
+
+            res['pars'] = pars
+            res['pars_err']=perr
+            res['pars_cov']=pcov
+
+        except ValueError as e:
+            serr=str(e)
+            if 'NaNs' in serr or 'infs' in serr:
+                pars,pcov,perr=ngmix.fitting._get_def_stuff(npars)
+
+                res['pars']=pars
+                res['pars_cov']=pcov
+                res['nfev']=-1
+                res['flags']=LM_FUNC_NOTFINITE
+                res['errmsg']="not finite"
+                print('    not finite')
+            else:
+                raise e
+
+        except ZeroDivisionError:
+            pars,pcov,perr=ngmix.fitting._get_def_stuff(npars)
+
+            res['pars']=pars
+            res['pars_cov']=pcov
+            res['nfev']=-1
+
+            res['flags']=DIV_ZERO
+            res['errmsg']="zero division"
+            print('    zero division')
+
+        return res
+
+
+    def _print_res(self,res):
+        """
+        print some stats
+        """
+
+        if 'nfev' in res:
+            mess="    s2n_w: %.1f  ntry: %d  nfev: %d"
+            mess = mess % (res['s2n_w'],res['ntry'],res['nfev'])
+            print(mess)
+
+        print_pars(res['pars'],      front='        pars: ')
+        print_pars(res['pars_err'],  front='        perr: ')
+
+        if res['pars_true'][0] is not None:
+            print_pars(res['pars_true'], front='        true: ')
+
+    def _get_dtype(self):
+        """
+        get the dtype for the output struct
+        """
+        self['npars']=2
+        npars=self['npars']
+        psf_npars=self['psf_npars']
+
+        dt=super(SimpleFitterBase,self)._get_dtype()
+        dt += [
+            ('psf_pars','f8',psf_npars),
+            ('pars','f8',npars),
+            ('pars_cov','f8',(npars,npars)),
+            ('g','f8',2),
+            ('g_cov','f8',(2,2)),
+            ('s2n_w','f8'),
+        ]
+
+        return dt
+
+    def _copy_to_output(self, res, i):
+
+
+        super(SimpleFitterBase,self)._copy_to_output(res, i)
+
+        d=self.data
+
+
+        d['psf_pars'][i] = res['psf_pars']
+        d['pars'][i] = res['pars']
+        d['pars_cov'][i] = res['pars_cov']
+        d['g'][i,:] = res['g']
+        d['g_cov'][i,:,:] = res['g_cov']
+
+        d['s2n_w'][i] = res['s2n_w']
+
+class ShearNullFitterPostpsf(ShearNullFitterPrepsf):
+    def _get_shearer(self):
+        return PSFSymmetrizedImageShearer
 
 
 def _make_new_obs(obs, im):

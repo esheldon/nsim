@@ -507,7 +507,7 @@ class SimGS(dict):
                 'cenoff':cenoff}
 
         if self.shear_pdf is not None:
-            shear,shindex = self.shear_pdf.get_shear()
+            shear,shindex = self.shear_pdf.get_shear(self.rng)
             pars['shear'] = shear
             pars['shear_index'] = shindex
 
@@ -633,7 +633,7 @@ class SimGS(dict):
         from . import shearpdf
 
         # self.rng only used for a Selector
-        self.shear_pdf = shearpdf.get_shear_pdf(self, rng=self.rng)
+        self.shear_pdf = shearpdf.get_shear_pdf(self)
 
         '''
         if 'shear' in self:
@@ -813,7 +813,7 @@ class SimGMix(SimGS):
                 'cenoff':cenoff}
 
         if self.shear_pdf is not None:
-            shear,shindex = self.shear_pdf.get_shear()
+            shear,shindex = self.shear_pdf.get_shear(self.rng)
             pars['shear'] = shear
             pars['shear_index'] = shindex
 
@@ -938,7 +938,7 @@ class SimBD(SimGS):
         pars['dev_offset'] = dev_offset
 
         if self.shear_pdf is not None:
-            shear, shindex = self.shear_pdf.get_shear()
+            shear, shindex = self.shear_pdf.get_shear(self.rng)
             pars['shear'] = shear
             pars['shear_index'] = shindex
 

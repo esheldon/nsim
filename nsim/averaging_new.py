@@ -1320,6 +1320,175 @@ class SummerMoments(SummerNSim):
         ]
         return dt
 
+class SummerMomentsNoNorm(SummerMoments):
+
+    def _get_M(self, data, w, type):
+        if type=='noshear':
+            name='mcal_pars'
+        else:
+            name='mcal_pars_%s' % type
+
+        M = data[name][w,2:2+2].copy()
+        return M
+
+    def do_sums1(self, data, sums=None):
+        """
+        just a binner and summer, no logic here
+        """
+
+        s2n_name='mcal_s2n'
+
+        nshear=self['nshear']
+        args=self.args
+
+        h,rev = eu.stat.histogram(data['shear_index'],
+                                  min=0,
+                                  max=nshear-1,
+                                  rev=True)
+        nind = h.size
+        assert nshear==nind
+
+        if sums is None:
+            sums=self._get_sums_struct()
+
+        ntot=0
+        nkeep=0
+        for i in xrange(nshear):
+            if rev[i] != rev[i+1]:
+                wfield=rev[ rev[i]:rev[i+1] ]
+
+                # first select on the noshear measurement
+                if self.select is not None:
+                    w=self._do_select(data[s2n_name][wfield])
+                    w=wfield[w]
+                else:
+                    w=wfield
+
+                ntot  += wfield.size
+                nkeep += w.size
+
+                sums['wsum'][i] += w.size
+
+                M = self._get_M(data, w, 'noshear')
+                sums['M'][i] += M.sum(axis=0)
+
+                for type in ngmix.metacal.METACAL_TYPES:
+                    if type=='noshear':
+                        continue
+
+                    Msumname='M_%s' % type
+
+                    name='mcal_pars_%s' % type
+                    if name in data.dtype.names:
+                        M = self._get_M(data, w, type)
+                        sums[Msumname][i] += M.sum(axis=0)
+
+                # now the selection terms
+                if self.select is not None:
+                    for type in ngmix.metacal.METACAL_TYPES:
+                        if type=='noshear':
+                            continue
+
+                        ts2n_name='%s_%s' % (s2n_name,type)
+
+                        if ts2n_name in data.dtype.names:
+
+                            wsumname = 's_wsum_%s' % type
+                            Msumname = 's_M_%s' % type
+
+                            w=self._do_select(data[ts2n_name][wfield])
+                            w=wfield[w]
+                            sums[wsumname][i] += w.size
+
+                            M = self._get_M(data, w, 'noshear')
+                            sums[Msumname][i] += M.sum(axis=0)
+                        else:
+                            pass
+
+        if self.select is not None:
+            self._print_frac(ntot,nkeep)
+        return sums
+
+
+
+
+    def _average_sums(self, sums):
+        """
+        divide by sum of weights and get g for each field
+
+        Also average the responses over all data
+        """
+
+        M = sums['M'].copy()
+
+        #
+        # averaged in each field
+        #
+
+
+        winv = 1.0/sums['wsum']
+        M[:,0] *= winv
+        M[:,1] *= winv
+
+        wsum=sums['wsum'].sum()
+
+        factor = 1.0/(2.0*self.step)
+
+        M1p = sums['M_1p'][:,0].sum()/wsum
+        M1m = sums['M_1m'][:,0].sum()/wsum
+        M2p = sums['M_2p'][:,1].sum()/wsum
+        M2m = sums['M_2m'][:,1].sum()/wsum
+
+        R = zeros(2)
+
+        R[0] = (M1p - M1m)*factor
+        R[1] = (M2p - M2m)*factor
+
+        print("R: ",R)
+
+        # selection terms
+        if self.do_selection:
+
+            Rsel = zeros(2)
+
+            s_M1p = sums['s_M_1p'][:,0].sum()/sums['s_wsum_1p'].sum()
+            s_M1m = sums['s_M_1m'][:,0].sum()/sums['s_wsum_1m'].sum()
+            s_M2p = sums['s_M_2p'][:,1].sum()/sums['s_wsum_2p'].sum()
+            s_M2m = sums['s_M_2m'][:,1].sum()/sums['s_wsum_2m'].sum()
+
+            Rsel[0] = (s_M1p - s_M1m)*factor
+            Rsel[1] = (s_M2p - s_M2m)*factor
+
+            print("Rsel:",Rsel)
+        else:
+            Rsel=zeros(2)
+
+        return M, R, Rsel
+
+    def _get_sums_dt(self):
+        dt=[
+            ('wsum','f8'),
+            ('M','f8',2),
+
+            ('M_1p','f8',2),
+            ('M_1m','f8',2),
+            ('M_2p','f8',2),
+            ('M_2m','f8',2),
+
+            # selection terms
+            ('s_wsum_1p','f8'),
+            ('s_wsum_1m','f8'),
+            ('s_wsum_2p','f8'),
+            ('s_wsum_2m','f8'),
+            ('s_M_1p','f8',2),
+            ('s_M_1m','f8',2),
+            ('s_M_2p','f8',2),
+            ('s_M_2m','f8',2),
+
+        ]
+        return dt
+
+
 
 # quick line fit pulled from great3-public code
 def _calculateSvalues(xarr, yarr, sigma2=1.):

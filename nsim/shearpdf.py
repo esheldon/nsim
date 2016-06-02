@@ -2,19 +2,18 @@ import numpy
 from ngmix import Shape
 from esutil.stat import print_stats
 
-def get_shear_pdf(conf, rng=None):
+def get_shear_pdf(conf):
     from .shearpdf import ConstShearSelector, ConstShearGenerator
 
     if 'shear' in conf:
         shconf = conf['shear']
         # shears are imbedded in the config
         if shconf['type'] == 'const':
-            pdf = ConstShearSelector(shconf['shears'], rng=rng)
+            pdf = ConstShearSelector(shconf['shears'])
         elif shconf['type'] == 'const-dist':
             # a seed is specified and we generate them
-            rng=numpy.random.RandomState(seed=shconf['seed'])
             pdf = ConstShearGenerator(
-                rng,
+                shconf['seed'],
                 shconf['nshear'],
                 min_shear=shconf['min_shear'],
                 max_shear=shconf['max_shear'],
@@ -32,10 +31,8 @@ class ShearGeneratorBase(object):
         raise NotImplementedError("implement get_shear()")
 
 class ConstShearSelector(ShearGeneratorBase):
-    def __init__(self, shears, rng=None):
+    def __init__(self, shears):
 
-        if rng is None:
-            rng=numpy.random.RandomState()
         self.rng=rng
 
         if not isinstance(shears[0], list):
@@ -46,17 +43,17 @@ class ConstShearSelector(ShearGeneratorBase):
         self.nshear=len(shears)
         self.shears=shears
 
-    def get_shear(self):
+    def get_shear(self, rng):
         """
         return a random shear from the input list, plus an index
         """
-        ri = self.rng.randint(0, self.nshear)
+        ri = rng.randint(0, self.nshear)
         return self.shears[ri], ri
 
 class ConstShearGenerator(ShearGeneratorBase):
-    def __init__(self, rng, nshear, min_shear=0.1, max_shear=0.08):
+    def __init__(self, seed, nshear, min_shear=0.1, max_shear=0.08):
 
-        self.rng=rng
+        self.seed=seed
         self.nshear=nshear
         self.min_shear=min_shear
         self.max_shear=max_shear
@@ -64,12 +61,13 @@ class ConstShearGenerator(ShearGeneratorBase):
         self.gen_shear()
 
     def gen_shear(self):
-        g = self.rng.uniform(
+        rng=numpy.random.RandomState(seed=self.seed)
+        g = rng.uniform(
             low=self.min_shear,
             high=self.max_shear,
             size=self.nshear,
         )
-        theta = self.rng.uniform(
+        theta = rng.uniform(
             low=0.0,
             high=numpy.pi*2,
             size=self.nshear,
@@ -88,11 +86,11 @@ class ConstShearGenerator(ShearGeneratorBase):
 
         self.shears=shears
 
-    def get_shear(self):
+    def get_shear(self, rng):
         """
         return a random shear from the input list, plus an index
         """
-        ri = self.rng.randint(0, self.nshear)
+        ri = rng.randint(0, self.nshear)
         return self.shears[ri], ri
 
 

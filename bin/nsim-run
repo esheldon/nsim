@@ -205,6 +205,13 @@ def run_sim(sim_conf,
 
     elif ftype=='deconv':
         fitclass=nsim.fitters.Deconvolver
+
+
+    elif ftype=='shear-null-postpsf':
+        fitclass=nsim.fitters.ShearNullFitterPostpsf
+    elif ftype=='shear-null-prepsf':
+        fitclass=nsim.fitters.ShearNullFitterPrepsf
+
     else:
         raise RuntimeError("bad fitter: '%s'" % ftype)
 

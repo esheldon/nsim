@@ -15,7 +15,7 @@ import fitsio
 import ngmix
 import nsim
 from nsim import files
-from nsim.averaging_new import SummerNSim, SummerMoments
+from nsim.averaging_new import SummerNSim, SummerMoments, SummerMomentsNoNorm
 
 import argparse
 import esutil as eu
@@ -58,6 +58,8 @@ parser.add_argument('--chunksize',type=int,default=1000000,
 
 parser.add_argument('--moments',action='store_true',
                     help='do fits for moment based measure')
+parser.add_argument('--moments-nonorm',action='store_true',
+                    help='do fits for moment based measure')
 
 parser.add_argument('--cache',action='store_true',
                     help='use local disk cache')
@@ -70,6 +72,8 @@ def main():
 
     if args.moments:
         summer=SummerMoments(conf, args)
+    elif args.moments_nonorm:
+        summer=SummerMomentsNoNorm(conf, args)
     else:
         summer=SummerNSim(conf, args)
 

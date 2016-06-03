@@ -15,21 +15,23 @@ metacal_pars:
 
 weight_T: 5.5
 
-# not used, we fit with em
 g_prior_during: True
 use_logpars: True
 priors:
     cen:
         type: "normal2d"
-        sigma: 0.1
+        sigma: 1.0
 
     g:
         type: "ba"
         sigma: 0.3
 
     T:
-        type: "two-sided-erf"
-        pars: [-3.0, 0.25, 10.0, 0.25]
+        type: "gmixnd"
+        # same underlying sim
+        run: "run-gg12zmax-lownoise01"
+        extra: "log_T"
+        cov_factor: 1.44
 
     counts:
         type: "gmixnd"

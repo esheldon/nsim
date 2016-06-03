@@ -33,8 +33,6 @@ class ShearGeneratorBase(object):
 class ConstShearSelector(ShearGeneratorBase):
     def __init__(self, shears):
 
-        self.rng=rng
-
         if not isinstance(shears[0], list):
             shears = [shears]
 

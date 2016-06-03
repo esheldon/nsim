@@ -3903,9 +3903,8 @@ class MetacalMetaMomFitter(MaxMetacalFitter):
         Tguess=self.sim.get('psf_T',4.0)
         psf_fit_pars = ppars.get('fit_pars',None)
 
-        #print("    not using prior for metacal metamom fitting")
         prior=self.prior
-        prior=None
+        #prior=None
         boot.fit_metacal(
             weight_gmix,
             ppars['model'],

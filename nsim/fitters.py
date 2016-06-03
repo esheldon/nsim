@@ -3725,41 +3725,6 @@ class MetacalMoments(SimpleFitterBase):
                 weight_gmix,
                 psf_weight_gmix,
             )
-            '''
-            # now do sums over all bands and epochs
-            tres={}
-            # get the psf centers from the main bootstrapper
-            for imobs,obslist in enumerate(mbobs):
-                for iobs,obs in enumerate(obslist):
-
-                    # center from original fits
-                    oobs=boot.mb_obs_list[imobs][iobs]
-                    prow,pcol=oobs.psf.gmix.get_cen()
-
-                    psf_weight_gmix.set_cen(prow,pcol)
-                    psf_sumres=psf_weight_gmix.get_weighted_moments(obs.psf)
-                    if psf_sumres['flags'] != 0:
-                        tup=(psf_sumres['flags'],psf_sumres['flagstr'])
-                        raise RuntimeError("got flags %d (%s) in moms" % tup)
-
-                    sumres=weight_gmix.get_weighted_moments(obs)
-                    if sumres['flags'] != 0:
-                        tup=(sumres['flags'],sumres['flagstr'])
-                        raise RuntimeError("got flags %d (%s) in moms" % tup)
-
-                    if len(tres)==0:
-                        tres=sumres
-                        for key in list(sumres.keys()):
-                            psf_key = 'psf_%s' % key
-                            tres[psf_key] = psf_sumres[key]
-                    else:
-                        for key in list(sumres.keys()):
-                            psf_key = 'psf_%s' % key
-                            if 'flag' not in key:
-                                tres[key] += sumres[key]
-                                tres[psf_key] += psf_sumres[key]
-            tres['s2n'] = tres['s2n_numer_sum']/sqrt(tres['s2n_denom_sum'])
-            '''
             res[type] = tres
 
         res['flags']=0
@@ -3846,6 +3811,122 @@ class MetacalMoments(SimpleFitterBase):
             d['mcal_s2n%s' % back][i] = tres['s2n']
 
             d['mcal_psf_pars%s' % back][i] = tres['psf_pars']
+
+
+class MetacalMetaMomFitter(MaxMetacalFitter):
+    def _do_fits(self, obs):
+        """
+        the basic fitter for this class
+        """
+
+        if 'masking' in self:
+            replace_fitter=self._do_fits_for_replacement(obs)
+
+        boot=self._get_bootstrapper(obs)
+
+        Tguess=self.sim.get('psf_T',4.0)
+        ppars=self['psf_pars']
+
+        psf_fit_pars = ppars.get('fit_pars',None)
+
+        try:
+            # redo psf in case we did replacement fit above
+            boot.fit_psfs(ppars['model'],
+                          Tguess,
+                          ntry=ppars['ntry'],
+                          skip_already_done=False,
+                          fit_pars=psf_fit_pars)
+
+        except BootPSFFailure:
+            raise TryAgainError("failed to fit psf")
+
+        mconf=self['max_pars']
+
+        try:
+            # to get a center
+            boot.fit_max(
+                self['fit_model'],
+                mconf['pars'],
+                prior=self.prior,
+                ntry=mconf['ntry'],
+            )
+
+            boot.set_round_s2n()
+            rres=boot.get_round_result()
+            res=boot.get_max_fitter().get_result()
+
+            res['psf_pars'] = boot.mb_obs_list[0][0].psf.gmix.get_full_pars()
+
+            res['s2n_r'] = rres['s2n_r']
+            res['T_r'] = rres['T_r']
+
+            res['psf_T'] = obs.psf.gmix.get_T()
+            res['psf_T_r'] = rres['psf_T_r']
+
+            if mconf['replace_cov']:
+                boot.try_replace_cov(mconf['cov_pars'])
+
+            if 'masking' in self:
+                boot.replace_masked_pixels(fitter=replace_fitter)
+
+            self._do_metacal(boot)
+
+        except BootPSFFailure:
+            raise TryAgainError("failed to fit metacal psfs")
+        except BootGalFailure:
+            raise TryAgainError("failed to fit galaxy")
+
+        fitter=boot.get_max_fitter()
+        res=fitter.get_result()
+
+        mres = boot.get_metacal_result()
+        res.update(mres)
+
+        return {'fitter':fitter,
+                'boot':boot,
+                'res':res}
+
+    def _do_metacal(self, boot):
+
+        max_fitter=boot.get_max_fitter()
+        cen=max_fitter.get_result()['pars'][0:0+2]
+
+        # use fixed weight
+        T=self['weight_T']
+        weight_gmix = ngmix.GMixModel(
+            [cen[0],cen[1],0.0,0.0,T,1.0],
+            'gauss',
+        )
+
+        ppars=self['psf_pars']
+        mconf=self['max_pars']
+        Tguess=self.sim.get('psf_T',4.0)
+        psf_fit_pars = ppars.get('fit_pars',None)
+
+        #print("    not using prior for metacal metamom fitting")
+        prior=self.prior
+        prior=None
+        boot.fit_metacal(
+            weight_gmix,
+            ppars['model'],
+            self['fit_model'],
+            mconf['pars'],
+            Tguess,
+            psf_fit_pars=psf_fit_pars,
+            prior=prior,
+            ntry=mconf['ntry'],
+            metacal_pars=self['metacal_pars'],
+        )
+
+    def _get_bootstrapper(self, obs):
+        from .bootstrappers import MetacalMetaMomBootstrapper
+        boot=MetacalMetaMomBootstrapper(
+            obs,
+            use_logpars=self['use_logpars'],
+            verbose=False,
+        )
+        return boot
+
 
 def make_sheared_pars(pars, shear_g1, shear_g2):
     from ngmix import Shape

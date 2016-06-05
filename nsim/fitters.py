@@ -3213,6 +3213,241 @@ class EMMetacalFitter(SimpleFitterBase):
         ]
         return dt
 
+class AMFakeFitter(object):
+    def __init__(self, result):
+        self.result=result
+    def get_result(self):
+        return self.result
+
+class AMMetacalFitter(FitterBase):
+
+    def _dofit(self, imdict):
+        obs=imdict['obs']
+
+        res=self._do_both_fits(obs)
+
+        metacal_res=self._do_metacal(obs)
+
+        res.update(metacal_res)
+
+        return AMFakeFitter(res)
+
+    def _do_both_fits(self, obs):
+
+        admom_pars=self['admom_pars']
+
+        noise=0.0001
+        Tguess=self._get_psf_Tguess(obs.psf)
+        psf_res=self._do_one_fit(obs.psf, noise, Tguess)
+
+        noise=self.sim['noise']
+        Tguess=psf_res['Icc'] + psf_res['Irr']
+        if admom_pars['docorr']:
+            send_psf_res=psf_res
+        else:
+            send_psf_res=None
+        res=self._do_one_fit(obs, noise, Tguess, psf_res=send_psf_res)
+
+        res['psf_res'] = psf_res
+
+        return res
+
+
+    def _do_one_fit(self, obs, noise, Tguess0, psf_res=None):
+        import admom
+
+        admom_pars=self['admom_pars']
+
+        row,col=obs.jacobian.get_cen()
+
+        for i in xrange(admom_pars['ntry']):
+
+            Tguess = Tguess0*(1.0 + numpy.random.uniform(low=-0.1,high=0.1))
+
+            rowguess = row + numpy.random.uniform(low=-0.1, high=0.1)
+            colguess = col + numpy.random.uniform(low=-0.1, high=0.1)
+
+            if psf_res is not None:
+                res=admom.wrappers.admom_1psf(
+                    obs.image,
+                    rowguess, colguess,
+                    psf_res['Irr'],psf_res['Irc'],psf_res['Icc'],
+                    sigsky=noise,
+                    guess=Tguess/2.0,
+                    maxit=admom_pars['maxit'],
+                )
+            else:
+                res=admom.admom(
+                    obs.image,
+                    rowguess, colguess,
+                    sigsky=noise,
+                    guess=Tguess/2.0,
+                    maxit=admom_pars['maxit'],
+                )
+
+            res['flags'] = res['whyflag']
+
+            if res['flags']==0:
+                break
+
+        if res['flags'] != 0:
+            raise TryAgainError("failed to fit with admom")
+
+        res['ntry']=i+1
+        return res
+
+
+    def _do_metacal(self, obs):
+        mpars=self['metacal_pars']
+
+        obsdict=ngmix.metacal.get_all_metacal(
+            obs,
+            **mpars
+        )
+
+        res={}
+        for mcal_type in obsdict:
+            tobs=obsdict[mcal_type]
+
+            tres = self._do_both_fits(tobs)
+
+            res[mcal_type] = tres
+
+            if mcal_type=='noshear':
+                # we will fit the prepixel PSF for corrections
+                noise=0.001
+                Tguess=self._get_psf_Tguess(obs.psf)
+                tres=self._do_one_fit(
+                    tobs.psf_nopix,
+                    noise,
+                    Tguess,
+                )
+                res['noshear_psf_prepix'] = tres
+
+        return res
+
+    def _get_psf_Tguess(self, obs):
+        scale=obs.jacobian.get_scale()
+        return 4.0*scale
+
+    def _get_dtype(self):
+        """
+        get the dtype for the output struct
+        """
+
+        dt=super(AMMetacalFitter,self)._get_dtype()
+        dt += [
+            ('psf_irr','f8'),
+            ('psf_irc','f8'),
+            ('psf_icc','f8'),
+            ('psf_T','f8'),
+
+            ('irr','f8'),
+            ('irc','f8'),
+            ('icc','f8'),
+            ('T','f8'),
+
+            ('s2n','f8'),
+        ]
+
+        mpars=self['metacal_pars']
+        types=mpars.get('types',ngmix.metacal.METACAL_TYPES)
+
+        for t in ngmix.metacal.METACAL_REQUIRED_TYPES:
+            if t not in types:
+                types.append(t)
+
+        for type in types:
+
+            if type=='noshear':
+                back=''
+            else:
+                back='_%s' % type
+
+            dt += [
+                ('mcal_irr%s' % back,'f8'),
+                ('mcal_irc%s' % back,'f8'),
+                ('mcal_icc%s' % back,'f8'),
+                ('mcal_T%s' % back,'f8'),
+            ]
+
+            if type=='noshear':
+                dt += [
+                    ('mcal_psf_irr','f8'),
+                    ('mcal_psf_irc','f8'),
+                    ('mcal_psf_icc','f8'),
+                    ('mcal_psf_T','f8'),
+                ]
+
+            dt += [
+                ('mcal_s2n%s' % back,'f8'),
+            ]
+
+        return dt
+
+    def _copy_to_output(self, res, i):
+        """
+        copy parameters specific to this class
+        """
+        super(AMMetacalFitter,self)._copy_to_output(res, i)
+
+        d=self.data
+
+        psf_res=res['psf_res']
+
+        d['psf_irr'] = psf_res['Irr']
+        d['psf_irc'] = psf_res['Irc']
+        d['psf_icc'] = psf_res['Icc']
+        d['psf_T'] = psf_res['Icc'] + psf_res['Irr']
+
+        d['irr'] = res['Irr']
+        d['irc'] = res['Irc']
+        d['icc'] = res['Icc']
+        d['T'] = res['Icc'] + res['Irr']
+
+        d['s2n'] = res['s2n']
+
+        for type in ngmix.metacal.METACAL_TYPES:
+
+            # sometimes we don't calculate all
+            if type not in res:
+                continue
+
+            tres=res[type]
+            if type=='noshear':
+                back=''
+            else:
+                back='_%s' % type
+
+            d['mcal_irr%s' % back][i] = tres['Irr']
+            d['mcal_irc%s' % back][i] = tres['Irc']
+            d['mcal_icc%s' % back][i] = tres['Icc']
+            d['mcal_T%s'   % back][i] = tres['Irr'] + tres['Icc']
+            d['mcal_s2n%s' % back][i] = tres['s2n']
+
+            if type=='noshear':
+                # use the special pre-pix PSF modeling, since
+                # this is closer to shear that was actually added
+                # improves the psf correction quite a bit
+                tpsf_res=res['noshear_psf_prepix']
+                d['mcal_psf_irr'] = tpsf_res['Irr']
+                d['mcal_psf_irc'] = tpsf_res['Irc']
+                d['mcal_psf_icc'] = tpsf_res['Icc']
+                d['mcal_psf_T'] = tpsf_res['Icc'] + tpsf_res['Irr']
+
+    def _print_res(self,res):
+        """
+        print some stats
+        """
+
+        mess="    s2n: %(s2n).1f ntry: %(ntry)d numiter: %(numiter)d"
+        mess=mess % res
+        print(mess)
+
+        print("    mcal s2n:",res['noshear']['s2n'])
+
+    def _get_prior(self):
+        return None
 
 
 class NCalFitter(MaxFitter):

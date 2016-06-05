@@ -61,6 +61,9 @@ parser.add_argument('--moments',action='store_true',
 parser.add_argument('--moments-nonorm',action='store_true',
                     help='do fits for moment based measure')
 
+parser.add_argument('--admom',action='store_true',
+                    help='do fits for admom based measure')
+
 parser.add_argument('--cache',action='store_true',
                     help='use local disk cache')
 
@@ -74,6 +77,8 @@ def main():
         summer=SummerMoments(conf, args)
     elif args.moments_nonorm:
         summer=SummerMomentsNoNorm(conf, args)
+    elif args.admom:
+        summer=nsim.averaging_new.AMSummer(conf, args)
     else:
         summer=SummerNSim(conf, args)
 

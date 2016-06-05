@@ -190,8 +190,7 @@ def run_sim(sim_conf,
             raise RuntimeError("don't have mom metacal for ngmix sim yet")
 
     elif ftype=='metacal-admom':
-        fitclass=nsim.fitters.AdmomMetacalFitter
-
+        fitclass=nsim.fitters.AMMetacalFitter
 
 
     elif ftype=='metacal-isample':

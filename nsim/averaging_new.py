@@ -1489,6 +1489,186 @@ class SummerMomentsNoNorm(SummerMoments):
         return dt
 
 
+class AMSummer(SummerNSim):
+
+    def _set_select(self):
+        super(AMSummer,self)._set_select()
+
+        select=self.select
+        if select is None:
+            select=[]
+        else:
+            select = ['( ' + select +' )']
+
+        select += ['(T > 0.01)']
+
+        self.select = ' & '.join(select)
+        print("selection:",self.select)
+
+        self.do_selection=True
+
+    def _do_select(self, s2n, T):
+        """
+        currently only s/n
+        """
+
+        logic=eval(self.select)
+        w,=numpy.where(logic)
+        return w
+
+    def _get_gpsf(self, data, w):
+        Tpsf = data['mcal_psf_icc'][w]+data['mcal_psf_irr'][w]
+        Tpsf_inv=1.0/Tpsf
+
+        e1psf = (data['mcal_psf_icc'][w]-data['mcal_psf_irr'][w])*Tpsf_inv
+        e2psf = 2*data['mcal_psf_irc'][w]*Tpsf_inv
+
+        g1psf, g2psf = ngmix.shape.e1e2_to_g1g2(e1psf, e2psf)
+
+        gpsf=numpy.zeros( (w.size, 2))
+
+        gpsf[:,0] = g1psf
+        gpsf[:,1] = g2psf
+
+        return gpsf
+
+    def _get_gpsf_frome(self, data, w):
+        Tpsf = data['mcal_psf_icc'][w]+data['mcal_psf_irr'][w]
+        Tpsf_inv=1.0/Tpsf
+
+        g1psf = 0.5*(data['mcal_psf_icc'][w]-data['mcal_psf_irr'][w])*Tpsf_inv
+        g2psf = 0.5*2*data['mcal_psf_irc'][w]*Tpsf_inv
+
+        gpsf=numpy.zeros( (w.size, 2))
+
+        gpsf[:,0] = g1psf
+        gpsf[:,1] = g2psf
+
+        return gpsf
+
+
+    def _get_g(self, data, w, type):
+        """
+        really getting e, but multiply by 0.5 to
+        approximately get in right scale as g
+        """
+        irr_name='mcal_irr'
+        irc_name='mcal_irc'
+        icc_name='mcal_icc'
+        if type != 'noshear':
+            irr_name='%s_%s' % (irr_name,type)
+            irc_name='%s_%s' % (irc_name,type)
+            icc_name='%s_%s' % (icc_name,type)
+
+        if irr_name not in data.dtype.names:
+            return None
+
+        g=numpy.zeros( (w.size, 2) )
+
+        irr = data[irr_name][w]
+        irc = data[irc_name][w]
+        icc = data[icc_name][w]
+
+        T= irr + icc
+        M1 = icc - irr
+        M2 = 2.0*irc
+
+        Tinv=1.0/T
+
+        # 0.5 to approximately put in g units, just so we can
+        # more easily examine the response
+        g[:,0] = 0.5*M1*Tinv
+        g[:,1] = 0.5*M2*Tinv
+
+        return g
+
+
+    def do_sums1(self, data, sums=None):
+        """
+        just a binner and summer, no logic here
+        """
+
+        s2n_name='mcal_s2n'
+        T_name = 'mcal_T'
+
+        nshear=self['nshear']
+        args=self.args
+
+        h,rev = eu.stat.histogram(data['shear_index'],
+                                  min=0,
+                                  max=nshear-1,
+                                  rev=True)
+        nind = h.size
+        assert nshear==nind
+
+        if sums is None:
+            sums=self._get_sums_struct()
+
+        ntot=0
+        nkeep=0
+        for i in xrange(nshear):
+            if rev[i] != rev[i+1]:
+                wfield=rev[ rev[i]:rev[i+1] ]
+
+                # first select on the noshear measurement
+                if self.select is not None:
+                    w=self._do_select(
+                        data[s2n_name][wfield],
+                        data[T_name][wfield],
+                    )
+                    w=wfield[w]
+                else:
+                    w=wfield
+
+                ntot  += wfield.size
+                nkeep += w.size
+
+                sums['wsum'][i] += w.size
+
+                g    = self._get_g(data, w, 'noshear')
+                gpsf = self._get_gpsf(data, w)
+                sums['g'][i]    += g.sum(axis=0)
+                sums['gpsf'][i] += gpsf.sum(axis=0)
+
+                for type in ngmix.metacal.METACAL_TYPES:
+                    if type=='noshear':
+                        continue
+
+                    sumname='g_%s' % type
+                    g = self._get_g(data, w, type)
+                    if g is not None:
+                        sums[sumname][i] += g.sum(axis=0)
+
+                # now the selection terms
+                if self.select is not None:
+                    for type in ngmix.metacal.METACAL_TYPES:
+                        if type=='noshear':
+                            continue
+
+                        ts2n_name='%s_%s' % (s2n_name,type)
+                        tT_name = '%s_%s' % (T_name,type)
+
+                        if ts2n_name in data.dtype.names:
+
+                            wsumname = 's_wsum_%s' % type
+                            sumname = 's_g_%s' % type
+
+                            w=self._do_select(
+                                data[ts2n_name][wfield],
+                                data[tT_name][wfield]
+                            )
+                            w=wfield[w]
+                            sums[wsumname][i] += w.size
+
+                            g = self._get_g(data, w, 'noshear')
+                            sums[sumname][i] += g.sum(axis=0)
+                        else:
+                            pass
+
+        if self.select is not None:
+            self._print_frac(ntot,nkeep)
+        return sums
+
 
 # quick line fit pulled from great3-public code
 def _calculateSvalues(xarr, yarr, sigma2=1.):

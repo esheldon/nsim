@@ -1,0 +1,31 @@
+# this time doing psf corr
+# low noise sim
+run: "run-bd40amom-t02"
+sim: "sim-bd40"
+
+fitter: "metacal-admom"
+
+global_seed: 32491
+
+metacal_pars:
+  # not needed for low noise
+  fixnoise: False
+  symmetrize_psf: False
+
+
+admom_pars:
+  ntry: 2
+  maxit: 200
+
+  docorr: True
+
+ngal: 2000000
+
+desired_hours: 0.25
+
+# not doubled for bnl
+sec_per: 0.2
+
+jobs_per_condor_sub: 5000
+
+verbose: False

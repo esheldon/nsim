@@ -2522,6 +2522,9 @@ tests of full wcs
     ngmix/master: 8a8af31e2ae45457bb9c596157a85a1d53e9cd9a
     galsim/#720:  993044f1eb13d577e27d6f48fed23b5059ed8387
 
+- run-bd40amom-t04
+    - includes bug fix not using prepix psf shape
+
 - sim-bd37
     - actual r50 drawn from cosmos sample used in great3
     - run-bd37zmax-lownoise01

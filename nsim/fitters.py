@@ -3444,7 +3444,9 @@ class AMMetacalFitter(FitterBase):
         mess=mess % res
         print(mess)
 
-        print("    mcal s2n:",res['noshear']['s2n'])
+        e1=res['e1']
+        e2=res['e2']
+        print("    mcal s2n:",res['noshear']['s2n'],'e1:',e1,'e2:',e2)
 
     def _get_prior(self):
         return None

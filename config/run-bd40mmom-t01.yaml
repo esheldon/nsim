@@ -1,0 +1,62 @@
+# was run without the prior
+run: "run-bd40mmom-t01"
+sim: "sim-bd40"
+
+fitter: "metacal-metamom"
+fit_model: "gauss"
+
+g_prior_during: True
+use_logpars: True
+
+global_seed: 6614
+
+metacal_pars:
+  fixnoise: False
+  symmetrize_psf: False
+
+weight_T: 5.5
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+    T:
+        type: "gmixnd"
+        run: "run-bd23zmax-lownoise01"
+        extra: "log_T"
+        cov_factor: 1.44
+
+    counts:
+        type: "gmixnd"
+        run: "run-bd23zmax-lownoise01"
+        extra: "log_F"
+        cov_factor: 1.44
+
+psf_pars:
+    model: "gauss"
+    ntry: 2
+
+max_pars:
+    ntry: 2
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    replace_cov: False
+
+
+ngal: 2000000
+
+desired_hours: 0.25
+
+# doubled for slac
+sec_per: 0.6
+
+jobs_per_condor_sub: 5000
+
+verbose: False

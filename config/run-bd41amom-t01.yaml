@@ -7,8 +7,7 @@ fitter: "metacal-admom"
 global_seed: 26882
 
 metacal_pars:
-  # not needed for low noise
-  fixnoise: False
+  fixnoise: True
   symmetrize_psf: False
 
 admom_pars:

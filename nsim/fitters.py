@@ -3240,7 +3240,9 @@ class AMMetacalFitter(FitterBase):
         Tguess=self._get_psf_Tguess(obs.psf)
         psf_res=self._do_one_fit(obs.psf, noise, Tguess)
 
-        noise=self.sim['noise']
+        w=numpy.where(obs.weight > 0)
+        noise=numpy.sqrt( numpy.median(1.0/obs.weight[w]) )
+
         Tguess=psf_res['Icc'] + psf_res['Irr']
         if admom_pars['docorr']:
             send_psf_res=psf_res

@@ -2532,7 +2532,7 @@ tests of full wcs
     - same as bd36 but trivial wcs
 - run-bd41amom-t01
     nsim/master:  b3839666c4ae99fa9d68f01409b70905d4e15465
-    ngmix/master: 8a8af31e2ae45457bb9c596157a85a1d53e9cd9a
+    ngmix/master: e1f562e24050ebd407b6f2859bc415a7cada7049
     galsim/#720:  993044f1eb13d577e27d6f48fed23b5059ed8387
     admom/master: d0d744acab531cc1c6edbf8d8eb4ddb52f34ac32
 

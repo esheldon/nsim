@@ -1,3 +1,6 @@
+# high s/n
+# large psf shape in e2
+
 name: "sim-bd40"
 
 simulator: "galsim"

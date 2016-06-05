@@ -1507,14 +1507,31 @@ class AMSummer(SummerNSim):
 
         self.do_selection=True
 
-    def _do_select(self, s2n, T):
+    def _do_select(self, data, w, type):
         """
         currently only s/n
         """
+        from numpy import abs
+
+        s2n_name='mcal_s2n'
+        T_name = 'mcal_T'
+
+        if type != 'noshear':
+            s2n_name = '%s_%s' % (s2n_name, type)
+            T_name   = '%s_%s' % (T_name,   type)
+
+        s2n = data[s2n_name][w]
+        T   = data[T_name][w]
+
+        g=self._get_g(data, w, type)
+        e1 = g[:,0]*2
+        e2 = g[:,1]*2
 
         logic=eval(self.select)
-        w,=numpy.where(logic)
-        return w
+
+        wsel,=numpy.where(logic)
+
+        return w[wsel]
 
     def _get_gpsf(self, data, w):
         Tpsf = data['mcal_psf_icc'][w]+data['mcal_psf_irr'][w]
@@ -1546,12 +1563,7 @@ class AMSummer(SummerNSim):
 
         return gpsf
 
-
-    def _get_g(self, data, w, type):
-        """
-        really getting e, but multiply by 0.5 to
-        approximately get in right scale as g
-        """
+    def _get_M(self, data, w, type):
         irr_name='mcal_irr'
         irc_name='mcal_irc'
         icc_name='mcal_icc'
@@ -1559,11 +1571,6 @@ class AMSummer(SummerNSim):
             irr_name='%s_%s' % (irr_name,type)
             irc_name='%s_%s' % (irc_name,type)
             icc_name='%s_%s' % (icc_name,type)
-
-        if irr_name not in data.dtype.names:
-            return None
-
-        g=numpy.zeros( (w.size, 2) )
 
         irr = data[irr_name][w]
         irc = data[irc_name][w]
@@ -1573,15 +1580,32 @@ class AMSummer(SummerNSim):
         M1 = icc - irr
         M2 = 2.0*irc
 
+        return M1, M2, T
+
+
+    def _get_e(self, data, w, type):
+        """
+        really getting e, but multiply by 0.5 to
+        approximately get in right scale as g
+        """
+
+        M1, M2, T = self._get_M(data, w, type)
+
         Tinv=1.0/T
 
         # 0.5 to approximately put in g units, just so we can
         # more easily examine the response
-        g[:,0] = 0.5*M1*Tinv
-        g[:,1] = 0.5*M2*Tinv
+        e=numpy.zeros( (w.size, 2) )
+        e[:,0] = M1*Tinv
+        e[:,1] = M2*Tinv
 
+        return e
+
+    def _get_g(self, data, w, type):
+        g=self._get_e(data, w,type)
+        if g is not None:
+            g *= 2
         return g
-
 
     def do_sums1(self, data, sums=None):
         """
@@ -1612,11 +1636,7 @@ class AMSummer(SummerNSim):
 
                 # first select on the noshear measurement
                 if self.select is not None:
-                    w=self._do_select(
-                        data[s2n_name][wfield],
-                        data[T_name][wfield],
-                    )
-                    w=wfield[w]
+                    w=self._do_select(data, wfield, 'noshear')
                 else:
                     w=wfield
 
@@ -1626,8 +1646,11 @@ class AMSummer(SummerNSim):
                 sums['wsum'][i] += w.size
 
                 g    = self._get_g(data, w, 'noshear')
+                #M1,M2,T    = self._get_M(data, w, 'noshear')
                 gpsf = self._get_gpsf(data, w)
                 sums['g'][i]    += g.sum(axis=0)
+                #sums['g'][i,0]    += M1.sum()
+                #sums['g'][i,1]    += M2.sum()
                 sums['gpsf'][i] += gpsf.sum(axis=0)
 
                 for type in ngmix.metacal.METACAL_TYPES:
@@ -1636,8 +1659,11 @@ class AMSummer(SummerNSim):
 
                     sumname='g_%s' % type
                     g = self._get_g(data, w, type)
+                    #M1,M2,T    = self._get_M(data, w, type)
                     if g is not None:
                         sums[sumname][i] += g.sum(axis=0)
+                        #sums[sumname][i,0] += M1.sum()
+                        #sums[sumname][i,1] += M2.sum()
 
                 # now the selection terms
                 if self.select is not None:
@@ -1646,22 +1672,20 @@ class AMSummer(SummerNSim):
                             continue
 
                         ts2n_name='%s_%s' % (s2n_name,type)
-                        tT_name = '%s_%s' % (T_name,type)
 
                         if ts2n_name in data.dtype.names:
 
                             wsumname = 's_wsum_%s' % type
                             sumname = 's_g_%s' % type
 
-                            w=self._do_select(
-                                data[ts2n_name][wfield],
-                                data[tT_name][wfield]
-                            )
-                            w=wfield[w]
+                            w=self._do_select(data, wfield, type)
                             sums[wsumname][i] += w.size
 
                             g = self._get_g(data, w, 'noshear')
+                            #M1,M2,T    = self._get_M(data, w, 'noshear')
                             sums[sumname][i] += g.sum(axis=0)
+                            #sums[sumname][i,0] += M1.sum()
+                            #sums[sumname][i,1] += M2.sum()
                         else:
                             pass
 

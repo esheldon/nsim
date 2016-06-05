@@ -4,7 +4,7 @@ sim: "sim-bd36"
 
 fitter: "metacal-admom"
 
-global_seed: 4517
+global_seed: 22903
 
 metacal_pars:
   # not needed for low noise
@@ -12,14 +12,14 @@ metacal_pars:
   symmetrize_psf: False
 
 admom_pars:
-  ntry: 2
+  ntry: 4
   maxit: 200
 
   docorr: True
 
 ngal: 10000000
 
-desired_hours: 0.50
+desired_hours: 0.25
 
 # not doubled for bnl
 sec_per: 0.2

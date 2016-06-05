@@ -2516,6 +2516,11 @@ tests of full wcs
               c1: 6.979e-05 +/- 2.789e-05
               c2: -8.331e-06 +/- 2.789e-05
 
+- run-bd36mcal-t09
+    - testing still works after all the changes
+    nsim/master:  9e1900a68a342b8e8dab220fcd8e07f894c9dea3
+    ngmix/master: 8a8af31e2ae45457bb9c596157a85a1d53e9cd9a
+    galsim/#720:  993044f1eb13d577e27d6f48fed23b5059ed8387
 
 - sim-bd37
     - actual r50 drawn from cosmos sample used in great3

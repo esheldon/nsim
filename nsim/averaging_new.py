@@ -1490,9 +1490,12 @@ class SummerMomentsNoNorm(SummerMoments):
 
 
 class AMSummer(SummerNSim):
+    doM=False
 
     def _set_select(self):
         super(AMSummer,self)._set_select()
+        if self.doM:
+            return
 
         select=self.select
         if select is None:
@@ -1526,6 +1529,8 @@ class AMSummer(SummerNSim):
         g=self._get_g(data, w, type)
         e1 = g[:,0]*2
         e2 = g[:,1]*2
+
+        e = numpy.sqrt(e1**2 + e2**2)
 
         logic=eval(self.select)
 
@@ -1576,9 +1581,9 @@ class AMSummer(SummerNSim):
         irc = data[irc_name][w]
         icc = data[icc_name][w]
 
-        T= irr + icc
         M1 = icc - irr
         M2 = 2.0*irc
+        T= irr + icc
 
         return M1, M2, T
 
@@ -1604,13 +1609,14 @@ class AMSummer(SummerNSim):
     def _get_g(self, data, w, type):
         g=self._get_e(data, w,type)
         if g is not None:
-            g *= 2
+            g *= 0.5
         return g
 
     def do_sums1(self, data, sums=None):
         """
         just a binner and summer, no logic here
         """
+
 
         s2n_name='mcal_s2n'
         T_name = 'mcal_T'
@@ -1645,12 +1651,15 @@ class AMSummer(SummerNSim):
 
                 sums['wsum'][i] += w.size
 
-                g    = self._get_g(data, w, 'noshear')
-                #M1,M2,T    = self._get_M(data, w, 'noshear')
+                if self.doM:
+                    M1,M2,T = self._get_M(data, w, 'noshear')
+                    sums['g'][i,0]    += M1.sum()
+                    sums['g'][i,1]    += M2.sum()
+                else:
+                    g    = self._get_g(data, w, 'noshear')
+                    sums['g'][i]    += g.sum(axis=0)
+
                 gpsf = self._get_gpsf(data, w)
-                sums['g'][i]    += g.sum(axis=0)
-                #sums['g'][i,0]    += M1.sum()
-                #sums['g'][i,1]    += M2.sum()
                 sums['gpsf'][i] += gpsf.sum(axis=0)
 
                 for type in ngmix.metacal.METACAL_TYPES:
@@ -1658,12 +1667,15 @@ class AMSummer(SummerNSim):
                         continue
 
                     sumname='g_%s' % type
-                    g = self._get_g(data, w, type)
-                    #M1,M2,T    = self._get_M(data, w, type)
-                    if g is not None:
-                        sums[sumname][i] += g.sum(axis=0)
-                        #sums[sumname][i,0] += M1.sum()
-                        #sums[sumname][i,1] += M2.sum()
+
+                    if self.doM:
+                        M1,M2,T = self._get_M(data, w, type)
+                        sums[sumname][i,0] += M1.sum()
+                        sums[sumname][i,1] += M2.sum()
+                    else:
+                        g = self._get_g(data, w, type)
+                        if g is not None:
+                            sums[sumname][i] += g.sum(axis=0)
 
                 # now the selection terms
                 if self.select is not None:
@@ -1681,11 +1693,13 @@ class AMSummer(SummerNSim):
                             w=self._do_select(data, wfield, type)
                             sums[wsumname][i] += w.size
 
-                            g = self._get_g(data, w, 'noshear')
-                            #M1,M2,T    = self._get_M(data, w, 'noshear')
-                            sums[sumname][i] += g.sum(axis=0)
-                            #sums[sumname][i,0] += M1.sum()
-                            #sums[sumname][i,1] += M2.sum()
+                            if self.doM:
+                                M1,M2,T = self._get_M(data, w, 'noshear')
+                                sums[sumname][i,0] += M1.sum()
+                                sums[sumname][i,1] += M2.sum()
+                            else:
+                                g = self._get_g(data, w, 'noshear')
+                                sums[sumname][i] += g.sum(axis=0)
                         else:
                             pass
 

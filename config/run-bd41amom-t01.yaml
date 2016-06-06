@@ -21,7 +21,8 @@ ngal: 10000000
 desired_hours: 0.25
 
 # not doubled for bnl
-sec_per: 0.2
+# twice as high due to fixing noise
+sec_per: 0.4
 
 jobs_per_condor_sub: 5000
 

@@ -1494,8 +1494,8 @@ class AMSummer(SummerNSim):
 
     def _set_select(self):
         super(AMSummer,self)._set_select()
-        if self.doM:
-            return
+        #if self.doM:
+        #    return
 
         select=self.select
         if select is None:

@@ -1,0 +1,29 @@
+# first trying without fixnoise, just to see level of effect
+run: "run-bd41amom-t02"
+sim: "sim-bd41"
+
+fitter: "metacal-admom"
+
+global_seed: 15425
+
+metacal_pars:
+  fixnoise: False
+  symmetrize_psf: False
+
+admom_pars:
+  ntry: 4
+  maxit: 200
+
+  docorr: True
+
+ngal: 10000000
+
+desired_hours: 0.25
+
+# not doubled for bnl
+# twice as high due to fixing noise
+sec_per: 0.2
+
+jobs_per_condor_sub: 5000
+
+verbose: False

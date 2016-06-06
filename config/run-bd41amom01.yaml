@@ -18,7 +18,7 @@ admom_pars:
 
 ngal: 100000000
 
-desired_hours: 0.25
+desired_hours: 1.0
 
 # not doubled for bnl
 # twice as high due to fixing noise

@@ -796,6 +796,7 @@ class MaxMetacalFitter(MaxFitter):
 
             # sometimes we don't calculate all
             if type not in res:
+                print("type not found:",type)
                 continue
 
             tres=res[type]
@@ -877,21 +878,23 @@ class MaxMetacalRoundAnalyticPSFFitter(MaxMetacalFitter):
         #round_psf.set_psum(1.0)
 
         gdata=round_psf._get_gmix_data()
-        # irc is 0.0
-        gdata['irr'] *= dilation**2
-        gdata['icc'] *= dilation**2
+
+        if dilation is not None:
+            gdata['irr'] *= dilation**2
+            gdata['icc'] *= dilation**2
 
         gsobj=round_psf.make_galsim_object()
         return gsobj
 
-    def _get_dtype(self):
+    def _get_dtype_notused(self):
         """
         get the dtype for the output struct
         """
         dt=super(MaxMetacalFitter,self)._get_dtype()
 
         npars=self['npars']
-        types=['noshear','1p','1m','2p','2m']
+        #types=['noshear','1p','1m','2p','2m']
+        types=ngmix.metacal.METACAL_TYPES
         for type in types:
 
             if type=='noshear':
@@ -901,12 +904,14 @@ class MaxMetacalRoundAnalyticPSFFitter(MaxMetacalFitter):
 
             dt += [
                 ('mcal_g%s' % back,'f8',2),
+                ('mcal_g_cov%s' % back,'f8',(2,2)),
                 ('mcal_pars%s' % back,'f8',npars),
+                #('mcal_pars_cov%s' % back,'f8',npars),
             ]
 
             if type=='noshear':
                 dt += [
-                    ('mcal_pars_cov','f8',(npars,npars)),
+                    #('mcal_pars_cov','f8',(npars,npars)),
                     ('mcal_gpsf','f8',2),
                     ('mcal_Tpsf','f8'),
                 ]

@@ -869,19 +869,9 @@ class MaxMetacalRoundAnalyticPSFFitter(MaxMetacalFitter):
         assuming only one observation
         '''
 
-        dilation=self['metacal_pars']['analytic_psf_dilation']
-
         psf_gmix = boot.mb_obs_list[0][0].psf.gmix
 
         round_psf=psf_gmix.make_round(preserve_size=True)
-
-        #round_psf.set_psum(1.0)
-
-        gdata=round_psf._get_gmix_data()
-
-        if dilation is not None:
-            gdata['irr'] *= dilation**2
-            gdata['icc'] *= dilation**2
 
         gsobj=round_psf.make_galsim_object()
         return gsobj

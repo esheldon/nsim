@@ -16,6 +16,7 @@ import ngmix
 import nsim
 from . import files
 from . import shearpdf
+from .util import Namer
 
 import argparse
 import esutil as eu
@@ -33,6 +34,9 @@ class Summer(dict):
         self.chunksize=args.chunksize
 
         self._set_select()
+
+        self.namer=Namer(front='mcal')
+        self.gpsf_name='mcal_gpsf'
 
         self.step = self['metacal_pars'].get('step',0.01)
 
@@ -115,6 +119,7 @@ class Summer(dict):
 
         args=self.args
         chunksize=self.chunksize
+        n=self.namer
 
         sums=None
         ntot=0
@@ -147,7 +152,7 @@ class Summer(dict):
                     ntot += data.size
 
                     #sums=self.do_sums1(data, sums=sums)
-                    if False and 'mcal_g' not in data.dtype.names:
+                    if False and n('g') not in data.dtype.names:
                         if True:
                             sums=self.do_sums1_moms_wt(data, sums=sums)
                         elif False:
@@ -170,71 +175,24 @@ class Summer(dict):
         """
         return data
 
-        norig=data.size
-
-        '''
-        w,=where(
-            (data['mcal_pars_cov'][:,0,0] > 0) &
-            (data['mcal_pars_cov'][:,1,1] > 0) &
-            (data['mcal_pars_cov'][:,2,2] > 0) &
-            (data['mcal_pars_cov'][:,3,3] > 0) &
-            (data['mcal_pars_cov'][:,4,4] > 0) &
-            (data['mcal_pars_cov'][:,5,5] > 0)
-        )
-        '''
-
-        #movsig1=data['mcal_pars'][:,0]/sqrt(data['mcal_pars_cov'][:,0,0])
-        #movsig2=data['mcal_pars'][:,1]/sqrt(data['mcal_pars_cov'][:,1,1])
-
-        w0,=where(data['mcal_pars'][:,4] > 0)
-
-        e1=data['mcal_pars'][w0,2]/data['mcal_pars'][w0,4]
-        e2=data['mcal_pars'][w0,3]/data['mcal_pars'][w0,4]
-
-        w,=where(  (numpy.abs(e1) < 0.9999)
-                 & (numpy.abs(e2) < 0.9999) )
-
-        w=w0[w]
-        w,=where(
-            #(numpy.abs(movsig1) < 2 ) &
-            #(numpy.abs(movsig2) < 2 ) &
-            (numpy.abs(data['mcal_pars'][:,0]) < 2.5)  # would change with s/n
-            (numpy.abs(data['mcal_pars'][:,1]) < 2.5 ) &
-            (numpy.abs(data['mcal_pars'][:,2]) < 20.0) &
-            (numpy.abs(data['mcal_pars'][:,3]) < 20.0) &
-            (data['mcal_pars'][:,4] < 150.0)
-        )
-
-        print("kept %d/%d preselect" % (w.size, norig))
-
-        data=data[w]
-        return data
-
     def _get_s2n_name(self, data):
-        if 'mcal_s2n_r' in data.dtype.names:
-            s2n_name='mcal_s2n_r'
-        elif 'mcal_s2n' in data.dtype.names:
-            s2n_name='mcal_s2n'
+        n=self.namer
+        if n('s2n_r') in data.dtype.names:
+            s2n_name=n('s2n_r')
+        elif n('s2n') in data.dtype.names:
+            s2n_name=n('s2n')
+        else:
+            return None
 
         return s2n_name
-
-    def _get_bname_and_beg(self, data):
-        if 'mcal_g' in data.dtype.names:
-            bname='mcal_g'
-            beg=0
-        else:
-            bname='mcal_pars'
-            beg=2
-
-        return bname, beg
 
     def _get_weights(self, data, w, type):
 
         if self.args.weighted:
             if type=='noshear':
-                name='mcal_g_cov'
+                name=n('g_cov')
             else:
-                name='mcal_g_cov_%s' % type
+                name=n('g_cov_%s' % type)
 
             g_cov=data[name][w]
 
@@ -246,11 +204,11 @@ class Summer(dict):
         return wts, wa
 
     def _get_g(self, data, w, type):
-
+        n=self.namer
         if type=='noshear':
-            name='mcal_g'
+            name=n('g')
         else:
-            name='mcal_g_%s' % type
+            name=n('g_%s' % type)
 
         if name not in data.dtype.names:
             g = None
@@ -258,6 +216,9 @@ class Summer(dict):
             g = data[name][w]
 
         return g
+
+    def _get_gpsf(self, data, w):
+        return data[self.gpsf_name][w]
 
     def do_sums1(self, data, sums=None):
         """
@@ -299,7 +260,8 @@ class Summer(dict):
                 wts, wa = self._get_weights(data, w, 'noshear')
 
                 sums['g'][i]    += (g*wa).sum(axis=0)
-                sums['gpsf'][i] += (data['mcal_gpsf'][w]*wa).sum(axis=0)
+                gpsf=self._get_gpsf(data, w)
+                sums['gpsf'][i] += (gpsf*wa).sum(axis=0)
                 sums['wsum'][i] += wts.sum()
 
                 for type in ngmix.metacal.METACAL_TYPES:

@@ -713,6 +713,9 @@ class Summer(dict):
         Rpsf[0] = (g1p_psf - g1m_psf)*factor
         Rpsf[1] = (g2p_psf - g2m_psf)*factor
 
+        #Rmean = R.mean()
+        #R[:] = Rmean
+        #R[0] = R[1]
 
         print("R:",R)
         print("Rpsf:",Rpsf)

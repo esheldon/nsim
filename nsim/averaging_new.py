@@ -28,7 +28,7 @@ except ImportError:
     pass
 
 class Summer(dict):
-    def __init__(self, conf, shears, args):
+    def __init__(self, conf, args, shears=None, nshear=None):
         self.update(conf)
         self.args=args
         self.chunksize=args.chunksize
@@ -41,7 +41,14 @@ class Summer(dict):
         self.step = self['metacal_pars'].get('step',0.01)
 
         self.shears = shears
-        self['nshear']=len(self.shears)
+
+        if shears is None and nshear is None:
+            raise RuntimeError("send either shears= or nshear=")
+
+        if shears is not None:
+            self['nshear']=len(self.shears)
+        else:
+            self['nshear'] = nshear
 
     def go(self):
 
@@ -62,7 +69,10 @@ class Summer(dict):
 
             for i in xrange(self['nshear']):
 
-                shear_true = self.shears[i]
+                if self.shears is not None:
+                    shear_true = self.shears[i]
+                else:
+                    shear_true = sums['shear_true'][i]
 
                 gmean = g[i]
 
@@ -255,6 +265,12 @@ class Summer(dict):
 
                 ntot  += wfield.size
                 nkeep += w.size
+
+                if 'shear_true' in data.dtype.names:
+                    # should all be the same, so just copy
+                    # the first one.  We will end up copying over this
+                    # each time, but that's ok
+                    sums['shear_true'][i] += data['shear_true'][w[0]]
 
                 g = self._get_g(data, w, 'noshear')
                 wts, wa = self._get_weights(data, w, 'noshear')
@@ -857,6 +873,7 @@ class Summer(dict):
             ('s_g_2p_psf','f8',2),
             ('s_g_2m_psf','f8',2),
 
+            ('shear_true','f8',2),
         ]
         return dt
 
@@ -981,7 +998,7 @@ class SummerNSim(Summer):
 
         shear_pdf = shearpdf.get_shear_pdf(conf['simc'])
         shears=shear_pdf.shears
-        super(SummerNSim,self).__init__(conf, shears, args)
+        super(SummerNSim,self).__init__(conf, args, shears=shears)
 
 
 class SummerMoments(SummerNSim):

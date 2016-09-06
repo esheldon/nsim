@@ -2544,6 +2544,9 @@ tests of full wcs
     galsim/#720:  993044f1eb13d577e27d6f48fed23b5059ed8387
     admom/master: d0d744acab531cc1c6edbf8d8eb4ddb52f34ac32
 
+    (e < sqrt(2)*4) & (s2n > 7) & (T > 2.0)
+	0.66
+
     (e < sqrt(2)*4) & (s2n > 10) & (T > 1.0)
 	0.56
 		R: [ 0.66545249  0.66589277]

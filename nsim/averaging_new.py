@@ -716,6 +716,7 @@ class Summer(dict):
         #Rmean = R.mean()
         #R[:] = Rmean
         #R[0] = R[1]
+        #R[:] = R[1]
 
         print("R:",R)
         print("Rpsf:",Rpsf)

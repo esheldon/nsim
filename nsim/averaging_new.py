@@ -66,6 +66,8 @@ class Summer(dict):
 
             means=get_mean_struct(self['nshear'])
             means_nocorr=get_mean_struct(self['nshear'])
+            
+            wkeep,=numpy.where(sums['wsum'] > 0)
 
             for i in xrange(self['nshear']):
 
@@ -94,6 +96,8 @@ class Summer(dict):
                 means_nocorr['shear_err'][i] = 1.0
                 means_nocorr['shear_true'][i] = means['shear_true'][i]
 
+            means=means[wkeep]
+            means_nocorr=means_nocorr[wkeep]
             self.means=means
             self.means_nocorr=means_nocorr
             self._write_means()
@@ -224,6 +228,7 @@ class Summer(dict):
             g = None
         else:
             g = data[name][w]
+            #g *= -1
 
         return g
 
@@ -733,6 +738,8 @@ class Summer(dict):
         #R[:] = Rmean
         #R[0] = R[1]
         #R[:] = R[1]
+        #R *= (-1)
+        #R[:]=1
 
         print("R:",R)
         print("Rpsf:",Rpsf)
@@ -785,7 +792,7 @@ class Summer(dict):
     def _write_means(self):
         fname=self._get_means_file()
         eu.ostools.makedirs_fromfile(fname)
-        print("writing:",fname)
+        #print("writing:",fname)
         fitsio.write(fname, self.means, clobber=True)
 
     def _get_fname_extra(self, last=None):

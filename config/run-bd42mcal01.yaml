@@ -5,7 +5,7 @@ fitter: "metacal-new"
 fit_model: "gauss"
 
 g_prior_during: True
-use_logpars: True
+use_logpars: False
 
 global_seed: 8491
 
@@ -21,16 +21,14 @@ priors:
         sigma: 1.0
 
     T:
-        type: "gmixnd"
-        run: "run-bd23zmax-lownoise01"
-        extra: "log_T"
-        cov_factor: 1.44
+        type: "lognormal"
+        mean: 5.55
+        sigma: 5.00
 
     counts:
-        type: "gmixnd"
-        run: "run-bd23zmax-lownoise01"
-        extra: "log_F"
-        cov_factor: 1.44
+        type: "lognormal"
+        mean: 153.0
+        sigma: 86.0
 
     g:
         type: "ba"
@@ -55,7 +53,6 @@ ngal: 200000000
 
 desired_hours: 2.0
 
-# doubled
-sec_per: 1.0
+sec_per: 0.5
 
 verbose: False

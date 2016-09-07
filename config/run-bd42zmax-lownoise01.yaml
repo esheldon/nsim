@@ -41,10 +41,12 @@ max_pars:
         m: 5
         h: 1.0e-3
 
-ngal: 2000000
+    replace_cov: False
+
+ngal: 200000
 
 desired_hours: 0.10
 
-sec_per: 0.32
+sec_per: 0.04
 
 verbose: False

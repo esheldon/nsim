@@ -1,5 +1,5 @@
 from __future__ import print_function
-import os
+import os, sys
 from os.path import join as path_join
 
 import yaml
@@ -23,7 +23,11 @@ def get_s2n_nrepeat(s2n, fac=0.4):
 
 
 def get_config_dir():
-    d=os.environ['NSIM_DIR']
+    if 'NSIM_DIR' in os.environ:
+        d=os.environ['NSIM_DIR']
+    else:
+        d=sys.exec_prefix
+
     return path_join(d,'share','nsim_config')
 
 def get_config_file(run):

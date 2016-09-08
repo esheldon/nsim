@@ -201,6 +201,7 @@ class Summer(dict):
 
     def _get_weights(self, data, w, type):
 
+        n=self.namer
         if self.args.weighted:
             if type=='noshear':
                 name=n('g_cov')

@@ -7,7 +7,7 @@ fit_model: "gauss"
 g_prior_during: True
 use_logpars: False
 
-global_seed: 8491
+global_seed: 17003
 
 metacal_pars:
     step: 0.01
@@ -48,6 +48,8 @@ max_pars:
     cov_pars:
         m: 5
         h: 1.0e-3
+
+    replace_cov: True
 
 ngal: 200000000
 

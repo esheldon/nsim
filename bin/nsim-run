@@ -101,6 +101,14 @@ def run_sim(sim_conf,
     if ftype=='max':
         fitclass=nsim.fitters.MaxFitter
 
+    elif ftype=='spergel':
+        run_conf['fit_model']='spergel'
+        fitclass=nsim.fitters.SpergelFitter
+
+    elif ftype=='spergel-exp':
+        run_conf['fit_model']='spergel-exp'
+        fitclass=nsim.fitters.SpergelExpFitter
+
     elif ftype=='max-resid':
         fitclass=nsim.fitters.MaxResid
         resid_file=output_file.replace('.fits','-resid-sum.fits')

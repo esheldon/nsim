@@ -188,7 +188,12 @@ class FitterBase(dict):
         self['use_logpars']=self.get('use_logpars',False)
 
         if 'fit_model' in self:
-            self['npars']=ngmix.gmix.get_model_npars(self['fit_model'])
+            if self['fit_model']=='spergel':
+                self['npars']=7
+            elif self['fit_model']=='spergel-exp':
+                self['npars']=6
+            else:
+                self['npars']=ngmix.gmix.get_model_npars(self['fit_model'])
 
         # this is "full" pars
         if 'psf_pars' in self:
@@ -500,7 +505,7 @@ class SimpleFitterBase(FitterBase):
             counts_prior=ngmix.priors.TwoSidedErf(*cp['pars'])
 
         elif cp['type']=="flat":
-            counts_prior=ngmix.priors.TwoSidedErf(*cp['pars'])
+            counts_prior=ngmix.priors.FlatPrior(*cp['pars'])
 
         else:
             raise ValueError("bad counts prior: '%s'" % cp['type'])
@@ -545,18 +550,23 @@ class SimpleFitterBase(FitterBase):
         get the dtype for the output struct
         """
         npars=self['npars']
-        psf_npars=self['psf_npars']
+
 
         dt=super(SimpleFitterBase,self)._get_dtype()
         dt += [
-            ('psf_pars','f8',psf_npars),
             ('pars','f8',npars),
             ('pars_cov','f8',(npars,npars)),
             ('g','f8',2),
             ('g_cov','f8',(2,2)),
             ('s2n_w','f8'),
-            ('psf_T','f8')
         ]
+
+        if 'psf_npars' in self:
+            psf_npars=self['psf_npars']
+            dt += [
+                ('psf_pars','f8',psf_npars),
+                ('psf_T','f8')
+            ]
 
         return dt
 
@@ -922,9 +932,11 @@ class SpergelFitter(SimpleFitterBase):
                 prior=self.prior,
             )
 
-            runner.go(ntry=mpars['ntry'])
+            runner.go(ntry=mconf['ntry'])
 
             fitter=runner.get_fitter() 
+
+            print("k dim:",fitter.mb_kobs[0][0].kr.array.shape)
 
         except GMixRangeError as err:
             raise TryAgainError("failed to fit galaxy: %s" % str(err))
@@ -937,8 +949,8 @@ class SpergelFitter(SimpleFitterBase):
         """
 
         if 'nfev' in res:
-            mess="    s2n_w: %.1f  ntry: %d  nfev: %d"
-            mess = mess % (res['s2n_w'],res['ntry'],res['nfev'])
+            mess="    s2n_r: %.1f  ntry: %d  nfev: %d"
+            mess = mess % (res['s2n_r'],res['ntry'],res['nfev'])
             print(mess)
 
         print_pars(res['pars'],      front='        pars: ')
@@ -947,23 +959,6 @@ class SpergelFitter(SimpleFitterBase):
         if res['pars_true'][0] is not None:
             print_pars(res['pars_true'], front='        true: ')
 
-    def _make_plots(self, fitter, key):
-        """
-        Write a plot file of the trials
-        """
-        import biggles
-
-        biggles.configure('default','fontsize_min',1.0)
-
-        width,height=1100,1100
-
-        #pdict=fitter.make_plots(do_residual=True, title=self.fit_model)
-
-        resid_pname=self['plot_base']+'-%06d-%s-gal-resid.png' % (self.igal,key)
-        print(resid_pname)
-        rplt=fitter.plot_residuals()
-        rplt[0][0].write_img(width,height,resid_pname)
-
 
     def _get_dtype(self):
         """
@@ -971,40 +966,41 @@ class SpergelFitter(SimpleFitterBase):
         """
         npars=self['npars']
 
-        dt=super(MaxFitter,self)._get_dtype()
+        dt=super(SpergelFitter,self)._get_dtype()
         dt += [
             ('s2n_r','f8'),
-            ('T_r','f8'),
-            ('psf_T_r','f8'),
             ('nfev','i4'),
             ('ntry','i4')
         ]
 
-        if self['use_round_T']:
-            dt += [('T_s2n_r','f8')]
-
         return dt
-
 
     def _copy_to_output(self, res, i):
 
-        super(MaxFitter,self)._copy_to_output(res, i)
+        # note super here
+        super(SimpleFitterBase,self)._copy_to_output(res, i)
 
         d=self.data
 
-        if 'nfev' in res:
+        d['pars'][i,:] = res['pars']
+        d['pars_cov'][i,:,:] = res['pars_cov']
+
+        if 'psf_pars' in res:
+            d['psf_pars'][i,:] = res['psf_pars']
+
+        d['g'][i,:] = res['g']
+        d['g_cov'][i,:,:] = res['g_cov']
+
+        if 'psf_T' in res:
+            d['psf_T'][i] = res['psf_T']
+
+        if 's2n_r' in res:
             d['s2n_r'][i] = res['s2n_r']
-            d['T_r'][i] = res['T_r']
-            d['psf_T_r'][i] = res['psf_T_r']
+
+        if 'nfev' in res:
             d['nfev'][i] = res['nfev']
             # set outside of fitter
             d['ntry'][i] = res['ntry']
-
-            if self['use_round_T']:
-                d['T_s2n_r'][i] = res['T_s2n_r']
-
-
-
 
 
 class MaxMetacalRoundAnalyticPSFFitter(MaxMetacalFitter):

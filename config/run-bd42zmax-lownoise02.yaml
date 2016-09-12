@@ -1,0 +1,51 @@
+# spergel profile
+run: "run-bd42zmax-lownoise02"
+sim: "sim-bd42z"
+
+fitter: "max"
+fit_model: "spergel"
+
+global_seed: 10179
+
+priors:
+    # for spergel, this is really a combined
+    # offset from the centers for the PSF and galaxy
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    r50:
+        type: "flat"
+        pars: [0.001, 200.0]
+
+    counts:
+        type: "flat"
+        pars: [0.001, 4000.0]
+
+    nu:
+        type: "flat"
+        pars: [-0.8, 3.5]
+
+    g:
+        type: "ba"
+        sigma: 0.5
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+    replace_cov: True
+
+ngal: 200000
+
+desired_hours: 0.10
+
+sec_per: 0.04
+
+verbose: False

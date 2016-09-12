@@ -22,8 +22,12 @@ priors:
         pars: [0.001, 4000.0]
 
     nu:
-        type: "flat"
-        pars: [-0.8, 3.5]
+        #type: "flat"
+        #pars: [-0.8, 3.5]
+
+        # real data might need to be broader
+        type: "two-sided-erf"
+        pars: [-0.8, 0.01, 1.0, 0.1]
 
     g:
         type: "ba"
@@ -43,6 +47,7 @@ ngal: 200000
 
 desired_hours: 0.10
 
-sec_per: 0.04
+# 0.12 for fitting
+sec_per: 0.13
 
 verbose: False

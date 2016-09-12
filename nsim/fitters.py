@@ -901,6 +901,37 @@ class MaxMetacalFitter(MaxFitter):
 
 class SpergelFitter(SimpleFitterBase):
 
+    def _get_guesser(self, obs):
+        r50guess_pixels = 2.0
+        scale=obs.jacobian.get_scale()
+        r50guess = r50guess_pixels*scale
+        flux_guess = obs.image.sum()
+
+        # equivalent to sersic n=1, exponential
+        nuguess=0.5
+
+        guesser=ngmix.guessers.R50NuFluxGuesser(
+            r50guess,
+            nuguess,
+            flux_guess,
+            prior=self.prior,
+        )
+
+        return guesser
+
+    def _get_runner(self, obs):
+
+        guesser=self._get_guesser(obs)
+
+        mconf=self['max_pars']
+        runner=ngmix.spergel.SpergelRunner(
+            obs,
+            mconf['lm_pars'],
+            guesser,
+            prior=self.prior,
+        )
+        return runner
+
     def _dofit(self, imdict):
         """
         Fit according to the requested method
@@ -908,29 +939,10 @@ class SpergelFitter(SimpleFitterBase):
 
         obs=imdict['obs']
 
-        r50guess_pixels = 2.0
-        scale=imdict['obs'].jacobian.get_scale()
-        r50guess = r50guess_pixels*scale
-        flux_guess = obs.image.sum()
-
-        # equivalent to sersic n=1, exponential
-        nuguess=0.5
-
         mconf=self['max_pars']
 
         try:
-            guesser=ngmix.guessers.R50NuFluxGuesser(
-                r50guess,
-                nuguess,
-                flux_guess,
-                prior=self.prior,
-            )
-            runner=ngmix.spergel.SpergelRunner(
-                obs,
-                mconf['lm_pars'],
-                guesser,
-                prior=self.prior,
-            )
+            runner=self._get_runner(obs)
 
             runner.go(ntry=mconf['ntry'])
 
@@ -1002,6 +1014,37 @@ class SpergelFitter(SimpleFitterBase):
             # set outside of fitter
             d['ntry'][i] = res['ntry']
 
+
+class SpergelExpFitter(SpergelFitter):
+    """
+    fit the spergel model with nu=0.5, an exponential disk
+    """
+    def _get_guesser(self, obs):
+        r50guess_pixels = 2.0
+        scale=obs.jacobian.get_scale()
+        r50guess = r50guess_pixels*scale
+        flux_guess = obs.image.sum()
+
+        guesser=ngmix.guessers.R50FluxGuesser(
+            r50guess,
+            flux_guess,
+            prior=self.prior,
+        )
+
+        return guesser
+
+    def _get_runner(self, obs):
+
+        guesser=self._get_guesser(obs)
+
+        mconf=self['max_pars']
+        runner=ngmix.spergel.SpergelExpRunner(
+            obs,
+            mconf['lm_pars'],
+            guesser,
+            prior=self.prior,
+        )
+        return runner
 
 class MaxMetacalRoundAnalyticPSFFitter(MaxMetacalFitter):
     """

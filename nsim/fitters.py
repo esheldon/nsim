@@ -374,43 +374,85 @@ class SimpleFitterBase(FitterBase):
 
         print("using input search prior")
 
-        Tp = ppars['T']
-        if Tp['type']=="truth":
-            print("using true T pdf for prior")
-            if self['use_logpars']:
+        T_prior = None
+        if 'T' in ppars:
+            Tp = ppars['T']
+            if Tp['type']=="truth":
+                print("using true T pdf for prior")
+                if self['use_logpars']:
 
-                print("    converting to log")
-                T=self.sim['obj_T_mean']
-                T_sigma = self.sim['obj_T_sigma_frac']*T
-                logT_mean, logT_sigma=ngmix.priors.lognorm_convert(T,T_sigma)
-                T_prior = ngmix.priors.Normal(logT_mean, logT_sigma)
+                    print("    converting to log")
+                    T=self.sim['obj_T_mean']
+                    T_sigma = self.sim['obj_T_sigma_frac']*T
+                    logT_mean, logT_sigma=ngmix.priors.lognorm_convert(T,T_sigma)
+                    T_prior = ngmix.priors.Normal(logT_mean, logT_sigma)
 
+                else:
+                    T_prior = self.sim.T_pdf
+
+            elif Tp['type']=="gmixnd":
+                T_prior = load_gmixnd(Tp)
+
+            elif Tp['type']=='normal':
+                Tpars=Tp['pars']
+                T_prior=ngmix.priors.Normal(Tpars[0], Tpars[1])
+
+            elif Tp['type']=='lognormal':
+
+                if self['use_logpars']:
+                    print("    converting T prior to log")
+                    logT_mean, logT_sigma=ngmix.priors.lognorm_convert(Tp['mean'],
+                                                                       Tp['sigma'])
+                    T_prior = ngmix.priors.Normal(logT_mean, logT_sigma)
+
+                else:
+                    T_prior = ngmix.priors.LogNormal(Tp['mean'],Tp['sigma'])
+
+            elif Tp['type']=="two-sided-erf":
+                T_prior_pars = Tp['pars']
+                T_prior=ngmix.priors.TwoSidedErf(*T_prior_pars)
             else:
-                T_prior = self.sim.T_pdf
+                raise ValueError("bad Tprior: '%s'" % Tp['type'])
 
-        elif Tp['type']=="gmixnd":
-            T_prior = load_gmixnd(Tp)
 
-        elif Tp['type']=='normal':
-            Tpars=Tp['pars']
-            T_prior=ngmix.priors.Normal(Tpars[0], Tpars[1])
+        r50_prior = None
+        if 'r50' in ppars:
+            assert self['use_logpars']==False
 
-        elif Tp['type']=='lognormal':
+            r50p = ppars['r50']
 
-            if self['use_logpars']:
-                print("    converting T prior to log")
-                logT_mean, logT_sigma=ngmix.priors.lognorm_convert(Tp['mean'],
-                                                                   Tp['sigma'])
-                T_prior = ngmix.priors.Normal(logT_mean, logT_sigma)
+            if r50p['type']=="gmixnd":
+                r50_prior = load_gmixnd(r50p)
 
+            elif r50p['type']=='lognormal':
+
+                r50_prior = ngmix.priors.LogNormal(r50p['mean'],r50p['sigma'])
+
+            elif r50p['type']=="two-sided-erf":
+                r50_prior=ngmix.priors.TwoSidedErf(*r50p['pars'])
+
+            elif r50p['type']=="flat":
+                r50_prior=ngmix.priors.FlatPrior(*r50p['pars'])
             else:
-                T_prior = ngmix.priors.LogNormal(Tp['mean'],Tp['sigma'])
+                raise ValueError("bad r50prior: '%s'" % r50p['type'])
 
-        elif Tp['type']=="two-sided-erf":
-            T_prior_pars = Tp['pars']
-            T_prior=ngmix.priors.TwoSidedErf(*T_prior_pars)
-        else:
-            raise ValueError("bad Tprior: '%s'" % Tp['type'])
+        nu_prior=None
+        if 'nu' in ppars:
+
+            nup = ppars['nu']
+
+            if nup['type']=="gmixnd":
+                nu_prior = load_gmixnd(nup)
+
+            elif nup['type']=="two-sided-erf":
+                nu_prior=ngmix.priors.TwoSidedErf(*nup['pars'])
+
+            elif nup['type']=="flat":
+                nu_prior=ngmix.priors.FlatPrior(*nup['pars'])
+            else:
+                raise ValueError("bad nuprior: '%s'" % nup['type'])
+
+
 
         cp=ppars['counts']
         if cp['type']=="truth":
@@ -455,8 +497,11 @@ class SimpleFitterBase(FitterBase):
             counts_prior=ngmix.priors.Normal(cpars[0], cpars[1])
 
         elif cp['type']=="two-sided-erf":
-            counts_prior_pars = cp['pars']
-            counts_prior=ngmix.priors.TwoSidedErf(*counts_prior_pars)
+            counts_prior=ngmix.priors.TwoSidedErf(*cp['pars'])
+
+        elif cp['type']=="flat":
+            counts_prior=ngmix.priors.TwoSidedErf(*cp['pars'])
+
         else:
             raise ValueError("bad counts prior: '%s'" % cp['type'])
 
@@ -472,10 +517,25 @@ class SimpleFitterBase(FitterBase):
         else:
             raise ValueError("bad cen prior: '%s'" % cp['type'])
 
-        prior = PriorSimpleSep(cen_prior,
-                               g_prior,
-                               T_prior,
-                               counts_prior)
+        if nu_prior is not None:
+            prior = ngmix.joint_prior.PriorSpergelSep(
+                cen_prior,
+                g_prior,
+                r50_prior,
+                nu_prior,
+                counts_prior,
+            )
+        elif r50_prior is not None:
+            prior = PriorSimpleSep(cen_prior,
+                                   g_prior,
+                                   r50_prior,
+                                   counts_prior)
+
+        else:
+            prior = PriorSimpleSep(cen_prior,
+                                   g_prior,
+                                   T_prior,
+                                   counts_prior)
         return prior
 
 
@@ -825,6 +885,126 @@ class MaxMetacalFitter(MaxFitter):
         res=resfull['noshear']
         print("    mcal s2n_r:",res['s2n_r'])
         print_pars(res['pars'],       front='    mcal pars: ')
+
+
+
+
+class SpergelFitter(SimpleFitterBase):
+
+    def _dofit(self, imdict):
+        """
+        Fit according to the requested method
+        """
+
+        obs=imdict['obs']
+
+        r50guess_pixels = 2.0
+        scale=imdict['obs'].jacobian.get_scale()
+        r50guess = r50guess_pixels*scale
+        flux_guess = obs.image.sum()
+
+        # equivalent to sersic n=1, exponential
+        nuguess=0.5
+
+        mconf=self['max_pars']
+
+        try:
+            guesser=ngmix.guessers.R50NuFluxGuesser(
+                r50guess,
+                nuguess,
+                flux_guess,
+                prior=self.prior,
+            )
+            runner=ngmix.spergel.SpergelRunner(
+                obs,
+                mconf['lm_pars'],
+                guesser,
+                prior=self.prior,
+            )
+
+            runner.go(ntry=mpars['ntry'])
+
+            fitter=runner.get_fitter() 
+
+        except GMixRangeError as err:
+            raise TryAgainError("failed to fit galaxy: %s" % str(err))
+
+        return fitter
+
+    def _print_res(self,res):
+        """
+        print some stats
+        """
+
+        if 'nfev' in res:
+            mess="    s2n_w: %.1f  ntry: %d  nfev: %d"
+            mess = mess % (res['s2n_w'],res['ntry'],res['nfev'])
+            print(mess)
+
+        print_pars(res['pars'],      front='        pars: ')
+        print_pars(res['pars_err'],  front='        perr: ')
+
+        if res['pars_true'][0] is not None:
+            print_pars(res['pars_true'], front='        true: ')
+
+    def _make_plots(self, fitter, key):
+        """
+        Write a plot file of the trials
+        """
+        import biggles
+
+        biggles.configure('default','fontsize_min',1.0)
+
+        width,height=1100,1100
+
+        #pdict=fitter.make_plots(do_residual=True, title=self.fit_model)
+
+        resid_pname=self['plot_base']+'-%06d-%s-gal-resid.png' % (self.igal,key)
+        print(resid_pname)
+        rplt=fitter.plot_residuals()
+        rplt[0][0].write_img(width,height,resid_pname)
+
+
+    def _get_dtype(self):
+        """
+        get the dtype for the output struct
+        """
+        npars=self['npars']
+
+        dt=super(MaxFitter,self)._get_dtype()
+        dt += [
+            ('s2n_r','f8'),
+            ('T_r','f8'),
+            ('psf_T_r','f8'),
+            ('nfev','i4'),
+            ('ntry','i4')
+        ]
+
+        if self['use_round_T']:
+            dt += [('T_s2n_r','f8')]
+
+        return dt
+
+
+    def _copy_to_output(self, res, i):
+
+        super(MaxFitter,self)._copy_to_output(res, i)
+
+        d=self.data
+
+        if 'nfev' in res:
+            d['s2n_r'][i] = res['s2n_r']
+            d['T_r'][i] = res['T_r']
+            d['psf_T_r'][i] = res['psf_T_r']
+            d['nfev'][i] = res['nfev']
+            # set outside of fitter
+            d['ntry'][i] = res['ntry']
+
+            if self['use_round_T']:
+                d['T_s2n_r'][i] = res['T_s2n_r']
+
+
+
 
 
 class MaxMetacalRoundAnalyticPSFFitter(MaxMetacalFitter):

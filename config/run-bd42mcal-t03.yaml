@@ -4,7 +4,7 @@ sim: "sim-bd42"
 
 fitter: "spergel-metacal-exp"
 
-global_seed: 30478
+global_seed: 27402
 
 metacal_pars:
     types: ['noshear','1p','1m','2p','2m']
@@ -29,8 +29,7 @@ priors:
 
     g:
         type: "ba"
-        #sigma: 0.5
-        sigma: 0.3
+        sigma: 0.5
 
 max_pars:
     ntry: 5
@@ -42,9 +41,9 @@ max_pars:
             m: 5
             h: 1.0e-3
 
-ngal: 200000
+ngal: 2000000
 
-desired_hours: 0.10
+desired_hours: 0.25
 
 sec_per: 0.65
 

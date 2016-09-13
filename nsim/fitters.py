@@ -932,6 +932,38 @@ class SpergelFitter(SimpleFitterBase):
         )
         return runner
 
+    def _fit_am(self, obs, ntry=4):
+        am=ngmix.admom.Admom(obs, maxiter=1000)
+        
+        scale=obs.jacobian.get_scale()
+        Tguess=4.0*scale
+
+        grange=0.02
+
+        for i in xrange(ntry):
+            pars=[
+                numpy.random.uniform(low=-0.1*scale, high=0.1*scale),
+                numpy.random.uniform(low=-0.1*scale, high=0.1*scale),
+                numpy.random.uniform(low=-grange,high=grange),
+                numpy.random.uniform(low=-grange,high=grange),
+                Tguess*(1.0 + numpy.random.uniform(low=-0.1,high=0.1)),
+                1.0,
+            ]
+            guess=ngmix.GMixModel(pars, "gauss")
+
+            am.go(guess)
+            res=am.get_result()
+            if res['flags']==0:
+                break
+
+        if res['flags'] != 0:
+            raise TryAgainError("failed to fit psf: %s" % pres['flagstr'])
+
+        pgm=am.get_gmix()
+        g1,g2,T=pgm.get_g1g2T()
+
+        return g1,g2,T
+
     def _dofit(self, imdict):
         """
         Fit according to the requested method
@@ -947,8 +979,13 @@ class SpergelFitter(SimpleFitterBase):
             runner.go(ntry=mconf['ntry'])
 
             fitter=runner.get_fitter() 
+            res=fitter.get_result()
+            if res['flags'] != 0:
+                raise TryAgainError("failed to fit galaxy")
 
-            print("k dim:",fitter.mb_kobs[0][0].kr.array.shape)
+            g1,g2,T=self._fit_am(obs.psf)
+            res['gpsf'] = numpy.array([g1,g2])
+            res['Tpsf'] = T
 
         except GMixRangeError as err:
             raise TryAgainError("failed to fit galaxy: %s" % str(err))
@@ -1059,6 +1096,11 @@ class SpergelMetacalFitter(SpergelFitter):
                 if tres['flags'] != 0:
                     raise TryAgainError("failed to fit a metacal obs")
 
+                if type=='noshear':
+                    g1,g2,T=self._fit_am(obs.psf)
+                    tres['gpsf'] = numpy.array([g1,g2])
+                    tres['Tpsf'] = T
+
                 res[type] = tres
 
 
@@ -1143,9 +1185,10 @@ class SpergelMetacalFitter(SpergelFitter):
 
         subres=res['noshear']
 
-        mess="    s2n_r: %.1f"
-        mess = mess % (subres['s2n_r'],)
-        print(mess)
+        s2n_rat = subres['s2n_r']/subres['s2n_w']
+        mess="    mcal s2n_w: %.1f s2n_r: %.1f rat: %g"
+        print(mess % (subres['s2n_w'],subres['s2n_r'],s2n_rat))
+
 
         print_pars(subres['pars'],      front='        pars: ')
         print_pars(subres['pars_err'],  front='        perr: ')

@@ -194,6 +194,9 @@ class Summer(dict):
             s2n_name=n('s2n_r')
         elif n('s2n') in data.dtype.names:
             s2n_name=n('s2n')
+        elif n('s2n_w') in data.dtype.names:
+            print("Using s2n_w for selections")
+            s2n_name=n('s2n_w')
         else:
             return None
 
@@ -267,6 +270,9 @@ class Summer(dict):
                     w=wfield[w]
                 else:
                     w=wfield
+
+                if w.size == 0:
+                    continue
 
                 ntot  += wfield.size
                 nkeep += w.size

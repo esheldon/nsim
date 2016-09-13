@@ -2814,6 +2814,73 @@ sim-bd42
               c1: -1.618e-05 +/- 2.448e-05
               c2: 2.531e-05 +/- 2.448e-05
 
+sim-bd43
+    - same as bd42 except
+    - 3.42 fwhm, 0.9'' seeing
+    - strong, constant psf shape 0.025 in g2
+
+    - run-bd43mcal-t01
+        - spergel exp fit, with Rpsf terms calculated
+        - 2M
+        - Rpsf surprisingly large
+
+          note this is not a 2 sigma detection of c2, maybe should
+          just do a larger run
+
+            s/n > 10
+
+            R: [ 0.62836401  0.62821247]
+            Rpsf: [ 0.07413952  0.07513672]
+
+            Rsel: [ 0.01146221  0.00913854]
+            Rpsf_sel: [ 0.00139091  0.00250585]
+            without correction
+              m1: 1.766e-02 +/- 7.577e-03 c1: 2.577e-04 +/- 2.668e-04  r1: 0.0498
+              m2: 1.546e-02 +/- 7.506e-03 c2: 5.689e-04 +/- 2.635e-04  r2: -0.0361
+              m:  1.656e-02 +/- 5.337e-03
+              c1: 2.558e-04 +/- 2.653e-04
+              c2: 5.675e-04 +/- 2.652e-04
+
+            with correction
+              m1: -5.725e-04 +/- 7.441e-03 c1: 2.531e-04 +/- 2.621e-04  r1: 0.0498
+              m2: 9.047e-04 +/- 7.398e-03 c2: 4.660e-04 +/- 2.597e-04  r2: -0.0361
+              m:  1.641e-04 +/- 5.250e-03
+              c1: 2.544e-04 +/- 2.610e-04
+              c2: 4.669e-04 +/- 2.609e-04
+
+    - run-bd43mcal-t02
+        - spergel exp, prepix psf
+        - 2M
+            s/n > 10
+
+            R: [ 0.62953179  0.63090628]
+            Rpsf: [ 0.0830621  0.082966 ]
+
+            Rsel: [ 0.00876333  0.01219772]
+            Rpsf_sel: [ 0.00209967  0.00189163]
+            without correction
+              m1: 1.529e-02 +/- 7.234e-03 c1: -3.723e-04 +/- 2.548e-04  r1: 0.0498
+              m2: 1.312e-02 +/- 7.315e-03 c2: -1.760e-04 +/- 2.568e-04  r2: -0.0361
+              m:  1.421e-02 +/- 5.148e-03
+              c1: -3.742e-04 +/- 2.559e-04
+              c2: -1.773e-04 +/- 2.558e-04
+
+            with correction
+              m1: 1.348e-03 +/- 7.135e-03 c1: -3.672e-04 +/- 2.513e-04  r1: 0.0498
+              m2: -6.094e-03 +/- 7.176e-03 c2: -2.435e-04 +/- 2.519e-04  r2: -0.0361
+              m:  -2.363e-03 +/- 5.064e-03
+              c1: -3.737e-04 +/- 2.517e-04
+              c2: -2.482e-04 +/- 2.517e-04
+
+    - run-bd43mcal-t03
+        - no Rpsf but using prepix psf
+        - 4M
+        - don't expect this to be different than t01, but is worht a check
+        - right, still bad
+
+    - run-bd43mcal01
+        - spergel exp, prepix psf
+        - 20M
 
 - sim-bd37
     - actual r50 drawn from cosmos sample used in great3

@@ -1014,12 +1014,152 @@ class SpergelFitter(SimpleFitterBase):
             # set outside of fitter
             d['ntry'][i] = res['ntry']
 
+class SpergelMetacalFitter(SpergelFitter):
+    def _setup(self, *args, **kw):
+        super(SpergelMetacalFitter,self)._setup(*args, **kw)
+
+        self['metacal_pars'] = self.get('metacal_pars',{})
+
+        mpars=self['metacal_pars']
+        self.metacal_types=mpars.get('types',ngmix.metacal.METACAL_TYPES)
+
+        for t in ngmix.metacal.METACAL_REQUIRED_TYPES:
+            if t not in self.metacal_types:
+                self.metacal_types.append(t)
+
+    def _dofit(self, imdict):
+        """
+        Fit according to the requested method
+        """
+
+        obs=imdict['obs']
+        mconf=self['max_pars']
+
+        res={}
+        try:
+
+            mc=ngmix.metacal.Metacal(obs)
+            mcpars=self['metacal_pars']
+
+            odict=ngmix.metacal.get_all_metacal(
+                obs,
+                **mcpars
+            )
+
+            for type in odict:
+                mobs=odict[type]
+
+                runner=self._get_runner(mobs)
+
+                runner.go(ntry=mconf['ntry'])
+
+                fitter=runner.get_fitter() 
+                
+                tres=fitter.get_result()
+                if tres['flags'] != 0:
+                    raise TryAgainError("failed to fit a metacal obs")
+
+                res[type] = tres
+
+
+        except GMixRangeError as err:
+            raise TryAgainError("failed to fit galaxy: %s" % str(err))
+
+        # just return the last fitter used
+        res['flags']=0
+        return res
+
+
+    def _get_dtype(self):
+        """
+        get the dtype for the output struct
+        """
+        npars=self['npars']
+
+        # super of super
+        dt=super(SpergelFitter,self)._get_dtype()
+
+        for type in self.metacal_types:
+
+            if type=='noshear':
+                back=''
+            else:
+                back='_%s' % type
+
+            dt += [
+                ('mcal_g%s' % back,'f8',2),
+                ('mcal_g_cov%s' % back,'f8',(2,2)),
+                ('mcal_pars%s' % back,'f8',npars),
+            ]
+
+            if type=='noshear':
+                dt += [
+                    ('mcal_pars_cov','f8',(npars,npars)),
+                    ('mcal_gpsf','f8',2),
+                    ('mcal_Tpsf','f8'),
+                ]
+
+            dt += [
+                ('mcal_s2n_r%s' % back,'f8'),
+            ]
+
+        return dt
+
+    def _copy_to_output(self, res, i):
+        """
+        copy parameters specific to this class
+        """
+
+        # note copying super of our super, since
+        # we didn't do a regular fit
+        super(SimpleFitterBase,self)._copy_to_output(res, i)
+
+        d=self.data
+
+        for type in self.metacal_types:
+
+            tres=res[type]
+            if type=='noshear':
+                back=''
+            else:
+                back='_%s' % type
+
+            d['mcal_pars%s' % back][i] = tres['pars']
+            d['mcal_g%s' % back][i] = tres['g']
+            d['mcal_g_cov%s' % back][i] = tres['g_cov']
+            d['mcal_s2n_r%s' % back][i] = tres['s2n_r']
+
+            if type=='noshear':
+                for p in ['pars_cov','gpsf','Tpsf']:
+
+                    if p in tres:
+                        name='mcal_%s' % p
+                        d[name][i] = tres[p]
+
+    def _print_res(self,res):
+        """
+        print some stats
+        """
+
+        subres=res['noshear']
+
+        mess="    s2n_r: %.1f"
+        mess = mess % (subres['s2n_r'],)
+        print(mess)
+
+        print_pars(subres['pars'],      front='        pars: ')
+        print_pars(subres['pars_err'],  front='        perr: ')
+
+        print_pars(res['pars_true'], front='        true: ')
+
+
 
 class SpergelExpFitter(SpergelFitter):
     """
     fit the spergel model with nu=0.5, an exponential disk
     """
     def _get_guesser(self, obs):
+
         r50guess_pixels = 2.0
         scale=obs.jacobian.get_scale()
         r50guess = r50guess_pixels*scale
@@ -1045,6 +1185,38 @@ class SpergelExpFitter(SpergelFitter):
             prior=self.prior,
         )
         return runner
+
+class SpergelMetacalExpFitter(SpergelMetacalFitter):
+    # argh, need to fix this, the code is duplicated
+    def _get_guesser(self, obs):
+
+        r50guess_pixels = 2.0
+        scale=obs.jacobian.get_scale()
+        r50guess = r50guess_pixels*scale
+        flux_guess = obs.image.sum()
+
+        guesser=ngmix.guessers.R50FluxGuesser(
+            r50guess,
+            flux_guess,
+            prior=self.prior,
+        )
+
+        return guesser
+
+    def _get_runner(self, obs):
+
+        guesser=self._get_guesser(obs)
+
+        mconf=self['max_pars']
+        runner=ngmix.spergel.SpergelExpRunner(
+            obs,
+            mconf['lm_pars'],
+            guesser,
+            prior=self.prior,
+        )
+        return runner
+
+
 
 class MaxMetacalRoundAnalyticPSFFitter(MaxMetacalFitter):
     """

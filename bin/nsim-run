@@ -148,6 +148,13 @@ def run_sim(sim_conf,
     elif ftype=='metacal-round-analytic-psf':
         fitclass=nsim.fitters.MaxMetacalRoundAnalyticPSFFitter
 
+
+    elif ftype=='nuller-gauss2d':
+        fitclass=nsim.fitters.NullGauss2Fitter
+
+    elif ftype=='deconv':
+        fitclass=nsim.fitters.Deconvolver
+
     elif ftype=='metacal-deconv':
         fitclass=nsim.fitters.DeconvMetacalFitter
 
@@ -225,9 +232,6 @@ def run_sim(sim_conf,
 
     elif ftype=='metacal-em':
         fitclass=nsim.fitters.EMMetacalFitter
-
-    elif ftype=='deconv':
-        fitclass=nsim.fitters.Deconvolver
 
 
     elif ftype=='shear-null-postpsf':

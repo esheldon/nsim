@@ -9,6 +9,7 @@ from pprint import pprint
 import numpy
 from numpy import array, zeros, ones, log, log10, exp, sqrt, diag
 from numpy import where, isfinite
+from numpy.random import uniform as urand
 
 import ngmix
 from ngmix.fitting import print_pars
@@ -21,6 +22,8 @@ from ngmix.gmix import GMixModel
 from ngmix.gexceptions import BootPSFFailure, BootGalFailure
 
 from .sim import NGMixSim
+
+from . import util
 from .util import write_fits, TryAgainError, load_gmixnd
 from . import files
 
@@ -201,7 +204,7 @@ class FitterBase(dict):
                 6*ngmix.gmix._gmix_ngauss_dict[self['psf_pars']['model']]
 
         if isinstance(self.sim['obj_model'], dict):
-            npars=2
+            npars=4
         else:
             npars = ngmix.gmix.get_model_npars(self.sim['obj_model'])
 
@@ -4594,6 +4597,538 @@ class MetacalMetaMomFitter(MaxMetacalFitter):
         )
         return boot
 
+
+
+class NullerBase(object):
+    def __init__(self, obs, **kw):
+        self.obs=obs
+
+        self.kw=kw
+
+        self.npars=4
+
+        self._do_deconvolve()
+
+    def get_result(self):
+        """
+        get the result dictionary
+        """
+        if not hasattr(self,'_result'):
+            raise RuntimeError("run go() first")
+        
+        return self._result
+
+    def go(self, guess):
+        """
+        run the root finder and set the result
+        """
+        import scipy.optimize
+
+        assert len(guess)==self.npars
+
+        res=scipy.optimize.root(
+            self.get_moments,
+            guess,
+            options=self.kw,
+            method='lm',
+        )
+
+        flags=0
+        if not res.success:
+            flags=1
+            pars=zeros(self.npars)-9999
+            print(res)
+        else:
+            pars=res.x
+
+        s2n_w=-9999.0
+        if flags==0:
+            print("getting more for pars:",pars)
+            fres=self.get_moments(pars, more=True)
+            c5 = fres['pars_cov'][5,5]
+            if c5 > 0:
+                s2n_w = fres['pars_real'][5]/numpy.sqrt(c5)
+            else:
+                flags=1
+                print("bad covariance:",c5)
+                print("nfev:",res.nfev)
+                ngmix.print_pars(pars,front="  pars: ")
+                ngmix.print_pars(fres['pars_real'],front="  momreal: ")
+                ngmix.print_pars(fres['pars_imag'],front="  momimag: ")
+                print(fres)
+
+        self._result={
+            'flags':flags,
+            'pars':pars,
+            's2n_w':s2n_w,
+            'nfev':res.nfev,
+        }
+
+
+    def _do_deconvolve(self):
+        import deconv
+
+        obs=self.obs
+        gsim=galsim.Image(
+            obs.image,
+            wcs=obs.jacobian.get_galsim_wcs(),
+        )
+        psf_gsim=galsim.Image(
+            obs.psf.image,
+            wcs=obs.psf.jacobian.get_galsim_wcs(),
+        )
+
+        deconvolver=deconv.DeConvolver(
+            gsim,
+            psf_gsim,
+        )
+
+        self.kr, self.ki = deconvolver.get_kimage()
+        self.psf_kr, self.psf_ki = deconvolver.get_psf_kimage()
+
+
+        self.deconvolver=deconvolver
+        self.dk = deconvolver.dk
+
+        kcen = (numpy.array(self.kr.array.shape)-1.0)/2.0
+
+        #self.kjacobian = ngmix.UnitJacobian(
+        #    row=kcen[0],
+        #    col=kcen[1],
+        #)
+        self.kjacobian = ngmix.DiagonalJacobian(
+            row=kcen[0],
+            col=kcen[1],
+            scale=self.dk,
+        )
+
+        medwt = 0.5*numpy.median(obs.weight)
+        var = self.kr.array.size/medwt
+        self.var = zeros(self.kr.array.shape) + var
+        if False:
+            import images
+            images.multiview(self.kr.array,title='real')
+            images.multiview(self.ki.array,title='imag')
+            stop
+
+
+
+class NullerKSigma(NullerBase):
+    def __init__(self, obs, **kw):
+        raise RuntimeError("deal with jacob")
+        super(NullerKSigma,self).__init__(obs, **kw)
+        self._set_kmax()
+
+    def get_moments(self, pars, more=False):
+        """
+        pars are [cen1, cen2, shear1, shear2]
+        """
+
+        #ngmix.print_pars(pars,      front="pars:  ",fmt='%g')
+
+        obs=self.obs
+
+        pars_real=zeros(6)
+        pars_imag=zeros(6)
+        pars_cov=zeros( (6,6) )
+
+        jac=self.kjacobian
+        scale=jac.get_scale()
+
+        rowshift=pars[0]*scale
+        colshift=pars[1]*scale
+        s1=pars[2]
+        s2=pars[3]
+
+        moms=zeros(self.npars)
+        
+        try:
+            shear=ngmix.Shape(s1, s2)
+
+            # shrink factor
+            s=util.get_shrink_factor(shear)
+            kmax = self.kmax/s
+
+            j=util.get_sheared_jacobian(
+                self.kjacobian,
+                shear,
+            )
+        
+            ngmix.gmix._gmix.get_ksigma_weighted_moments(
+                self.kr.array,
+                self.ki.array,
+                self.var,
+                j._data,
+                pars_real,
+                pars_imag,
+                pars_cov,
+                kmax,
+                rowshift,
+                colshift,
+            )
+
+            for i in xrange(self.npars):
+                moms[i] = abs(complex(pars_real[i],pars_imag[i]))
+
+            if more:
+                s2n = 1.0
+                retval={
+                    'moms':moms,
+                    'pars_real':pars_real,
+                    'pars_imag':pars_imag,
+                    'pars_cov':pars_cov,
+                    's2n_w':s2n,
+                }
+            else:
+                retval=moms
+
+        except GMixRangeError as err:
+            moms[:] = 9.9e9
+            retval=moms
+
+        return retval
+
+    def _set_kmax(self):
+        self.kmax = util.find_kmax(
+            self.psf_kr,
+            self.psf_ki,
+            self['deconv_pars']['min_rel_val'],
+        )
+
+class NullerGauss2(NullerBase):
+    def __init__(self, obs, sigma_psf, sigma_gal, **kw):
+
+        super(NullerGauss2,self).__init__(obs, **kw)
+        self.sigma_gal=sigma_gal
+        self.sigma_psf=sigma_psf
+
+        self.sigma_gal2 = sigma_gal**2
+        self.sigma_psf2 = sigma_psf**2
+
+        if False:
+            self._plot_images()
+
+    def get_moments(self, pars, more=False):
+        """
+        pars are [cen1, cen2, shear1, shear2]
+        """
+
+        obs=self.obs
+
+        pars_real=zeros(6)
+        pars_imag=zeros(6)
+        pars_cov=zeros( (6,6) )
+
+        jac=self.kjacobian
+        scale=jac.get_scale()
+
+        rowshift=pars[0]*scale
+        colshift=pars[1]*scale
+        s1=pars[2]
+        s2=pars[3]
+
+        moms=zeros(self.npars)
+        
+        try:
+            shear=ngmix.Shape(s1, s2)
+
+            j=util.get_sheared_jacobian(
+                self.kjacobian,
+                shear,
+            )
+
+            # shrink factor
+            s=util.get_shrink_factor(shear)
+
+            if True:
+                ksigma_psf = 1.0/(2*self.sigma_psf)
+                ksigma_psf /= s
+                ksigma_gal = 1.0/self.sigma_gal
+
+                #sigma_sq = 3.5**2
+                #sigma_psf2 = 0.5*sigma_sq*s
+                #sigma_gal2 = 0.5*sigma_sq
+
+                #ksigma_psf = sqrt(1.0/sigma_psf2)
+                #ksigma_gal = sqrt(1.0/sigma_gal2)
+
+                #ksigma_sq = 1.0/(self.sigma_gal2 + self.sigma_psf2*s**2)
+                #ksigma_sq = (1.0/(s*3.5)**2)
+
+                ngmix.gmix._gmix.get_kweighted_moments_2gauss(
+                    self.kr.array,
+                    self.ki.array,
+                    self.var,
+                    j._data,
+                    pars_real,
+                    pars_imag,
+                    pars_cov,
+                    ksigma_psf,
+                    ksigma_gal,
+                    rowshift,
+                    colshift,
+                )
+
+            else:
+
+                ksigma_sq = 1.0/(self.sigma_gal2 + 4.0*self.sigma_psf2*s**2)
+                #ksigma_sq = 1.0/(self.sigma_gal2 + self.sigma_psf2*s**2)
+                #ksigma_sq = (1.0/(s*3.5)**2)
+            
+                #ngmix.gmix._gmix.get_kweighted_moments_2gauss(
+                ngmix.gmix._gmix.get_kweighted_moments_gauss(
+                    self.kr.array,
+                    self.ki.array,
+                    self.var,
+                    j._data,
+                    pars_real,
+                    pars_imag,
+                    pars_cov,
+                    ksigma_sq,
+                    rowshift,
+                    colshift,
+                )
+
+            """
+            ngmix.print_pars(pars_real, front="    real: ",fmt='%g')
+            ngmix.print_pars(pars_imag, front="    imag: ",fmt='%g')
+            print("e1:",pars_real[2]/pars_real[4])
+            print("e2:",pars_real[3]/pars_real[4])
+            """
+
+            for i in xrange(self.npars):
+                moms[i] = abs(complex(pars_real[i],pars_imag[i]))
+
+            if more:
+                s2n = 1.0
+                retval={
+                    'moms':moms,
+                    'pars_real':pars_real,
+                    'pars_imag':pars_imag,
+                    'pars_cov':pars_cov,
+                    's2n_w':s2n,
+                }
+            else:
+                retval=moms
+
+        except GMixRangeError as err:
+            moms[:] = 9.9e9
+            retval=moms
+
+        return retval
+
+
+    def _plot_images(self):
+        import images
+
+        #ksigma_psf = 1.0/self.sigma_psf
+        ksigma_psf = 1.0/(2*self.sigma_psf)
+        ksigma_gal = 1.0/self.sigma_gal
+
+        #gpsf=ngmix.GMixModel([0.0, 0.0, 0.0, 0.0, 2*ksigma_psf**2, 1.0],"gauss")
+        gpsf=ngmix.GMixModel([0.0, 0.0, 0.0, 0.0, 2*ksigma_psf**2, 1.0],"gauss")
+        ggal=ngmix.GMixModel([0.0, 0.0, 0.0, 0.0, 2*ksigma_gal**2, 1.0],"gauss")
+
+        impsf=gpsf.make_image(self.kr.array.shape, jacobian=self.kjacobian)
+        imgal=ggal.make_image(self.kr.array.shape, jacobian=self.kjacobian)
+
+        wt=impsf*imgal
+
+        ksigma_sq = 1.0/(self.sigma_gal2 + 4*self.sigma_psf2)
+        print("implied total sigma:",sqrt(1.0/ksigma_sq))
+        gwt=ngmix.GMixModel([0.0, 0.0, 0.0, 0.0, 2*ksigma_sq, 1.0],"gauss")
+        #gwt=ngmix.GMixModel([0.0, 0.0, 0.0, 0.0, 2*(1.0/3.5)**2, 1.0],"gauss")
+
+        wt2=gwt.make_image(self.kr.array.shape, jacobian=self.kjacobian)
+
+        #images.compare_images(
+        #    wt, wt2, label1='wt1',label2='wt2',
+        #    file='/astro/u/esheldon/www/tmp/plots/tmp.png',
+        #)
+
+
+        #prod = wt*self.kr.array
+        prod = wt2*self.kr.array
+
+        images.multiview(
+            prod,
+            title='kim * weight',
+            file='/astro/u/esheldon/www/tmp/plots/tmp.png',
+        )
+
+        if 'q'==raw_input('it a key: '):
+            stop
+
+class NullGauss2Fitter(SimpleFitterBase):
+
+    def _setup(self, *args, **kw):
+        super(NullGauss2Fitter,self)._setup(*args, **kw)
+        self['npars']=4
+
+    def _dofit(self, imdict):
+        """
+        Fit according to the requested method
+        """
+
+        obs=imdict['obs']
+
+        sigma_psf, sigma_gal, pars = self._fit_models(obs)
+
+        nuller=NullerGauss2(obs, sigma_psf, sigma_gal, maxiter=2000)
+
+        for i in xrange(4):
+
+            guess=self._get_guess(pars)
+            print_pars(guess, front="        guess: ")
+            nuller.go(guess)
+
+            res=nuller.get_result()
+            if res['flags']==0:
+                break
+
+        if res['flags'] != 0:
+            raise TryAgainError("failed to find null")
+
+        res['ntry'] = i+1
+
+        return res
+
+    def _get_guess(self, guess0):
+
+        guess=guess0.copy()
+
+        sh=self.get_shape_guess(guess[2], guess[3])
+
+        guess[0:0+2] += numpy.random.uniform(low=-0.1,high=0.1,size=2)
+        guess[2:2+2] = (sh.g1, sh.g2)
+
+        return guess
+
+    def get_shape_guess(self, g1, g2, width=0.01, nmaxrand=10):
+        """
+        Get guess, making sure in range
+        """
+
+        shape=ngmix.Shape(g1, g2)
+        shape_guess=None
+
+        for i in xrange(nmaxrand):
+            try:
+                g1_offset = urand(low=-width,high=width)
+                g2_offset = urand(low=-width,high=width)
+                shape_new=shape.get_sheared(g1_offset, g2_offset)
+
+                if shape_new.g < 0.98:
+                    shape_guess=shape_new
+                    break
+
+            except GMixRangeError:
+                pass
+
+        if shape_guess is None:
+            g1g=urand(low=-0.1, high=0.1)
+            g2g=urand(low=-0.1, high=0.1)
+            shape_guess=ngmix.Shape(g1g,g2g)
+
+        return shape_guess
+
+
+
+    def _fit_models(self, obs):
+        boot=ngmix.Bootstrapper(obs, use_logpars=self['use_logpars'])
+
+        ppars=self['psf_pars']
+        mconf=self['max_pars']
+
+        Tguess=self.sim.get('psf_T',4.0)
+        ppars=self['psf_pars']
+
+        try:
+            boot.fit_psfs(ppars['model'], Tguess, ntry=ppars['ntry'])
+        except BootPSFFailure:
+            raise TryAgainError("failed to fit psf")
+
+        try:
+            boot.fit_max(self['fit_model'],
+                         mconf['pars'],
+                         prior=self.prior,
+                         ntry=mconf['ntry'])
+
+            fitter=boot.get_max_fitter() 
+
+            gpsf_round=boot.mb_obs_list[0][0].psf.gmix.make_round(preserve_size=True)
+            g=fitter.get_gmix()
+            ground=g.make_round(preserve_size=True)
+
+            g1psf,g2psf,Tpsf=gpsf_round.get_g1g2T()
+            
+            cen=g.get_cen()
+            g1,g2,T=g.get_g1g2T()
+            g1r,g2r,Tround=ground.get_g1g2T()
+
+            pars=numpy.array( [cen[0], cen[1], g1, g2] )
+
+            sigma_psf=numpy.sqrt(Tpsf/2)
+            sigma_gal=numpy.sqrt(T/2)
+
+
+        except (BootGalFailure,GMixRangeError):
+            raise TryAgainError("failed to fit galaxy")
+
+
+        return sigma_psf, sigma_gal, pars
+
+
+    def _print_res(self,res):
+        """
+        print some stats
+        """
+
+        if 'nfev' in res:
+            mess="    s2n_w: %.1f  ntry: %d  nfev: %d"
+            mess = mess % (res['s2n_w'],res['ntry'],res['nfev'])
+            print(mess)
+
+        print_pars(res['pars'],      front='        pars: ')
+
+        if res['pars_true'][0] is not None:
+            print_pars(res['pars_true'], front='        true: ')
+
+
+            print(
+                "gdiff:",
+                res['pars'][2]-res['pars_true'][2],
+                res['pars'][3]-res['pars_true'][3],
+            )
+
+    def _get_dtype(self):
+        """
+        get the dtype for the output struct
+        """
+        npars=self['npars']
+
+        dt=super(NullGauss2Fitter,self)._get_dtype()
+        dt += [
+            ('nfev','i4'),
+            ('ntry','i4')
+        ]
+
+        return dt
+
+
+    def _copy_to_output(self, res, i):
+
+        super(SimpleFitterBase,self)._copy_to_output(res, i)
+
+        d=self.data
+
+        d['pars'][i,:] = res['pars']
+
+        d['g'][i,:] = res['pars'][2:2+2]
+        d['s2n_w'][i] = res['s2n_w']
+
+        d['nfev'][i] = res['nfev']
+        d['ntry'][i] = res['ntry']
 
 def make_sheared_pars(pars, shear_g1, shear_g2):
     from ngmix import Shape

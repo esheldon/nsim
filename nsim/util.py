@@ -4,6 +4,7 @@ import numpy
 from numpy import exp, log, zeros, ones, sqrt, newaxis
 import ngmix
 from esutil.random import srandu
+from ngmix.gexceptions import GMixRangeError
 
 from . import files
 
@@ -588,3 +589,80 @@ def load_gmixnd(spec, rng=None):
         pdf.covars *= spec['cov_factor']
 
     return pdf
+
+
+def get_sheared_jacobian(jacin, shear):
+
+    jac=jacin.copy()
+
+    fac = 1.0/sqrt(1.-shear.g1**2 - shear.g2**2)
+
+    S = numpy.array([[ 1.+shear.g1,      shear.g2  ],
+                     [    shear.g2  , 1.-shear.g1  ]])
+    S *= fac
+
+    dat=jac._data
+    jmat = numpy.array([[dat['dudrow'][0], dat['dudcol']],
+                        [dat['dvdrow'][0], dat['dvdcol']]])
+
+    new_jmat = numpy.dot(S, jmat)
+
+
+    dat['dudrow'][0] = new_jmat[0,0]
+    dat['dudcol'][0] = new_jmat[0,1]
+    dat['dvdrow'][0] = new_jmat[1,0]
+    dat['dvdcol'][0] = new_jmat[1,1]
+
+    return jac
+
+def find_kmax(kr, ki, min_rel_val):
+    """
+    get the maximum radius in k space for which the value is larger
+    than the indicated value relative to the maximum
+
+    """
+    import deconv
+
+    ps = kr.array**2 + ki.array**2
+    amp = numpy.sqrt(ps)
+
+    dims=amp.shape
+    if (dims[0] % 2) == 0:
+        rowshift=0.5
+    else:
+        rowshift=0.0
+
+    if (dims[1] % 2) == 0:
+        colshift=0.5
+    else:
+        colshift=0.0
+
+    cen=(numpy.array(dims)-1.0)/2.0 + [rowshift,colshift]
+
+    rows,cols=deconv.util.make_rows_cols(
+        dims,
+        cen=cen,
+    )
+
+    r2 = rows**2 + cols**2
+
+    maxval = amp.max()
+    minval = maxval*min_rel_val**2
+
+    w=numpy.where(amp > minval)
+    if w[0].size == 0:
+        raise DeconvRangeError("no good psf values in k space")
+
+    kmax = numpy.sqrt(r2[w].max())
+    return kmax
+
+def get_shrink_factor(shear):
+    e1,e2=ngmix.shape.g1g2_to_e1e2(shear.g1,shear.g2)
+    e=sqrt(e1**2 + e2**2)
+
+    if e >= 0.99999:
+        raise GMixRangeError("e out of bounds")
+    s = ( (1+e)/(1-e) )**0.25
+    return s
+
+

@@ -87,7 +87,12 @@ class SimGS(dict):
 
         gal_obs.set_psf(psf_obs)
 
-        save_pars=[gal_pars['size'], gal_pars['flux']]
+        save_pars=[
+            gal_pars['size'],
+            gal_pars['flux'],
+            gal_pars['g'][0],
+            gal_pars['g'][1],
+        ]
 
         if psf_pars['fwhm'] is None:
             psf_save_pars=psf_pars['r50']

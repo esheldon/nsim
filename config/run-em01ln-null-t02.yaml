@@ -1,0 +1,66 @@
+# low noise
+run: "run-em01ln-null-t02"
+sim: "sim-em01ln"
+
+fitter: "nuller-gauss2d"
+
+# this is for the initial fits
+fit_model: "gauss"
+
+use_logpars: True
+
+global_seed: 249
+
+# not used for gauss2d
+#deconv_pars:
+#    min_rel_val: 0.5
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    T:
+        type: "gmixnd"
+        # same underlying sim
+        run: "run-gg12zmax-lownoise01"
+        extra: "log_T"
+        cov_factor: 1.44
+
+    counts:
+        type: "gmixnd"
+        run: "run-gg12zmax-lownoise01"
+        extra: "log_F"
+        cov_factor: 1.44
+
+    g:
+        type: "flat"
+        #type: "ba"
+        #sigma: 0.3
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+
+    replace_cov: False
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+
+ngal: 2000000
+
+desired_hours: 0.20
+
+sec_per: 0.05
+
+jobs_per_condor_sub: 5000
+
+verbose: False

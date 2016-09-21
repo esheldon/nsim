@@ -1,0 +1,52 @@
+# low noise, more variation in parameters
+name: "sim-em02ln"
+
+simulator: "galsim"
+
+do_ring: False
+
+noise: 0.001
+
+stamp_size: [48,48]
+
+psf:
+
+    s2n: 10000.0
+
+    model: "moffat"
+    beta: 3.5
+
+    # 0.9'' fwhm in pixels is 3.422
+    # which for a beta=3.5 moffat is r50=2.07
+    r50: 2.07
+    shape: [0.0, 0.025]
+
+obj_model:
+
+    model: "exp"
+
+    flux:
+        type: "lognormal"
+        mean: 180.0
+        sigma: 100.0
+
+    r50:
+        type: "lognormal"
+        mean: 2.5
+        sigma: 1.0
+
+    g:
+        type: "ba"
+        sigma: 0.02
+
+    cen_shift:
+        radius: 0.5
+
+shear:
+    type: 'const-dist'
+
+
+    seed: 29583
+    nshear: 300
+    min_shear: 0.01
+    max_shear: 0.08

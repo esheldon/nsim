@@ -1,0 +1,52 @@
+# low noise, small variation in size
+name: "sim-em01ln"
+
+simulator: "galsim"
+
+do_ring: False
+
+noise: 0.001
+
+stamp_size: [48,48]
+
+psf:
+
+    s2n: 10000.0
+
+    model: "moffat"
+    beta: 3.5
+
+    r50: 1.60
+    shape: [0.0, 0.025]
+
+obj_model:
+
+    model: "exp"
+
+    flux:
+        type: "gmixnd"
+        file: "great-des-fdist-shift.fits"
+        is_in_log: True
+
+    g:
+        type: "ba"
+        sigma: 0.02
+
+    r50:
+        type: "lognormal"
+        mean: 2.0
+        sigma: 0.1
+
+    cen_shift:
+        radius: 0.5
+
+shear:
+#    type: "const"
+#    shears: [0.08, 0.0]
+    type: 'const-dist'
+
+
+    seed: 21724
+    nshear: 300
+    min_shear: 0.01
+    max_shear: 0.08

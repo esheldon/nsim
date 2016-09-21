@@ -398,6 +398,9 @@ class SimpleFitterBase(FitterBase):
                 else:
                     T_prior = self.sim.T_pdf
 
+            elif Tp['type']=="flat":
+                T_prior=ngmix.priors.FlatPrior(*Tp['pars'])
+
             elif Tp['type']=="gmixnd":
                 T_prior = load_gmixnd(Tp)
 
@@ -4701,7 +4704,8 @@ class NullerBase(object):
             scale=self.dk,
         )
 
-        medwt = 0.5*numpy.median(obs.weight)
+        #medwt = 0.5*numpy.median(obs.weight)
+        medwt = numpy.median(obs.weight)
         var = self.kr.array.size/medwt
         self.var = zeros(self.kr.array.shape) + var
         if False:

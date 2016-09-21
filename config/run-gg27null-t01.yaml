@@ -61,4 +61,6 @@ desired_hours: 0.25
 
 sec_per: 0.1
 
+jobs_per_condor_sub: 5000
+
 verbose: False

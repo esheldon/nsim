@@ -189,8 +189,7 @@ Queue
 _wq_template="""
 command: |
 
-    #source $HOME/.bashrc
-    . $HOME/shell_scripts/nsim2-prepare.sh
+    source activate nsim-work2
 
     command=%(master_script)s
     ngal=%(ngal_per)s

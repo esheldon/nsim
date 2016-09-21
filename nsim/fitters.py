@@ -4643,7 +4643,6 @@ class NullerBase(object):
 
         s2n_w=-9999.0
         if flags==0:
-            print("getting more for pars:",pars)
             fres=self.get_moments(pars, more=True)
             c5 = fres['pars_cov'][5,5]
             if c5 > 0:
@@ -5094,12 +5093,12 @@ class NullGauss2Fitter(SimpleFitterBase):
         if res['pars_true'][0] is not None:
             print_pars(res['pars_true'], front='        true: ')
 
-
-            print(
-                "gdiff:",
-                res['pars'][2]-res['pars_true'][2],
-                res['pars'][3]-res['pars_true'][3],
-            )
+            if True:
+                print(
+                    "        gdiff:",
+                    res['pars'][2]-res['pars_true'][2],
+                    res['pars'][3]-res['pars_true'][3],
+                )
 
     def _get_dtype(self):
         """

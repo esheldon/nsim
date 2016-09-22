@@ -46,6 +46,6 @@ desired_hours: 0.25
 
 sec_per: 0.5
 
-# note fitting a gaussian is 0.02 for fitting
+jobs_per_condor_sub: 5000
 
 verbose: False

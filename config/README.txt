@@ -8,7 +8,19 @@ errors are 2 sigma
   c1: -6.864e-06 +/- 2.175e-05
   c2: -8.099e-07 +/- 2.175e-05
 
-run-bd44ln-null-t01
+bd44ln
+-------------------------
+low noise bd, larger psf and gals
+
+- run-bd44ln-null-t01
+    errors are 2 sigma
+      m1: 3.185e-02 +/- 3.432e-03 c1: 7.409e-05 +/- 1.174e-04  r1: 0.0305
+      m2: 4.431e-03 +/- 3.459e-03 c2: 4.130e-04 +/- 1.205e-04  r2: 0.0228
+    errors are 2 sigma
+      m:  1.788e-02 +/- 2.688e-03
+      c1: 5.952e-05 +/- 1.312e-04
+      c2: 4.237e-04 +/- 1.312e-04
+
 
 
 

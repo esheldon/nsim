@@ -1167,9 +1167,12 @@ class SpergelMetacalFitter(SpergelFitter):
                 ]
 
             dt += [
-                ('mcal_r50%s' % back,'f8'),
                 ('mcal_s2n_r%s' % back,'f8'),
                 ('mcal_s2n_w%s' % back,'f8'),
+
+                ('mcal_r50%s' % back,'f8'),
+                ('mcal_r50_s2n%s' % back,'f8'),
+                ('mcal_flux%s' % back,'f8'),
                 ('mcal_flux_s2n%s' % back,'f8'),
             ]
 
@@ -1198,12 +1201,17 @@ class SpergelMetacalFitter(SpergelFitter):
             d['mcal_g%s' % back][i] = tres['g']
             d['mcal_g_cov%s' % back][i] = tres['g_cov']
 
-            d['mcal_r50%s' % back][i] = tres['pars'][4]
-
             d['mcal_s2n_w%s' % back][i] = tres['s2n_w']
             d['mcal_s2n_r%s' % back][i] = tres['s2n_r']
 
-            flux_s2n = tres['pars'][5]/sqrt(tres['pars_cov'][5,5])
+            r50 = tres['pars'][4]
+            r50_s2n = r50/sqrt(tres['pars_cov'][4,4])
+            d['mcal_r50%s' % back][i] = r50
+            d['mcal_r50_s2n%s' % back][i] = r50_s2n
+
+            flux     = tres['pars'][5]
+            flux_s2n = flux/sqrt(tres['pars_cov'][5,5])
+            d['mcal_flux%s' % back][i] = flux
             d['mcal_flux_s2n%s' % back][i] = flux_s2n
 
             if type=='noshear':

@@ -201,6 +201,7 @@ class Summer(dict):
             g_cov=data[name][w]
 
             wts=get_noise_weights(g_cov, self.args)
+
         else:
             wts=numpy.ones(w.size)
 
@@ -247,6 +248,8 @@ class Summer(dict):
 
         ntot=0
         nkeep=0
+        wtmax=0.0
+        wttot=0.0
         for i in xrange(nshear):
             if rev[i] != rev[i+1]:
                 wfield=rev[ rev[i]:rev[i+1] ]
@@ -273,6 +276,11 @@ class Summer(dict):
 
                 g = self._get_g(data, w, 'noshear')
                 wts, wa = self._get_weights(data, w, 'noshear')
+
+                wttot += wts.sum()
+                twtmax = wts.max()
+                if twtmax > wtmax:
+                    wtmax = twtmax
 
                 sums['g'][i]    += (g*wa).sum(axis=0)
                 gpsf=self._get_gpsf(data, w)
@@ -321,6 +329,10 @@ class Summer(dict):
                         else:
                             #print("    skipping:",ts2n_name)
                             pass
+
+        if self.args.weighted:
+            effnum=wttot/wtmax/ntot
+            print("        effective fraction: %g" % effnum)
 
         if self.select is not None:
             self._print_frac(ntot,nkeep)

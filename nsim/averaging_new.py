@@ -788,7 +788,6 @@ class Summer(dict):
         """
         logic=eval(self.select)
         w,=numpy.where(logic)
-        #print("   kept: %d/%d" % (w.size,s2n.size))
         return w
 
     def _do_select(self, data, w, type=None):
@@ -799,9 +798,11 @@ class Summer(dict):
         s2n=self._get_s2n(data, w, type=type)
         size=self._get_size(data, w, type=type)
 
+        if self.namer('flux_s2n') in data.dtype.names:
+            flux_s2n = self._get_flux_s2n(data, w, type=type)
+
         logic=eval(self.select)
         w,=numpy.where(logic)
-        #print("   kept: %d/%d" % (w.size,s2n.size))
         return w
 
     def _get_s2n_name(self, data, type=None):
@@ -835,8 +836,20 @@ class Summer(dict):
         if type is not None and type != 'noshear':
             name='%s_%s' % (name, type)
 
-        return n('pars')
+        return name
 
+    def _get_flux_s2n(self, data, w, type=None):
+        name=self._get_flux_s2n_name(data, type=type)
+        return data[name][w]
+
+
+    def _get_flux_s2n_name(self, data, type=None):
+        n=self.namer
+        name=n('flux_s2n')
+        if type is not None and type != 'noshear':
+            name='%s_%s' % (name, type)
+
+        return name
 
 
     def _read_means(self):

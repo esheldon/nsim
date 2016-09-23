@@ -3074,7 +3074,7 @@ sim-bd43
               c2: 9.613e-06 +/- 6.577e-05
 
 	- run-bd43mcal03
-        - exactly like 02
+        - exactly like 02; never fully ran at BNL
 
 	- run-bd43mcal04
         - like 02 but using an analytic psf, known to be larger

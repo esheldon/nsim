@@ -3135,6 +3135,13 @@ sim-bd43
               c1: 2.270e-05 +/- 7.049e-05
               c2: -2.284e-05 +/- 7.047e-05
 
+	- run-bd43mcal05
+        - added mcal_flux_s2n*, for better cuts, with theory that s2n_r and
+        s2n_w not all that meaningful in k space the way I'm currently doing
+        things.
+	- run-bd43mcal06
+        - same as bd43mcal05, running at bnl
+
 
 - ideas
     - c1,c2 look great

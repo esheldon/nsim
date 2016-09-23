@@ -18,11 +18,12 @@ from .util import TryAgainError, load_gmixnd
 
 from .pdfs import DiscreteSampler
 
-try:
-    import galsim
-    have_galsim=True
-except ImportError:
-    have_galsim=False
+import galsim
+#try:
+#    import galsim
+#    have_galsim=True
+#except ImportError:
+#    have_galsim=False
 
 class SimGS(dict):
     def __init__(self, sim_conf):

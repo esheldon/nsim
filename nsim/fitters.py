@@ -1070,6 +1070,19 @@ class SpergelMetacalFitter(SpergelFitter):
             if t not in self.metacal_types:
                 self.metacal_types.append(t)
 
+    def _get_analytic_psf(self, obs, pars):
+        import galsim
+        if pars['model']=='moffat':
+            obj=galsim.Moffat(
+                pars['beta'],
+                half_light_radius=pars['r50'],
+            )
+        else:
+            raise ValueError("bad analytic psf model: '%s'" % pars['model'])
+
+        obj = obj.withFlux(obs.psf.image.sum())
+        return obj
+
     def _dofit(self, imdict):
         """
         Fit according to the requested method
@@ -1084,8 +1097,14 @@ class SpergelMetacalFitter(SpergelFitter):
             mc=ngmix.metacal.Metacal(obs)
             mcpars=self['metacal_pars']
 
+            if 'analytic_psf' in mcpars:
+                apsf=self._get_analytic_psf(obs, mcpars['analytic_psf'])
+            else:
+                apsf=None
+
             odict=ngmix.metacal.get_all_metacal(
                 obs,
+                psf=apsf,
                 **mcpars
             )
 

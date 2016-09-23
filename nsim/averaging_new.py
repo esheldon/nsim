@@ -188,19 +188,6 @@ class Summer(dict):
         """
         return data
 
-    def _get_s2n_name(self, data):
-        n=self.namer
-        if n('s2n_r') in data.dtype.names:
-            s2n_name=n('s2n_r')
-        elif n('s2n') in data.dtype.names:
-            s2n_name=n('s2n')
-        elif n('s2n_w') in data.dtype.names:
-            print("Using s2n_w for selections")
-            s2n_name=n('s2n_w')
-        else:
-            return None
-
-        return s2n_name
 
     def _get_weights(self, data, w, type):
 
@@ -266,7 +253,8 @@ class Summer(dict):
 
                 # first select on the noshear measurement
                 if self.select is not None:
-                    w=self._do_select(data[s2n_name][wfield])
+                    #w=self._do_select(data[s2n_name][wfield])
+                    w=self._do_select(data, wfield)
                     w=wfield[w]
                 else:
                     w=wfield
@@ -318,7 +306,8 @@ class Summer(dict):
                             sumname = 's_g_%s' % type
 
                             if self.select is not None:
-                                w=self._do_select(data[ts2n_name][wfield])
+                                #w=self._do_select(data[ts2n_name][wfield])
+                                w=self._do_select(data, wfield, type)
                                 w=wfield[w]
                             else:
                                 w=wfield
@@ -781,7 +770,7 @@ class Summer(dict):
         frac=float(nkeep)/ntot
         print("        kept: %d/%d = %g" % (nkeep,ntot,frac))
 
-    def _do_select(self, s2n):
+    def _do_select_old(self, s2n):
         """
         currently only s/n
         """
@@ -789,6 +778,54 @@ class Summer(dict):
         w,=numpy.where(logic)
         #print("   kept: %d/%d" % (w.size,s2n.size))
         return w
+
+    def _do_select(self, data, w, type=None):
+        """
+        currently only s/n
+        """
+
+        s2n=self._get_s2n(data, w, type=type)
+        size=self._get_size(data, w, type=type)
+
+        logic=eval(self.select)
+        w,=numpy.where(logic)
+        #print("   kept: %d/%d" % (w.size,s2n.size))
+        return w
+
+    def _get_s2n_name(self, data, type=None):
+        n=self.namer
+        if n('s2n_r') in data.dtype.names:
+            name=n('s2n_r')
+        elif n('s2n') in data.dtype.names:
+            name=n('s2n')
+        elif n('s2n_w') in data.dtype.names:
+            print("Using s2n_w for selections")
+            name=n('s2n_w')
+        else:
+            return None
+
+        if type is not None and type != 'noshear':
+            name='%s_%s' % (name, type)
+
+        return name
+
+    def _get_s2n(self, data, w, type=None):
+        name=self._get_s2n_name(data, type=type)
+        return data[name][w]
+
+    def _get_size(self, data, w, type=None):
+        name=self._get_pars_name(data, type=type)
+        return data[name][w,4]
+
+    def _get_pars_name(self, data, type=None):
+        n=self.namer
+        name=n('pars')
+        if type is not None and type != 'noshear':
+            name='%s_%s' % (name, type)
+
+        return n('pars')
+
+
 
     def _read_means(self):
         fname=self._get_means_file()

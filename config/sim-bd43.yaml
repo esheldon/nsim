@@ -16,7 +16,7 @@ psf:
     model: "moffat"
     beta: 3.5
 
-    # in arcsec, 0.9
+    # in arcsec, 0.9. This is r50=2.07
     fwhm: 3.42
     shape: [0.0, 0.025]
 

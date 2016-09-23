@@ -2968,6 +2968,8 @@ sim-bd43
 		  c1: -3.978e-04 +/- 3.716e-04
 		  c2: -6.819e-05 +/- 3.715e-04
 	- run-bd43mcal02
+        100M
+
 		R: [ 0.56138687  0.56172022]
 		Rpsf: [ 0.  0.]
 		errors are 2 sigma
@@ -3049,6 +3051,75 @@ sim-bd43
 			  c1: -2.689e-05 +/- 9.651e-05
 			  c2: 2.937e-05 +/- 9.648e-05
 
+	- run-bd43mcal03
+        - exactly like 02
+
+	- run-bd43mcal04
+        - like 02 but using an analytic psf, known to be larger
+
+        - no cuts
+            (was not using 2 sigma errors here)
+            R: [ 0.57741777  0.57749954]
+            Rpsf: [ 0.  0.]
+              m1: 3.376e-04 +/- 1.017e-03 c1: 2.628e-05 +/- 3.583e-05  r1: 0.0498
+              m2: -1.020e-03 +/- 1.059e-03 c2: -2.682e-05 +/- 3.716e-05  r2: -0.0361
+              m:  -3.392e-04 +/- 7.348e-04
+              c1: 2.509e-05 +/- 3.653e-05
+              c2: -2.768e-05 +/- 3.652e-05
+
+        - s/n > 10
+            (was not using 2 sigma errors here)
+            R: [ 0.62849918  0.62883912]
+            Rpsf: [ 0.  0.]
+
+            Rsel: [ 0.00991116  0.00974624]
+            Rpsf_sel: [ 0.  0.]
+            without correction
+              m1: 1.823e-02 +/- 1.106e-03 c1: 2.676e-05 +/- 3.895e-05  r1: 0.0498
+              m2: 1.659e-02 +/- 1.102e-03 c2: -1.495e-05 +/- 3.869e-05  r2: -0.0361
+              m:  1.741e-02 +/- 7.815e-04
+              c1: 2.533e-05 +/- 3.885e-05
+              c2: -1.599e-05 +/- 3.883e-05
+
+            with correction
+              m1: 2.423e-03 +/- 1.089e-03 c1: 2.634e-05 +/- 3.834e-05  r1: 0.0498
+              m2: 1.078e-03 +/- 1.085e-03 c2: -1.472e-05 +/- 3.810e-05  r2: -0.0361
+              m:  1.752e-03 +/- 7.694e-04
+              c1: 2.517e-05 +/- 3.824e-05
+              c2: -1.557e-05 +/- 3.823e-05
+
+        - weighted
+            - correction seems to work.  So I think the s2n_r are wrong somehow
+              unfortunately I didn't keep any errors other than on g
+            - keep flux s2n and s2n_w as ell
+
+            R: [ 0.6297583   0.62997318]
+            Rpsf: [ 0.  0.]
+            Rsel: [ 0.0161801   0.01627269]
+            Rpsf_sel: [ 0.  0.]
+            without correction
+            errors are 2 sigma
+              m1: 2.604e-02 +/- 2.015e-03 c1: 2.431e-05 +/- 7.096e-05  r1: 0.0498
+              m2: 2.501e-02 +/- 2.095e-03 c2: -2.268e-05 +/- 7.355e-05  r2: -0.0361
+              m:  2.553e-02 +/- 1.455e-03
+              c1: 2.341e-05 +/- 7.231e-05
+              c2: -2.334e-05 +/- 7.229e-05
+
+            with correction
+            errors are 2 sigma
+              m1: 3.430e-04 +/- 1.964e-03 c1: 2.370e-05 +/- 6.918e-05  r1: 0.0498
+              m2: -8.017e-04 +/- 2.043e-03 c2: -2.211e-05 +/- 7.170e-05  r2: -0.0361
+              m:  -2.278e-04 +/- 1.418e-03
+              c1: 2.270e-05 +/- 7.049e-05
+              c2: -2.284e-05 +/- 7.047e-05
+
+
+- ideas
+    - c1,c2 look great
+    - looks worse in g2...
+    - nopix?
+    - note, if using analytic psf may not need to bother with
+      the second dilation, right?
 
 - sim-bd37
     - actual r50 drawn from cosmos sample used in great3

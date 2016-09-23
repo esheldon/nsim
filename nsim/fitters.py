@@ -1088,8 +1088,15 @@ class SpergelMetacalFitter(SpergelFitter):
         Fit according to the requested method
         """
 
+
         obs=imdict['obs']
         mconf=self['max_pars']
+
+        if mconf['cov']['replace_cov']:
+            replace_cov=True
+            cov_pars=mconf['cov']['cov_pars']
+        else:
+            replace_cov=False
 
         res={}
         try:
@@ -1120,6 +1127,14 @@ class SpergelMetacalFitter(SpergelFitter):
                 tres=fitter.get_result()
                 if tres['flags'] != 0:
                     raise TryAgainError("failed to fit a metacal obs")
+
+                if replace_cov:
+                    fitter.calc_cov(cov_pars['h'],cov_pars['m'])
+
+                    if tres['flags'] != 0:
+                        print("        cov replacement failed")
+                        tres['flags']=0
+
 
                 if type=='noshear':
                     g1,g2,T=self._fit_am(obs.psf)
@@ -1229,8 +1244,8 @@ class SpergelMetacalFitter(SpergelFitter):
         subres=res['noshear']
 
         s2n_rat = subres['s2n_r']/subres['s2n_w']
-        mess="    mcal s2n_w: %.1f s2n_r: %.1f rat: %g"
-        print(mess % (subres['s2n_w'],subres['s2n_r'],s2n_rat))
+        mess="    mcal s2n_w: %.1f s2n_r: %.1f rat: %g nfev: %d"
+        print(mess % (subres['s2n_w'],subres['s2n_r'],s2n_rat,subres['nfev']))
 
 
         print_pars(subres['pars'],      front='        pars: ')

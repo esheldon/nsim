@@ -3139,6 +3139,40 @@ sim-bd43
         - added mcal_flux_s2n*, for better cuts, with theory that s2n_r and
         s2n_w not all that meaningful in k space the way I'm currently doing
         things.
+
+        - no cuts
+            R: [ 0.56151729  0.56179945]
+            Rpsf: [ 0.  0.]
+            errors are 2 sigma
+              m1: -5.069e-04 +/- 1.935e-03 c1: -1.830e-05 +/- 6.814e-05
+              m2: -9.747e-04 +/- 1.934e-03 c2: 2.749e-05 +/- 6.790e-05
+            errors are 2 sigma
+              m:  -7.402e-04 +/- 1.369e-03
+              c1: -1.871e-05 +/- 6.805e-05
+              c2: 2.719e-05 +/- 6.803e-05
+
+        - s2n > 15 (similar to 10 for s2n_r)
+
+            R: [ 0.60378768  0.60416293]
+            Rpsf: [ 0.  0.]
+
+            Rsel: [ 0.00142326  0.0013495 ]
+            Rpsf_sel: [ 0.  0.]
+            without correction
+            errors are 2 sigma
+              m1: 2.703e-03 +/- 1.992e-03 c1: -3.392e-05 +/- 7.016e-05
+              m2: 2.673e-03 +/- 2.070e-03 c2: 3.369e-05 +/- 7.266e-05
+              m:  2.688e-03 +/- 1.437e-03
+              c1: -3.395e-05 +/- 7.145e-05
+              c2: 3.368e-05 +/- 7.143e-05
+            with correction
+            errors are 2 sigma
+              m1: 3.445e-04 +/- 1.988e-03 c1: -3.384e-05 +/- 7.000e-05
+              m2: 4.381e-04 +/- 2.065e-03 c2: 3.362e-05 +/- 7.250e-05
+              m:  3.912e-04 +/- 1.434e-03
+              c1: -3.376e-05 +/- 7.129e-05
+              c2: 3.368e-05 +/- 7.127e-05
+
 	- run-bd43mcal06
         - same as bd43mcal05, running at bnl
 

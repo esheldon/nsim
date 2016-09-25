@@ -9,7 +9,6 @@ from pprint import pprint
 import numpy
 from numpy import array, zeros, ones, log, log10, exp, sqrt, diag
 from numpy import where, isfinite
-from numpy.random import uniform as urand
 
 import ngmix
 from ngmix.fitting import print_pars
@@ -43,6 +42,10 @@ class FitterBase(dict):
     def __init__(self, sim, run_conf, ngal, **keys):
 
         self.sim=sim
+        self.rng=numpy.random.RandomState(
+            seed=sim.rng.randint(0,2**30),
+        )
+
         self._setup(run_conf, **keys)
 
         self['ngal']=ngal
@@ -369,14 +372,9 @@ class SimpleFitterBase(FitterBase):
 
         gp = ppars['g']
         if gp['type']=='ba':
-            g_prior = ngmix.priors.GPriorBA(gp['sigma'])
-        elif gp['type']=='cosmos':
-            g_prior=ngmix.priors.make_gprior_cosmos_sersic(type='erf')
-        elif gp['type']=='great-des':
-            g_prior = ngmix.priors.GPriorGreatDES(pars=gp['pars'],
-                                                       gmax=1.0)
+            g_prior = ngmix.priors.GPriorBA(gp['sigma'], rng=self.rng)
         elif gp['type']=='flat':
-            g_prior = ngmix.priors.ZDisk2D(1.0)
+            g_prior = ngmix.priors.ZDisk2D(1.0, rng=self.rng)
         else:
             raise ValueError("implement other g prior")
 
@@ -385,28 +383,16 @@ class SimpleFitterBase(FitterBase):
         T_prior = None
         if 'T' in ppars:
             Tp = ppars['T']
-            if Tp['type']=="truth":
-                print("using true T pdf for prior")
-                if self['use_logpars']:
 
-                    print("    converting to log")
-                    T=self.sim['obj_T_mean']
-                    T_sigma = self.sim['obj_T_sigma_frac']*T
-                    logT_mean, logT_sigma=ngmix.priors.lognorm_convert(T,T_sigma)
-                    T_prior = ngmix.priors.Normal(logT_mean, logT_sigma)
-
-                else:
-                    T_prior = self.sim.T_pdf
-
-            elif Tp['type']=="flat":
-                T_prior=ngmix.priors.FlatPrior(*Tp['pars'])
+            if Tp['type']=="flat":
+                T_prior=ngmix.priors.FlatPrior(*Tp['pars'], rng=self.rng)
 
             elif Tp['type']=="gmixnd":
-                T_prior = load_gmixnd(Tp)
+                T_prior = load_gmixnd(Tp, rng=self.rng)
 
             elif Tp['type']=='normal':
                 Tpars=Tp['pars']
-                T_prior=ngmix.priors.Normal(Tpars[0], Tpars[1])
+                T_prior=ngmix.priors.Normal(Tpars[0], Tpars[1], rng=self.rng)
 
             elif Tp['type']=='lognormal':
 
@@ -414,14 +400,14 @@ class SimpleFitterBase(FitterBase):
                     print("    converting T prior to log")
                     logT_mean, logT_sigma=ngmix.priors.lognorm_convert(Tp['mean'],
                                                                        Tp['sigma'])
-                    T_prior = ngmix.priors.Normal(logT_mean, logT_sigma)
+                    T_prior = ngmix.priors.Normal(logT_mean, logT_sigma, rng=self.rng)
 
                 else:
-                    T_prior = ngmix.priors.LogNormal(Tp['mean'],Tp['sigma'])
+                    T_prior = ngmix.priors.LogNormal(Tp['mean'],Tp['sigma'], rng=self.rng)
 
             elif Tp['type']=="two-sided-erf":
                 T_prior_pars = Tp['pars']
-                T_prior=ngmix.priors.TwoSidedErf(*T_prior_pars)
+                T_prior=ngmix.priors.TwoSidedErf(*T_prior_pars, rng=self.rng)
             else:
                 raise ValueError("bad Tprior: '%s'" % Tp['type'])
 
@@ -433,17 +419,17 @@ class SimpleFitterBase(FitterBase):
             r50p = ppars['r50']
 
             if r50p['type']=="gmixnd":
-                r50_prior = load_gmixnd(r50p)
+                r50_prior = load_gmixnd(r50p, rng=self.rng)
 
             elif r50p['type']=='lognormal':
 
-                r50_prior = ngmix.priors.LogNormal(r50p['mean'],r50p['sigma'])
+                r50_prior = ngmix.priors.LogNormal(r50p['mean'],r50p['sigma'], rng=self.rng)
 
             elif r50p['type']=="two-sided-erf":
-                r50_prior=ngmix.priors.TwoSidedErf(*r50p['pars'])
+                r50_prior=ngmix.priors.TwoSidedErf(*r50p['pars'], rng=self.rng)
 
             elif r50p['type']=="flat":
-                r50_prior=ngmix.priors.FlatPrior(*r50p['pars'])
+                r50_prior=ngmix.priors.FlatPrior(*r50p['pars'], rng=self.rng)
             else:
                 raise ValueError("bad r50prior: '%s'" % r50p['type'])
 
@@ -453,13 +439,13 @@ class SimpleFitterBase(FitterBase):
             nup = ppars['nu']
 
             if nup['type']=="gmixnd":
-                nu_prior = load_gmixnd(nup)
+                nu_prior = load_gmixnd(nup, rng=self.rng)
 
             elif nup['type']=="two-sided-erf":
-                nu_prior=ngmix.priors.TwoSidedErf(*nup['pars'])
+                nu_prior=ngmix.priors.TwoSidedErf(*nup['pars'], rng=self.rng)
 
             elif nup['type']=="flat":
-                nu_prior=ngmix.priors.FlatPrior(*nup['pars'])
+                nu_prior=ngmix.priors.FlatPrior(*nup['pars'], rng=self.rng)
             else:
                 raise ValueError("bad nuprior: '%s'" % nup['type'])
 
@@ -482,14 +468,14 @@ class SimpleFitterBase(FitterBase):
 
                 logc_mean, logc_sigma=ngmix.priors.lognorm_convert(counts,
                                                                    counts_sigma)
-                counts_prior = ngmix.priors.Normal(logc_mean, logc_sigma)
+                counts_prior = ngmix.priors.Normal(logc_mean, logc_sigma, rng=self.rng)
 
             else:
                 counts_prior = self.sim.counts_pdf
 
         elif cp['type']=="gmixnd":
 
-            counts_prior = load_gmixnd(cp)
+            counts_prior = load_gmixnd(cp, rng=self.rng)
 
         elif cp['type']=='lognormal':
 
@@ -497,21 +483,25 @@ class SimpleFitterBase(FitterBase):
                 print("    converting counts prior to log")
                 logcounts_mean, logcounts_sigma=ngmix.priors.lognorm_convert(cp['mean'],
                                                                    cp['sigma'])
-                counts_prior = ngmix.priors.Normal(logcounts_mean, logcounts_sigma)
+                counts_prior = ngmix.priors.Normal(
+                    logcounts_mean,
+                    logcounts_sigma,
+                    rng=self.rng,
+                )
 
             else:
-                counts_prior = ngmix.priors.LogNormal(cp['mean'],cp['sigma'])
+                counts_prior = ngmix.priors.LogNormal(cp['mean'],cp['sigma'], rng=self.rng)
 
 
         elif cp['type']=='normal':
             cpars=cp['pars']
-            counts_prior=ngmix.priors.Normal(cpars[0], cpars[1])
+            counts_prior=ngmix.priors.Normal(cpars[0], cpars[1], rng=self.rng)
 
         elif cp['type']=="two-sided-erf":
-            counts_prior=ngmix.priors.TwoSidedErf(*cp['pars'])
+            counts_prior=ngmix.priors.TwoSidedErf(*cp['pars'], rng=self.rng)
 
         elif cp['type']=="flat":
-            counts_prior=ngmix.priors.FlatPrior(*cp['pars'])
+            counts_prior=ngmix.priors.FlatPrior(*cp['pars'], rng=self.rng)
 
         else:
             raise ValueError("bad counts prior: '%s'" % cp['type'])
@@ -521,10 +511,13 @@ class SimpleFitterBase(FitterBase):
             cen_prior=self.sim.cen_pdf
         elif cp['type'] == "normal2d":
             fit_cen_sigma=cp['sigma']
-            cen_prior=ngmix.priors.CenPrior(0.0,
-                                                0.0,
-                                                fit_cen_sigma,
-                                                fit_cen_sigma)
+            cen_prior=ngmix.priors.CenPrior(
+                0.0,
+                0.0,
+                fit_cen_sigma,
+                fit_cen_sigma,
+                rng=self.rng,
+            )
         else:
             raise ValueError("bad cen prior: '%s'" % cp['type'])
 
@@ -939,6 +932,8 @@ class SpergelFitter(SimpleFitterBase):
         return runner
 
     def _fit_am(self, obs, ntry=4):
+        rng=self.rng
+
         am=ngmix.admom.Admom(obs, maxiter=1000)
         
         scale=obs.jacobian.get_scale()
@@ -948,11 +943,11 @@ class SpergelFitter(SimpleFitterBase):
 
         for i in xrange(ntry):
             pars=[
-                numpy.random.uniform(low=-0.1*scale, high=0.1*scale),
-                numpy.random.uniform(low=-0.1*scale, high=0.1*scale),
-                numpy.random.uniform(low=-grange,high=grange),
-                numpy.random.uniform(low=-grange,high=grange),
-                Tguess*(1.0 + numpy.random.uniform(low=-0.1,high=0.1)),
+                rng.uniform(low=-0.1*scale, high=0.1*scale),
+                rng.uniform(low=-0.1*scale, high=0.1*scale),
+                rng.uniform(low=-grange,high=grange),
+                rng.uniform(low=-grange,high=grange),
+                Tguess*(1.0 + rng.uniform(low=-0.1,high=0.1)),
                 1.0,
             ]
             guess=ngmix.GMixModel(pars, "gauss")
@@ -1112,6 +1107,7 @@ class SpergelMetacalFitter(SpergelFitter):
             odict=ngmix.metacal.get_all_metacal(
                 obs,
                 psf=apsf,
+                rng=self.rng,
                 **mcpars
             )
 
@@ -1422,7 +1418,6 @@ class MaxMetacalDetrendFitter(MaxMetacalFitter):
 
         sim_seed = self.sim['seed']
         rs_seed = sim_seed + 35
-        self.random_state=numpy.random.RandomState(rs_seed)
 
 
 
@@ -1438,9 +1433,9 @@ class MaxMetacalDetrendFitter(MaxMetacalFitter):
         sim_noise=self.sim['noise']
         new_results=[]
 
-        noise_image1 = self.random_state.normal(loc=0.0,
-                                                scale=1.0,
-                                                size=im.shape)
+        noise_image1 = self.rng.normal(loc=0.0,
+                                       scale=1.0,
+                                       size=im.shape)
         #Rnoise_types=['1p','1m','2p','2m']
         Rnoise_types=['1p','1m','2p','2m','1p_psf','1m_psf','2p_psf','2m_psf']
         for i in xrange(len(self['target_noises'])):
@@ -1466,6 +1461,7 @@ class MaxMetacalDetrendFitter(MaxMetacalFitter):
                 mcal_obs_before = ngmix.metacal.get_all_metacal(
                     obs_before,
                     types=Rnoise_types,
+                    rng=self.rng,
                     **self['metacal_pars']
                 )
                 self._do_metacal(boot, metacal_obs=mcal_obs_before)
@@ -1645,6 +1641,7 @@ class MaxMetacalSubnFitter(MaxMetacalFitter):
         # create all the relevant metacal observations
         mcal_obs_dict = ngmix.metacal.get_all_metacal(
             boot.mb_obs_list,
+            rng=self.rng,
             **self['metacal_pars']
         )
 
@@ -1658,6 +1655,7 @@ class MaxMetacalSubnFitter(MaxMetacalFitter):
         # and the metacal observations for that noise
         mcal_obs_dict_noise = ngmix.metacal.get_all_metacal(
             mobs_sim_noise,
+            rng=self.rng,
             **self['metacal_pars']
         )
 
@@ -1742,7 +1740,11 @@ class MaxMetacalFixRFitter(MaxMetacalFitter):
             # None means noise only
             tmobs = ngmix.simobs.simulate_obs(None, mobs)
 
-            tmcal_obs = get_all_metacal(tmobs[0][0], step)
+            tmcal_obs = get_all_metacal(
+                tmobs[0][0],
+                step,
+                rng=self.rng,
+            )
 
             if i == 0:
                 im_1p_m_1m = tmcal_obs['1p'].image - tmcal_obs['1m'].image
@@ -2850,11 +2852,11 @@ class ShearNullFitterPrepsf(SimpleFitterBase):
         max_pars=self['max_pars']
         lm_pars=max_pars['pars']['lm_pars']
         for i in xrange(max_pars['ntry']):
-            shearmag_guess=numpy.random.uniform(
+            shearmag_guess=self.rng.uniform(
                 low=0.0,
                 high=0.1,
             )
-            theta_guess=numpy.random.uniform(
+            theta_guess=self.rng.uniform(
                 low=0.0,
                 high=2.0*numpy.pi,
             )
@@ -3745,16 +3747,18 @@ class AMMetacalFitter(FitterBase):
     def _do_one_fit(self, obs, noise, Tguess0, psf_res=None):
         import admom
 
+        rng=self.rng
+
         admom_pars=self['admom_pars']
 
         row,col=obs.jacobian.get_cen()
 
         for i in xrange(admom_pars['ntry']):
 
-            Tguess = Tguess0*(1.0 + numpy.random.uniform(low=-0.1,high=0.1))
+            Tguess = Tguess0*(1.0 + rng.uniform(low=-0.1,high=0.1))
 
-            rowguess = row + numpy.random.uniform(low=-0.1, high=0.1)
-            colguess = col + numpy.random.uniform(low=-0.1, high=0.1)
+            rowguess = row + rng.uniform(low=-0.1, high=0.1)
+            colguess = col + rng.uniform(low=-0.1, high=0.1)
 
             if psf_res is not None:
                 res=admom.wrappers.admom_1psf(
@@ -3791,6 +3795,7 @@ class AMMetacalFitter(FitterBase):
 
         obsdict=ngmix.metacal.get_all_metacal(
             obs,
+            rng=self.rng,
             **mpars
         )
 
@@ -4438,6 +4443,7 @@ class MetacalMoments(SimpleFitterBase):
 
         obsdict=ngmix.metacal.get_all_metacal(
             boot.mb_obs_list,
+            rng=self.rng,
             **mpars
         )
 
@@ -5054,7 +5060,7 @@ class NullGauss2Fitter(SimpleFitterBase):
 
         sh=self.get_shape_guess(guess[2], guess[3])
 
-        guess[0:0+2] += numpy.random.uniform(low=-0.1,high=0.1,size=2)
+        guess[0:0+2] += self.rng.uniform(low=-0.1,high=0.1,size=2)
         guess[2:2+2] = (sh.g1, sh.g2)
 
         return guess
@@ -5063,14 +5069,15 @@ class NullGauss2Fitter(SimpleFitterBase):
         """
         Get guess, making sure in range
         """
+        rng=self.rng
 
         shape=ngmix.Shape(g1, g2)
         shape_guess=None
 
         for i in xrange(nmaxrand):
             try:
-                g1_offset = urand(low=-width,high=width)
-                g2_offset = urand(low=-width,high=width)
+                g1_offset = rng.uniform(low=-width,high=width)
+                g2_offset = rng.uniform(low=-width,high=width)
                 shape_new=shape.get_sheared(g1_offset, g2_offset)
 
                 if shape_new.g < 0.98:
@@ -5081,8 +5088,8 @@ class NullGauss2Fitter(SimpleFitterBase):
                 pass
 
         if shape_guess is None:
-            g1g=urand(low=-0.1, high=0.1)
-            g2g=urand(low=-0.1, high=0.1)
+            g1g=rng.uniform(low=-0.1, high=0.1)
+            g2g=rng.uniform(low=-0.1, high=0.1)
             shape_guess=ngmix.Shape(g1g,g2g)
 
         return shape_guess

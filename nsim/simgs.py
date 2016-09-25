@@ -9,7 +9,6 @@ import numpy
 import fitsio
 
 import ngmix
-from ngmix.priors import LogNormal
 
 from . import sim as ngmixsim
 from ngmix.priors import srandu
@@ -46,7 +45,7 @@ class SimGS(dict):
 
         # seeding both the global and the local rng.  With the
         # local, we produce the same sim independent of the fitting
-        # code which may use the global. We also seed the global
+        # code which may use the global.
         numpy.random.seed(seed)
         self.rng=numpy.random.RandomState(seed=numpy.random.randint(0,2**30))
 
@@ -641,30 +640,6 @@ class SimGS(dict):
         # self.rng only used for a Selector
         self.shear_pdf = shearpdf.get_shear_pdf(self)
 
-        '''
-        if 'shear' in self:
-            shconf = self['shear']
-            # shears are imbedded in the config
-            if shconf['type'] == 'const':
-                pdf = ConstShearSelector(shconf['shears'],
-                                          rng=self.rng)
-            elif shconf['type'] == 'const-dist':
-                # a seed is specified and we generate them
-                rng=numpy.random.RandomState(seed=shconf['seed'])
-                pdf = ConstShearGenerator(
-                    rng,
-                    shconf['nshear'],
-                    min_shear=shconf['min_shear'],
-                    max_shear=shconf['max_shear'],
-                )
-            else:
-                raise ValueError("only shear 'const' for now")
-
-            self.shear_pdf=pdf
-        else:
-            self.shear_pdf=None
-        '''
-
     def _set_psf_pdf(self):
         pspec = self['psf']
 
@@ -681,9 +656,11 @@ class SimGS(dict):
                     psf_fwhm_pdf=DiscreteSampler(vals,
                                                  rng=self.rng)
                 elif type=='lognormal':
-                    psf_fwhm_pdf=LogNormal(pspec['fwhm']['mean'],
-                                           pspec['fwhm']['sigma'],
-                                           rng=self.rng)
+                    psf_fwhm_pdf=ngmix.priors.LogNormal(
+                        pspec['fwhm']['mean'],
+                        pspec['fwhm']['sigma'],
+                        rng=self.rng,
+                    )
                 else:
                     raise ValueError("bad fwhm type: '%s'" % type)
 
@@ -698,26 +675,32 @@ class SimGS(dict):
                 r50pdf = pspec['r50']
                 assert r50pdf['type']=="lognormal","r50 pdf log normal for now"
 
-                self.psf_r50_pdf = ngmix.priors.LogNormal(r50pdf['mean'],
-                                                          r50pdf['sigma'],
-                                                          rng=self.rng)
+                self.psf_r50_pdf = ngmix.priors.LogNormal(
+                    r50pdf['mean'],
+                    r50pdf['sigma'],
+                    rng=self.rng,
+                )
 
         if isinstance(pspec['shape'],dict):
             ppdf=pspec['shape']
             assert ppdf['type']=="normal2d"
-            self.psf_ellip_pdf=ngmix.priors.SimpleGauss2D(ppdf['cen'][0],
-                                                          ppdf['cen'][1],
-                                                          ppdf['sigma'][0],
-                                                          ppdf['sigma'][1],
-                                                          rng=self.rng)
+            self.psf_ellip_pdf=ngmix.priors.SimpleGauss2D(
+                ppdf['cen'][0],
+                ppdf['cen'][1],
+                ppdf['sigma'][0],
+                ppdf['sigma'][1],
+                rng=self.rng,
+            )
         else:
             self.psf_ellip_pdf=None
 
     def _set_g_pdf(self):
         if 'g' in self['obj_model']:
             g_spec=self['obj_model']['g']
-            self.g_pdf=ngmix.priors.GPriorBA(g_spec['sigma'],
-                                             rng=self.rng)
+            self.g_pdf=ngmix.priors.GPriorBA(
+                g_spec['sigma'],
+                rng=self.rng,
+            )
         else:
             self.g_pdf=None
 
@@ -727,12 +710,17 @@ class SimGS(dict):
 
             if r50spec['type']=='uniform':
                 r50_r = r50spec['range']
-                self.r50_pdf=ngmix.priors.FlatPrior(r50_r[0], r50_r[1],
-                                                    rng=self.rng)
+                self.r50_pdf=ngmix.priors.FlatPrior(
+                    r50_r[0],
+                    r50_r[1],
+                    rng=self.rng,
+                )
             elif r50spec['type']=='lognormal':
-                self.r50_pdf=ngmix.priors.LogNormal(r50spec['mean'],
-                                                    r50spec['sigma'],
-                                                    rng=self.rng)
+                self.r50_pdf=ngmix.priors.LogNormal(
+                    r50spec['mean'],
+                    r50spec['sigma'],
+                    rng=self.rng,
+                )
             elif r50spec['type']=='discrete-pdf':
                 fname=os.path.expandvars( r50spec['file'] )
                 print("Reading r50 values from file:",fname)
@@ -750,8 +738,10 @@ class SimGS(dict):
         if cr is None:
             self.cen_pdf=None
         else:
-            self.cen_pdf=ngmix.priors.FlatPrior(-cr['radius'], cr['radius'],
-                                                rng=self.rng)
+            self.cen_pdf=ngmix.priors.FlatPrior(
+                -cr['radius'], cr['radius'],
+                rng=self.rng,
+            )
 
     def _set_flux_pdf(self):
         fluxspec = self['obj_model']['flux']
@@ -762,12 +752,16 @@ class SimGS(dict):
 
         if fluxspec['type']=='uniform':
             flux_r = fluxspec['range']
-            self.flux_pdf=ngmix.priors.FlatPrior(flux_r[0], flux_r[1],
-                                                 rng=self.rng)
+            self.flux_pdf=ngmix.priors.FlatPrior(
+                flux_r[0], flux_r[1],
+                rng=self.rng,
+            )
         elif fluxspec['type']=='lognormal':
-            self.flux_pdf=ngmix.priors.LogNormal(fluxspec['mean'],
-                                                 fluxspec['sigma'],
-                                                 rng=self.rng)
+            self.flux_pdf=ngmix.priors.LogNormal(
+                fluxspec['mean'],
+                fluxspec['sigma'],
+                rng=self.rng,
+            )
         elif fluxspec['type']=='gmixnd':
             self.flux_pdf=load_gmixnd(fluxspec,rng=self.rng)
         else:
@@ -868,9 +862,11 @@ class SimGMix(SimGS):
         spec = self['obj_model']['T']
 
         if spec['type']=='lognormal':
-            self.T_pdf=ngmix.priors.LogNormal(spec['mean'],
-                                              spec['sigma'],
-                                              rng=self.rng)
+            self.T_pdf=ngmix.priors.LogNormal(
+                spec['mean'],
+                spec['sigma'],
+                rng=self.rng,
+            )
         elif spec['type']=='gmixnd':
             self.T_pdf=load_gmixnd(spec, rng=self.rng)
         else:
@@ -1055,7 +1051,7 @@ class SimBDD(SimBD):
 
     def _set_bulge_rot_pdf(self):
         sigma=numpy.deg2rad( self['obj_model']['bulge_rot_sigma_degrees'] )
-        self.bulge_rot_pdf = ngmix.priors.Normal(0.0, sigma)
+        self.bulge_rot_pdf = ngmix.priors.Normal(0.0, sigma, rng=self.rng)
 
 
 def quick_fit_gauss(image, rng, maxiter=4000, tol=1.0e-6, ntry=4):

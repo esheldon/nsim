@@ -1,0 +1,55 @@
+# added more s2n parameters
+run: "run-bd45mcal01"
+sim: "sim-bd45"
+
+fitter: "spergel-metacal-exp"
+
+global_seed: 2757
+
+metacal_pars:
+    symmetrize_psf: True
+    symmetrize_dilation: 1.10
+
+    types: ['noshear','1p','1m','2p','2m']
+
+priors:
+    # for spergel, this is really a combined
+    # offset from the centers for the PSF and galaxy
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    r50:
+        type: "lognormal"
+        mean: 1.7
+        sigma: 1.20
+
+    counts:
+        type: "lognormal"
+        mean: 180.0
+        sigma: 100.0
+
+    g:
+        type: "ba"
+        sigma: 0.5
+
+max_pars:
+    ntry: 5
+    lm_pars:
+        maxfev: 4000
+    cov:
+        replace_cov: False
+        cov_pars:
+            m: 5
+            h: 1.0e-3
+
+ngal: 400000000
+
+desired_hours: 1.0
+
+# not doubled at bnl
+sec_per: 0.5
+
+jobs_per_condor_sub: 5000
+
+verbose: False

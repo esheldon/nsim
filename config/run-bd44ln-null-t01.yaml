@@ -1,0 +1,53 @@
+run: "run-bd44ln-null-t01"
+sim: "sim-bd44ln"
+
+global_seed: 15102
+
+fitter: "nuller-gauss2d"
+
+# for initial fit
+fit_model: "gauss"
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+priors:
+    # for spergel, this is really a combined
+    # offset from the centers for the PSF and galaxy
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    T:
+        type: "flat"
+        pars: [0.01, 5000.0] 
+
+    counts:
+        type: "flat"
+        pars: [0.01, 5000.0] 
+
+    g:
+        type: "flat"
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+
+    replace_cov: False
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+ngal: 4000000
+
+desired_hours: 0.25
+
+sec_per: 0.05
+
+# note fitting a gaussian is 0.02 for fitting
+
+verbose: False

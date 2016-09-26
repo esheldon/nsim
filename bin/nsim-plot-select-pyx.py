@@ -1,3 +1,6 @@
+"""
+data is from run-d36mcal{03,04,05,08,09}
+"""
 from __future__ import print_function
 from numpy import array
 from pyx import *

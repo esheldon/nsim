@@ -1,0 +1,62 @@
+run: "run-gg22mom-t01"
+sim: "sim-gg22"
+
+fitter: "metacal-moments"
+
+# do moments, but do an initial fit first
+fit_model: "gauss"
+
+global_seed: 3902
+
+metacal_pars:
+  step: 0.01
+  fixnoise: False
+  symmetrize_psf: True
+  types: ['noshear','1p','1m','2p','2m']
+
+weight_T: 5.5
+
+# not used, we fit with em
+g_prior_during: True
+use_logpars: True
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 0.1
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+    T:
+        type: "two-sided-erf"
+        pars: [-3.0, 0.25, 10.0, 0.25]
+
+    counts:
+        type: "gmixnd"
+        run: "run-gg12zmax-lownoise01"
+        extra: "log_F"
+        cov_factor: 1.44
+
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+
+ngal: 10000000
+
+desired_hours: 0.50
+
+# doubled for slac
+sec_per: 0.2
+
+jobs_per_condor_sub: 5000
+
+verbose: False

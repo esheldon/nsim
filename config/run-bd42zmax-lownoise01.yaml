@@ -1,0 +1,52 @@
+run: "run-bd42zmax-lownoise01"
+sim: "sim-bd42z"
+
+fitter: "max"
+fit_model: "gauss"
+
+g_prior_during: True
+use_logpars: False
+
+global_seed: 849
+
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    T:
+        type: "two-sided-erf"
+        pars: [0.001, 1.0, 4000.0, 10.0]
+
+    counts:
+        type: "two-sided-erf"
+        pars: [0.001, 1.0, 4000.0, 10.0]
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+    replace_cov: False
+
+ngal: 200000
+
+desired_hours: 0.10
+
+sec_per: 0.04
+
+verbose: False

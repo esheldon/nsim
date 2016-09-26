@@ -15,7 +15,7 @@ import fitsio
 import ngmix
 import nsim
 from nsim import files
-from nsim.averaging_new import SummerNSim
+from nsim.averaging_new import SummerNSim, SummerMoments, SummerMomentsNoNorm
 
 import argparse
 import esutil as eu
@@ -39,7 +39,10 @@ parser.add_argument('-d',default=None,help='file is in a local dir')
 parser.add_argument('--ntest',default=None,type=int,
                     help='work on a small subset for quick tests')
 
-parser.add_argument('--weights',default=None,help='type of weight to use, noise or s2n')
+parser.add_argument(
+    '--weighted',
+    action='store_true',
+)
 parser.add_argument('--s2n-soft',type=float,default=10.0)
 parser.add_argument('--shapenoise',type=float,default=0.20)
 
@@ -50,6 +53,19 @@ parser.add_argument('--xrange', help="xrange of plot")
 parser.add_argument('--fit-only',action='store_true',
                     help='get the means from the written file')
 
+parser.add_argument('--chunksize',type=int,default=1000000,
+                    help='size of chunks when reading')
+
+parser.add_argument('--moments',action='store_true',
+                    help='do fits for moment based measure')
+parser.add_argument('--moments-nonorm',action='store_true',
+                    help='do fits for moment based measure')
+
+parser.add_argument('--admom',action='store_true',
+                    help='do fits for admom based measure')
+
+parser.add_argument('--cache',action='store_true',
+                    help='use local disk cache')
 
 def main():
     args = parser.parse_args()
@@ -57,7 +73,15 @@ def main():
     conf = nsim.files.read_config(args.runs[0])
     conf['simc'] = nsim.files.read_config(conf['sim'])
 
-    summer=SummerNSim(conf, args)
+    if args.moments:
+        summer=SummerMoments(conf, args)
+    elif args.moments_nonorm:
+        summer=SummerMomentsNoNorm(conf, args)
+    elif args.admom:
+        summer=nsim.averaging_new.AMSummer(conf, args)
+    else:
+        summer=SummerNSim(conf, args)
+
     summer.go()
 
     summer.plot_fits()

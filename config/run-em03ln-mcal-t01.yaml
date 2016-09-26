@@ -1,0 +1,58 @@
+run: "run-em03ln-mcal-t01"
+sim: "sim-em03ln"
+
+fitter: "kmom-metacal"
+
+# this is for the initial fits
+fit_model: "gauss"
+
+use_logpars: False
+
+global_seed: 13074
+
+metacal_pars:
+    # just fixing this for now
+    symmetrize_dilation: 1.05
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    counts:
+        type: "flat"
+        pars: [0.0, 5000.0]
+
+    T:
+        type: "flat"
+        pars: [0.0, 5000.0]
+
+    g:
+        type: "flat"
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+
+    replace_cov: False
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+
+ngal: 2000000
+
+desired_hours: 0.20
+
+sec_per: 0.05
+
+jobs_per_condor_sub: 5000
+
+verbose: False

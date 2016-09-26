@@ -101,6 +101,26 @@ def run_sim(sim_conf,
     if ftype=='max':
         fitclass=nsim.fitters.MaxFitter
 
+
+    elif ftype=='spergel':
+        run_conf['fit_model']='spergel'
+        fitclass=nsim.fitters.SpergelFitter
+
+    elif ftype=='spergel-exp':
+        run_conf['fit_model']='spergel-exp'
+        fitclass=nsim.fitters.SpergelExpFitter
+
+    elif ftype=='spergel-metacal':
+        run_conf['fit_model']='spergel'
+        fitclass=nsim.fitters.SpergelMetacalFitter
+
+    elif ftype=='spergel-metacal-exp':
+        run_conf['fit_model']='spergel-exp'
+        fitclass=nsim.fitters.SpergelMetacalExpFitter
+
+
+
+
     elif ftype=='max-resid':
         fitclass=nsim.fitters.MaxResid
         resid_file=output_file.replace('.fits','-resid-sum.fits')
@@ -118,14 +138,28 @@ def run_sim(sim_conf,
 
     elif ftype in ['metacal-max','metacal-new']:
         fitclass=nsim.fitters.MaxMetacalFitter
+
+    elif ftype == 'metacal-metamom':
+        fitclass=nsim.fitters.MetacalMetaMomFitter
+
     elif ftype=='metacal-old':
         fitclass=nsim.fitters.MaxMetacalFitterOld
 
     elif ftype=='metacal-round-analytic-psf':
         fitclass=nsim.fitters.MaxMetacalRoundAnalyticPSFFitter
 
+
+    elif ftype=='nuller-gauss2d':
+        fitclass=nsim.fitters.NullGauss2Fitter
+
+    elif ftype=='deconv':
+        fitclass=nsim.fitters.Deconvolver
+
     elif ftype=='metacal-deconv':
         fitclass=nsim.fitters.DeconvMetacalFitter
+
+    elif ftype=='metacal-moments':
+        fitclass=nsim.fitters.MetacalMoments
 
     elif ftype=='metacal-max-simn':
         fitclass=nsim.fitters.MaxMetacalSimnFitter
@@ -183,8 +217,7 @@ def run_sim(sim_conf,
             raise RuntimeError("don't have mom metacal for ngmix sim yet")
 
     elif ftype=='metacal-admom':
-        fitclass=nsim.fitters.AdmomMetacalFitter
-
+        fitclass=nsim.fitters.AMMetacalFitter
 
 
     elif ftype=='metacal-isample':
@@ -200,8 +233,14 @@ def run_sim(sim_conf,
     elif ftype=='metacal-em':
         fitclass=nsim.fitters.EMMetacalFitter
 
-    elif ftype=='deconv':
-        fitclass=nsim.fitters.Deconvolver
+
+    elif ftype=='shear-null-postpsf':
+        fitclass=nsim.fitters.ShearNullFitterPostpsf
+    elif ftype=='shear-null-prepsf':
+        fitclass=nsim.fitters.ShearNullFitterPrepsf
+
+    elif ftype=='kmom-metacal':
+        fitclass=nsim.fitters.KMomMetacalFitter
     else:
         raise RuntimeError("bad fitter: '%s'" % ftype)
 

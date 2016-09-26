@@ -1,0 +1,65 @@
+# fixed weight function
+# preserve_size=False
+# this version using em for gal fit
+# low noise
+run: "run-gg21mom-t01"
+sim: "sim-gg21"
+
+fitter: "metacal-moments"
+
+# do moments, but do an initial fit first
+fit_model: "gauss"
+
+g_prior_during: True
+use_logpars: True
+
+global_seed: 22232
+
+metacal_pars:
+  step: 0.01
+  fixnoise: False
+  symmetrize_psf: False
+  types: ['noshear','1p','1m','2p','2m']
+
+weight_T: 5.5
+
+# not used, we fit with em
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 0.1
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+    T:
+        type: "two-sided-erf"
+        pars: [-3.0, 0.25, 10.0, 0.25]
+
+    counts:
+        type: "gmixnd"
+        run: "run-gg12zmax-lownoise01"
+        extra: "log_F"
+        cov_factor: 1.44
+
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+
+ngal: 500000
+
+desired_hours: 0.25
+
+# doubled for slac
+sec_per: 0.3
+
+verbose: False

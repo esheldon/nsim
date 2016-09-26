@@ -32,19 +32,27 @@ class SummerDT(dict):
 
         sconf=self['simc']
 
-        self['nshear']=len(self['simc']['shear']['shears'])
+        shconf=self['simc']['shear']
+        if 'shears' in shconf:
+            self['nshear']=len(self['simc']['shear']['shears'])
+            shears_array=array(self['simc']['shear']['shears'])
 
-        shears_array=array(self['simc']['shear']['shears'])
+            # fake shear for selection effects
+            sh = sqrt(shears_array[:,0]**2 + shears_array[:,1]**2)
+            # in each component
+            self['fake_shear']=sh.mean()/sqrt(2)
 
-        # fake shear for selection effects
-        sh = sqrt(shears_array[:,0]**2 + shears_array[:,1]**2)
-        # in each component
-        self['fake_shear']=sh.mean()/sqrt(2)
+            #self['fake_shear']=0.045
+            #self['fake_shear']=0.01
 
-        #self['fake_shear']=0.045
-        #self['fake_shear']=0.01
+            print("fake shear:",self['fake_shear'])
 
-        print("fake shear:",self['fake_shear'])
+            s=shears_array
+            self.shears=[ ngmix.Shape(s[i,0],s[i,1]) for i in xrange(self['nshear'])]
+        else:
+            shear_pdf = nsim.shearpdf.get_shear_pdf(self['simc'])
+            self.shears=shear_pdf.shears
+        self['nshear']=len(self.shears)
 
         self._set_select()
 
@@ -113,7 +121,7 @@ class SummerDT(dict):
             Rpsf = self[n('Rpsf')]
             Rinv = self[n('Rinv')]
 
-            shears=self['simc']['shear']['shears']
+            shears=self.shears
             means=get_mean_struct(self['nshear'])
             for i in xrange(self['nshear']):
 
@@ -126,7 +134,8 @@ class SummerDT(dict):
 
                 means['shear'][i] = shear
                 means['shear_err'][i] = 1.0
-                means['shear_true'][i] = shear_true
+                means['shear_true'][i,0] = shear_true.g1
+                means['shear_true'][i,1] = shear_true.g2
 
             means['shear'][:,0] *= self.sel[0]
             means['shear'][:,1] *= self.sel[1]
@@ -1141,17 +1150,17 @@ class SummerNocorr(SummerDT):
             g[:,0]    *= winv
             g[:,1]    *= winv
 
-            shears=self['simc']['shear']['shears']
+            shears_true=self.shears
             means=get_mean_struct(self['nshear'])
             for i in xrange(self['nshear']):
 
-                shear_true = shears[i]
+                shear_true = shears_true[i]
 
                 shear = g[i]
 
                 means['shear'][i] = shear
                 means['shear_err'][i] = 1.0
-                means['shear_true'][i] = shear_true
+                means['shear_true'][i] = shear_true.g1, shear_true.g2
 
             means['shear'][:,0] *= self.sel[0]
             means['shear'][:,1] *= self.sel[1]
@@ -1301,6 +1310,8 @@ class SummerNocorr(SummerDT):
                 #sums['g'][i] += t['mcal_g'].sum(axis=0)
                 sums['g'][i,0] += g1[w].sum()
                 sums['g'][i,1] += g2[w].sum()
+            else:
+                print("none found:",i,self.shears[i])
 
         return sums
 
@@ -2237,6 +2248,7 @@ def fitline_zero_offset(x, y):
             'slope_err':0.0}
 
 def plot_line_fit(args, extra, x, y, res, xlabel, ylabel, label_error=True):
+    import biggles
     plt=biggles.FramedPlot()
 
     ymin=y.min()

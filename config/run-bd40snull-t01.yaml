@@ -1,0 +1,58 @@
+run: "run-bd40snull-t01"
+sim: "sim-bd40"
+
+fitter: "shear-null-postpsf"
+
+# do moments, but do an initial fit first
+fit_model: "gauss"
+
+global_seed: 25660
+
+# alt 9.5
+weight_T: 5.5
+
+# not used, we fit with em
+g_prior_during: True
+use_logpars: True
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 0.1
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+    T:
+        type: "two-sided-erf"
+        pars: [-3.0, 0.25, 10.0, 0.25]
+
+    counts:
+        type: "gmixnd"
+        run: "run-gg12zmax-lownoise01"
+        extra: "log_F"
+        cov_factor: 1.44
+
+
+# used during symmetrization of the PSF
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+
+ngal: 2000000
+
+desired_hours: 0.25
+
+# not doubled for bnl
+sec_per: 0.3
+
+jobs_per_condor_sub: 5000
+
+verbose: False

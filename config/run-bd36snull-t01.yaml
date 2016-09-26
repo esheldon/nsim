@@ -1,0 +1,58 @@
+run: "run-bd36snull-t01"
+sim: "sim-bd36"
+
+fitter: "metacal-moments"
+
+# do moments, but do an initial fit first
+fit_model: "gauss"
+
+global_seed: 25393
+
+# alt 9.5
+weight_T: 5.5
+
+# not used, we fit with em
+g_prior_during: True
+use_logpars: True
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 0.1
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+    T:
+        type: "two-sided-erf"
+        pars: [-3.0, 0.25, 10.0, 0.25]
+
+    counts:
+        type: "gmixnd"
+        run: "run-gg12zmax-lownoise01"
+        extra: "log_F"
+        cov_factor: 1.44
+
+
+# used during symmetrization of the PSF
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+
+ngal: 10000000
+
+desired_hours: 0.5
+
+# doubled for slac
+sec_per: 0.2
+
+jobs_per_condor_sub: 5000
+
+verbose: False

@@ -1,0 +1,54 @@
+run: "run-bd44ln-null-t02"
+sim: "sim-bd44ln"
+
+global_seed: 2373
+
+fitter: "nuller-gauss2d"
+
+# for initial fit
+fit_model: "gauss"
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 2.0
+
+    counts:
+        type: "lognormal"
+        mean: 180.0
+        sigma: 100.0
+
+    T:
+        type: "lognormal"
+        mean: 15.0
+        sigma: 15.0
+
+    g:
+        type: "ba"
+        sigma: 0.5
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+
+    replace_cov: False
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+ngal: 4000000
+
+desired_hours: 0.25
+
+sec_per: 0.05
+
+# note fitting a gaussian is 0.02 for fitting
+
+verbose: False

@@ -1,0 +1,54 @@
+# prepix psf
+# spergel profile with nu=0.5
+# include Rpsf stuff
+run: "run-bd43mcal-t02"
+sim: "sim-bd43"
+
+fitter: "spergel-metacal-exp"
+
+global_seed: 5043
+
+metacal_pars:
+    fixnoise: True
+    prepix: True
+
+priors:
+    # for spergel, this is really a combined
+    # offset from the centers for the PSF and galaxy
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    r50:
+        type: "lognormal"
+        mean: 1.53
+        sigma: 0.85
+
+    counts:
+        type: "lognormal"
+        mean: 167.0
+        sigma: 93.0
+
+    g:
+        type: "ba"
+        sigma: 0.5
+
+max_pars:
+    ntry: 5
+    lm_pars:
+        maxfev: 4000
+    cov:
+        replace_cov: False
+        cov_pars:
+            m: 5
+            h: 1.0e-3
+
+ngal: 2000000
+
+desired_hours: 0.25
+
+sec_per: 1.0
+
+# note fitting a gaussian is 0.02 for fitting
+
+verbose: False

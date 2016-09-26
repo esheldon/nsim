@@ -1,0 +1,60 @@
+# smaller number of shears, good for small runs
+name: "sim-bd46small"
+
+simulator: "galsim"
+
+# these sims are never rings
+do_ring: False
+
+noise: 1.24
+
+stamp_size: [48,48]
+
+psf:
+
+    s2n: 10000.0
+
+    model: "moffat"
+    beta: 3.5
+
+    # in arcsec, 0.9 is r50=2.07 for 0.263'' pixels
+    r50: 2.0
+    shape: [0.0, 0.025]
+
+obj_model:
+
+    model: "bd"
+
+    g:
+        type: "ba"
+        sigma: 0.2
+
+    flux:
+        type: "lognormal"
+        mean: 180.0
+        sigma: 100.0
+
+    r50:
+        type: "lognormal"
+        mean: 2.0
+        sigma: 1.0
+
+    fracdev:
+        type: "uniform"
+        range: [0.0, 1.0]
+
+    dev_shift:
+        type: "uniform"
+        # in units of r50
+        radius: 1.0
+
+    cen_shift:
+        radius: 0.5
+
+shear:
+  type: 'const-dist'
+
+  seed: 5924
+  nshear: 300
+  min_shear: 0.01
+  max_shear: 0.08

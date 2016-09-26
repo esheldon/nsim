@@ -7,7 +7,6 @@ from numpy import sqrt, array, diag, ones, zeros
 from numpy import where, newaxis, exp, log
 from numpy import newaxis
 import yaml
-import biggles
 
 import fitsio
 

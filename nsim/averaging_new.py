@@ -7,7 +7,6 @@ from numpy import sqrt, array, diag, ones, zeros
 from numpy import where, newaxis, exp, log
 from numpy import newaxis
 import yaml
-import biggles
 
 import fitsio
 
@@ -592,6 +591,7 @@ def fitline_zero_offset(x, y):
             'slope_err':0.0}
 
 def plot_line_fit(args, extra, x, y, res, xlabel, ylabel, label_error=True):
+    import biggles
     plt=biggles.FramedPlot()
 
     ymin=y.min()

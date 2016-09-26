@@ -706,29 +706,34 @@ class SimGS(dict):
 
     def _set_size_pdf(self):
         if 'r50' in self['obj_model']:
+
+
             r50spec = self['obj_model']['r50']
-
-            if r50spec['type']=='uniform':
-                r50_r = r50spec['range']
-                self.r50_pdf=ngmix.priors.FlatPrior(
-                    r50_r[0],
-                    r50_r[1],
-                    rng=self.rng,
-                )
-            elif r50spec['type']=='lognormal':
-                self.r50_pdf=ngmix.priors.LogNormal(
-                    r50spec['mean'],
-                    r50spec['sigma'],
-                    rng=self.rng,
-                )
-            elif r50spec['type']=='discrete-pdf':
-                fname=os.path.expandvars( r50spec['file'] )
-                print("Reading r50 values from file:",fname)
-                vals=fitsio.read(fname)
-                self.r50_pdf=DiscreteSampler(vals, rng=self.rng)
-
+            if not isinstance(r50spec,dict):
+                self.r50_pdf=DiscreteSampler([r50spec], rng=self.rng)
             else:
-                raise ValueError("bad r50 pdf type: '%s'" % r50spec['type'])
+
+                if r50spec['type']=='uniform':
+                    r50_r = r50spec['range']
+                    self.r50_pdf=ngmix.priors.FlatPrior(
+                        r50_r[0],
+                        r50_r[1],
+                        rng=self.rng,
+                    )
+                elif r50spec['type']=='lognormal':
+                    self.r50_pdf=ngmix.priors.LogNormal(
+                        r50spec['mean'],
+                        r50spec['sigma'],
+                        rng=self.rng,
+                    )
+                elif r50spec['type']=='discrete-pdf':
+                    fname=os.path.expandvars( r50spec['file'] )
+                    print("Reading r50 values from file:",fname)
+                    vals=fitsio.read(fname)
+                    self.r50_pdf=DiscreteSampler(vals, rng=self.rng)
+
+                else:
+                    raise ValueError("bad r50 pdf type: '%s'" % r50spec['type'])
         else:
             self.r50_pdf=None
 
@@ -745,27 +750,32 @@ class SimGS(dict):
 
     def _set_flux_pdf(self):
         fluxspec = self['obj_model']['flux']
-
-        self.flux_is_in_log = fluxspec.get('is_in_log',False)
-        if self.flux_is_in_log:
-            print("Flux pdf is log")
-
-        if fluxspec['type']=='uniform':
-            flux_r = fluxspec['range']
-            self.flux_pdf=ngmix.priors.FlatPrior(
-                flux_r[0], flux_r[1],
-                rng=self.rng,
-            )
-        elif fluxspec['type']=='lognormal':
-            self.flux_pdf=ngmix.priors.LogNormal(
-                fluxspec['mean'],
-                fluxspec['sigma'],
-                rng=self.rng,
-            )
-        elif fluxspec['type']=='gmixnd':
-            self.flux_pdf=load_gmixnd(fluxspec,rng=self.rng)
+        if not isinstance(fluxspec,dict):
+            self.flux_is_in_log = False
+            self.flux_pdf=DiscreteSampler([fluxspec], rng=self.rng)
         else:
-            raise ValueError("bad flux pdf type: '%s'" % fluxspec['type'])
+
+
+            self.flux_is_in_log = fluxspec.get('is_in_log',False)
+            if self.flux_is_in_log:
+                print("Flux pdf is log")
+
+            if fluxspec['type']=='uniform':
+                flux_r = fluxspec['range']
+                self.flux_pdf=ngmix.priors.FlatPrior(
+                    flux_r[0], flux_r[1],
+                    rng=self.rng,
+                )
+            elif fluxspec['type']=='lognormal':
+                self.flux_pdf=ngmix.priors.LogNormal(
+                    fluxspec['mean'],
+                    fluxspec['sigma'],
+                    rng=self.rng,
+                )
+            elif fluxspec['type']=='gmixnd':
+                self.flux_pdf=load_gmixnd(fluxspec,rng=self.rng)
+            else:
+                raise ValueError("bad flux pdf type: '%s'" % fluxspec['type'])
 
 class SimGMix(SimGS):
     """

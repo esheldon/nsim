@@ -1329,6 +1329,8 @@ class KMomMetacalFitter(SimpleFitterBase):
         ]
         self.interp='lanczos15'
 
+        self._set_shears()
+
     def _dofit(self, imdict):
 
         obs=imdict['obs']
@@ -1342,11 +1344,11 @@ class KMomMetacalFitter(SimpleFitterBase):
     def _do_metacal(self):
         res={}
 
-        for type,shear in shears.iteritems():
+        for type,shear in self.shears.iteritems():
             if type[0] == 'w':
-                args=self._get_weighted_im(shear)
-            else:
                 args=self._get_sheared_weight_im(shear)
+            else:
+                args=self._get_weighted_im(shear)
         
             tres=self._measure_moments(*args)
 
@@ -1378,22 +1380,33 @@ class KMomMetacalFitter(SimpleFitterBase):
         pars[4] = (self.F4*ps).sum()
         pars[5] = (self.F5*ps).sum()
 
-        pars_cov[5,5] = (self.F5**2 * self.var * wps).sum()
+        pars_cov[5,5] = (self.F5**2 * self.ps_var * wps).sum()
 
+        pars_err=sqrt(diag(pars_cov))
         wsum=wps.sum()
 
         e=zeros(2)
         ecov=zeros( (2,2))
+        flux=0.0
+        flux_s2n=0.0
+
         if pars[4] != 0:
             e[0]=-pars[2]/pars[4]
             e[1]=-pars[3]/pars[4]
 
+        if pars_cov[5,5] != 0.0:
+            flux     = pars[5]/wsum
+            flux_s2n = pars[5]/sqrt(pars_cov[5,5])
+            
         return {
             'flags':0,
             'pars':pars,
+            'pars_err':pars_err,
             'pars_cov':pars_cov,
             'g':e,
             'g_cov':ecov,
+            'flux':flux,
+            'flux_s2n':flux_s2n,
             'wsum':wsum,
         }
 
@@ -1418,7 +1431,7 @@ class KMomMetacalFitter(SimpleFitterBase):
 
 
     def _drawk(self, obj):
-        kr,ki=wtobj.drawKImage(
+        kr,ki=obj.drawKImage(
             re=self.krscratch.copy(),
             im=self.kiscratch.copy(),
         )
@@ -1445,7 +1458,7 @@ class KMomMetacalFitter(SimpleFitterBase):
 
         kr,ki=self._drawk(obj)
         nkr,nki=self._drawk(nobj)
-        wkr,wki=self._drawk(wtobj)
+        wkr,wki=self._drawk(self.wtobj)
 
         return kr,ki,nkr,nki,wkr,wki
         
@@ -1504,7 +1517,7 @@ class KMomMetacalFitter(SimpleFitterBase):
         self._set_dims_dk_jacob()
         #self._set_rowcol()
         self._set_F()
-        self._set_var(obs)
+        self._set_var_and_noise_image(obs)
 
         self.krscratch,self.kiscratch=self.ii.drawKImage(
             dtype=numpy.float64,
@@ -1564,23 +1577,44 @@ class KMomMetacalFitter(SimpleFitterBase):
         self.dk=self.ii.stepK()
 
         cen=(self.dim-1.0)/2.0
-        self.jacobian=UnitJacobian(row=cen, col=cen)
+        self.jacobian=ngmix.UnitJacobian(row=cen, col=cen)
 
-    def _set_var(self, obs):
-        var = numpy.median(obs.weight)
+    def _set_var_and_noise_image(self, obs):
+        self.medweight = numpy.median(obs.weight)
 
+        # for the noise image
+        var = 1.0/self.medweight
+        self.pixel_err = numpy.sqrt(var)
+
+        im = self.rng.normal(
+            scale=self.pixel_err,
+            size=obs.weight.shape,
+        )
+        gsimage = galsim.Image(
+            im,
+            wcs=obs.jacobian.get_galsim_wcs(),
+        )
+
+        self.nii = galsim.InterpolatedImage(
+            gsimage,
+            x_interpolant=self.interp,
+        )
+
+        self.nii_nopsf = galsim.Convolve(self.nii, self.psf_ii_inv)
+
+        #
+        # now variance on the power spectrum
+        #
         # we are using a non-unit dk
-        var *= self.dk**2
+        self.ps_var = var*self.dk**2
 
         # we will be using the power spectrum, which has twice the
         # variance
 
-        var *= 2
+        self.ps_var *= 2
 
         # we are subtracting an example noise power spectrum
-        var *= 2
-
-        self.var=var
+        self.ps_var *= 2
 
     def _set_rowcol(self):
         cen=(self.dim-1.0)/2.0
@@ -1613,7 +1647,7 @@ class KMomMetacalFitter(SimpleFitterBase):
 
 
     def _set_shears(self):
-        step=self['metacal_pars']['step']
+        step=self['metacal_pars'].get('step',0.01)
         self.shears={
             'noshear':None,
             '1p':ngmix.Shape( step, 0.0),
@@ -1670,7 +1704,7 @@ class KMomMetacalFitter(SimpleFitterBase):
         npars=self['npars']
 
         # super of super
-        dt=super(SpergelFitter,self)._get_dtype()
+        dt=super(KMomMetacalFitter,self)._get_dtype()
 
         for type in self.metacal_types:
 
@@ -1735,10 +1769,8 @@ class KMomMetacalFitter(SimpleFitterBase):
             #d['mcal_r50%s' % back][i] = r50
             #d['mcal_r50_s2n%s' % back][i] = r50_s2n
 
-            flux     = tres['pars'][5]/tres['wsum']
-            flux_s2n = tres['pars'][5]/sqrt(tres['pars_cov'][5,5])
-            d['mcal_flux%s' % back][i] = flux
-            d['mcal_flux_s2n%s' % back][i] = flux_s2n
+            d['mcal_flux%s' % back][i] = tres['flux']
+            d['mcal_flux_s2n%s' % back][i] = tres['flux_s2n']
 
             if type=='noshear':
                 for p in ['pars_cov','gpsf','Tpsf']:
@@ -1755,6 +1787,7 @@ class KMomMetacalFitter(SimpleFitterBase):
         subres=res['noshear']
 
         print("    flux s2n: %g" % subres['flux_s2n'])
+        print("    g1g2: %g %g" % tuple(subres['g']))
 
         print_pars(subres['pars'],      front='        pars: ')
         print_pars(subres['pars_err'],  front='        perr: ')

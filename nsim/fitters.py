@@ -1329,6 +1329,94 @@ class KMomMetacalFitter(SimpleFitterBase):
         ]
         self.interp='lanczos15'
 
+    def _dofit(self, imdict):
+
+        obs=imdict['obs']
+
+        self._setup_images(obs)
+
+        res=self._do_metacal()
+        res['flags']=0
+        return res
+
+    def _do_metacal(self):
+        res={}
+
+        for type,shear in shears.iteritems():
+            if type[0] == 'w':
+                args=self._get_weighted_im(shear)
+            else:
+                args=self._get_sheared_weight_im(shear)
+        
+            tres=self._measure_moments(*args)
+
+            res[type]=tres
+
+        return res
+
+    def _measure_moments(self, kr, ki, nkr, nki, wkr, wki):
+        """
+        moments of the power spectrum
+
+        todo: subtract noise ps. Deal with errors
+        """
+        pars=zeros(6)
+        pars_cov=zeros( (6,6) )
+
+        # these images are already multiplied by the weight in it already
+        ps = kr.array**2 + ki.array**2
+        nps = nkr.array**2 + nki.array**2
+
+        ps -= nps
+
+        wps = wkr.array**2 + wki.array**2
+
+        pars[0] = (self.F0*ps).sum()
+        pars[1] = (self.F1*ps).sum()
+        pars[2] = (self.F2*ps).sum()
+        pars[3] = (self.F3*ps).sum()
+        pars[4] = (self.F4*ps).sum()
+        pars[5] = (self.F5*ps).sum()
+
+        pars_cov[5,5] = (self.F5**2 * self.var * wps).sum()
+
+        wsum=wps.sum()
+
+        e=zeros(2)
+        ecov=zeros( (2,2))
+        if pars[4] != 0:
+            e[0]=-pars[2]/pars[4]
+            e[1]=-pars[3]/pars[4]
+
+        return {
+            'flags':0,
+            'pars':pars,
+            'pars_cov':pars_cov,
+            'g':e,
+            'g_cov':ecov,
+            'wsum':wsum,
+        }
+
+
+        """
+        ngmix._gmix.get_kweighted_moments_image(
+            kr.array,
+            ki.array,
+            self.var,
+
+            self.jacobian._data,
+
+            wkr.array,
+            wki.array,
+
+            pars_real,
+            pars_imag,
+
+            pars_cov,
+        )
+        """
+
+
     def _drawk(self, obj):
         kr,ki=wtobj.drawKImage(
             re=self.krscratch.copy(),
@@ -1345,11 +1433,21 @@ class KMomMetacalFitter(SimpleFitterBase):
             self.symmetrized_psf_ii,
             self.wtobj,
         )
+        nobj=galsim.Convolve(
+            self.nii_nopsf,
+            self.symmetrized_psf_ii,
+            self.wtobj,
+        )
 
         if shear is not None:
             obj=obj.shear(g1=shear.g1, g2=shear.g2)
+            nobj=nobj.shear(g1=shear.g1, g2=shear.g2)
 
-        return self._drawk(obj)
+        kr,ki=self._drawk(obj)
+        nkr,nki=self._drawk(nobj)
+        wkr,wki=self._drawk(wtobj)
+
+        return kr,ki,nkr,nki,wkr,wki
         
     def _get_sheared_weight_im(self, shear):
         """
@@ -1369,8 +1467,16 @@ class KMomMetacalFitter(SimpleFitterBase):
             psfobj,
             wtobj,
         )
+        nobj=galsim.Convolve(
+            self.nii_nopsf,
+            psfobj,
+            wtobj,
+        )
 
-        return self._drawk(obj)
+        kr,ki=self._drawk(obj)
+        nkr,nki=self._drawk(nobj)
+        wkr,wki=self._drawk(wtobj)
+        return kr,ki,nkr,nki,wkr,wki
 
 
     def _set_weight(self, obs):
@@ -1388,16 +1494,18 @@ class KMomMetacalFitter(SimpleFitterBase):
 
         self.wtobj=wtobj.shift(dx=cen[1], dy=cen[0])
 
-    def _set_gs_objects(self, obs):
+    def _setup_images(self, obs):
         import galsim
 
         self._set_weight(obs)
 
         self._set_psf_gsobj(obs)
         self._set_gal_gsobj(obs)
-        self._set_dims_dk()
+        self._set_dims_dk_jacob()
+        #self._set_rowcol()
+        self._set_F()
+        self._set_var(obs)
 
-        # draw these so we can fill them as needed later
         self.krscratch,self.kiscratch=self.ii.drawKImage(
             dtype=numpy.float64,
             nx=self.dim,
@@ -1444,11 +1552,9 @@ class KMomMetacalFitter(SimpleFitterBase):
             x_interpolant=self.interp,
         )
 
-
-        # without PSF
         self.ii_nopsf = galsim.Convolve(self.ii, self.psf_ii_inv)
 
-    def _set_dims_dk(self):
+    def _set_dims_dk_jacob(self):
         # make dimensions odd
         wmult=1.0
         self.dim = 1 + self.psf_ii.SBProfile.getGoodImageSize(
@@ -1456,6 +1562,55 @@ class KMomMetacalFitter(SimpleFitterBase):
             wmult,
         )
         self.dk=self.ii.stepK()
+
+        cen=(self.dim-1.0)/2.0
+        self.jacobian=UnitJacobian(row=cen, col=cen)
+
+    def _set_var(self, obs):
+        var = numpy.median(obs.weight)
+
+        # we are using a non-unit dk
+        var *= self.dk**2
+
+        # we will be using the power spectrum, which has twice the
+        # variance
+
+        var *= 2
+
+        # we are subtracting an example noise power spectrum
+        var *= 2
+
+        self.var=var
+
+    def _set_rowcol(self):
+        cen=(self.dim-1.0)/2.0
+
+        rows,cols=numpy.mgrid[
+            0:self.dim,
+            0:self.dim,
+        ]
+
+        self.rows=rows.astype('f8')-cen
+        self.cols=cols.astype('f8')-cen
+
+    def _set_F(self):
+        cen=(self.dim-1.0)/2.0
+
+        rows,cols=numpy.mgrid[
+            0:self.dim,
+            0:self.dim,
+        ]
+
+        rows=rows.astype('f8')-cen
+        cols=cols.astype('f8')-cen
+
+        self.F0 = rows.copy()
+        self.F1 = cols.copy()
+        self.F2 = cols**2 - rows**2
+        self.F3 = 2.0*cols*rows
+        self.F4 = cols**2 + rows**2
+        self.F5 = rows*0 + 1
+
 
     def _set_shears(self):
         step=self['metacal_pars']['step']
@@ -1472,25 +1627,6 @@ class KMomMetacalFitter(SimpleFitterBase):
         }
 
 
-    def _do_fit(self):
-        res=self._do_metacal()
-        res['flags']=0
-        return res
-
-    def _do_metacal(self):
-        res={}
-
-        for type,shear in shears.iteritems():
-            if type[0] == 'w':
-                kr,ki=self._get_weighted_image(shear)
-            else:
-                kr,ki=self._get_sheared_weight_im(shear)
-        
-            tres=self._measure_moments(kr, ki)
-
-            res[type]=tres
-
-        return res
 
 
     def _get_weighted_im_old(self, type):
@@ -1557,11 +1693,11 @@ class KMomMetacalFitter(SimpleFitterBase):
                 ]
 
             dt += [
-                ('mcal_s2n_r%s' % back,'f8'),
-                ('mcal_s2n_w%s' % back,'f8'),
+                #('mcal_s2n_r%s' % back,'f8'),
+                #('mcal_s2n_w%s' % back,'f8'),
 
-                ('mcal_r50%s' % back,'f8'),
-                ('mcal_r50_s2n%s' % back,'f8'),
+                #('mcal_r50%s' % back,'f8'),
+                #('mcal_r50_s2n%s' % back,'f8'),
                 ('mcal_flux%s' % back,'f8'),
                 ('mcal_flux_s2n%s' % back,'f8'),
             ]
@@ -1591,16 +1727,16 @@ class KMomMetacalFitter(SimpleFitterBase):
             d['mcal_g%s' % back][i] = tres['g']
             d['mcal_g_cov%s' % back][i] = tres['g_cov']
 
-            d['mcal_s2n_w%s' % back][i] = tres['s2n_w']
-            d['mcal_s2n_r%s' % back][i] = tres['s2n_r']
+            #d['mcal_s2n_w%s' % back][i] = tres['s2n_w']
+            #d['mcal_s2n_r%s' % back][i] = tres['s2n_r']
 
-            r50 = tres['pars'][4]
-            r50_s2n = r50/sqrt(tres['pars_cov'][4,4])
-            d['mcal_r50%s' % back][i] = r50
-            d['mcal_r50_s2n%s' % back][i] = r50_s2n
+            #r50 = tres['pars'][4]
+            #r50_s2n = r50/sqrt(tres['pars_cov'][4,4])
+            #d['mcal_r50%s' % back][i] = r50
+            #d['mcal_r50_s2n%s' % back][i] = r50_s2n
 
-            flux     = tres['pars'][5]
-            flux_s2n = flux/sqrt(tres['pars_cov'][5,5])
+            flux     = tres['pars'][5]/tres['wsum']
+            flux_s2n = tres['pars'][5]/sqrt(tres['pars_cov'][5,5])
             d['mcal_flux%s' % back][i] = flux
             d['mcal_flux_s2n%s' % back][i] = flux_s2n
 
@@ -1618,10 +1754,7 @@ class KMomMetacalFitter(SimpleFitterBase):
 
         subres=res['noshear']
 
-        s2n_rat = subres['s2n_r']/subres['s2n_w']
-        mess="    mcal s2n_w: %.1f s2n_r: %.1f rat: %g nfev: %d"
-        print(mess % (subres['s2n_w'],subres['s2n_r'],s2n_rat,subres['nfev']))
-
+        print("    flux s2n: %g" % subres['flux_s2n'])
 
         print_pars(subres['pars'],      front='        pars: ')
         print_pars(subres['pars_err'],  front='        perr: ')

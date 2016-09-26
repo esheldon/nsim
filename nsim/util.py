@@ -665,4 +665,21 @@ def get_shrink_factor(shear):
     s = ( (1+e)/(1-e) )**0.25
     return s
 
+def complex_multiply(a, b, c, d, scratch, real_res, imag_res):
+    """
+    (a + i *b) * (c + i *d)
+    =
+    (ac-bd) + i* (ad + bc)
+    """
+
+    numpy.multiply(a, c, real_res)
+    numpy.multiply(b, d, scratch)
+
+    real_res -= scratch
+
+    numpy.multiply(a, d, imag_res)
+    numpy.multiply(b, c, scratch)
+
+    imag_res += scratch
+
 

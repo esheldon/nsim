@@ -35,6 +35,14 @@ low noise bd, larger psf and gals
 	  c2: 2.346e-06 +/- 4.017e-05
 
 
+- run-bd45mcal01
+    - same as bd43 but now with offset and lower s/n
+    - looks bad even with cuts, is it offsets or lower s/n?
+        - my guess is offset, but I don't know
+        - priors also changed....
+    - priors won't have same effect when errors are wrong....
+    I already played with this but should probably just fix it.
+    - and the flux s/n is overestimated...
 
 
 REAL METACAL

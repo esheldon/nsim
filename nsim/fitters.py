@@ -1313,6 +1313,321 @@ class SpergelMetacalExpFitter(SpergelMetacalFitter):
         )
         return runner
 
+class KMomMetacalFitter(SimpleFitterBase):
+    """
+    - might be effects not captured by the galsim
+      Convolve
+    - probably should dilate while we are symmetrizing
+    """
+    def _setup(self, *args, **kw):
+        super(KMomMetacalFitter,self)._setup(*args, **kw)
+
+        self.metacal_types=[
+            'noshear',
+            '1p','1m','2p','2m',
+            'w1p','w1m','w2p','w2m',
+        ]
+        self.interp='lanczos15'
+
+    def _drawk(self, obj):
+        kr,ki=wtobj.drawKImage(
+            re=self.krscratch.copy(),
+            im=self.kiscratch.copy(),
+        )
+        return kr, ki
+
+    def _get_weighted_im(self, shear):
+        """
+        weighted image, possibly sheared
+        """
+        obj=galsim.Convolve(
+            self.ii_nopsf,
+            self.symmetrized_psf_ii,
+            self.wtobj,
+        )
+
+        if shear is not None:
+            obj=obj.shear(g1=shear.g1, g2=shear.g2)
+
+        return self._drawk(obj)
+        
+    def _get_sheared_weight_im(self, shear):
+        """
+        weighted image, possibly with *weight* sheared
+        """
+
+        wtobj=self.wtobj.shear(
+            g1=shear.g1,
+            g2=shear.g2,
+        )
+        psfobj=self.symmetrized_psf_ii.shear(
+            g1=shear.g1,
+            g2=shear.g2,
+        )
+        obj=galsim.Convolve(
+            self.ii_nopsf,
+            psfobj,
+            wtobj,
+        )
+
+        return self._drawk(obj)
+
+
+    def _set_weight(self, obs):
+        """
+        for now used fixed weight function
+        """
+        import galsim
+
+        r50=1.54
+        cen=obs.jacobian.get_cen()
+        wtobj=galsim.Gaussian(half_light_radius=r50)
+
+        # shifts are in world coordinates (offset during a
+        # write image will be in the image coords)
+
+        self.wtobj=wtobj.shift(dx=cen[1], dy=cen[0])
+
+    def _set_gs_objects(self, obs):
+        import galsim
+
+        self._set_weight(obs)
+
+        self._set_psf_gsobj(obs)
+        self._set_gal_gsobj(obs)
+        self._set_dims_dk()
+
+        # draw these so we can fill them as needed later
+        self.krscratch,self.kiscratch=self.ii.drawKImage(
+            dtype=numpy.float64,
+            nx=self.dim,
+            ny=self.dim,
+            scale=self.dk,
+        )
+
+
+    def _set_psf_gsobj(self, obs):
+        # normalized
+        psf_gsimage = galsim.Image(
+            obs.psf.image/obs.psf.image.sum(),
+            wcs=obs.psf.jacobian.get_galsim_wcs(),
+        )
+
+        symmetrized_psf_image = ngmix.metacal._make_symmetrized_image(
+            psf_gsimage.array,
+        )
+        symmetrized_psf_gsimage = galsim.Image(
+            symmetrized_psf_image,
+            wcs=obs.psf.jacobian.get_galsim_wcs(),
+        )
+
+        self.psf_ii = galsim.InterpolatedImage(
+            psf_gsimage,
+            x_interpolant=self.interp,
+        )
+        self.psf_ii_inv = galsim.Deconvolve(self.psf_ii)
+
+        dilation=self['metacal_pars']['symmetrize_dilation']
+        self.symmetrized_psf_ii = galsim.InterpolatedImage(
+            symmetrized_psf_gsimage,
+            x_interpolant=self.interp,
+        ).dilate(dilation)
+
+    def _set_gal_gsobj(self, obs):
+        gsimage = galsim.Image(
+            obs.image,
+            wcs=obs.jacobian.get_galsim_wcs(),
+        )
+
+        self.ii = galsim.InterpolatedImage(
+            gsimage,
+            x_interpolant=self.interp,
+        )
+
+
+        # without PSF
+        self.ii_nopsf = galsim.Convolve(self.ii, self.psf_ii_inv)
+
+    def _set_dims_dk(self):
+        # make dimensions odd
+        wmult=1.0
+        self.dim = 1 + self.psf_ii.SBProfile.getGoodImageSize(
+            self.psf_ii.nyquistScale(),
+            wmult,
+        )
+        self.dk=self.ii.stepK()
+
+    def _set_shears(self):
+        step=self['metacal_pars']['step']
+        self.shears={
+            'noshear':None,
+            '1p':ngmix.Shape( step, 0.0),
+            '1m':ngmix.Shape(-step, 0.0),
+            '2p':ngmix.Shape( 0.0,  step),
+            '2m':ngmix.Shape( 0.0, -step),
+            'w1p':ngmix.Shape( step, 0.0),
+            'w1m':ngmix.Shape(-step, 0.0),
+            'w2p':ngmix.Shape( 0.0,  step),
+            'w2m':ngmix.Shape( 0.0, -step),
+        }
+
+
+    def _do_fit(self):
+        res=self._do_metacal()
+        res['flags']=0
+        return res
+
+    def _do_metacal(self):
+        res={}
+
+        for type,shear in shears.iteritems():
+            if type[0] == 'w':
+                kr,ki=self._get_weighted_image(shear)
+            else:
+                kr,ki=self._get_sheared_weight_im(shear)
+        
+            tres=self._measure_moments(kr, ki)
+
+            res[type]=tres
+
+        return res
+
+
+    def _get_weighted_im_old(self, type):
+        scratch=self.scratch
+        kr=self.krscratch
+        ki=self.kiscratch
+        if type=='noshear':
+
+            imwt=galsim.Convolve(
+                self.ii,
+                self.wt
+            )
+            kr=self.krscratch
+            ki=self.kiscratch
+
+            util.complex_multiply(
+                self.kr.array, self.ki.array,
+                self.wt_kr.array, self.wt_ki.array,
+                scratch.array,
+                kr.array, ki.array,
+            )
+
+        elif type[0]=='w':
+            # unsheared image times sheared psf*weight
+            w_shim=self.sheared_images[type]
+            kr=self.kr_nopsf * w_shim['kr']
+            ki=self.ki_nopsf * w_shim['kr']
+        else:
+            # sheared whole image
+            shim=self.sheared_images[type]
+            kr=shim['kr']*self.wt_kr
+            ki=shim['ki']*self.wt_ki
+
+        return kr, ki
+
+
+    def _get_dtype(self):
+        """
+        get the dtype for the output struct
+        """
+        npars=self['npars']
+
+        # super of super
+        dt=super(SpergelFitter,self)._get_dtype()
+
+        for type in self.metacal_types:
+
+            if type=='noshear':
+                back=''
+            else:
+                back='_%s' % type
+
+            dt += [
+                ('mcal_g%s' % back,'f8',2),
+                ('mcal_g_cov%s' % back,'f8',(2,2)),
+                ('mcal_pars%s' % back,'f8',npars),
+            ]
+
+            if type=='noshear':
+                dt += [
+                    ('mcal_pars_cov','f8',(npars,npars)),
+                    ('mcal_gpsf','f8',2),
+                    ('mcal_Tpsf','f8'),
+                ]
+
+            dt += [
+                ('mcal_s2n_r%s' % back,'f8'),
+                ('mcal_s2n_w%s' % back,'f8'),
+
+                ('mcal_r50%s' % back,'f8'),
+                ('mcal_r50_s2n%s' % back,'f8'),
+                ('mcal_flux%s' % back,'f8'),
+                ('mcal_flux_s2n%s' % back,'f8'),
+            ]
+
+        return dt
+
+    def _copy_to_output(self, res, i):
+        """
+        copy parameters specific to this class
+        """
+
+        # note copying super of our super, since
+        # we didn't do a regular fit
+        super(SimpleFitterBase,self)._copy_to_output(res, i)
+
+        d=self.data
+
+        for type in self.metacal_types:
+
+            tres=res[type]
+            if type=='noshear':
+                back=''
+            else:
+                back='_%s' % type
+
+            d['mcal_pars%s' % back][i] = tres['pars']
+            d['mcal_g%s' % back][i] = tres['g']
+            d['mcal_g_cov%s' % back][i] = tres['g_cov']
+
+            d['mcal_s2n_w%s' % back][i] = tres['s2n_w']
+            d['mcal_s2n_r%s' % back][i] = tres['s2n_r']
+
+            r50 = tres['pars'][4]
+            r50_s2n = r50/sqrt(tres['pars_cov'][4,4])
+            d['mcal_r50%s' % back][i] = r50
+            d['mcal_r50_s2n%s' % back][i] = r50_s2n
+
+            flux     = tres['pars'][5]
+            flux_s2n = flux/sqrt(tres['pars_cov'][5,5])
+            d['mcal_flux%s' % back][i] = flux
+            d['mcal_flux_s2n%s' % back][i] = flux_s2n
+
+            if type=='noshear':
+                for p in ['pars_cov','gpsf','Tpsf']:
+
+                    if p in tres:
+                        name='mcal_%s' % p
+                        d[name][i] = tres[p]
+
+    def _print_res(self,res):
+        """
+        print some stats
+        """
+
+        subres=res['noshear']
+
+        s2n_rat = subres['s2n_r']/subres['s2n_w']
+        mess="    mcal s2n_w: %.1f s2n_r: %.1f rat: %g nfev: %d"
+        print(mess % (subres['s2n_w'],subres['s2n_r'],s2n_rat,subres['nfev']))
+
+
+        print_pars(subres['pars'],      front='        pars: ')
+        print_pars(subres['pars_err'],  front='        perr: ')
+
+        print_pars(res['pars_true'], front='        true: ')
+
 
 
 class MaxMetacalRoundAnalyticPSFFitter(MaxMetacalFitter):

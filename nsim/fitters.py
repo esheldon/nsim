@@ -1511,13 +1511,13 @@ class KMomMetacalFitter(SimpleFitterBase):
         import galsim
 
         r50=1.54
-        cen=obs.jacobian.get_cen()
-        wtobj=galsim.Gaussian(half_light_radius=r50)
+        self.wtobj=galsim.Gaussian(half_light_radius=r50)
 
         # shifts are in world coordinates (offset during a
         # write image will be in the image coords)
 
-        self.wtobj=wtobj.shift(dx=cen[1], dy=cen[0])
+        #cen=obs.jacobian.get_cen()
+        #self.wtobj=self.wtobj.shift(dx=cen[1], dy=cen[0])
 
     def _setup_images(self, obs):
         import galsim

@@ -19,7 +19,7 @@ psf:
 
     # 0.9'' fwhm in pixels is 3.422
     # which for a beta=3.5 moffat is r50=2.07
-    r50: 2.07
+    r50: 2.0
     shape: [0.0, 0.025]
 
 obj_model:
@@ -28,7 +28,7 @@ obj_model:
 
     flux: 180.0
 
-    r50: 2.5
+    r50: 2.0
 
     g:
         type: "ba"

@@ -200,6 +200,9 @@ class FitterBase(dict):
                 self['npars']=6
             else:
                 self['npars']=ngmix.gmix.get_model_npars(self['fit_model'])
+        else:
+            # default to 6
+            self['npars']=6
 
         # this is "full" pars
         if 'psf_pars' in self:
@@ -361,6 +364,9 @@ class SimpleFitterBase(FitterBase):
         """
         import ngmix
         from ngmix.joint_prior import PriorSimpleSep
+
+        if 'priors' not in self:
+            return None
 
         if 'masking' in self:
             self
@@ -1393,9 +1399,13 @@ class KMomMetacalFitter(SimpleFitterBase):
         flux=0.0
         flux_s2n=0.0
 
+        # e1k,e2k = -e1,-e2
+        pars[2] *= -1
+        pars[3] *= -1
+
         if pars[4] != 0:
-            e[0]=-pars[2]/pars[4]
-            e[1]=-pars[3]/pars[4]
+            e[0]=pars[2]/pars[4]
+            e[1]=pars[3]/pars[4]
 
         if pars_cov[5,5] != 0.0:
             flux     = pars[5]/wsum
@@ -1745,6 +1755,7 @@ class KMomMetacalFitter(SimpleFitterBase):
 
             if type=='noshear':
                 dt += [
+                    ('mcal_wsum','f8'),
                     ('mcal_pars_cov','f8',(npars,npars)),
                     ('mcal_gpsf','f8',2),
                     ('mcal_Tpsf','f8'),
@@ -1797,7 +1808,7 @@ class KMomMetacalFitter(SimpleFitterBase):
             d['mcal_flux_s2n%s' % back][i] = tres['flux_s2n']
 
             if type=='noshear':
-                for p in ['pars_cov','gpsf','Tpsf']:
+                for p in ['pars_cov','wsum','gpsf','Tpsf']:
 
                     if p in tres:
                         name='mcal_%s' % p

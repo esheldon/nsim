@@ -1371,6 +1371,9 @@ class KMomMetacalFitter(SimpleFitterBase):
 
         ps -= nps
 
+        if False:
+            self._do_plots(ps)
+
         wps = wkr.array**2 + wki.array**2
 
         pars[0] = (self.F0*ps).sum()
@@ -1429,6 +1432,11 @@ class KMomMetacalFitter(SimpleFitterBase):
         )
         """
 
+    def _do_plots(self, im):
+        import images
+        images.multiview(im)
+        if 'q'==raw_input('hit a key: '):
+            stop
 
     def _drawk(self, obj):
         kr,ki=obj.drawKImage(
@@ -1587,6 +1595,10 @@ class KMomMetacalFitter(SimpleFitterBase):
             wmult,
         )
         self.dk=self.ii.stepK()
+
+        if False:
+            self.dk *= 0.5
+            self.dim *= 2
 
         cen=(self.dim-1.0)/2.0
         self.jacobian=ngmix.UnitJacobian(row=cen, col=cen)

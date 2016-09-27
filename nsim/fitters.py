@@ -1377,7 +1377,18 @@ class KMomMetacalFitter(SimpleFitterBase):
         ps = kr.array**2 + ki.array**2
         nps = nkr.array**2 + nki.array**2
 
+
+        #var = self.ps_var
+        var = 2*nps.var()
+
         ps -= nps
+
+        if False:
+            import images
+            images.multiview(ps, title='ps',file='/u/ki/esheldon/public_html/tmp/plots/tmp.png')
+            images.multiview(nps, title='nps',file='/u/ki/esheldon/public_html/tmp/plots/tmpn.png')
+            if 'q'==raw_input("hit a key: "):
+                stop
 
         if False:
             self._do_plots(ps)
@@ -1389,9 +1400,13 @@ class KMomMetacalFitter(SimpleFitterBase):
         pars[2] = (self.F2*ps).sum()
         pars[3] = (self.F3*ps).sum()
         pars[4] = (self.F4*ps).sum()
-        pars[5] = (self.F5*ps).sum()
+        pars[5] = ps.sum()
 
-        pars_cov[5,5] = (self.F5**2 * self.ps_var * wps).sum()
+        pars_cov[5,5] = var*ps.size
+        #print("F:",pars[5],sqrt(pars_cov[5,5]))
+        #pars_cov[5,5] = self.ps_var*(wps**2).sum()
+        #pars_cov[5,5] = var*(wps**2).sum()
+        #pars_cov[5,5] = var*ps.size
 
         pars_err=sqrt(diag(pars_cov))
         wsum=wps.sum()
@@ -1429,25 +1444,6 @@ class KMomMetacalFitter(SimpleFitterBase):
             'wsum':wsum,
         }
 
-
-        """
-        ngmix._gmix.get_kweighted_moments_image(
-            kr.array,
-            ki.array,
-            self.var,
-
-            self.jacobian._data,
-
-            wkr.array,
-            wki.array,
-
-            pars_real,
-            pars_imag,
-
-            pars_cov,
-        )
-        """
-
     def _do_plots(self, im):
         import images
         images.multiview(im)
@@ -1465,6 +1461,22 @@ class KMomMetacalFitter(SimpleFitterBase):
         """
         weighted image, possibly sheared
         """
+
+        if False:
+            import images
+            kr,ki=self._drawk(self.ii)
+            ps=kr.array**2 + ki.array**2
+            images.multiview(ps, file='/u/ki/esheldon/public_html/tmp/plots/tmp-opsf.png')
+            tmp=galsim.Convolve(
+                self.ii_nopsf,
+                self.symmetrized_psf_ii,
+            )
+            tkr,tki=self._drawk(tmp)
+            tps=tkr.array**2 + tki.array**2
+            images.multiview(tps, file='/u/ki/esheldon/public_html/tmp/plots/tmp-npsf.png')
+            if 'q'==raw_input("hit a key1: "):
+                stop
+
         obj=galsim.Convolve(
             self.ii_nopsf,
             self.symmetrized_psf_ii,
@@ -1501,25 +1513,16 @@ class KMomMetacalFitter(SimpleFitterBase):
             g1=shear.g1,
             g2=shear.g2,
         )
+
         obj=galsim.Convolve(
             self.ii_nopsf,
             psfobj,
             wtobj,
         )
-
-        nwtobj=self.wtobj.shear(
-            g1=nshear.g1,
-            g2=nshear.g2,
-        )
-        npsfobj=self.symmetrized_psf_ii.shear(
-            g1=nshear.g1,
-            g2=nshear.g2,
-        )
-
         nobj=galsim.Convolve(
             self.nii_nopsf,
-            npsfobj,
-            nwtobj,
+            psfobj,
+            wtobj,
         )
 
         kr,ki=self._drawk(obj)
@@ -1534,7 +1537,8 @@ class KMomMetacalFitter(SimpleFitterBase):
         """
         import galsim
 
-        r50=1.54
+        wtpars=self['weight']
+        r50=wtpars.get('r50',2.0)
         self.wtobj=galsim.Gaussian(half_light_radius=r50)
 
         # shifts are in world coordinates (offset during a
@@ -1545,6 +1549,7 @@ class KMomMetacalFitter(SimpleFitterBase):
 
     def _setup_images(self, obs):
         import galsim
+        import images
 
         self._set_weight(obs)
 
@@ -1564,31 +1569,52 @@ class KMomMetacalFitter(SimpleFitterBase):
 
 
     def _set_psf_gsobj(self, obs):
+        mpars=self['metacal_pars']
+
         # normalized
         psf_gsimage = galsim.Image(
             obs.psf.image/obs.psf.image.sum(),
             wcs=obs.psf.jacobian.get_galsim_wcs(),
         )
-
-        symmetrized_psf_image = ngmix.metacal._make_symmetrized_image(
-            psf_gsimage.array,
-        )
-        symmetrized_psf_gsimage = galsim.Image(
-            symmetrized_psf_image,
-            wcs=obs.psf.jacobian.get_galsim_wcs(),
-        )
-
         self.psf_ii = galsim.InterpolatedImage(
             psf_gsimage,
             x_interpolant=self.interp,
         )
         self.psf_ii_inv = galsim.Deconvolve(self.psf_ii)
 
-        dilation=self['metacal_pars']['symmetrize_dilation']
-        self.symmetrized_psf_ii = galsim.InterpolatedImage(
-            symmetrized_psf_gsimage,
-            x_interpolant=self.interp,
-        ).dilate(dilation)
+        if mpars['symmetrize_psf']:
+            symmetrized_psf_image = ngmix.metacal._make_symmetrized_image(
+                psf_gsimage.array,
+            )
+            symmetrized_psf_gsimage = galsim.Image(
+                symmetrized_psf_image,
+                wcs=obs.psf.jacobian.get_galsim_wcs(),
+            )
+
+            dilation=self['metacal_pars']['symmetrize_dilation']
+            self.symmetrized_psf_ii = galsim.InterpolatedImage(
+                symmetrized_psf_gsimage,
+                x_interpolant=self.interp,
+            ).dilate(dilation)
+        elif mpars['analytic_psf']:
+            self.symmetrized_psf_ii=self._get_analytic_psf(obs)
+        else:
+            raise RuntimeError("either symmetrize psf or analytic psf")
+
+    def _get_analytic_psf(self, obs):
+        import galsim
+
+        pars=self['metacal_pars']['analytic_psf']
+        if pars['model']=='moffat':
+            obj=galsim.Moffat(
+                pars['beta'],
+                half_light_radius=pars['r50'],
+            )
+        else:
+            raise ValueError("bad analytic psf model: '%s'" % pars['model'])
+
+        return obj
+
 
     def _set_gal_gsobj(self, obs):
         gsimage = galsim.Image(
@@ -1607,23 +1633,30 @@ class KMomMetacalFitter(SimpleFitterBase):
         # make dimensions odd
         wmult=1.0
         self.dim = 1 + self.psf_ii.SBProfile.getGoodImageSize(
+        #self.dim = 0 + self.psf_ii.SBProfile.getGoodImageSize(
             self.psf_ii.nyquistScale(),
             wmult,
         )
         self.dk=self.ii.stepK()
 
-        if False:
-            self.dk *= 0.5
-            self.dim *= 2
+        dk_factor=self.get('dk_factor',None)
+        if dk_factor is not None:
+            self.dk *= dk_factor
+            self.dim *= int(1.0/dk_factor)
+            if (self.dim % 2) == 0:
+                self.dim += 1
+
+        #print("dk:",self.dk,"dim:",self.dim)
 
         cen=(self.dim-1.0)/2.0
+        #cen=(self.dim-1.0)/2.0 + 0.5
         self.jacobian=ngmix.UnitJacobian(row=cen, col=cen)
 
     def _set_var_and_noise_image(self, obs):
-        self.medweight = numpy.median(obs.weight)
+        medweight = numpy.median(obs.weight)
 
         # for the noise image
-        var = 1.0/self.medweight
+        var = 1.0/medweight
         self.pixel_err = numpy.sqrt(var)
 
         im = self.rng.normal(
@@ -1645,16 +1678,17 @@ class KMomMetacalFitter(SimpleFitterBase):
         #
         # now variance on the power spectrum
         #
-        # we are using a non-unit dk
-        self.ps_var = var*self.dk**2
 
-        # we will be using the power spectrum, which has twice the
+        # first parseval's theorem
+        # also we will be using the power spectrum, which has twice the
         # variance
-
-        self.ps_var *= 2
+        self.ps_var=2*var*obs.weight.size
 
         # we are subtracting an example noise power spectrum
         self.ps_var *= 2
+
+        # we are using a non-unit dk
+        self.ps_var *= (1.0/self.dk**2)
 
     def _set_rowcol(self):
         cen=(self.dim-1.0)/2.0

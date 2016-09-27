@@ -3,6 +3,8 @@ import os
 import numpy
 from numpy import exp, log, zeros, ones, sqrt, newaxis
 import ngmix
+
+import esutil as eu
 from esutil.random import srandu
 from ngmix.gexceptions import GMixRangeError
 
@@ -681,6 +683,35 @@ def complex_multiply(a, b, c, d, scratch, real_res, imag_res):
     numpy.multiply(b, c, scratch)
 
     imag_res += scratch
+
+def get_kmom_shear(data, step=0.01):
+    h,rev=eu.stat.histogram(data['shear_index'], rev=True)
+
+    nbin=h.size
+
+    dt=[
+        ('shear_true','f8',2),
+        ('shear','f8',2),
+        ('shear_err','f8',2),
+    ]
+    out=numpy.zeros(nbin, dtype=dt)
+    for i in xrange(nbin):
+        w=rev[ rev[i]:rev[i+1] ]
+        R1, R2 = get_kmom_R(data[w], step=step)
+        R1mean=R1.mean()
+        R2mean=R2.mean()
+
+        R=numpy.array([R1mean, R2mean])
+
+        g=data['mcal_g'][w].mean(axis=0)
+        gerr=data['mcal_g'][w].std(axis=0)/sqrt(w.size)
+
+        out['shear'][i,:] = g/R
+        out['shear_err'][i,:] = gerr/R
+
+        out['shear_true'][i,:] = data['shear_true'][w[0]]
+
+    return out
 
 
 def get_kmom_R(data, step=0.01):

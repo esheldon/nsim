@@ -45,7 +45,7 @@ low noise bd, larger psf and gals
         I already played with this but should probably just fix it.
         - and the flux s/n is overestimated...
 
-- sim-bd45small
+- sim-bd46small
     - mean galaxy size is psf size
     - mode of true s/n ~ 10
     - center offsets
@@ -54,6 +54,29 @@ low noise bd, larger psf and gals
     - run-bd45small-mcal01
         - 100M
         - "true" priors on flux and r50 (but with b+d r50 is not right)
+
+        s/n > 10    0.74
+        R: [ 0.48666088  0.48665628]
+        Rpsf: [ 0.  0.]
+
+        Rsel: [ 0.00140454  0.00128805]
+        Rpsf_sel: [ 0.  0.]
+        without correction
+        errors are 2 sigma
+          m1: 3.208e-03 +/- 2.181e-03 c1: -7.469e-06 +/- 7.580e-05  r1: 0.00421
+          m2: 1.867e-03 +/- 2.094e-03 c2: 2.379e-05 +/- 7.286e-05  r2: -0.0392
+          m:  2.537e-03 +/- 1.517e-03
+          c1: -7.567e-06 +/- 7.455e-05
+          c2: 2.288e-05 +/- 7.458e-05
+
+        with correction
+        errors are 2 sigma
+          m1: 3.209e-04 +/- 2.175e-03 c1: -7.447e-06 +/- 7.558e-05  r1: 0.00421
+          m2: -7.778e-04 +/- 2.089e-03 c2: 2.373e-05 +/- 7.267e-05  r2: -0.0392
+          m:  -2.286e-04 +/- 1.512e-03
+          c1: -7.528e-06 +/- 7.433e-05
+          c2: 2.298e-05 +/- 7.436e-05
+
 
 REAL METACAL
 --------------

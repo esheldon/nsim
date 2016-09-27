@@ -1,0 +1,24 @@
+run: "run-bd48mn-mcal-t01"
+sim: "sim-bd48mn"
+
+fitter: "kmom-metacal"
+
+global_seed: 19
+
+metacal_pars:
+    # just fixing this for now
+    symmetrize_dilation: 1.05
+
+weight:
+    r50: 2.0
+
+ngal: 2000000
+
+desired_hours: 0.10
+
+# slower due to dk
+sec_per: 0.07
+
+jobs_per_condor_sub: 5000
+
+verbose: False

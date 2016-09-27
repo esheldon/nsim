@@ -1,0 +1,54 @@
+run: "run-bd46small-mcal02"
+sim: "sim-bd46small"
+
+fitter: "spergel-metacal-exp"
+
+global_seed: 5318
+
+metacal_pars:
+    symmetrize_psf: True
+    symmetrize_dilation: 1.05
+
+    types: ['noshear','1p','1m','2p','2m']
+
+priors:
+    # for spergel, this is really a combined
+    # offset from the centers for the PSF and galaxy
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    r50:
+        type: "lognormal"
+        mean: 2.0
+        sigma: 1.0
+
+    counts:
+        type: "lognormal"
+        mean: 180.0
+        sigma: 100.0
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+max_pars:
+    ntry: 5
+    lm_pars:
+        maxfev: 4000
+    cov:
+        replace_cov: False
+        cov_pars:
+            m: 5
+            h: 1.0e-3
+
+ngal: 100000000
+
+desired_hours: 1.0
+
+# doubled at slac
+sec_per: 0.5
+
+jobs_per_condor_sub: 5000
+
+verbose: False

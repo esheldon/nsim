@@ -1,0 +1,60 @@
+# medium noise, low shapenoise
+# like bd47 but many shears
+# size/flux fixed
+name: "sim-bd48mn"
+
+simulator: "galsim"
+
+# these sims are never rings
+do_ring: False
+
+noise: 0.1
+#noise: 2.0
+
+stamp_size: [48,48]
+
+psf:
+
+    s2n: 10000.0
+
+    model: "moffat"
+    beta: 3.5
+
+    # 0.9'' fwhm in pixels is 3.422
+    # which for a beta=3.5 moffat is r50=2.07
+    r50: 2.0
+    shape: [0.0, 0.025]
+
+obj_model:
+
+    model: "bd"
+
+    g:
+        type: "ba"
+        sigma: 0.02
+
+    flux: 180.0
+
+    r50: 2.0
+
+    fracdev:
+        type: "uniform"
+        range: [0.0, 1.0]
+
+    dev_shift:
+        type: "uniform"
+        # in units of r50
+        radius: 1.0
+
+    cen_shift:
+        radius: 0.5
+
+label: "$bulge-disk$"
+
+shear:
+  type: 'const-dist'
+
+  seed: 2238
+  nshear: 300
+  min_shear: 0.01
+  max_shear: 0.08

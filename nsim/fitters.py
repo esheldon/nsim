@@ -1357,6 +1357,8 @@ class KMomMetacalFitter(SimpleFitterBase):
                 args=self._get_weighted_im(shear)
         
             tres=self._measure_moments(*args)
+            if tres['flags'] != 0:
+                raise TryAgainError("bad T")
 
             res[type]=tres
 
@@ -1411,8 +1413,12 @@ class KMomMetacalFitter(SimpleFitterBase):
             flux     = pars[5]/wsum
             flux_s2n = pars[5]/sqrt(pars_cov[5,5])
             
+        flags=0
+        if pars[4] <= 0.0:
+            flags=1
+
         return {
-            'flags':0,
+            'flags':flags,
             'pars':pars,
             'pars_err':pars_err,
             'pars_cov':pars_cov,

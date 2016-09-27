@@ -1,0 +1,22 @@
+run: "run-bd47ln-mcal-t01"
+sim: "sim-bd47ln"
+
+fitter: "kmom-metacal"
+
+use_logpars: False
+
+global_seed: 19883
+
+metacal_pars:
+    # just fixing this for now
+    symmetrize_dilation: 1.05
+
+ngal: 2000000
+
+desired_hours: 0.20
+
+sec_per: 0.05
+
+jobs_per_condor_sub: 5000
+
+verbose: False

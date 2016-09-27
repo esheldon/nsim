@@ -683,3 +683,43 @@ def complex_multiply(a, b, c, d, scratch, real_res, imag_res):
     imag_res += scratch
 
 
+def get_kmom_R(data, step=0.01):
+    """
+    need selections
+    """
+
+    e1 = data['mcal_g'][:, 0]
+    e2 = data['mcal_g'][:, 1]
+
+    # not normalized
+    T  = data['mcal_pars'][:, 4]#/data['mcal_wsum']
+
+    M1R, TR1, M2R, TR2 = _get_kmom_R(data, 'mcal_pars_', step=step)
+    wM1R, wTR1, wM2R, wTR2 = _get_kmom_R(data, 'mcal_pars_w', step=step)
+
+    R1tot = M1R/T - e1/T*TR1
+    R2tot = M2R/T - e2/T*TR2
+
+    wR1 = wM1R/T - e1/T*wTR1
+    wR2 = wM2R/T - e2/T*wTR2
+
+    R1 = R1tot - wR1
+    R2 = R2tot - wR2
+
+    print(R1tot.mean(), wR1.mean(), R1.mean())
+
+    return R1, R2
+
+def _get_kmom_R(data, front, step=0.01):
+    pars_1p=data['%s%s' % (front,'1p')]
+    pars_1m=data['%s%s' % (front,'1m')]
+    pars_2p=data['%s%s' % (front,'2p')]
+    pars_2m=data['%s%s' % (front,'2m')]
+
+    M1R = (pars_1p[:,2]-pars_1m[:,2])/(2*step)
+    TR1 = (pars_1p[:,4]-pars_1m[:,4])/(2*step)
+
+    M2R = (pars_2p[:,3]-pars_2m[:,3])/(2*step)
+    TR2 = (pars_2p[:,4]-pars_2m[:,4])/(2*step)
+
+    return M1R, TR1, M2R, TR2

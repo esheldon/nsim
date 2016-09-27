@@ -13,9 +13,9 @@ metacal_pars:
 
 ngal: 2000000
 
-desired_hours: 0.20
+desired_hours: 0.10
 
-sec_per: 0.05
+sec_per: 0.07
 
 jobs_per_condor_sub: 5000
 

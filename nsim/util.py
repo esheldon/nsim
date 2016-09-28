@@ -1,5 +1,5 @@
 from __future__ import print_function
-import os
+import os, sys
 import numpy
 from numpy import exp, log, zeros, ones, sqrt, newaxis
 import ngmix
@@ -696,6 +696,7 @@ def get_kmom_shear(data, step=0.01):
     ]
     out=numpy.zeros(nbin, dtype=dt)
     for i in xrange(nbin):
+        sys.stdout.write("."); sys.stdout.flush()
         w=rev[ rev[i]:rev[i+1] ]
         R1, R2 = get_kmom_R(data[w], step=step)
         R1mean=R1.mean()
@@ -711,6 +712,7 @@ def get_kmom_shear(data, step=0.01):
 
         out['shear_true'][i,:] = data['shear_true'][w[0]]
 
+    print()
     return out
 
 
@@ -737,7 +739,7 @@ def get_kmom_R(data, step=0.01):
     R1 = R1tot - wR1
     R2 = R2tot - wR2
 
-    print(R1tot.mean(), wR1.mean(), R1.mean())
+    #print(R1tot.mean(), wR1.mean(), R1.mean())
 
     return R1, R2
 

@@ -1,0 +1,33 @@
+# this one we sheared noise the same way
+
+run: "run-bd48hn-mcal-t05"
+sim: "sim-bd48hn"
+
+fitter: "kmom-metacal-pre"
+
+global_seed: 6994
+
+metacal_pars:
+    analytic_psf:
+        model: "ksigma"
+
+        sigma: 3.5
+
+    symmetrize_psf: False
+    #symmetrize_psf: True
+    #symmetrize_dilation: 1.10
+
+    shear_noise: True
+
+weight:
+    type: null
+
+ngal: 10000000
+
+desired_hours: 0.25
+
+sec_per: 0.07
+
+jobs_per_condor_sub: 5000
+
+verbose: False

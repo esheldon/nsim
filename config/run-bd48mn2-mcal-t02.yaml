@@ -1,0 +1,27 @@
+# k sigma
+run: "run-bd48mn2-mcal-t02"
+sim: "sim-bd48mn2"
+
+fitter: "kmom-metacal-pre"
+
+global_seed: 19965
+
+metacal_pars:
+    analytic_psf:
+        model: "ksigma"
+        sigma: 3.5
+
+    shear_noise: True
+
+    dk_factor: 0.5
+    alter_dims: False
+
+ngal: 10000000
+
+desired_hours: 0.25
+
+sec_per: 0.07
+
+jobs_per_condor_sub: 5000
+
+verbose: False

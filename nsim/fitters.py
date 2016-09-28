@@ -1489,7 +1489,8 @@ class KMomMetacalFitter(SimpleFitterBase):
         )
 
         if shear is not None:
-            nshear=-shear
+            #nshear=-shear
+            nshear=shear
             obj=obj.shear(g1=shear.g1, g2=shear.g2)
             nobj=nobj.shear(g1=nshear.g1, g2=nshear.g2)
 
@@ -1503,7 +1504,8 @@ class KMomMetacalFitter(SimpleFitterBase):
         """
         weighted image, possibly with *weight* sheared
         """
-        nshear=-shear
+        #nshear=-shear
+        nshear=shear
 
         wtobj=self.wtobj.shear(
             g1=shear.g1,
@@ -1513,16 +1515,24 @@ class KMomMetacalFitter(SimpleFitterBase):
             g1=shear.g1,
             g2=shear.g2,
         )
-
         obj=galsim.Convolve(
             self.ii_nopsf,
             psfobj,
             wtobj,
         )
+
+        nwtobj=self.wtobj.shear(
+            g1=nshear.g1,
+            g2=nshear.g2,
+        )
+        npsfobj=self.symmetrized_psf_ii.shear(
+            g1=nshear.g1,
+            g2=nshear.g2,
+        )
         nobj=galsim.Convolve(
             self.nii_nopsf,
-            psfobj,
-            wtobj,
+            npsfobj,
+            nwtobj,
         )
 
         kr,ki=self._drawk(obj)

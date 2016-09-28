@@ -1,0 +1,37 @@
+# this one we sheared noise the same way
+
+run: "run-bd48mn-mcal-t04"
+sim: "sim-bd48mn"
+
+fitter: "kmom-metacal"
+
+global_seed: 8742
+
+metacal_pars:
+    #analytic_psf:
+    #    model: "moffat"
+    #    beta: 3.5
+
+        # to account for both the dilation for round and
+        # the shearing
+   #     r50: 2.15
+
+    symmetrize_psf: True
+    symmetrize_dilation: 1.075
+    #symmetrize_dilation: 1.0
+
+weight:
+    r50: 2.0
+
+#dk_factor: 0.5
+
+ngal: 2000000
+
+desired_hours: 0.10
+
+# slower due to dk
+sec_per: 0.07
+
+jobs_per_condor_sub: 5000
+
+verbose: False

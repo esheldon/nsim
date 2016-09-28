@@ -24,7 +24,7 @@ weight:
 
 ngal: 10000000
 
-desired_hours: 0.12
+desired_hours: 0.25
 
 # slower due to dk
 sec_per: 0.07

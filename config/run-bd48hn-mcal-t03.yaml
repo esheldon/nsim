@@ -22,6 +22,7 @@ metacal_pars:
     shear_noise: True
 
 weight:
+    type: "gaussian"
     r50: 2.0
 
 ngal: 10000000

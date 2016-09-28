@@ -1955,7 +1955,6 @@ class KMomMetacalFitter(SimpleFitterBase):
         if False:
             self._do_plots(ps)
 
-        wps = wkr.array**2 + wki.array**2
 
         pars[0] = (self.F0*ps).sum()
         pars[1] = (self.F1*ps).sum()
@@ -1964,14 +1963,19 @@ class KMomMetacalFitter(SimpleFitterBase):
         pars[4] = (self.F4*ps).sum()
         pars[5] = ps.sum()
 
-        #pars_cov[5,5] = var*ps.size
+        if self.wtobj is not None:
+            wps = wkr.array**2 + wki.array**2
+            wsum=wps.sum()
+        else:
+            wsum=1.0
+
+        pars_cov[5,5] = var*ps.size
         #print("F:",pars[5],sqrt(pars_cov[5,5]))
         #pars_cov[5,5] = self.ps_var*(wps**2).sum()
-        pars_cov[5,5] = var*(wps**2).sum()
+        #pars_cov[5,5] = var*(wps**2).sum()
         #pars_cov[5,5] = var*ps.size
 
         pars_err=sqrt(diag(pars_cov))
-        wsum=wps.sum()
 
         e=zeros(2)
         ecov=zeros( (2,2))
@@ -2014,7 +2018,13 @@ class KMomMetacalFitter(SimpleFitterBase):
 
         wtpars=self['weight']
         r50=wtpars.get('r50',2.0)
-        self.wtobj=galsim.Gaussian(half_light_radius=r50)
+
+        if wtpars['type']=='gaussian':
+            self.wtobj=galsim.Gaussian(half_light_radius=r50)
+        elif wtpars['type']==None:
+            self.wtobj=None
+        else:
+            raise ValueError("bad weight type: '%s'" % wtpars['type'])
 
         # shifts are in world coordinates (offset during a
         # write image will be in the image coords)
@@ -2159,21 +2169,20 @@ class KMetacal(dict):
 
         shear=self.get_shear(type)
         if shear is not None:
-            #nshear=-shear
-            nshear=shear
             obj=obj.shear(g1=shear.g1, g2=shear.g2)
-            nobj=nobj.shear(g1=nshear.g1, g2=nshear.g2)
 
-        obj=galsim.Convolve(
-            obj,
-            self.final_psf,
-            self.wtobj,
-        )
-        nobj=galsim.Convolve(
-            nobj,
-            self.final_psf,
-            self.wtobj,
-        )
+            nshear=shear
+            if self['shear_noise']==True:
+                nobj=nobj.shear(g1=nshear.g1, g2=nshear.g2)
+            #else:
+            #    nobj=nobj.dilate(1.0 + sqrt(nshear.g1**2 + nshear.g2**2) )
+
+        c=[self.final_psf]
+        if self.wtobj is not None:
+            c += [self.wtobj]
+
+        obj=galsim.Convolve( [obj] + c )
+        nobj=galsim.Convolve( [nobj] + c )
 
         # returning weight for noise calculations
         kr,ki=self._drawk(obj)
@@ -2300,7 +2309,10 @@ class KMetacal(dict):
         self.jacobian=ngmix.UnitJacobian(row=cen, col=cen)
 
     def _set_weight_image(self):
-        self.wkr,self.wki=self._drawk(self.wtobj)
+        if self.wtobj is not None:
+            self.wkr,self.wki=self._drawk(self.wtobj)
+        else:
+            self.wkr,self.wki=None,None
 
     def _set_scratch_images(self):
         self.krscratch,self.kiscratch=self.ii.drawKImage(

@@ -77,6 +77,23 @@ low noise bd, larger psf and gals
           c1: -7.528e-06 +/- 7.433e-05
           c2: 2.298e-05 +/- 7.436e-05
 
+- sim-bd48ln - low noise
+- sim-bd48mn - mid noise
+- sim-bd48hn - high noise
+
+    - run-bd48mn-mcal-t06
+        R: [ 0.57801498  0.57844296]
+        Rpsf: [ 0.  0.]
+        errors are 2 sigma
+          m1: -3.173e-04 +/- 7.149e-04 c1: -1.884e-05 +/- 2.416e-05  r1: 0.0676
+          m2: 1.287e-05 +/- 6.761e-04 c2: 1.095e-05 +/- 2.299e-05  r2: 0.0468
+        errors are 2 sigma
+          m:  -1.509e-04 +/- 4.933e-04
+          c1: -1.846e-05 +/- 2.364e-05
+          c2: 1.069e-05 +/- 2.362e-05
+
+
+    - run-bd48hn-mcal-t03
 
 REAL METACAL
 --------------

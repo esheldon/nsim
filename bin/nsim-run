@@ -240,6 +240,8 @@ def run_sim(sim_conf,
         fitclass=nsim.fitters.ShearNullFitterPrepsf
 
     elif ftype=='kmom-metacal':
+        fitclass=nsim.fitters.KMomMetacalFitterPost
+    elif ftype=='kmom-metacal-pre':
         fitclass=nsim.fitters.KMomMetacalFitter
     else:
         raise RuntimeError("bad fitter: '%s'" % ftype)

@@ -94,6 +94,52 @@ low noise bd, larger psf and gals
 
 
     - run-bd48hn-mcal-t03
+        bad
+
+    - run-bd48mn-mcal-t08 run-bd48mn-mcal-t09
+        broader psf (no explicit other weight)
+        10M+4M
+
+        R: [ 0.47648295  0.47654733]
+        Rpsf: [ 0.  0.]
+        errors are 2 sigma
+          m1: -8.063e-04 +/- 5.601e-04 c1: 8.937e-06 +/- 1.893e-05  r1: 0.0676
+          m2: -6.540e-04 +/- 5.591e-04 c2: -1.620e-06 +/- 1.901e-05  r2: 0.0468
+        errors are 2 sigma
+          m:  -7.296e-04 +/- 3.967e-04
+          c1: 9.113e-06 +/- 1.901e-05
+          c2: -1.741e-06 +/- 1.900e-05
+
+    - run-bd48hn-mcal-t04
+        broader round psf (no explicit other weight)
+        10M
+        note bad psf leakage too.... presumably because noise is
+        still more amplified in a particular direction
+
+        R: [ 0.48330136  0.49621268]
+        Rpsf: [ 0.  0.]
+        errors are 2 sigma
+          m1: -1.318e-02 +/- 4.034e-03 c1: 6.805e-05 +/- 1.363e-04  r1: 0.0676
+          m2: -3.758e-02 +/- 3.730e-03 c2: 7.561e-04 +/- 1.269e-04  r2: 0.0468
+        errors are 2 sigma
+          m:  -2.547e-02 +/- 2.929e-03
+          c1: 3.995e-05 +/- 1.403e-04
+          c2: 7.754e-04 +/- 1.403e-04
+
+     - k sigma weight and 0.5*dk from psf (was using from gal accidentally)
+         - run-bd48mn-mcal-t11
+         - run-bd48mn-mcal-t12
+         4M+10M
+        R: [ 0.37913995  0.37913197]
+        Rpsf: [ 0.  0.]
+        errors are 2 sigma
+          m1: -7.117e-04 +/- 6.037e-04 c1: 8.437e-08 +/- 2.040e-05  r1: 0.0676
+          m2: -6.628e-04 +/- 5.972e-04 c2: 1.036e-05 +/- 2.031e-05  r2: 0.0468
+        errors are 2 sigma
+          m:  -6.870e-04 +/- 4.256e-04
+          c1: 1.407e-07 +/- 2.039e-05
+          c2: 1.032e-05 +/- 2.038e-05
+
 
 REAL METACAL
 --------------

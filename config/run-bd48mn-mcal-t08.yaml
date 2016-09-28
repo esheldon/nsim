@@ -1,0 +1,34 @@
+# this one we sheared noise the same way
+
+run: "run-bd48mn-mcal-t08"
+sim: "sim-bd48mn"
+
+fitter: "kmom-metacal-pre"
+
+global_seed: 2893
+
+metacal_pars:
+    analytic_psf:
+        model: "moffat"
+        beta: 3.5
+
+        r50: 4.12
+
+    symmetrize_psf: False
+    #symmetrize_psf: True
+    #symmetrize_dilation: 1.50
+
+    shear_noise: True
+
+weight:
+    type: null
+
+ngal: 4000000
+
+desired_hours: 0.1
+
+sec_per: 0.07
+
+jobs_per_condor_sub: 5000
+
+verbose: False

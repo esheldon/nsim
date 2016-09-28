@@ -1651,7 +1651,8 @@ class KMomMetacalFitterPost(SimpleFitterBase):
             self.psf_ii.nyquistScale(),
             wmult,
         )
-        self.dk=self.ii.stepK()
+        #self.dk=self.ii.stepK()
+        self.dk=self.psf_ii.stepK()
 
         dk_factor=self.get('dk_factor',None)
         if dk_factor is not None:
@@ -1904,7 +1905,8 @@ class KMomMetacalFitter(SimpleFitterBase):
         obs=imdict['obs']
 
         self._set_weight(obs) 
-        self.kmcal=KMetacal(obs, self['metacal_pars'], self.wtobj, self.rng)
+
+        self._set_metacal(obs)
 
         self._set_F(self.kmcal.dim)
 
@@ -1912,11 +1914,20 @@ class KMomMetacalFitter(SimpleFitterBase):
         res['flags']=0
         return res
 
+    def _set_metacal(self, obs):
+        mpars=self['metacal_pars']
+        if ('analytic_psf' in mpars and
+                mpars['analytic_psf']['model']=='ksigma'):
+            self.kmcal=KMetacalKSigma(obs, mpars, self.rng)
+        else:
+            self.kmcal=KMetacal(obs, self['metacal_pars'], self.wtobj, self.rng)
+
     def _do_metacal(self):
         res={}
 
         for type in self.metacal_types:
-            args=self.kmcal.get_sheared_images(type)
+            #args=self.kmcal.get_sheared_images(type)
+            args=self.kmcal.get_sheared_ps(type)
         
             tres=self._measure_moments(*args)
             if tres['flags'] != 0:
@@ -1926,7 +1937,8 @@ class KMomMetacalFitter(SimpleFitterBase):
 
         return res
 
-    def _measure_moments(self, kr, ki, nkr, nki, wkr, wki):
+    #def _measure_moments(self, kr, ki, nkr, nki, wkr, wki):
+    def _measure_moments(self, ps, wps):
         """
         moments of the power spectrum
 
@@ -1936,14 +1948,13 @@ class KMomMetacalFitter(SimpleFitterBase):
         pars_cov=zeros( (6,6) )
 
         # these images are already multiplied by the weight in it already
-        ps = kr.array**2 + ki.array**2
-        nps = nkr.array**2 + nki.array**2
+        #ps = kr.array**2 + ki.array**2
+        #nps = nkr.array**2 + nki.array**2
 
 
         var = self.kmcal.ps_var
-        #var = 2*nps.var()
 
-        ps -= nps
+        #ps -= nps
 
         if False:
             import images
@@ -1963,11 +1974,12 @@ class KMomMetacalFitter(SimpleFitterBase):
         pars[4] = (self.F4*ps).sum()
         pars[5] = ps.sum()
 
-        if self.wtobj is not None:
-            wps = wkr.array**2 + wki.array**2
-            wsum=wps.sum()
-        else:
-            wsum=1.0
+        #if self.wtobj is not None:
+        #    wps = wkr.array**2 + wki.array**2
+        #    wsum=wps.sum()
+        #else:
+        #    wsum=1.0
+        wsum=wps.sum()
 
         pars_cov[5,5] = var*ps.size
         #print("F:",pars[5],sqrt(pars_cov[5,5]))
@@ -2016,15 +2028,18 @@ class KMomMetacalFitter(SimpleFitterBase):
         """
         import galsim
 
-        wtpars=self['weight']
-        r50=wtpars.get('r50',2.0)
-
-        if wtpars['type']=='gaussian':
-            self.wtobj=galsim.Gaussian(half_light_radius=r50)
-        elif wtpars['type']==None:
+        if 'weight' not in self:
             self.wtobj=None
         else:
-            raise ValueError("bad weight type: '%s'" % wtpars['type'])
+            wtpars=self['weight']
+            r50=wtpars.get('r50',2.0)
+
+            if wtpars['type']=='gaussian':
+                self.wtobj=galsim.Gaussian(half_light_radius=r50)
+            elif wtpars['type']==None:
+                self.wtobj=None
+            else:
+                raise ValueError("bad weight type: '%s'" % wtpars['type'])
 
         # shifts are in world coordinates (offset during a
         # write image will be in the image coords)
@@ -2159,6 +2174,17 @@ class KMetacal(dict):
 
         self._setup()
 
+    def get_sheared_ps(self, type):
+        kr,ki,nkr,nki,self.wkr,self.wki=self.get_sheared_images(type)
+
+        ps = kr.array**2 + ki.array**2
+        nps = nkr.array**2 + nki.array**2
+
+        ps -= nps
+
+        wt2=self.wkr.array**2 + self.wki.array**2
+        return ps, wt2
+
     def get_sheared_images(self, type):
         """
         get the sheared image, reconvolved by psf and weight
@@ -2202,7 +2228,6 @@ class KMetacal(dict):
 
         self._set_psf_gsobj()
         self._set_gal_gsobj()
-        self._set_dims_dk_jacob()
         self._set_scratch_images()
 
         self._set_weight_image()
@@ -2238,6 +2263,8 @@ class KMetacal(dict):
         )
         self.psf_ii = self._make_interpolated_image(psf_gsimage)
         self.psf_ii_inv = galsim.Deconvolve(self.psf_ii)
+
+        self._set_dims_dk_jacob()
 
         shear_dilation=1.0 + 2.0*self['step']
         if self['symmetrize_psf']:
@@ -2285,6 +2312,7 @@ class KMetacal(dict):
         )
 
         self.ii = self._make_interpolated_image(gsimage)
+        #print("gal dk:",self.ii.stepK())
 
         self.ii_nopsf = galsim.Convolve(self.ii, self.psf_ii_inv)
 
@@ -2295,14 +2323,21 @@ class KMetacal(dict):
             self.psf_ii.nyquistScale(),
             wmult,
         )
-        self.dk=self.ii.stepK()
+        #self.dk=self.ii.stepK()
+        self.dk=self.psf_ii.stepK()
+
+        #print("psf dk:",self.dk)
+        
 
         dk_factor=self.get('dk_factor',None)
         if dk_factor is not None:
+            print("applying dk factor:",dk_factor)
             self.dk *= dk_factor
-            self.dim *= int(1.0/dk_factor)
-            if (self.dim % 2) == 0:
-                self.dim += 1
+
+            if self['alter_dims']:
+                self.dim *= int(1.0/dk_factor)
+                if (self.dim % 2) == 0:
+                    self.dim += 1
 
 
         cen=(self.dim-1.0)/2.0
@@ -2387,6 +2422,103 @@ class KMetacal(dict):
         )
         return kr, ki
 
+
+class KMetacalKSigma(KMetacal):
+    def __init__(self, obs, config, rng):
+        self.obs=obs
+        self.update(config)
+        self.rng=rng
+
+        self._setup()
+
+    def get_sheared_ps(self, type):
+        obj=self.ii_nopsf
+        nobj=self.nii_nopsf
+
+        shear=self.get_shear(type)
+        if shear is not None:
+            obj=obj.shear(g1=shear.g1, g2=shear.g2)
+
+            nshear=shear
+            if self['shear_noise']==True:
+                nobj=nobj.shear(g1=nshear.g1, g2=nshear.g2)
+
+        # returning weight for noise calculations
+        kr,ki=self._drawk(obj)
+        nkr,nki=self._drawk(nobj)
+
+        ps = kr.array**2 + ki.array**2
+        nps = nkr.array**2 + nki.array**2
+
+        if False:
+            self._plot_images(ps, nps, ps-nps, (ps-nps)*self.wps, 
+                              label1='PS', label2='NPS', label3='PS-NPS',
+                              label4='WPS*(PS-NPS)')
+
+
+        ps -= nps
+        ps  *= self.wps
+
+
+        if False:
+            self._plot_images(ps, self.wps, label1='PS Subtracted',label2='WPS')
+
+        return ps, self.wps
+
+    def _plot_images(self, im1, im2, im3, im4, label1='', label2='', label3='', label4=''):
+        import biggles
+        import images
+        tab=biggles.Table(4,1)
+
+        tab[0,0]=images.multiview(im1, title=label1, show=False) 
+        tab[1,0]=images.multiview(im2, title=label2, show=False) 
+        tab[2,0]=images.multiview(im3, title=label3, show=False) 
+        tab[3,0]=images.multiview(im4, title=label4, show=False) 
+
+        tab.write_img(1000,2000,'/u/ki/esheldon/public_html/tmp/plots/tmp.png')
+        if 'q'==raw_input('hit a key: '):
+            stop
+
+    def _set_psf_gsobj(self):
+        import deconv
+        obs=self.obs
+
+
+        # normalized
+        psf_gsimage = galsim.Image(
+            obs.psf.image/obs.psf.image.sum(),
+            wcs=obs.psf.jacobian.get_galsim_wcs(),
+        )
+        self.psf_ii = self._make_interpolated_image(psf_gsimage)
+        self.psf_ii_inv = galsim.Deconvolve(self.psf_ii)
+
+        self._set_dims_dk_jacob()
+
+        # sigma in real space
+        sigma=self['analytic_psf']['sigma']
+
+        # the k space size is in k pixels sigmak/dk
+        # since sigmak=1/sigma, then we want (1/sigma)/dk
+        # so multiply real space sigma by dk
+
+        sigma *= self.dk
+
+        cen=self.jacobian.get_cen()
+        N=4.0
+        kmax = numpy.sqrt(2*N)/sigma
+        if kmax > cen[0]:
+            raise ValueError("kmax exceeds rmax: %g > %g" % (kmax,cen[0]))
+
+        kwt=deconv.weight.KSigmaWeight(sigma)
+
+        wtim, rows, cols = kwt.get_weight(
+            [self.dim,self.dim],
+            cen,
+        )
+        self.wps = wtim**2
+
+    def _set_weight_image(self):
+        pass
 
 
 class MaxMetacalRoundAnalyticPSFFitter(MaxMetacalFitter):

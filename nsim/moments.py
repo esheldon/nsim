@@ -71,12 +71,6 @@ class MetacalMomentsFixed(SimpleFitterBase):
         todo: subtract noise ps. Deal with errors
         """
 
-        if self['use_canonical_center']:
-            ccen=(numpy.array(obs.image.shape)-1.0)/2.0
-
-            obs.jacold=obs.jacobian.copy()
-            obs.jacobian.set_cen(row=ccen[0], col=ccen[1])
-
         jac=obs.jacobian
         cen=jac.get_cen()
         dims=obs.image.shape
@@ -91,9 +85,6 @@ class MetacalMomentsFixed(SimpleFitterBase):
 
         # flags would only be set if there were ivar <= 0
         res=self.wt_gmix.get_weighted_moments(obs, rmax=rmax)
-
-        if self['use_canonical_center']:
-            obs.jacobian=obs.jacold
 
         if False:
             momslow=self._get_moments_slow(obs)
@@ -139,29 +130,7 @@ class MetacalMomentsFixed(SimpleFitterBase):
         """
         for now used fixed gaussian weight function
         """
-        import galsim
-        from math import sqrt
-
-        wtpars=self['weight']
-        if 'r50' in wtpars:
-            #sigma = wtpars['r50']/sqrt(2(log(2)))
-            sigma = wtpars['r50']/1.1774100225154747
-            T=2*sigma**2
-
-        elif 'sigma' in wtpars:
-            sigma = wtpars['sigma']
-            T=2*sigma**2
-
-        elif 'T' in wtpars:
-            T = wtpars['T']
-
-        else:
-            raise RuntimeError("have either r50 or sigma "
-                               "in weight section")
-
-        # for now at the jacobian center
-        pars=[0.0, 0.0, 0.0, 0.0, T, 1.0]
-        self.wt_gmix=ngmix.GMixModel(pars, "gauss")
+        self.wt_gmix = _get_weight(obs, self)
 
     def _get_dtype(self):
         """
@@ -320,18 +289,6 @@ class MetacalMomentsFixed(SimpleFitterBase):
  
         return pars
 
-class MetacalMomentsAM(MetacalMomentsFixed):
-    def _dofit(self, imdict):
-
-        obs=imdict['obs']
-
-        self._set_metacal(obs)
-
-        res=self._do_metacal()
-        res['flags']=0
-        return res
-
-
     def _get_guess(self):
         rng=self.rng
 
@@ -343,6 +300,17 @@ class MetacalMomentsAM(MetacalMomentsFixed):
 
         guess=ngmix.GMixModel(pars, "gauss")
         return guess
+
+class MetacalMomentsAM(MetacalMomentsFixed):
+    def _dofit(self, imdict):
+
+        obs=imdict['obs']
+
+        self._set_metacal(obs)
+
+        res=self._do_metacal()
+        res['flags']=0
+        return res
 
     def _measure_moments(self, obs):
         """
@@ -421,4 +389,154 @@ class MetacalMomentsAM(MetacalMomentsFixed):
 
         return dt
 
+class MetacalMomentsDeweight(MetacalMomentsFixed):
+
+    def _measure_psf_am(self, obs):
+        """
+        moments of the power spectrum
+
+        todo: subtract noise ps. Deal with errors
+        """
+
+        ampars=self['admom_pars']
+        ntry=ampars.pop('ntry',4)
+
+        fitter=ngmix.admom.Admom(obs.psf, **ampars)
+
+        for i in xrange(ntry):
+            guess=self._get_guess()
+
+            fitter.go(guess)
+            res=fitter.get_result()
+
+            if res['flags'] == 0:
+                break
+
+        if res['flags'] != 0:
+            raise TryAgainError("admom failed for psf")
+
+        return res
+
+    def _measure_moments(self, obs):
+        """
+        moments of the power spectrum
+
+        todo: subtract noise ps. Deal with errors
+        """
+
+        # [ [Irr, Irc]
+        #   [Irc, Icc] ]
+        psf_res = self._measure_psf_am(obs)
+
+        ppars=psf_res['pars']
+        Mpsf = _M1M2T_to_matrix(ppars[2], ppars[3], ppars[4])
+
+        res=super(MetacalMomentsDeweight,self)._measure_moments(obs)
+        if res['flags'] != 0:
+            raise TryAgainError("bad moments")
+
+        wpars=res['pars']
+        M1 = wpars[2]/wpars[5]
+        M2 = wpars[3]/wpars[5]
+        T  = wpars[4]/wpars[5]
+
+        Mmeas = _M1M2T_to_matrix(M1, M2, T)
+
+        try:
+            Mmeas_inv = numpy.linalg.pinv(Mmeas)
+        except numpy.linalg.LinAlgError:
+            raise TryAgainError("could not invert observed moment matrix")
+
+
+        Minv_deweight = Mmeas_inv - self.Mwt_inv
+
+        try:
+            Mdeweight = numpy.linalg.pinv(Minv_deweight )
+        except numpy.linalg.LinAlgError:
+            raise TryAgainError("could not invert deweighted moment matrix")
+        
+        M = Mdeweight - Mpsf
+
+        Irr = M[0,0]
+        Irc = M[0,1]
+        Icc = M[1,1]
+
+        res['T'] = Irr + Icc
+        if res['T']==0.0:
+            res['flags'] = 2**0
+        else:
+            res['g'][0] = (Icc - Irr)/res['T']
+            res['g'][1] = 2.0*Irc/res['T']
+
+        return res
+
+
+    def _set_weight(self, obs):
+        """
+        for now used fixed gaussian weight function
+        """
+        super(MetacalMomentsDeweight,self)._set_weight(obs)
+
+        g1,g2,T = self.wt_gmix.get_g1g2T()
+
+        M=zeros( (2,2) )
+        Minv=zeros( (2,2) )
+        M[0,0] = T/2.0
+        M[1,1] = T/2.0
+
+        Minv[0,0] = 1.0/M[0,0]
+        Minv[1,1] = 1.0/M[1,1]
+
+        self.Mwt = M
+
+        self.Mwt_inv = Minv
+
+
+def _get_weight(obs, config):
+    """
+    for now used fixed gaussian weight function
+    """
+    import galsim
+    from math import sqrt
+
+    wtpars=config['weight']
+    if 'r50' in wtpars:
+        #sigma = wtpars['r50']/sqrt(2(log(2)))
+        sigma = wtpars['r50']/1.1774100225154747
+        T=2*sigma**2
+
+    elif 'sigma' in wtpars:
+        sigma = wtpars['sigma']
+        T=2*sigma**2
+
+    elif 'T' in wtpars:
+        T = wtpars['T']
+
+    else:
+        raise RuntimeError("have either r50 or sigma "
+                           "in weight section")
+
+    # for now at the jacobian center
+    pars=[0.0, 0.0, 0.0, 0.0, T, 1.0]
+    wt_gmix=ngmix.GMixModel(pars, "gauss")
+
+    return wt_gmix
+
+def _M1M2T_to_matrix(M1, M2, T):
+    Irr, Irc, Icc = _M1M2T_to_IrrIrcIcc(M1, M2, T)
+
+    M = zeros( (2,2) )
+    M[0,0] = Irr
+    M[0,1] = Irc
+    M[1,0] = Irc
+    M[1,1] = Icc
+    return M
+
+
+def _M1M2T_to_IrrIrcIcc(M1, M2, T):
+    Icc = 0.5*(T + M1)
+    Irr = 0.5*(T - M1)
+    Irc = 0.5*M2
+
+    return Irr, Irc, Icc
 

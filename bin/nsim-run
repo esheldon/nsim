@@ -167,6 +167,10 @@ def run_sim(sim_conf,
     elif ftype=='metacal-moments-am':
         # different am fitter
         fitclass=nsim.moments.MetacalMomentsAM
+    elif ftype=='metacal-moments-deweight':
+        # different am fitter
+        fitclass=nsim.moments.MetacalMomentsDeweight
+
 
 
     elif ftype=='metacal-max-simn':

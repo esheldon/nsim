@@ -71,14 +71,35 @@ class MetacalMomentsFixed(SimpleFitterBase):
         todo: subtract noise ps. Deal with errors
         """
 
+        if self['use_canonical_center']:
+            ccen=(numpy.array(obs.image.shape)-1.0)/2.0
+
+            obs.jacold=obs.jacobian.copy()
+            obs.jacobian.set_cen(row=ccen[0], col=ccen[1])
+
         jac=obs.jacobian
         cen=jac.get_cen()
+        dims=obs.image.shape
 
         scale=jac.get_scale()
-        rmax=min(cen)*scale
+
+        min_rdiff=min(cen[0], (dims[0]-1)-cen[0] )
+        min_cdiff=min(cen[1], (dims[1]-1)-cen[1] )
+        min_diff=min(min_rdiff, min_cdiff)
+
+        rmax=min_diff*scale
 
         # flags would only be set if there were ivar <= 0
         res=self.wt_gmix.get_weighted_moments(obs, rmax=rmax)
+
+        if self['use_canonical_center']:
+            obs.jacobian=obs.jacold
+
+        if False:
+            momslow=self._get_moments_slow(obs)
+            print_pars(res['pars'],  front="    pars fast:")
+            print_pars(momslow,      front="    pars slow:")
+            print_pars(momslow-res['pars'], front="    diff:     ",fmt='%.16g')
 
         if False:
             self._do_plots(obs)
@@ -266,4 +287,84 @@ class MetacalMomentsFixed(SimpleFitterBase):
         if 'q'==raw_input("hit a key: "):
             stop
 
+    def _get_moments_slow(self, obs):
+        cen=obs.jacobian.get_cen()
+        dims=obs.image.shape
+        rows,cols=numpy.mgrid[
+            0:dims[0],
+            0:dims[1],
+        ]
+
+        rows=rows.astype('f8')-cen[0]
+        cols=cols.astype('f8')-cen[1]
+
+        self.F0 = rows.copy()
+        self.F1 = cols.copy()
+        self.F2 = cols**2 - rows**2
+        self.F3 = 2.0*cols*rows
+        self.F4 = cols**2 + rows**2
+        self.F5 = rows*0 + 1
+
+        wt=self.wt_gmix.make_image(obs.image.shape, jacobian=obs.jacobian)
+
+        wtim=wt*obs.image
+
+        pars=zeros(6)
+        pars[0] = (self.F0*wtim).sum()
+        pars[1] = (self.F1*wtim).sum()
+        pars[2] = (self.F2*wtim).sum()
+        pars[3] = (self.F3*wtim).sum()
+        pars[4] = (self.F4*wtim).sum()
+        pars[5] = wtim.sum()
+
+ 
+        return pars
+
+class MetacalMomentsAM(MetacalMomentsFixed):
+    def _dofit(self, imdict):
+
+        obs=imdict['obs']
+
+        self._set_metacal(obs)
+
+        res=self._do_metacal()
+        res['flags']=0
+        return res
+
+
+    def _measure_moments(self, obs):
+        """
+        moments of the power spectrum
+
+        todo: subtract noise ps. Deal with errors
+        """
+        rng=self.rng
+
+        pars=zeros(6)
+        pars[0:0+2] = rng.uniform(low=-0.1, high=0.1, size=2)
+        pars[2:2+2] = rng.uniform(low=-0.1, high=0.1, size=2)
+        pars[4]     = 4.0*(1.0 + rng.uniform(low=-0.1, high=0.1))
+        pars[5]     = 1.0
+
+        guess=ngmix.GMixModel(pars, "gauss")
+
+        ampars=self['admom_pars']
+        fitter=ngmix.admom.Admom(obs, **ampars)
+        fitter.go(guess)
+
+        res=fitter.get_result()
+        if res['flags'] == 0:
+            res['g']=res['e']
+            res['g_cov']=res['e_cov']
+            res['pars']=res['sums']
+
+            # not right pars cov
+            res['pars_cov']=res['sums_cov']*0
+
+        res['pars_err']=sqrt(diag(res['pars_cov']))
+
+        res['flux'] = res['pars'][5]
+        res['flux_s2n'] = res['sums'][5]/sqrt(res['sums_cov'][5,5])
+
+        return res
 

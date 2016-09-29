@@ -1,0 +1,31 @@
+run: "run-bd49mn-mcal-t02"
+sim: "sim-bd49mn"
+
+fitter: "metacal-moments-deweight"
+
+global_seed: 25651
+
+metacal_pars:
+    fixnoise: True
+
+admom_pars:
+    maxiter: 1000
+
+weight:
+    # psf r50 is 2.0 and gal r50 is 2.0
+    # sigma ~ 1.70
+    # if gaussians, total T would be 2*(2*sigma**2)
+    # = 11.56
+    # and sigma would be 2.4
+
+    r50: 2.4
+
+ngal: 2000000
+
+desired_hours: 0.25
+
+sec_per: 0.25
+
+jobs_per_condor_sub: 5000
+
+verbose: False

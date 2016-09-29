@@ -5516,7 +5516,7 @@ class Deconvolver(FitterBase):
         d['dk'][i] = res['dk']
 
 
-class MetacalMoments(SimpleFitterBase):
+class MetacalMomentsOLD(SimpleFitterBase):
     def _dofit(self, imdict):
         from .bootstrappers import MetacalMomentBootstrapper
 

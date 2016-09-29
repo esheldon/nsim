@@ -1,0 +1,25 @@
+run: "run-bd49ln-mcal-t03"
+sim: "sim-bd49ln"
+
+fitter: "metacal-moments-am"
+
+global_seed: 14177
+
+metacal_pars:
+    fixnoise: True
+    #prepix: True
+
+admom_pars:
+    maxiter: 1000
+
+use_canonical_center: True
+
+ngal: 2000000
+
+desired_hours: 0.25
+
+sec_per: 0.25
+
+jobs_per_condor_sub: 5000
+
+verbose: False

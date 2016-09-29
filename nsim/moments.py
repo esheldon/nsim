@@ -491,6 +491,46 @@ class MetacalMomentsDeweight(MetacalMomentsFixed):
 
         self.Mwt_inv = Minv
 
+    def _copy_to_output(self, res, i):
+        """
+        copy parameters specific to this class
+        """
+
+        # note copying super of our super, since
+        # we didn't do a regular fit
+        super(MetacalMomentsDeweight,self)._copy_to_output(res, i)
+
+        d=self.data
+
+        for type in self.metacal_types:
+            if type=='noshear':
+                back=''
+            else:
+                back='_%s' % type
+
+            tres=res[type]
+            d['mcal_T%s' % back][i] = tres['T']
+
+
+
+    def _get_dtype(self):
+        """
+        get the dtype for the output struct
+        """
+        # super of super
+        dt=super(MetacalMomentsDeweight,self)._get_dtype()
+
+        for type in self.metacal_types:
+            if type=='noshear':
+                back=''
+            else:
+                back='_%s' % type
+
+            dt += [('mcal_T%s' % back,'f8')]
+
+        return dt
+
+
 
 def _get_weight(obs, config):
     """

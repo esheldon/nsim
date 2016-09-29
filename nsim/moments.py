@@ -332,12 +332,7 @@ class MetacalMomentsAM(MetacalMomentsFixed):
         return res
 
 
-    def _measure_moments(self, obs):
-        """
-        moments of the power spectrum
-
-        todo: subtract noise ps. Deal with errors
-        """
+    def _get_guess(self):
         rng=self.rng
 
         pars=zeros(6)
@@ -347,19 +342,38 @@ class MetacalMomentsAM(MetacalMomentsFixed):
         pars[5]     = 1.0
 
         guess=ngmix.GMixModel(pars, "gauss")
+        return guess
+
+    def _measure_moments(self, obs):
+        """
+        moments of the power spectrum
+
+        todo: subtract noise ps. Deal with errors
+        """
 
         ampars=self['admom_pars']
+        ntry=ampars.pop('ntry',4)
+
         fitter=ngmix.admom.Admom(obs, **ampars)
-        fitter.go(guess)
 
-        res=fitter.get_result()
-        if res['flags'] == 0:
-            res['g']=res['e']
-            res['g_cov']=res['e_cov']
-            res['pars']=res['sums']
+        for i in xrange(ntry):
+            guess=self._get_guess()
 
-            # not right pars cov
-            res['pars_cov']=res['sums_cov']*0
+            fitter.go(guess)
+            res=fitter.get_result()
+
+            if res['flags'] == 0:
+                break
+
+        if res['flags'] != 0:
+            raise TryAgainError("admom failed")
+
+        res['g']=res['e']
+        res['g_cov']=res['e_cov']
+        res['pars']=res['sums']
+
+        # not right pars cov
+        res['pars_cov']=res['sums_cov']*0
 
         res['pars_err']=sqrt(diag(res['pars_cov']))
 
@@ -367,4 +381,44 @@ class MetacalMomentsAM(MetacalMomentsFixed):
         res['flux_s2n'] = res['sums'][5]/sqrt(res['sums_cov'][5,5])
 
         return res
+
+    def _copy_to_output(self, res, i):
+        """
+        copy parameters specific to this class
+        """
+
+        # note copying super of our super, since
+        # we didn't do a regular fit
+        super(MetacalMomentsAM,self)._copy_to_output(res, i)
+
+        d=self.data
+
+        for type in self.metacal_types:
+            if type=='noshear':
+                back=''
+            else:
+                back='_%s' % type
+
+            tres=res[type]
+            d['mcal_numiter%s' % back][i] = tres['numiter']
+
+
+
+    def _get_dtype(self):
+        """
+        get the dtype for the output struct
+        """
+        # super of super
+        dt=super(MetacalMomentsAM,self)._get_dtype()
+
+        for type in self.metacal_types:
+            if type=='noshear':
+                back=''
+            else:
+                back='_%s' % type
+
+            dt += [('mcal_numiter%s' % back,'i4')]
+
+        return dt
+
 

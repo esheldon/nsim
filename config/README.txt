@@ -153,12 +153,32 @@ low noise bd, larger psf and gals
           c2: 2.924e-05 +/- 8.524e-05
 
 - sim-bd49ln
+- sim-bd49mn
 - sim-bd49hn
     These sims have round psf r50=2, gal r50=2
 
-    - run-bd49ln-mcal-t01
-        moments in real space, fixed weight function
+    - ln runs
+        - run-bd49ln-mcal-t01
+            moments in real space, fixed weight function
+            terrible
 
+        - run-bd49ln-mcal-t03 adaptive moments
+            good
+        - run-bd49ln-mcal-t04 dweight
+            
+    - mn runs
+        - run-bd49mn-mcal-t01 adaptive moments
+            good
+        - run-bd49mn-mcal-t02 dweight
+
+    - hn runs
+        - run-bd49hn-mcal-t02 admom
+            running
+
+        - run-bd49hn-mcal-t03 dweight
+
+    - hhn runs (very high noise, s/n ~ 10)
+        - run-bd49hhn-mcal-t01 dweight
 
 - bd50mn2
     - psf r50 1.5, s2n ~ 35-40

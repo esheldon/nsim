@@ -12,8 +12,6 @@ metacal_pars:
 admom_pars:
     maxiter: 1000
 
-use_canonical_center: True
-
 ngal: 2000000
 
 desired_hours: 0.25

@@ -128,9 +128,7 @@ class SimGS(dict):
                                    offset=cenoff)
         im0 = gsimage.array
         if s2n is not None:
-            print("setting s2n, isgal:",isgal)
             image_nonoise, image, flux = self._scale_and_add_noise(im0, s2n)
-            print("flux:",flux)
         else:
             image_nonoise = im0.copy()
             image = self._add_noise(image_nonoise)
@@ -586,6 +584,8 @@ class SimGS(dict):
 
 
     def _setup(self):
+
+        self['do_ring'] = self.get('do_ring',False)
 
         self['ivar'] = 1.0/self['noise']**2
         self['model'] = self['obj_model']['model']

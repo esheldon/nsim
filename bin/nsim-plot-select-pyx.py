@@ -1,5 +1,5 @@
 """
-data is from run-d36mcal{03,04,05,08,09}
+data is from run-bd36mcal{03,04,05,08,09}
 """
 from __future__ import print_function
 from numpy import array

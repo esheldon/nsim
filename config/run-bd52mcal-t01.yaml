@@ -1,0 +1,23 @@
+run: "run-bd52mcal-t01"
+sim: "sim-bd52"
+
+fitter: "metacal-moments-am"
+
+global_seed: 30706
+
+metacal_pars:
+    fixnoise: True
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+ngal: 10000000
+
+desired_hours: 0.25
+
+sec_per: 0.25
+
+jobs_per_condor_sub: 5000
+
+verbose: False

@@ -1119,6 +1119,9 @@ class SpergelMetacalFitter(SpergelFitter):
 
             for type in odict:
                 mobs=odict[type]
+                # for now only a single obs, since below we assume so to fit
+                # the gpsf
+                assert isinstance(mobs,Observation)
 
                 runner=self._get_runner(mobs)
 
@@ -1139,7 +1142,7 @@ class SpergelMetacalFitter(SpergelFitter):
 
 
                 if type=='noshear':
-                    g1,g2,T=self._fit_am(obs.psf)
+                    g1,g2,T=self._fit_am(mobs.psf_nopix)
                     tres['gpsf'] = numpy.array([g1,g2])
                     tres['Tpsf'] = T
 

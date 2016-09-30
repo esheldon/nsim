@@ -267,6 +267,33 @@ low noise bd, larger psf and gals
               c1: -2.059e-04 +/- 2.775e-04
               c2: -2.556e-05 +/- 2.773e-04
 
+- bd52
+    - exactly same as bd36 but round psf
+    - run-bd52mcal-t01
+        adaptive moments
+        s/n > 10  0.63
+
+        note 2 sigma errors here, unlike what we showed for run-bd36mcal-t02
+        for example, also 10 million
+
+            R: [ 0.55483798  0.55496333]
+            Rsel: [ 0.00074684  0.00057236]
+            without correction
+            errors are 2 sigma
+              m1: 2.429e-04 +/- 6.271e-03 c1: -8.635e-05 +/- 2.267e-04  r1: -0.0143
+              m2: 2.391e-03 +/- 6.928e-03 c2: 8.725e-05 +/- 2.367e-04  r2: 0.0275
+              m:  1.256e-03 +/- 4.663e-03
+              c1: -8.688e-05 +/- 2.319e-04
+              c2: 8.619e-05 +/- 2.320e-04
+
+            with correction
+            errors are 2 sigma
+              m1: -1.102e-03 +/- 6.263e-03 c1: -8.624e-05 +/- 2.264e-04  r1: -0.0143
+              m2: 1.358e-03 +/- 6.921e-03 c2: 8.716e-05 +/- 2.365e-04  r2: 0.0275
+              m:  5.838e-05 +/- 4.658e-03
+              c1: -8.684e-05 +/- 2.317e-04
+              c2: 8.594e-05 +/- 2.317e-04
+
 
 REAL METACAL
 --------------

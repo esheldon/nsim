@@ -293,9 +293,9 @@ class MetacalMomentsFixed(SimpleFitterBase):
         rng=self.rng
 
         pars=zeros(6)
-        pars[0:0+2] = rng.uniform(low=-0.1, high=0.1, size=2)
-        pars[2:2+2] = rng.uniform(low=-0.1, high=0.1, size=2)
-        pars[4]     = 4.0*(1.0 + rng.uniform(low=-0.1, high=0.1))
+        pars[0:0+2] = rng.uniform(low=-0.5, high=0.5, size=2)
+        pars[2:2+2] = rng.uniform(low=-0.3, high=0.3, size=2)
+        pars[4]     = 10.0*(1.0 + rng.uniform(low=-0.1, high=0.1))
         pars[5]     = 1.0
 
         guess=ngmix.GMixModel(pars, "gauss")
@@ -399,7 +399,7 @@ class MetacalMomentsDeweight(MetacalMomentsFixed):
         """
 
         ampars=self['admom_pars']
-        ntry=ampars.pop('ntry',4)
+        ntry=ampars['ntry']
 
         fitter=ngmix.admom.Admom(obs.psf, **ampars)
 

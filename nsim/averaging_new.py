@@ -187,17 +187,18 @@ class Summer(dict):
         sub-classes might make a pre-selection, e.g. of some flags
         """
 
-        g_1p = data['mcal_g_1p'][:,0]
-        g_1m = data['mcal_g_1m'][:,0]
-        g_2p = data['mcal_g_2p'][:,1]
-        g_2m = data['mcal_g_2m'][:,1]
+        if False:
+            g_1p = data['mcal_g_1p'][:,0]
+            g_1m = data['mcal_g_1m'][:,0]
+            g_2p = data['mcal_g_2p'][:,1]
+            g_2m = data['mcal_g_2m'][:,1]
 
-        R1=(g_1p-g_1m)/(2.0*self.step)
-        R2=(g_2p-g_2m)/(2.0*self.step)
+            R1=(g_1p-g_1m)/(2.0*self.step)
+            R2=(g_2p-g_2m)/(2.0*self.step)
 
-        w,=numpy.where(between(R1, -5, 6.5) & between(R2, -5, 6.5))
-        print("kept %d/%d in preselect" % (w.size, data.size))
-        data=data[w]
+            w,=numpy.where(between(R1, -5, 6.5) & between(R2, -5, 6.5))
+            print("kept %d/%d in preselect" % (w.size, data.size))
+            data=data[w]
 
         return data
 

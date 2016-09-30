@@ -43,7 +43,6 @@ ngal: 10000000
 
 desired_hours: 0.5
 
-# not doubled at bnl
 sec_per: 0.5
 
 jobs_per_condor_sub: 5000

@@ -164,21 +164,51 @@ low noise bd, larger psf and gals
 
         - run-bd49ln-mcal-t03 adaptive moments
             good
-        - run-bd49ln-mcal-t04 dweight
-            
+        - run-bd49ln-mcal-t04 deweight
+            *very* tight R, but biased I guess
+            R: [ 1.45447583  1.45446357]
+            Rpsf: [ 0.  0.]
+            errors are 2 sigma
+              m1: -1.582e-02 +/- 1.913e-03 c1: 2.443e-05 +/- 6.466e-05  r1: 0.0676
+              m2: -1.433e-02 +/- 1.820e-03 c2: 3.334e-05 +/- 6.189e-05  r2: 0.0468
+            errors are 2 sigma
+              m:  -1.507e-02 +/- 1.325e-03
+              c1: 2.615e-05 +/- 6.348e-05
+              c2: 3.217e-05 +/- 6.344e-05
+
+                        
     - mn runs
         - run-bd49mn-mcal-t01 adaptive moments
-            good
-        - run-bd49mn-mcal-t02 dweight
+            R: [ 0.84551718  0.84549476]
+            Rpsf: [ 0.  0.]
+            errors are 2 sigma
+              m1: 8.504e-04 +/- 2.133e-03 c1: -3.476e-05 +/- 7.209e-05  r1: 0.0676
+              m2: -5.987e-05 +/- 1.941e-03 c2: 4.551e-05 +/- 6.602e-05  r2: 0.0468
+            errors are 2 sigma
+              m:  3.918e-04 +/- 1.446e-03
+              c1: -3.581e-05 +/- 6.928e-05
+              c2: 4.623e-05 +/- 6.924e-05
+
+        - run-bd49mn-mcal-t02 deweight
 
     - hn runs
         - run-bd49hn-mcal-t02 admom
-            running
+            - note limiting R from -4,2 reduced the bias som
+            R: [ 0.82390411  0.82445588]
+            Rpsf: [ 0.  0.]
+            errors are 2 sigma
+              m1: -1.596e-03 +/- 4.309e-03 c1: -4.199e-05 +/- 1.456e-04  r1: 0.0676
+              m2: -2.872e-03 +/- 3.854e-03 c2: -6.560e-05 +/- 1.311e-04  r2: 0.0468
+            errors are 2 sigma
+              m:  -2.239e-03 +/- 2.897e-03
+              c1: -4.346e-05 +/- 1.388e-04
+              c2: -6.459e-05 +/- 1.387e-04
 
-        - run-bd49hn-mcal-t03 dweight
+        - run-bd49hn-mcal-t03 deweight
 
     - hhn runs (very high noise, s/n ~ 10)
-        - run-bd49hhn-mcal-t01 dweight
+        - run-bd49hhn-mcal-t01 deweight
+        - run-bd49hhn-mcal-t02 admom
 
 - bd50mn2
     - psf r50 1.5, s2n ~ 35-40
@@ -191,6 +221,51 @@ low noise bd, larger psf and gals
           m:  -2.703e-03 +/- 1.621e-03
           c1: -2.627e-05 +/- 8.075e-05
           c2: 1.083e-04 +/- 8.073e-05
+
+- bd51
+    - round psf, psf r50=2, gal lognormal=2, very low s/n
+    - run-bd51mcal-t01
+    chunk 10/10
+
+        s/n > 10 0.62
+            R: [ 0.71767497  0.71779197]
+            Rpsf: [ 0.  0.]
+            Rsel: [ 0.00051053 -0.00018242]
+            Rpsf_sel: [ 0.  0.]
+            without correction
+            errors are 2 sigma
+              m1: -1.606e-03 +/- 6.382e-03 c1: -1.442e-04 +/- 2.184e-04  r1: 0.0562
+              m2: 2.229e-03 +/- 6.572e-03 c2: 2.281e-05 +/- 2.265e-04  r2: 0.02
+              m:  3.281e-04 +/- 4.595e-03
+              c1: -1.405e-04 +/- 2.232e-04
+              c2: 2.150e-05 +/- 2.230e-04
+
+            with correction
+            errors are 2 sigma
+              m1: -2.316e-03 +/- 6.377e-03 c1: -1.441e-04 +/- 2.182e-04  r1: 0.0562
+              m2: 2.484e-03 +/- 6.573e-03 c2: 2.282e-05 +/- 2.266e-04  r2: 0.02
+              m:  1.048e-04 +/- 4.596e-03
+              c1: -1.394e-04 +/- 2.232e-04
+              c2: 2.118e-05 +/- 2.231e-04
+
+        s/n > 15 0.31
+            R: [ 0.69581554  0.69604166]
+            Rsel: [-0.0107952  -0.01097779]
+            without correction
+            errors are 2 sigma
+              m1: -2.074e-02 +/- 7.313e-03 c1: -2.088e-04 +/- 2.502e-04  r1: 0.0562
+              m2: -1.471e-02 +/- 8.484e-03 c2: -2.300e-05 +/- 2.925e-04  r2: 0.02
+              m:  -1.770e-02 +/- 5.623e-03
+              c1: -2.029e-04 +/- 2.731e-04
+              c2: -2.506e-05 +/- 2.729e-04
+
+            with correction
+            errors are 2 sigma
+              m1: -5.307e-03 +/- 7.428e-03 c1: -2.121e-04 +/- 2.542e-04  r1: 0.0562
+              m2: 1.078e-03 +/- 8.620e-03 c2: -2.337e-05 +/- 2.972e-04  r2: 0.02
+              m:  -2.087e-03 +/- 5.713e-03
+              c1: -2.059e-04 +/- 2.775e-04
+              c2: -2.556e-05 +/- 2.773e-04
 
 
 REAL METACAL

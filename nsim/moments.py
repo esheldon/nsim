@@ -228,7 +228,7 @@ class MetacalMomentsFixed(SimpleFitterBase):
         print_pars(subres['pars'],      front='        pars: ')
         print_pars(subres['pars_err'],  front='        perr: ')
 
-        print_pars(res['pars_true'], front='        true: ')
+        print('        true: ', res['pars_true'])
 
 
 

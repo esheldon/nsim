@@ -25,11 +25,7 @@ psf:
       mean: 3.660
       sigma: 0.377
 
-    shape:
-      type: "normal2d"
-      cen: [0.0, 0.007]
-      sigma: [0.018, 0.018]
-
+    shape: [0.0, 0.0]
 
 obj_model:
 

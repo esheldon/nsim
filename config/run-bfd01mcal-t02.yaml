@@ -1,0 +1,50 @@
+# spergel
+
+run: "run-bfd01mcal-t02"
+sim: "sim-bfd01"
+
+fitter: "spergel-metacal-exp"
+
+global_seed: 15676
+
+metacal_pars:
+    fixnoise: True
+
+priors:
+    # for spergel, this is really a combined
+    # offset from the centers for the PSF and galaxy
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    r50:
+        type: "two-sided-erf"
+        pars: [1.50, 0.1, 3.0, 0.1]
+
+    counts:
+        type: "two-sided-erf"
+        pars: [20.0, 1.0, 350.0, 10.0]
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+max_pars:
+    ntry: 5
+    lm_pars:
+        maxfev: 4000
+    cov:
+        replace_cov: False
+        cov_pars:
+            m: 5
+            h: 1.0e-3
+
+ngal: 10000000
+
+desired_hours: 1.0
+
+sec_per: 1.0
+
+jobs_per_condor_sub: 5000
+
+verbose: False

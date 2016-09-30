@@ -186,6 +186,19 @@ class Summer(dict):
         """
         sub-classes might make a pre-selection, e.g. of some flags
         """
+
+        g_1p = data['mcal_g_1p'][:,0]
+        g_1m = data['mcal_g_1m'][:,0]
+        g_2p = data['mcal_g_2p'][:,1]
+        g_2m = data['mcal_g_2m'][:,1]
+
+        R1=(g_1p-g_1m)/(2.0*self.step)
+        R2=(g_2p-g_2m)/(2.0*self.step)
+
+        w,=numpy.where(between(R1, -5, 6.5) & between(R2, -5, 6.5))
+        print("kept %d/%d in preselect" % (w.size, data.size))
+        data=data[w]
+
         return data
 
 
@@ -208,18 +221,22 @@ class Summer(dict):
         wa = wts[:,numpy.newaxis]
         return wts, wa
 
-    def _get_g(self, data, w, type):
+    def _get_g_name(self, data, type):
         n=self.namer
         if type=='noshear':
             name=n('g')
         else:
             name=n('g_%s' % type)
 
+        return name
+
+    def _get_g(self, data, w, type):
+        name=self._get_g_name(data, type)
+
         if name not in data.dtype.names:
             g = None
         else:
             g = data[name][w]
-            #g *= -1
 
         return g
 
@@ -231,7 +248,6 @@ class Summer(dict):
         just a binner and summer, no logic here
         """
 
-        s2n_name=self._get_s2n_name(data)
 
         nshear=self['nshear']
         args=self.args
@@ -256,7 +272,6 @@ class Summer(dict):
 
                 # first select on the noshear measurement
                 if self.select is not None:
-                    #w=self._do_select(data[s2n_name][wfield])
                     w=self._do_select(data, wfield)
                     w=wfield[w]
                 else:
@@ -306,15 +321,14 @@ class Summer(dict):
                         if type=='noshear':
                             continue
 
-                        ts2n_name='%s_%s' % (s2n_name,type)
+                        g_name=self._get_g_name(data, type)
 
-                        if ts2n_name in data.dtype.names:
+                        if g_name in data.dtype.names:
 
                             wsumname = 's_wsum_%s' % type
                             sumname = 's_g_%s' % type
 
                             if self.select is not None:
-                                #w=self._do_select(data[ts2n_name][wfield])
                                 w=self._do_select(data, wfield, type)
                                 w=wfield[w]
                             else:
@@ -326,9 +340,6 @@ class Summer(dict):
 
                             sums[sumname][i] += (g*wa).sum(axis=0)
                             sums[wsumname][i] += wts.sum()
-                        else:
-                            #print("    skipping:",ts2n_name)
-                            pass
 
         if self.args.weighted:
             effnum=wttot/wtmax/ntot
@@ -824,6 +835,9 @@ class Summer(dict):
 
     def _get_s2n(self, data, w, type=None):
         name=self._get_s2n_name(data, type=type)
+        if name is None:
+            return None
+
         return data[name][w]
 
     def _get_size(self, data, w, type=None):

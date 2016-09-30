@@ -79,8 +79,10 @@ class SimGS(dict):
                                  s2n=self['psf']['s2n'], isgal=False)
 
         nrows,ncols=self['stamp_size']
+        # this will be none for sims where we generate a flux pdf
+        s2n=gal_pars['s2n']
         gal_obs = self._make_obs(gal, nrows, ncols, wcs, cenoff,
-                                 isgal=True)
+                                 s2n=s2n, isgal=True)
 
         s2n = self._get_expected_s2n(gal_obs.image_nonoise)
         print("    s2n expected:",s2n)
@@ -126,7 +128,9 @@ class SimGS(dict):
                                    offset=cenoff)
         im0 = gsimage.array
         if s2n is not None:
+            print("setting s2n, isgal:",isgal)
             image_nonoise, image, flux = self._scale_and_add_noise(im0, s2n)
+            print("flux:",flux)
         else:
             image_nonoise = im0.copy()
             image = self._add_noise(image_nonoise)
@@ -366,6 +370,9 @@ class SimGS(dict):
         """
 
         flux = pars['flux']
+        if flux is None:
+            # we will scale for s/n later
+            flux=1.0
 
         r50 = pars['r50']
 
@@ -493,9 +500,18 @@ class SimGS(dict):
             else:
                 g1,g2=None,None
 
-        flux = self.flux_pdf.sample()
-        if self.flux_is_in_log:
-            flux = numpy.exp(flux)
+        if self.flux_pdf is not None:
+            flux = self.flux_pdf.sample()
+            if self.flux_is_in_log:
+                flux = numpy.exp(flux)
+        else:
+            flux=None
+
+        if self.s2n_pdf is not None:
+            s2n = self.s2n_pdf.sample()
+        else:
+            s2n=None
+
 
         # this is the round r50
         if self.r50_pdf is not None:
@@ -507,6 +523,7 @@ class SimGS(dict):
         pars = {'model':self['model'],
                 'g':(g1,g2),
                 'flux':flux,
+                's2n':s2n,
                 'r50':r50,
                 'size':r50,
                 'cenoff':cenoff}
@@ -628,7 +645,11 @@ class SimGS(dict):
         """
 
         self._set_psf_pdf()
+
+        # should generally just either flux or s2n
         self._set_flux_pdf()
+        self._set_s2n_pdf()
+
         self._set_g_pdf()
         self._set_size_pdf()
         self._set_cen_pdf()
@@ -748,7 +769,13 @@ class SimGS(dict):
                 rng=self.rng,
             )
 
+
     def _set_flux_pdf(self):
+
+        if 'flux' not in self['obj_model']:
+            self.flux_pdf=None
+            return
+
         fluxspec = self['obj_model']['flux']
         if not isinstance(fluxspec,dict):
             self.flux_is_in_log = False
@@ -776,6 +803,35 @@ class SimGS(dict):
                 self.flux_pdf=load_gmixnd(fluxspec,rng=self.rng)
             else:
                 raise ValueError("bad flux pdf type: '%s'" % fluxspec['type'])
+
+    def _set_s2n_pdf(self):
+
+        if 's2n' not in self['obj_model']:
+            self.s2n_pdf=None
+            return
+
+        s2nspec = self['obj_model']['s2n']
+        if not isinstance(s2nspec,dict):
+            self.s2n_pdf=DiscreteSampler([s2nspec], rng=self.rng)
+        else:
+
+            if s2nspec['type']=='uniform':
+                s2n_r = s2nspec['range']
+                self.s2n_pdf=ngmix.priors.FlatPrior(
+                    s2n_r[0], s2n_r[1],
+                    rng=self.rng,
+                )
+            elif s2nspec['type']=='lognormal':
+                self.s2n_pdf=ngmix.priors.LogNormal(
+                    s2nspec['mean'],
+                    s2nspec['sigma'],
+                    rng=self.rng,
+                )
+            elif s2nspec['type']=='gmixnd':
+                self.s2n_pdf=load_gmixnd(s2nspec,rng=self.rng)
+            else:
+                raise ValueError("bad s2n pdf type: '%s'" % s2nspec['type'])
+
 
 class SimGMix(SimGS):
     """
@@ -835,6 +891,9 @@ class SimGMix(SimGS):
         """
 
         flux = pars['flux']
+        if flux is None:
+            # we will scale for s/n later
+            flux=1.0
 
         T = pars['T']
 
@@ -893,6 +952,9 @@ class SimBD(SimGS):
         """
 
         flux = pars['flux']
+        if flux is None:
+            # we will scale for s/n later
+            flux=1.0
 
         r50 = pars['r50']
 
@@ -989,6 +1051,9 @@ class SimBDD(SimBD):
         """
 
         flux = pars['flux']
+        if flux is None:
+            # we will scale for s/n later
+            flux=1.0
 
         r50 = pars['r50']
 

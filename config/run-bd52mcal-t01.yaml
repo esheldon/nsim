@@ -3,7 +3,7 @@ sim: "sim-bd52"
 
 fitter: "metacal-moments-am"
 
-global_seed: 30706
+global_seed: 3070
 
 metacal_pars:
     fixnoise: True

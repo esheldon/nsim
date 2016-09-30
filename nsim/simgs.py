@@ -75,14 +75,17 @@ class SimGS(dict):
         if cenoff is not None:
             print("    cenoff: %g,%g" % cenoff)
 
-        psf_obs = self._make_obs(psf, nrows, ncols, wcs, cenoff,
-                                 s2n=self['psf']['s2n'], isgal=False)
+        psf_obs, pflux = self._make_obs(psf, nrows, ncols, wcs, cenoff,
+                                        s2n=self['psf']['s2n'], isgal=False)
 
         nrows,ncols=self['stamp_size']
         # this will be none for sims where we generate a flux pdf
         s2n=gal_pars['s2n']
-        gal_obs = self._make_obs(gal, nrows, ncols, wcs, cenoff,
-                                 s2n=s2n, isgal=True)
+        gal_obs, gflux = self._make_obs(gal, nrows, ncols, wcs, cenoff,
+                                        s2n=s2n, isgal=True)
+
+        if gflux is not None:
+            gal_pars['flux'] = gflux
 
         s2n = self._get_expected_s2n(gal_obs.image_nonoise)
         print("    s2n expected:",s2n)
@@ -130,6 +133,7 @@ class SimGS(dict):
         if s2n is not None:
             image_nonoise, image, flux = self._scale_and_add_noise(im0, s2n)
         else:
+            flux=None
             image_nonoise = im0.copy()
             image = self._add_noise(image_nonoise)
 
@@ -156,7 +160,7 @@ class SimGS(dict):
         if False and s2n is None:
             self._compare_images(image_nonoise,image,label1='im',label2='noisy')
 
-        return obs
+        return obs, flux
 
     def _set_bad_pixels(self, image, weight):
 

@@ -20,7 +20,7 @@ weight:
 
     r50: 2.4
 
-ngal: 2000000
+ngal: 10000000
 
 desired_hours: 0.25
 

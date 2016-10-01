@@ -188,6 +188,8 @@ class Summer(dict):
         """
 
         if False:
+            minv=-7
+            maxv= 9
             g_1p = data['mcal_g_1p'][:,0]
             g_1m = data['mcal_g_1m'][:,0]
             g_2p = data['mcal_g_2p'][:,1]
@@ -196,7 +198,7 @@ class Summer(dict):
             R1=(g_1p-g_1m)/(2.0*self.step)
             R2=(g_2p-g_2m)/(2.0*self.step)
 
-            w,=numpy.where(between(R1, -5, 6.5) & between(R2, -5, 6.5))
+            w,=numpy.where(between(R1, minv, maxv) & between(R2, minv, maxv))
             print("kept %d/%d in preselect" % (w.size, data.size))
             data=data[w]
 

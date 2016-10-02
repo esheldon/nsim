@@ -294,6 +294,14 @@ low noise bd, larger psf and gals
               c1: -8.684e-05 +/- 2.317e-04
               c2: 8.594e-05 +/- 2.317e-04
 
+
+- sim-bd53
+    - like 36 but with simpler non-round psf
+    - run-bd53mcal-t01
+    10M
+    - run-bd53mcal01
+    100M
+
 - bfd01
     not round psf
     - run-bfd01mcal-t02

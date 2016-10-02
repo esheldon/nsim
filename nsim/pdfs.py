@@ -1,4 +1,5 @@
 import numpy
+import esutil as eu
 
 class DiscreteSampler(object):
     def __init__(self, vals, rng=None):
@@ -13,3 +14,18 @@ class DiscreteSampler(object):
         #ri=numpy.random.randint(0, self.nvals)
         ri=self.rng.randint(0, self.nvals)
         return self.vals[ri]
+
+
+class PowerLaw(object):
+    def __init__(self, index, xmin, xmax, npts=10000):
+
+        func = lambda x:  x**index
+
+        self.pdf = eu.random.Generator(
+            func,
+            xrange=[xmin,xmax],
+            nx=npts,
+        )
+
+    def sample(self, n=None):
+        return self.pdf.sample(n)

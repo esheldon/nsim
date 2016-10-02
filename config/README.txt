@@ -323,6 +323,9 @@ low noise bd, larger psf and gals
               c1: -9.760e-05 +/- 1.460e-04
               c2: 6.312e-05 +/- 1.459e-04
 
+    - run-bfd01mcal01
+        - am with symmetrization
+
 - bfd02
     - round psf for testing current am
     - run-bfd02mcal-t01
@@ -371,6 +374,9 @@ low noise bd, larger psf and gals
               c1: 8.704e-05 +/- 1.996e-04
               c2: 5.231e-05 +/- 1.994e-04
 
+
+    - run-bfd02mcal01
+        - am
 
 REAL METACAL
 --------------
@@ -3584,6 +3590,17 @@ sim-bd43
               m:  4.455e-04 +/- 8.823e-04
               c1: 3.106e-05 +/- 4.386e-05
               c2: 1.648e-05 +/- 4.385e-05
+
+	- run-bd43mcal09
+        - argh prepix
+
+	- run-bd43mcal-t05
+        - 10M
+        - took off stupid prepix
+	- run-bd43mcal10
+        - 100M
+        - took off stupid prepix
+
 
 - ideas
     - c1,c2 look great

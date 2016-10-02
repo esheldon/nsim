@@ -61,7 +61,12 @@ def combine_trials(args):
                 nmissing += 1
                 continue
             print(f)
-            t=fitsio.read(f)
+
+            try:
+                t=fitsio.read(f)
+            except IOError as err:
+                print("caught IOError: %s" % str(err))
+                continue
 
             if t.size != ngal_per:
                 raise ValueError("%s expected %d, got %d" % (f,ngal_per,t.size))

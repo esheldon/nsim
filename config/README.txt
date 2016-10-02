@@ -324,12 +324,38 @@ low noise bd, larger psf and gals
               c2: 6.312e-05 +/- 1.459e-04
 
     - run-bfd01mcal01
-        - am with symmetrization
+        - admom with symmetrization
+        - 100M
+
+            8 < flux_s2n < 14  0.466
+
+            R: [ 0.93113901  0.93248144]
+            Rpsf: [ 0.  0.]
+
+            Rsel: [ 0.01337258  0.01327814]
+            Rpsf_sel: [ 0.  0.]
+            without correction
+            errors are 2 sigma
+              m1: 1.176e-02 +/- 2.062e-03 c1: -2.242e-05 +/- 7.087e-05  r1: -0.0613
+              m2: 1.011e-02 +/- 1.955e-03 c2: 8.152e-05 +/- 6.513e-05  r2: -0.0233
+            errors are 2 sigma
+              m:  1.096e-02 +/- 1.427e-03
+              c1: -2.073e-05 +/- 6.830e-05
+              c2: 8.086e-05 +/- 6.824e-05
+
+            with correction
+            errors are 2 sigma
+              m1: -2.565e-03 +/- 2.033e-03 c1: -2.210e-05 +/- 6.987e-05  r1: -0.0613
+              m2: -4.069e-03 +/- 1.927e-03 c2: 8.037e-05 +/- 6.422e-05  r2: -0.0233
+            errors are 2 sigma
+              m:  -3.294e-03 +/- 1.407e-03
+              c1: -2.056e-05 +/- 6.732e-05
+              c2: 7.977e-05 +/- 6.727e-05
 
 - bfd02
-    - round psf for testing current am
+    - round psf for testing current admom
     - run-bfd02mcal-t01
-        - am 20M
+        - admom 20M
         - need to account for selections on both sides
         - might look pretty bad with non-round psf, since the
         selection might be even stronger that for additive
@@ -375,8 +401,44 @@ low noise bd, larger psf and gals
               c2: 5.231e-05 +/- 1.994e-04
 
 
-    - run-bfd02mcal01
+    - run-bfd02mcal01 combined with -t01
+        - 100M + 20M
         - am
+
+        8 < flux_s2n < 14 0.46
+            R: [ 0.98586102  0.98631828]
+            Rsel: [ 0.0179118   0.01817135]
+            without correction errors are 2 sigma
+              m1: 1.502e-02 +/- 1.791e-03 c1: -2.313e-05 +/- 6.372e-05  r1: 0.0662
+              m2: 1.601e-02 +/- 1.861e-03 c2: 6.410e-06 +/- 6.591e-05  r2: 0.0221
+              m:  1.551e-02 +/- 1.295e-03
+              c1: -2.197e-05 +/- 6.501e-05
+              c2: 6.022e-06 +/- 6.495e-05
+            with correction errors are 2 sigma
+              m1: -3.094e-03 +/- 1.759e-03 c1: -2.271e-05 +/- 6.258e-05  r1: 0.0662
+              m2: -2.374e-03 +/- 1.827e-03 c2: 6.294e-06 +/- 6.472e-05  r2: 0.0221
+              m:  -2.735e-03 +/- 1.271e-03
+              c1: -2.187e-05 +/- 6.383e-05
+              c2: 6.011e-06 +/- 6.377e-05
+
+        9 < flux_s2n < 13 0.30
+            R: [ 0.99067235  0.99111005]
+            Rsel: [ 0.01757385  0.01753126]
+            without correction
+            errors are 2 sigma
+              m1: 1.265e-02 +/- 2.168e-03 c1: -2.655e-05 +/- 7.716e-05  r1: 0.0662
+              m2: 1.457e-02 +/- 2.226e-03 c2: 5.723e-06 +/- 7.884e-05  r2: 0.0221
+              m:  1.361e-02 +/- 1.560e-03
+              c1: -2.428e-05 +/- 7.829e-05
+              c2: 4.966e-06 +/- 7.822e-05
+            with correction
+            errors are 2 sigma
+              m1: -5.005e-03 +/- 2.130e-03 c1: -2.609e-05 +/- 7.581e-05  r1: 0.0662
+              m2: -3.060e-03 +/- 2.187e-03 c2: 5.624e-06 +/- 7.747e-05  r2: 0.0221
+              m:  -4.036e-03 +/- 1.533e-03
+              c1: -2.380e-05 +/- 7.694e-05
+              c2: 4.860e-06 +/- 7.686e-05
+
 
 REAL METACAL
 --------------

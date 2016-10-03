@@ -1,0 +1,25 @@
+run: "run-bd53mcal-t01"
+sim: "sim-bd53"
+
+fitter: "metacal-moments-am"
+
+global_seed: 18871
+
+metacal_pars:
+    fixnoise: True
+    symmetrize_psf: True
+    symmetrize_dilation: 1.014
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+ngal: 10000000
+
+desired_hours: 0.25
+
+sec_per: 0.25
+
+jobs_per_condor_sub: 5000
+
+verbose: False

@@ -9,13 +9,14 @@ import numpy
 import fitsio
 
 import ngmix
+import esutil as eu
 
 from . import sim as ngmixsim
 from ngmix.priors import srandu
 
 from .util import TryAgainError, load_gmixnd
 
-from .pdfs import DiscreteSampler
+from .pdfs import DiscreteSampler, PowerLaw
 
 import galsim
 #try:
@@ -833,6 +834,15 @@ class SimGS(dict):
                 )
             elif s2nspec['type']=='gmixnd':
                 self.s2n_pdf=load_gmixnd(s2nspec,rng=self.rng)
+
+            elif s2nspec['type']=='powerlaw':
+
+                index=s2nspec['index']
+                xmin=s2nspec['min']
+                xmax=s2nspec['max']
+
+                self.s2n_pdf=PowerLaw(index, xmin, xmax)
+
             else:
                 raise ValueError("bad s2n pdf type: '%s'" % s2nspec['type'])
 

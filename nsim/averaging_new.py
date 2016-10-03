@@ -201,7 +201,12 @@ class Summer(dict):
             w,=numpy.where(between(R1, minv, maxv) & between(R2, minv, maxv))
             print("kept %d/%d in preselect" % (w.size, data.size))
             data=data[w]
-
+        
+        if False:
+            w,=numpy.where(data['mcal_flux_s2n'] > 10)
+            print("kept %d/%d in preselect" % (w.size, data.size))
+            data=data[w]
+ 
         return data
 
 

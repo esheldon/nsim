@@ -1,0 +1,23 @@
+run: "run-gg28mcal-t01"
+sim: "sim-gg28"
+
+fitter: "metacal-moments-am"
+
+global_seed: 1434
+
+metacal_pars:
+    fixnoise: False
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+ngal: 1000000
+
+desired_hours: 0.25
+
+sec_per: 0.15
+
+jobs_per_condor_sub: 5000
+
+verbose: False

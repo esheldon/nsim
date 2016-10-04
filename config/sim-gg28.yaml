@@ -1,0 +1,45 @@
+name: "sim-gg28"
+
+simulator: "galsim"
+
+do_ring: False
+
+noise: 1.5
+
+stamp_size: [32,32]
+
+psf:
+
+    s2n: 10000.0
+
+    model: "gauss"
+
+    r50: 1.50
+    shape: [0.0, 0.0]
+
+obj_model:
+
+    model: "gauss"
+
+    flux:
+        type: "lognormal"
+        mean: 180.0
+        sigma: 100.0
+
+    g:
+        type: "ba"
+        sigma: 0.02
+
+    r50:
+        type: "lognormal"
+        mean: 2.0
+        sigma: 0.1
+
+    cen_shift:
+        radius: 0.5
+
+label: "gg"
+
+shear:
+    type: "const"
+    shears: [0.08, 0.0]

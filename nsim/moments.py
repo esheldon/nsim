@@ -168,6 +168,7 @@ class MetacalMomentsFixed(SimpleFitterBase):
 
                 #('mcal_r50%s' % back,'f8'),
                 #('mcal_r50_s2n%s' % back,'f8'),
+                ('mcal_s2n%s' % back,'f8'),
                 ('mcal_flux%s' % back,'f8'),
                 ('mcal_flux_s2n%s' % back,'f8'),
             ]
@@ -208,6 +209,8 @@ class MetacalMomentsFixed(SimpleFitterBase):
             d['mcal_flux%s' % back][i] = tres['flux']
             d['mcal_flux_s2n%s' % back][i] = tres['flux_s2n']
 
+            d['mcal_s2n%s' % back][i] = tres['s2n']
+
             if type=='noshear':
                 for p in ['pars_cov','wsum','gpsf','Tpsf']:
 
@@ -223,10 +226,10 @@ class MetacalMomentsFixed(SimpleFitterBase):
         subres=res['noshear']
 
         print("    flux s2n: %g" % subres['flux_s2n'])
-        print("    g1g2: %g %g" % tuple(subres['g']))
+        print("    e1e2:  %g %g" % tuple(subres['g']))
+        print("    e_err: %g" % numpy.sqrt(subres['g_cov'][0,0]))
 
         print_pars(subres['pars'],      front='        pars: ')
-        print_pars(subres['pars_err'],  front='        perr: ')
 
         print('        true: ', res['pars_true'])
 
@@ -336,17 +339,16 @@ class MetacalMomentsAM(MetacalMomentsFixed):
         if res['flags'] != 0:
             raise TryAgainError("admom failed")
 
-        res['g']=res['e']
-        res['g_cov']=res['e_cov']
-        res['pars']=res['sums']
+        res['g']     = res['e']
+        res['g_cov'] = numpy.diag( [ res['e_err']**2 ]*2 )
+        res['pars']  = res['sums']
 
         # not right pars cov
-        res['pars_cov']=res['sums_cov']*0
+        res['pars_cov']=res['sums_cov']*0 + 9999.e9
 
-        res['pars_err']=sqrt(diag(res['pars_cov']))
-
-        res['flux'] = res['pars'][5]
-        res['flux_s2n'] = res['sums'][5]/sqrt(res['sums_cov'][5,5])
+        res['s2n']      = res['s2n']
+        res['flux']     = res['flux']
+        res['flux_s2n'] = res['s2n']
 
         return res
 

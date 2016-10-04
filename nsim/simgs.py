@@ -806,6 +806,17 @@ class SimGS(dict):
                 )
             elif fluxspec['type']=='gmixnd':
                 self.flux_pdf=load_gmixnd(fluxspec,rng=self.rng)
+
+            elif fluxspec['type']=='powerlaw':
+
+                index=fluxspec['index']
+                xmin=fluxspec['min']
+                xmax=fluxspec['max']
+
+                self.flux_pdf=PowerLaw(index, xmin, xmax)
+
+
+
             else:
                 raise ValueError("bad flux pdf type: '%s'" % fluxspec['type'])
 

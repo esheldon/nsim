@@ -421,6 +421,52 @@ low noise bd, larger psf and gals
 		  c1: -3.668e-06 +/- 6.715e-05
 		  c2: -5.928e-05 +/- 6.703e-05
 
+- sim-bd56
+    - power law distribution in flux instead of s/n
+
+    flux s/n > 10   no pre-selection  kept 0.40
+        R: [ 0.56339415  0.56334158]
+        Rsel: [  6.30105389e-05   3.71878974e-05]
+        without correction
+        errors are 2 sigma
+          m1: -2.305e-03 +/- 1.746e-03 c1: 1.771e-06 +/- 5.980e-05  r1: -0.0847
+          m2: -4.038e-04 +/- 1.811e-03 c2: 6.833e-05 +/- 6.610e-05  r2: -0.0418
+          m:  -1.292e-03 +/- 1.265e-03
+          c1: -1.168e-06 +/- 6.328e-05
+          c2: 6.968e-05 +/- 6.320e-05
+        with correction
+        errors are 2 sigma
+          m1: -2.417e-03 +/- 1.746e-03 c1: 1.771e-06 +/- 5.979e-05  r1: -0.0847
+          m2: -4.698e-04 +/- 1.811e-03 c2: 6.832e-05 +/- 6.609e-05  r2: -0.0418
+          m:  -1.379e-03 +/- 1.265e-03
+          c1: -1.239e-06 +/- 6.328e-05
+          c2: 6.971e-05 +/- 6.320e-05
+
+    flux s/n > 10 but with pre-selection > 7 and no correction for that:
+        looks nearly identical
+
+    flux s/n > 10 but with pre-selection > 7  in s2n_true and no correction for
+    that: Again, nearly identical
+
+
+    flux s/n > 15  0.31
+
+        R: [ 0.56938408  0.56936961]
+        Rsel: [-0.00263797 -0.00264199]
+        without correction
+        errors are 2 sigma
+          m1: -6.449e-03 +/- 1.751e-03 c1: -2.970e-06 +/- 5.998e-05  r1: -0.0847
+          m2: -5.243e-03 +/- 1.767e-03 c2: 2.960e-05 +/- 6.449e-05  r2: -0.0418
+          m:  -5.806e-03 +/- 1.248e-03
+          c1: -4.834e-06 +/- 6.245e-05
+          c2: 3.046e-05 +/- 6.238e-05
+        with correction
+        errors are 2 sigma
+          m1: -1.824e-03 +/- 1.759e-03 c1: -2.984e-06 +/- 6.025e-05  r1: -0.0847
+          m2: -6.058e-04 +/- 1.776e-03 c2: 2.974e-05 +/- 6.479e-05  r2: -0.0418
+          m:  -1.175e-03 +/- 1.254e-03
+          c1: -4.867e-06 +/- 6.274e-05
+          c2: 3.061e-05 +/- 6.267e-05
 
 - bfd01
     not round psf

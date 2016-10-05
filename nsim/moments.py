@@ -332,7 +332,7 @@ class MetacalMomentsAM(MetacalMomentsFixed):
             raise TryAgainError("admom failed")
 
         res['g']     = res['e']
-        res['g_cov'] = numpy.diag( [ res['e_err']**2 ]*2 )
+        res['g_cov'] = res['e_cov']
         res['pars']  = res['sums']
 
         # not right pars cov

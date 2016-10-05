@@ -203,7 +203,8 @@ class Summer(dict):
             data=data[w]
         
         if False:
-            w,=numpy.where(data['mcal_flux_s2n'] > 10)
+            #w,=numpy.where(data['mcal_flux_s2n'] > 7)
+            w,=numpy.where(data['s2n_true'] > 7)
             print("kept %d/%d in preselect" % (w.size, data.size))
             data=data[w]
  

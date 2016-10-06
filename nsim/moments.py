@@ -33,28 +33,30 @@ class MetacalMomentsFixed(SimpleFitterBase):
 
         self._set_weight(obs) 
 
-        self._set_metacal(obs)
+        odict=self._get_metacal(obs)
 
         #self._set_F(self.kmcal.dim)
 
-        res=self._do_metacal()
+        res=self._do_metacal(odict)
         res['flags']=0
         return res
 
-    def _set_metacal(self, obs):
+    def _get_metacal(self, obs):
         mcpars=self['metacal_pars']
         analytic_psf=None
-        self.odict=ngmix.metacal.get_all_metacal(
+        odict=ngmix.metacal.get_all_metacal(
             obs,
             psf=analytic_psf,
             rng=self.rng,
             **mcpars
         )
 
-    def _do_metacal(self):
+        return odict
+
+    def _do_metacal(self, odict):
         res={}
 
-        for type,obs in self.odict.iteritems():
+        for type,obs in odict.iteritems():
 
             tres=self._measure_moments(obs)
             if tres['flags'] != 0:
@@ -301,9 +303,9 @@ class MetacalMomentsAM(MetacalMomentsFixed):
 
         obs=imdict['obs']
 
-        self._set_metacal(obs)
+        obsdict=self._get_metacal(obs)
 
-        res=self._do_metacal()
+        res=self._do_metacal(obsdict)
         res['flags']=0
         return res
 
@@ -382,6 +384,66 @@ class MetacalMomentsAM(MetacalMomentsFixed):
             dt += [('mcal_numiter%s' % back,'i4')]
 
         return dt
+
+class MetacalMomentsAMMulti(MetacalMomentsAM):
+
+    def _dofit(self, imdict):
+
+        obs=imdict['obs']
+
+        odict_list=self._get_metacal(obs)
+
+        avgkeys=[
+            'g','g_cov',
+            'flux','flux_s2n',
+            's2n','pars','pars_cov',
+        ]
+        for i,odict in enumerate(odict_list):
+            tres=self._do_metacal(odict)
+
+            if i==0:
+                res=tres
+            else:
+                for type in res:
+                    tsubres=tres[type]
+                    subres=res[type]
+                    
+                    for key in avgkeys:
+                        subres[key] += tsubres[key]
+
+        nrand=len(odict_list)
+
+        cov_fac=(1.0 + 1.0/nrand)/2.0
+        s2n_fac = sqrt(1.0/cov_fac)
+
+        for type in res:
+            subres=res[type]
+            for key in avgkeys:
+                subres[key] /= nrand
+
+            subres['s2n'] *= s2n_fac
+            subres['flux_s2n'] *= s2n_fac
+
+            subres['g_cov'] *= cov_fac
+            subres['pars_cov'] *= cov_fac
+
+        res['flags']=0
+
+        return res
+
+ 
+    def _get_metacal(self, obs):
+        mcpars=self['metacal_pars']
+        analytic_psf=None
+        odict_list=get_all_metacal_multi(
+            obs,
+            psf=analytic_psf,
+            rng=self.rng,
+            **mcpars
+        )
+
+        return odict_list
+
 
 class MetacalMomentsDeweight(MetacalMomentsFixed):
 
@@ -573,4 +635,136 @@ def _M1M2T_to_IrrIrcIcc(M1, M2, T):
     Irc = 0.5*M2
 
     return Irr, Irc, Icc
+
+
+def _doadd_single_obs_combined(obs, nobs, nrand):
+    im  = obs.image
+    nim = nobs.image
+
+    image = im + nim
+
+    weight=numpy.zeros(obs.weight.shape)
+
+    wpos=numpy.where(
+        (obs.weight != 0.0) &
+        (nobs.weight != 0.0)
+    )
+    if wpos[0].size > 0:
+        tvar = obs.weight*0
+        # add the variances
+        tvar[wpos] = (
+            nrand/obs.weight[wpos]  +
+            1.0/nobs.weight[wpos]
+        )
+        weight[wpos] = 1.0/tvar[wpos]
+
+    newobs=ngmix.Observation(
+        image,
+        weight=weight,
+        jacobian=obs.jacobian.copy(),
+    )
+    return newobs
+
+def get_all_metacal_multi_combined(obs, step=0.01, **kw):
+    """
+    do multiple random realizations
+    currently only for single obs input
+    """
+    assert isinstance(obs, ngmix.Observation)
+
+    nrand=kw.pop('nrand',1)
+    print("doing nrand:",nrand)
+
+    orig_obsdict = ngmix.metacal._get_all_metacal(obs, step=step, **kw)
+
+    obsdict={}
+    for key in orig_obsdict:
+        obsdict[key] = ngmix.ObsList()
+    for i in xrange(nrand):
+        # Using None for the model means we get just noise
+        noise_obs = ngmix.simobs.simulate_obs(None, obs, **kw)
+
+        # rotate by 90
+        ngmix.metacal._rotate_obs_image(noise_obs, k=1)
+
+        tnoise_obsdict = ngmix.metacal._get_all_metacal(noise_obs, step=step, **kw)
+
+        for key in tnoise_obsdict:
+            tobs=orig_obsdict[key]
+
+            nobs=tnoise_obsdict[key]
+            ngmix.metacal._rotate_obs_image(nobs, k=3)
+
+            newobs = _doadd_single_obs_combined(tobs, nobs, nrand)
+
+            obsdict[key].append( newobs )
+
+    return obsdict
+
+def _doadd_single_obs(obs, nobs):
+    im  = obs.image
+    nim = nobs.image
+
+    image = im + nim
+
+    weight=numpy.zeros(obs.weight.shape)
+
+    wpos=numpy.where(
+        (obs.weight != 0.0) &
+        (nobs.weight != 0.0)
+    )
+    if wpos[0].size > 0:
+        tvar = obs.weight*0
+        # add the variances
+        tvar[wpos] = (
+            1.0/obs.weight[wpos]  +
+            1.0/nobs.weight[wpos]
+        )
+        weight[wpos] = 1.0/tvar[wpos]
+
+    newobs=ngmix.Observation(
+        image,
+        weight=weight,
+        jacobian=obs.jacobian.copy(),
+    )
+    return newobs
+
+
+def get_all_metacal_multi(obs, step=0.01, **kw):
+    """
+    do multiple random realizations
+    currently only for single obs input
+    """
+    assert isinstance(obs, ngmix.Observation)
+
+    nrand=kw.pop('nrand',1)
+    print("doing nrand:",nrand)
+
+    orig_obsdict = ngmix.metacal._get_all_metacal(obs, step=step, **kw)
+
+    obsdict_list=[]
+
+    for i in xrange(nrand):
+        # Using None for the model means we get just noise
+        noise_obs = ngmix.simobs.simulate_obs(None, obs, **kw)
+
+        # rotate by 90
+        ngmix.metacal._rotate_obs_image(noise_obs, k=1)
+
+        noise_obsdict = ngmix.metacal._get_all_metacal(noise_obs, step=step, **kw)
+
+        obsdict={}
+        for key in noise_obsdict:
+            tobs=orig_obsdict[key]
+
+            nobs=noise_obsdict[key]
+            ngmix.metacal._rotate_obs_image(nobs, k=3)
+
+            newobs = _doadd_single_obs(tobs, nobs)
+
+            obsdict[key] = newobs
+
+        obsdict_list.append(obsdict)
+
+    return obsdict_list
 

@@ -1,0 +1,26 @@
+# lower shear sim
+run: "run-bd58mcal-t01"
+sim: "sim-bd58"
+
+fitter: "metacal-moments-am"
+
+global_seed: 28164
+
+metacal_pars:
+    fixnoise: False
+    symmetrize_psf: True
+    symmetrize_dilation: 1.014
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+ngal: 10000000
+
+desired_hours: 0.25
+
+sec_per: 0.17
+
+jobs_per_condor_sub: 5000
+
+verbose: False

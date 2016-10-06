@@ -1,0 +1,64 @@
+
+name: "sim-bd58"
+
+simulator: "galsim"
+
+noise: 0.95
+
+stamp_size: [48,48]
+
+psf:
+
+    s2n: 10000.0
+
+    model: "moffat"
+    beta: 3.5
+
+    # approximate for DES y1, 
+    r50: 2.07
+
+    shape: [0.0, 0.007]
+
+obj_model:
+
+    model: "bd"
+
+    flux:
+        type: "powerlaw"
+        index: -1.85
+        min: 35.0
+        max: 5000.0
+
+    # both components get the same scale length and ellipticity
+    g:
+        type: "ba"
+        sigma: 0.2
+
+    r50:
+        type: "lognormal"
+        mean: 1.54
+        sigma: 1.0
+
+    fracdev:
+        type: "uniform"
+        range: [0.0, 1.0]
+
+    dev_shift:
+        type: "uniform"
+        # in units of r50
+        radius: 1.0
+
+    cen_shift:
+        radius: 0.5
+
+label: "$bulge-disk$"
+
+# according to quick tests, 0.04 should lead to no
+# more than ~4e-4 bias
+shear:
+    type: 'const-dist'
+
+    seed: 21492
+    nshear: 300
+    min_shear: 0.01
+    max_shear: 0.02

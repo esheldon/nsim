@@ -1,0 +1,24 @@
+# tried not adding noise to noshear image, didn't work
+run: "run-bd51mcal-t02"
+sim: "sim-bd51"
+
+fitter: "metacal-moments-am"
+
+global_seed: 4677
+
+metacal_pars:
+    fixnoise: True
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+ngal: 2000000
+
+desired_hours: 0.10
+
+sec_per: 0.33
+
+jobs_per_condor_sub: 5000
+
+verbose: False

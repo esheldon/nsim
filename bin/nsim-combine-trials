@@ -26,11 +26,6 @@ parser.add_argument(
     help="just store locally",
 )
 
-parser.add_argument(
-    '--allow-missing',
-    action='store_true',
-    help="allow missing splits",
-)
 def get_tmp_file(fname):
     tmpdir=os.environ['TMPDIR']
     bname=os.path.basename(fname)
@@ -56,10 +51,11 @@ def combine_trials(args):
         first=True
         for isplit in xrange(nsplit):
             f=nsim.files.get_output_url(args.run, 0, is2n, itrial=isplit, fs=fs)
-            if args.allow_missing and not os.path.exists(f):
+            if not os.path.exists(f):
                 print("   missing file:",f)
                 nmissing += 1
                 continue
+
             print(f)
 
             try:
@@ -77,60 +73,13 @@ def combine_trials(args):
             else:
                 output[-1].append(t)
 
-    if args.allow_missing:
-        print(nmissing,"were missing")
+    print(nmissing,"were missing")
 
     if not args.local:
         print('moving to:',outfile)
         exit_code=os.system('mv -fv %s %s' % (tmpfile, outfile))
         if exit_code != 0:
             raise RuntimeError("error moving to final location")
-
-
-def combine_trials_old(run, is2n, allow_missing=False, allow_mismatch=False):
-    fs=nsim.files.get_default_fs()
-    c = nsim.files.read_config(run)
-    c['simc'] = nsim.files.read_config(c['sim'])
-
-    npair_min=c.get('npair_min',None)
-    npair,nsplit = nsim.files.get_npair_nsplit(c, is2n, npair_min=npair_min)
-    ntot=npair*2
-
-    outfile=nsim.files.get_output_url(run, 0, is2n, fs=fs, ext='fits')
-    tmpfile=get_tmp_file(outfile)
-    print('writing to temp file:',tmpfile)
-
-    with fitsio.FITS(tmpfile,mode="rw",clobber=True) as output:
-
-        first=True
-        for isplit in xrange(nsplit):
-            f=nsim.files.get_output_url(run, 0, is2n, itrial=isplit, fs=fs)
-            if allow_missing and not os.path.exists(f):
-                print("   missing file:",f)
-                continue
-            print(f)
-            t=fitsio.read(f)
-            #t=eu.io.read(f)
-
-
-            if not allow_mismatch:
-                if t.size != ntot:
-                    raise ValueError("%s expected %d, got %d" % (f,npair,t.size))
-
-            #if 'processed' not in t.dtype.names:
-            #    t=eu.numpy_util.add_fields(t, [('processed','i2')])
-            #    t['processed']=1
-
-            if first:
-                output.write(t)
-                first=False
-            else:
-                output[-1].append(t)
-
-    print('moving to:',outfile)
-    exit_code=os.system('mv -fv %s %s' % (tmpfile, outfile))
-    if exit_code != 0:
-        raise RuntimeError("error moving to final location")
 
 def main():
     args = parser.parse_args()

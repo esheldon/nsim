@@ -1,0 +1,53 @@
+run: "run-gg30max-t01"
+sim: "sim-gg30"
+
+fitter: "max"
+
+# do moments, but do an initial fit first
+fit_model: "gauss"
+
+global_seed: 2055
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    T:
+        type: "flat"
+        #pars: [0.0, 1.e+05]
+        pars: [0.0, 20.0]
+
+    counts:
+        type: "flat"
+        #pars: [0.0, 1.e+05]
+        pars: [0.0, 5000.0]
+
+    g:
+        type: "flat"
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+
+    replace_cov: True
+    cov_pars:
+        m: 5
+        h: 1.0e-3
+
+
+ngal: 10000000
+
+desired_hours: 1.1
+
+# doubled for slac
+sec_per: 0.1
+
+verbose: False

@@ -13,6 +13,11 @@ from .util import TryAgainError
 
 from .fitters import SimpleFitterBase
 
+
+
+
+
+
 class MetacalMomentsFixed(SimpleFitterBase):
     """
     - might be effects not captured by the galsim
@@ -384,6 +389,77 @@ class MetacalMomentsAM(MetacalMomentsFixed):
             dt += [('mcal_numiter%s' % back,'i4')]
 
         return dt
+
+
+class AMFitter(MetacalMomentsAM):
+    def _setup(self, *args, **kw):
+        super(MetacalMomentsFixed,self)._setup(*args, **kw)
+
+    def _dofit(self, imdict):
+
+        obs=imdict['obs']
+
+        res=self._measure_moments(obs)
+        res['flags']=0
+        return res
+
+    def _get_dtype(self):
+        """
+        get the dtype for the output struct
+        """
+        npars=self['npars']
+
+        # super of super
+        dt=super(SimpleFitterBase,self)._get_dtype()
+        dt += [
+            ('pars','f8',npars),
+            ('pars_cov','f8',(npars,npars)),
+            ('flux','f8'),
+            ('flux_s2n','f8'),
+            ('g','f8',2),
+            ('g_cov','f8',(2,2)),
+            ('s2n','f8'),
+            ('numiter','i4'),
+        ]
+
+        return dt
+
+    def _copy_to_output(self, res, i):
+        """
+        copy parameters specific to this class
+        """
+
+        # note copying super of our super, since
+        # we didn't do a regular fit
+        super(SimpleFitterBase,self)._copy_to_output(res, i)
+
+        d=self.data
+
+        ckeys=[
+            'pars','pars_cov',
+            'flux','flux_s2n',
+            'g','g_cov',
+            's2n',
+            'numiter',
+        ]
+
+        for key in ckeys:
+            d[key][i] = res[key]
+
+    def _print_res(self,res):
+        """
+        print some stats
+        """
+
+        print("    flux s2n: %g" % res['flux_s2n'])
+        print("    e1e2:  %g %g" % tuple(res['g']))
+        print("    e_err: %g" % numpy.sqrt(res['g_cov'][0,0]))
+
+        print_pars(res['pars'],      front='        pars: ')
+
+        print('        true: ', res['pars_true'])
+
+
 
 class MetacalMomentsAMMulti(MetacalMomentsAM):
 

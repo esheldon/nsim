@@ -54,7 +54,7 @@ obj_model:
 label: "$bulge-disk$"
 
 # according to quick tests, 0.04 should lead to no
-# more than ~4e-4 bias
+# more than 2e-3 bias, but should be less on average
 shear:
     type: 'const-dist'
 

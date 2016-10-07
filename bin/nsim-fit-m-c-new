@@ -67,6 +67,9 @@ parser.add_argument('--admom',action='store_true',
 parser.add_argument('--cache',action='store_true',
                     help='use local disk cache')
 
+parser.add_argument('--R',help='input R')
+parser.add_argument('--Rselect',help='input R select')
+
 def main():
     args = parser.parse_args()
 

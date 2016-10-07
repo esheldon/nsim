@@ -267,6 +267,18 @@ low noise bd, larger psf and gals
               c1: -2.059e-04 +/- 2.775e-04
               c2: -2.556e-05 +/- 2.773e-04
 
+    - run-bd51mcal-t02
+        - small run testing not adding noise to the noshear
+            - doesn't work
+    - run-bd51mcal-t03
+        - small run testing if just adding a noise field, not putting through
+        the whole metacal, works also.  We could then just fit to more data,
+        which is faster than the whole metacal process
+            - doesn't work
+    - run-bd51mcal-t04
+        - only do the noshear noise field
+        - doesn't work
+
 - bd52
     - exactly same as bd36 but round psf
     - run-bd52mcal-t01

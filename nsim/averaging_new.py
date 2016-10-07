@@ -49,6 +49,11 @@ class Summer(dict):
         else:
             self['nshear'] = nshear
 
+        if args.R is not None:
+            self.Rinput = array([float(R) for R in args.R.split(',')])
+        if args.Rselect is not None:
+            self.Rselect_input = array([float(R) for R in args.Rselect.split(',')])
+
     def go(self):
 
         if self.args.fit_only:
@@ -795,6 +800,13 @@ class Summer(dict):
             print()
             print("Rsel:",Rsel)
             print("Rpsf_sel:",Rsel_psf)
+
+        if self.args.R is not None:
+            print("ignoring calculated R, using input")
+            R = self.Rinput
+            Rsel = self.Rselect_input
+            print("R:",R)
+            print("Rsel:",Rsel)
 
         return g, gpsf, R, Rpsf, Rsel, Rsel_psf
 

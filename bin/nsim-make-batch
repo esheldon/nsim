@@ -189,7 +189,7 @@ Queue
 _wq_template="""
 command: |
 
-    source activate nsim-work2
+    source activate nsim
 
     command=%(master_script)s
     ngal=%(ngal_per)s

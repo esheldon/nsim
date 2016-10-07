@@ -354,7 +354,7 @@ class MakerBase(dict):
             seed = numpy.random.randint(0,2**31-1)
 
             ngal_tot += ngal_per
-            output = files.get_output_url(self['run'], 0, 0, itrial=isplit)
+            output = files.get_output_url(self['run'], itrial=isplit)
             do_write=True
             if self['missing'] and os.path.exists(output):
                 do_write=False

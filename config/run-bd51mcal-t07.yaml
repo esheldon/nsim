@@ -1,24 +1,25 @@
 # multiple realizations, averaging
-run: "run-bd51mcal-t06"
+run: "run-bd51mcal-t07"
 sim: "sim-bd51"
 
 fitter: "metacal-moments-am-multi"
 
-global_seed: 3241
+global_seed: 26105
 
 metacal_pars:
     fixnoise: True
+    types: ["noshear"]
     nrand: 10
 
 admom_pars:
     ntry: 4
     maxiter: 200
 
-ngal: 2000000
+ngal: 10000000
 
 desired_hours: 0.5
 
-sec_per: 1.5
+sec_per: 0.9
 
 jobs_per_condor_sub: 5000
 

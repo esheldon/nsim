@@ -27,10 +27,13 @@ class MetacalMomentsFixed(SimpleFitterBase):
     def _setup(self, *args, **kw):
         super(MetacalMomentsFixed,self)._setup(*args, **kw)
 
-        self.metacal_types=[
+        deftypes=[
             'noshear',
             '1p','1m','2p','2m',
         ]
+        mpars=self['metacal_pars']
+        self.metacal_types=mpars.get('types',deftypes)
+        print("doing types:",self.metacal_types)
 
     def _dofit(self, imdict):
 

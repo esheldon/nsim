@@ -121,7 +121,7 @@ class Summer(dict):
         collated file
         """
 
-        fname = nsim.files.get_output_url(run, 0, 0)
+        fname = nsim.files.get_output_url(run)
         if self.args.cache:
             origname=fname
             bname = os.path.basename(origname)

@@ -52,26 +52,16 @@ def read_config(run):
                          "itself: '%s' instead of '%s'" % (n,c[n],run))
     return c
 
-def get_default_fs():
-    if os.environ.get('NSIM_FS')=='hdfs':
-        fs='hdfs'
-    else:
-        fs='nfs'
-    return fs
-
-def get_simdir(fs=None):
+def get_simdir():
     """
     note old style name for compatibility
     """
-    if fs=='hdfs':
-        dir=os.environ['SHAPESIM_HDFS_DIR']
-    else:
-        dir=os.environ['SHAPESIM_DIR']
+    dir=os.environ['SHAPESIM_DIR']
 
     return dir
 
-def get_run_dir(run, fs=None):
-    dir=get_simdir(fs=fs)
+def get_run_dir(run):
+    dir=get_simdir()
     return path_join(dir,run)
 
 
@@ -116,11 +106,13 @@ def get_wq_job_url(run, filenum, missing=False):
     fname='{run}{end}.yaml'.format(run=run,end=end)
     return path_join(d,fname)
 
+'''
 def get_wq_combine_psample_job_url(run, is2n, itrial):
     d=get_wq_dir(run)
 
     fname='%s-%05d-%05d-comb-psample.yaml' % (run,is2n,itrial)
     return path_join(d,fname)
+'''
 
 def get_wq_master_url(run):
     d=get_wq_dir(run)
@@ -145,12 +137,13 @@ def get_lsf_job_url(run, filenum, missing=False):
     fname='{run}{end}.lsf'.format(run=run,end=end)
     return path_join(d,fname)
 
+'''
 def get_lsf_combine_psample_job_url(run, is2n, itrial):
     d=get_lsf_dir(run)
 
     fname='%s-%05d-%05d-comb-psample.lsf' % (run,is2n,itrial)
     return path_join(d,fname)
-
+'''
 
 def get_lsf_master_url(run):
     d=get_lsf_dir(run)
@@ -218,21 +211,21 @@ def get_slr_job_url(run):
 #    return path_join(d,'%s.sh' % run)
 
 
-def get_output_dir(run, sub=None, fs=None):
-    dir=get_run_dir(run, fs=fs)
+def get_output_dir(run, sub=None):
+    dir=get_run_dir(run)
     dir=path_join(dir, 'outputs')
     if sub:
         dir = path_join(dir, sub)
     return dir
 
-def get_output_url(run, is2, is2n, itrial=None, fs=None, ext='fits'):
+def get_output_url(run, itrial=None, is2=0, is2n=0, ext='fits'):
     """
     is2 and is2n are the index in the list of s2 and s2n vals for a given run.
     """
     sub=None
     if itrial is not None:
         sub='bytrial'
-    dir=get_output_dir(run, sub=sub, fs=fs)
+    dir=get_output_dir(run, sub=sub)
     f='%s-%03i-%03i' % (run,is2,is2n)
     if itrial is not None:
         if itrial == '*':
@@ -284,6 +277,7 @@ def get_means_url(run, extra=None):
     f='%s-means%s.fits' % (run,extra)
     return path_join(dir, f)
 
+'''
 def get_psample_summed_url(run, is2n, itrial=None, fs=None, ext='fits'):
     """
     is2 and is2n are the index in the list of s2 and s2n vals for a given run.
@@ -305,22 +299,22 @@ def get_psample_summed_url(run, is2n, itrial=None, fs=None, ext='fits'):
 
     f += '-summed.%s' % ext
     return path_join(dir, f)
+'''
 
-
-def read_output(run, is2n, fs=None, itrial=None, ext='fits', **kw):
+def read_output(run, itrial=None, ext='fits', **kw):
     """
     Read the collated file with all trials
     """
     import fitsio
-    fname=get_output_url(run, 0, is2n, itrial=itrial, fs=fs, ext=ext)
+    fname=get_output_url(run, itrial=itrial, ext=ext)
     print("reading collated file:",fname)
     return fitsio.read(fname, **kw)
 
-def get_fitprior_url(run, is2n, itrial=None, fs=None, extra=None, ext='fits'):
+def get_fitprior_url(run, itrial=None, extra=None, ext='fits'):
     """
     we fit prior from high s/n sample
     """
-    url=get_output_url(run, 0, is2n, itrial=itrial, fs=fs, ext=ext)
+    url=get_output_url(run,  itrial=itrial, ext=ext)
 
     end=['fitprior']
     if extra is not None:
@@ -340,12 +334,12 @@ def get_extra_url(bname):
 
     return f
 
-def get_averaged_url(run, is2n=None, fs=None, ext='fits'):
+def get_averaged_url(run, is2n=None, ext='fits'):
     """
     send is2n= for the split one
     """
 
-    dir=get_output_dir(run, fs=fs)
+    dir=get_output_dir(run)
     if is2n is not None:
         f='%s-%03i-%03i-avg' % (run,0,is2n)
     else:
@@ -353,15 +347,16 @@ def get_averaged_url(run, is2n=None, fs=None, ext='fits'):
     f = '%s.%s' % (f,ext)
     return path_join(dir, f)
 
-def read_averaged(run, is2n=None, fs=None, ext='fits'):
+def read_averaged(run, is2n=None, ext='fits'):
     """
     Read the file with all averaged and summed quantities for
     each s/n bin
     """
     import fitsio
-    fname=get_averaged_url(run, is2n=is2n, fs=fs, ext=ext)
+    fname=get_averaged_url(run, is2n=is2n, ext=ext)
     return fitsio.read(fname)
 
+'''
 
 s2n_ref_bdfg=[ 10, 15, 23, 35, 53, 81, 123, 187, 285, 433, 658, 1000 ]
 npair_ref_bdfg=[1240000, 1240000,  711574,  363878,  164300,
@@ -685,6 +680,7 @@ def get_npair_nsplit(c, is2n, npair_min=None):
     nsplit = int(ceil( npair_tot/float(npair_per) ))
 
     return npair_per, nsplit
+'''
 
 def get_gal_nsplit(c):
     """

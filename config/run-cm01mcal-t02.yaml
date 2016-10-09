@@ -1,0 +1,30 @@
+# lower shear sim
+run: "run-cm01mcal-t02"
+sim: "sim-cm01"
+
+fitter: "metacal-moments-am"
+
+global_seed: 1605
+
+# psf flux is usually smaller than our primary s2n measurement
+# this would be more like 5
+min_s2n: 0.0
+
+metacal_pars:
+    fixnoise: True
+    symmetrize_psf: True
+    symmetrize_dilation: 1.014
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+ngal: 10000000
+
+desired_hours: 1.0
+
+sec_per: 0.6
+
+jobs_per_condor_sub: 5000
+
+verbose: False

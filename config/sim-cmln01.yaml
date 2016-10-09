@@ -1,0 +1,47 @@
+# parametric cosmos catalog
+# low noise
+name: "sim-cmln01"
+
+simulator: "galsim"
+
+noise: 0.001
+
+wcs:
+  dudx: 0.0
+  dudy: 0.263
+  dvdx: 0.263
+  dvdy: 0.0
+
+stamp_size: [48,48]
+
+psf:
+
+    s2n: 10000.0
+
+    model: "moffat"
+    beta: 3.5
+
+    # in arcsec
+    fwhm: 0.9
+
+    shape: [0.0, 0.007]
+
+obj_model:
+
+    model: "cosmos"
+    type: "parametric"
+
+    dev_shift: null
+    cen_shift: null
+
+label: "$bulge-disk$"
+
+# according to quick tests, 0.04 should lead to no
+# more than ~4e-4 bias
+shear:
+    type: 'const-dist'
+
+    seed: 2149
+    nshear: 300
+    min_shear: 0.01
+    max_shear: 0.04

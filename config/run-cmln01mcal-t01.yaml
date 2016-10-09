@@ -1,0 +1,28 @@
+# lower shear sim
+run: "run-cmln01mcal-t01"
+sim: "sim-cmln01"
+
+fitter: "metacal-moments-am"
+
+global_seed: 2816
+
+min_s2n: 2.0
+
+metacal_pars:
+    fixnoise: True
+    symmetrize_psf: True
+    symmetrize_dilation: 1.014
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+ngal: 200000
+
+desired_hours: 0.10
+
+sec_per: 0.6
+
+jobs_per_condor_sub: 5000
+
+verbose: False

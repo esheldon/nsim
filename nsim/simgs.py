@@ -40,6 +40,7 @@ class SimGS(dict):
         """
 
         self.update(sim_conf)
+        assert self['obj_model']['cen_shift'] is None,"fix cen_shift to be on drawImage"
 
         seed=self.get('seed',None)
         print("    using seed:",self['seed'])
@@ -49,6 +50,7 @@ class SimGS(dict):
         # code which may use the global.
         numpy.random.seed(seed)
         self.rng=numpy.random.RandomState(seed=numpy.random.randint(0,2**30))
+        self.galsim_rng = galsim.BaseDeviate(numpy.random.randint(0,2**30))
 
         self._setup()
 
@@ -318,17 +320,26 @@ class SimGS(dict):
 
             if 'dudx_std' in ws:
                 rng=self.rng
-                dudx += rng.normal(scale=ws['dudx_std'])
-                dudy += rng.normal(scale=ws['dudy_std'])
-                dvdx += rng.normal(scale=ws['dvdx_std'])
-                dvdy += rng.normal(scale=ws['dvdy_std'])
+                dudx = dudx + rng.normal(scale=ws['dudx_std'])
+                dudy = dudy + rng.normal(scale=ws['dudy_std'])
+                dvdx = dvdx + rng.normal(scale=ws['dvdx_std'])
+                dvdy = dvdy + rng.normal(scale=ws['dvdy_std'])
         else:
             dudx=1.0
             dudy=0.0
             dvdx=0.0
             dvdy=1.0
 
+        wcs=galsim.JacobianWCS(
+            dudx,
+            dudy,
+            dvdx,
+            dvdy,
+        )
+
+
         # our sims are always in pixels for now
+        """        
         det = numpy.abs( dudy*dvdx-dudx*dvdy )
         scale = numpy.sqrt(det)
 
@@ -336,7 +347,7 @@ class SimGS(dict):
                                dudy/scale,
                                dvdx/scale,
                                dvdy/scale)
-
+        """
         return wcs
 
     def _get_jacobian(self, image, wcs):
@@ -857,6 +868,116 @@ class SimGS(dict):
             else:
                 raise ValueError("bad s2n pdf type: '%s'" % s2nspec['type'])
 
+    def _set_dev_offset_pdf(self):
+        ds_spec=self['obj_model']['dev_shift']
+        if ds_spec is not None:
+            # radius in units of r50
+            self.dev_offset_pdf = ngmix.priors.ZDisk2D(ds_spec['radius'],
+                                                       rng=self.rng)
+        else:
+            self.dev_offset_pdf = None
+
+
+class SimCosmos(SimGS):
+    """
+    using real galaxy fits from cosmos.
+    """
+
+    def _setup(self):
+
+        self['ivar'] = 1.0/self['noise']**2
+        self['model'] = self['obj_model']['model']
+        assert self['obj_model']['type']=='parametric'
+
+        self['bad_pixels'] = self.get('bad_pixels',None)
+
+        self['masks'] = self.get('masks',None)
+        if self['masks'] is not None:
+            self._load_masks()
+
+        self._set_pdfs()
+
+        self._set_gal_cat()
+
+    def _get_galaxy_pars(self):
+        """
+        all pars are the same except for the shift of the bulge
+        """
+
+        if self.dev_offset_pdf is not None:
+            dev_offset1,dev_offset2 = self.dev_offset_pdf.sample2d()
+            dev_offset = (r50*dev_offset1, r50*dev_offset2)
+        else:
+            dev_offset=None
+
+        # compatibility with older code
+        pars={
+            'model':  self['model'],
+            'flux':   -9999,
+            'r50':    -9999,
+            'size':   -9999,
+            'g':      [-9999,-9999],
+            's2n':    None,
+            'cenoff': None,
+            'dev_offset': dev_offset,
+        }
+
+
+        if self.shear_pdf is not None:
+            shear, shindex = self.shear_pdf.get_shear(self.rng)
+            pars['shear'] = shear
+            pars['shear_index'] = shindex
+
+
+        return pars
+
+    def _get_gal_obj(self, pars):
+        """
+        get the galsim object for the galaxy model
+        """
+
+        cenoff=pars['cenoff']
+        dev_offset=pars['dev_offset']
+
+        gal = self.cat.makeGalaxy(rng=self.galsim_rng)
+        if isinstance(gal,list) and dev_offset is not None:
+            # we have separate instances of bulge and disk
+            bulge,disk=gal
+            bulge = bulge.shift(dx=dev_offset[0], dy=dev_offset[1])
+
+            gal = galsim.Add([bulge,disk])
+
+        if 'shear' in pars:
+            shear=pars['shear']
+            gal = gal.shear(g1=shear.g1, g2=shear.g2)
+
+        if cenoff is not None:
+            gal = gal.shift(dx=cenoff[0], dy=cenoff[1])
+
+        tup=(dev_offset,cenoff)
+        print("    dev_offset: %s cenoff: %s" % tup)
+
+        return gal
+
+
+
+    def _set_pdfs(self):
+        """
+        Set all the priors
+        """
+
+        self._set_psf_pdf()
+
+        # should generally just either flux or s2n
+        self._set_cen_pdf()
+        self._set_shear_pdf()
+
+        # currently not supported
+        assert self['obj_model']['dev_shift'] is None
+        self._set_dev_offset_pdf()
+
+    def _set_gal_cat(self):
+        self.cat=galsim.COSMOSCatalog(use_real=False)
 
 class SimGMix(SimGS):
     """
@@ -1051,15 +1172,6 @@ class SimBD(SimGS):
 
         self._set_dev_offset_pdf()
         self._set_fracdev_pdf()
-
-    def _set_dev_offset_pdf(self):
-        ds_spec=self['obj_model']['dev_shift']
-        if ds_spec is not None:
-            # radius in units of r50
-            self.dev_offset_pdf = ngmix.priors.ZDisk2D(ds_spec['radius'],
-                                                       rng=self.rng)
-        else:
-            self.dev_offset_pdf = None
 
     def _set_fracdev_pdf(self):
         bdr = self['obj_model']['fracdev']['range']

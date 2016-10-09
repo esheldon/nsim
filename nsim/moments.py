@@ -35,6 +35,9 @@ class MetacalMomentsFixed(SimpleFitterBase):
         self.metacal_types=mpars.get('types',deftypes)
         print("doing types:",self.metacal_types)
 
+
+        self['min_s2n'] = self.get('min_s2n',0.0)
+
     def _dofit(self, imdict):
 
         obs=imdict['obs']
@@ -173,11 +176,6 @@ class MetacalMomentsFixed(SimpleFitterBase):
                 ]
 
             dt += [
-                #('mcal_s2n_r%s' % back,'f8'),
-                #('mcal_s2n_w%s' % back,'f8'),
-
-                #('mcal_r50%s' % back,'f8'),
-                #('mcal_r50_s2n%s' % back,'f8'),
                 ('mcal_s2n%s' % back,'f8'),
                 ('mcal_flux%s' % back,'f8'),
                 ('mcal_flux_s2n%s' % back,'f8'),
@@ -294,13 +292,19 @@ class MetacalMomentsFixed(SimpleFitterBase):
  
         return pars
 
-    def _get_guess(self):
+    def _get_guess(self, obs):
+
+
         rng=self.rng
 
+        scale=obs.jacobian.get_scale()
+        Tguess = 10.0*scale**2
+        #Tguess = 4.0*scale**2
+
         pars=zeros(6)
-        pars[0:0+2] = rng.uniform(low=-0.5, high=0.5, size=2)
+        pars[0:0+2] = rng.uniform(low=-0.5*scale, high=0.5*scale, size=2)
         pars[2:2+2] = rng.uniform(low=-0.3, high=0.3, size=2)
-        pars[4]     = 10.0*(1.0 + rng.uniform(low=-0.1, high=0.1))
+        pars[4]     = Tguess*(1.0 + rng.uniform(low=-0.1, high=0.1))
         pars[5]     = 1.0
 
         guess=ngmix.GMixModel(pars, "gauss")
@@ -309,15 +313,66 @@ class MetacalMomentsFixed(SimpleFitterBase):
 class MetacalMomentsAM(MetacalMomentsFixed):
     def _dofit(self, imdict):
 
-        obs=imdict['obs']
 
+        obs=imdict['obs']
+        if False:
+            self._do_plots(obs)
+
+        psfres=self._fit_psf(obs)
+        self._check_psf_s2n(psfres)
+
+
+        print("    fitting pre")
+        pre_res=self._measure_moments(obs)
+        pre_res['psf_s2n']= psfres['s2n']
+        pre_res['psf_T']= psfres['T']
+
+        print("    doing metacal")
         obsdict=self._get_metacal(obs)
 
         res=self._do_metacal(obsdict)
+        res['prefit'] = pre_res
+
         res['flags']=0
         return res
 
-    def _measure_moments(self, obs):
+    def _fit_psf(self, obs):
+
+        _, fitter = self._measure_moments(obs.psf, get_fitter=True)
+        gm=fitter.get_gmix()
+        fitres=fitter.get_result()
+
+        if False:
+            self._do_plots(obs.psf, gmix=gm)
+
+        obs.psf.set_gmix(gm)
+
+        # using jacobian center
+        fitter=ngmix.fitting.TemplateFluxFitter(
+            obs,
+            do_psf=True,
+        )
+        fitter.go()
+
+        res=fitter.get_result()
+        if res['flags'] != 0:
+            raise TryAgainError("could not fit psf flux")
+
+        fitres['s2n']=res['flux']/res['flux_err']
+
+        return fitres
+
+    def _check_psf_s2n(self, res):
+        s2n=res['s2n']
+
+        if s2n < self['min_s2n']:
+            raise TryAgainError("    s2n %g < %g" % (s2n,self['min_s2n']))
+        else:
+            print("    psf s/n: %g" % s2n)
+
+        return s2n
+
+    def _measure_moments(self, obs, get_fitter=False):
         """
         moments of the power spectrum
 
@@ -330,7 +385,7 @@ class MetacalMomentsAM(MetacalMomentsFixed):
         fitter=ngmix.admom.Admom(obs, **ampars)
 
         for i in xrange(ntry):
-            guess=self._get_guess()
+            guess=self._get_guess(obs)
 
             fitter.go(guess)
             res=fitter.get_result()
@@ -341,9 +396,11 @@ class MetacalMomentsAM(MetacalMomentsFixed):
         if res['flags'] != 0:
             raise TryAgainError("admom failed")
 
+        gm=fitter.get_gmix()
+        g1,g2,T=gm.get_g1g2T()
+
         res['g']     = res['e']
         res['g_cov'] = res['e_cov']
-        res['pars']  = res['sums']
 
         # not right pars cov
         res['pars_cov']=res['sums_cov']*0 + 9999.e9
@@ -352,7 +409,10 @@ class MetacalMomentsAM(MetacalMomentsFixed):
         res['flux']     = res['flux']
         res['flux_s2n'] = res['s2n']
 
-        return res
+        if get_fitter:
+            return res, fitter
+        else:
+            return res
 
     def _copy_to_output(self, res, i):
         """
@@ -364,6 +424,14 @@ class MetacalMomentsAM(MetacalMomentsFixed):
         super(MetacalMomentsAM,self)._copy_to_output(res, i)
 
         d=self.data
+
+        pres=res['prefit']
+        d['pars'][i] = pres['pars']
+        d['g'][i] = pres['g']
+        d['g_cov'][i] = pres['g_cov']
+        d['s2n'][i] = pres['s2n']
+        d['psf_s2n'][i] = pres['psf_s2n']
+        d['psf_T'][i] = pres['psf_T']
 
         for type in self.metacal_types:
             if type=='noshear':
@@ -383,6 +451,10 @@ class MetacalMomentsAM(MetacalMomentsFixed):
         # super of super
         dt=super(MetacalMomentsAM,self)._get_dtype()
 
+        dt += [
+            ('psf_s2n','f8'),
+            ('psf_T','f8'),
+        ]
         for type in self.metacal_types:
             if type=='noshear':
                 back=''
@@ -392,6 +464,35 @@ class MetacalMomentsAM(MetacalMomentsFixed):
             dt += [('mcal_numiter%s' % back,'i4')]
 
         return dt
+
+
+    def _do_plots(self, obs, gmix=None):
+        import images
+
+        if gmix is not None:
+            gm=gmix.copy()
+            gm.set_psum(obs.image.sum())
+
+            model=gm.make_image(obs.image.shape, jacobian=obs.jacobian)
+            images.compare_images(
+                obs.image,
+                model,
+                label1='image',
+                label2='model',
+                file='/u/ki/esheldon/public_html/tmp/plots/tmp.png',
+                dims=[1000,1000],
+            )
+
+        else:
+            images.multiview(
+                obs.image,
+                title='image',
+                file='/u/ki/esheldon/public_html/tmp/plots/tmp.png',
+                dims=[1000,1000],
+            )
+
+        if 'q'==raw_input("hit a key: "):
+            stop
 
 
 class AMFitter(MetacalMomentsAM):
@@ -539,7 +640,7 @@ class MetacalMomentsDeweight(MetacalMomentsFixed):
         fitter=ngmix.admom.Admom(obs.psf, **ampars)
 
         for i in xrange(ntry):
-            guess=self._get_guess()
+            guess=self._get_guess(obs.psf)
 
             fitter.go(guess)
             res=fitter.get_result()

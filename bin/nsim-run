@@ -83,13 +83,19 @@ def run_sim(sim_conf,
             sim_conf['seed'] = args.seed
             #numpy.random.seed(sim_conf['seed'])
 
-        if sim_conf['obj_model']['model']=='bd':
+        model=sim_conf['obj_model']['model']
+        if model =='bd':
             sim=nsim.simgs.SimBD(sim_conf)
-        elif sim_conf['obj_model']['model']=='bd-diffe':
+        elif model=='bd-diffe':
             sim=nsim.simgs.SimBDD(sim_conf)
-        elif sim_conf['obj_model']['model']=='gmix':
+        elif model=='gmix':
             sim=nsim.simgs.SimGMix(sim_conf)
+
+        elif model=='cosmos':
+            sim=nsim.simgs.SimCosmos(sim_conf)
+
         else:
+            # stars e.g.
             sim=nsim.simgs.SimGS(sim_conf)
 
     plot_base=output_file.replace('.fits','')

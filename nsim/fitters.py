@@ -319,7 +319,7 @@ class FitterBase(dict):
         """
 
         dt=[('processed','i2'),
-            ('model_true','S3'),
+            ('model_true','S6'),
             ('s2n_true','f8'),
             ('pars_true','f8',self['npars_true']),
             ('psf_pars_true','f8'),
@@ -355,7 +355,7 @@ class SimpleFitterBase(FitterBase):
         d['g'][i,:] = res['g']
         d['g_cov'][i,:,:] = res['g_cov']
 
-        d['s2n_w'][i] = res['s2n_w']
+        d['s2n'][i] = res['s2n']
         d['psf_T'][i] = res['psf_T']
 
     def _get_prior(self, prior_info=None):
@@ -563,7 +563,7 @@ class SimpleFitterBase(FitterBase):
             ('pars_cov','f8',(npars,npars)),
             ('g','f8',2),
             ('g_cov','f8',(2,2)),
-            ('s2n_w','f8'),
+            ('s2n','f8'),
         ]
 
         if 'psf_npars' in self:
@@ -634,8 +634,8 @@ class MaxFitter(SimpleFitterBase):
         """
 
         if 'nfev' in res:
-            mess="    s2n_w: %.1f  ntry: %d  nfev: %d"
-            mess = mess % (res['s2n_w'],res['ntry'],res['nfev'])
+            mess="    s2n: %.1f  ntry: %d  nfev: %d"
+            mess = mess % (res['s2n'],res['ntry'],res['nfev'])
             print(mess)
 
         print_pars(res['pars'],      front='        pars: ')
@@ -1188,7 +1188,7 @@ class SpergelMetacalFitter(SpergelFitter):
 
             dt += [
                 ('mcal_s2n_r%s' % back,'f8'),
-                ('mcal_s2n_w%s' % back,'f8'),
+                ('mcal_s2n%s' % back,'f8'),
 
                 ('mcal_r50%s' % back,'f8'),
                 ('mcal_r50_s2n%s' % back,'f8'),
@@ -1221,7 +1221,7 @@ class SpergelMetacalFitter(SpergelFitter):
             d['mcal_g%s' % back][i] = tres['g']
             d['mcal_g_cov%s' % back][i] = tres['g_cov']
 
-            d['mcal_s2n_w%s' % back][i] = tres['s2n_w']
+            d['mcal_s2n%s' % back][i] = tres['s2n_w']
             d['mcal_s2n_r%s' % back][i] = tres['s2n_r']
 
             r50 = tres['pars'][4]
@@ -1248,9 +1248,9 @@ class SpergelMetacalFitter(SpergelFitter):
 
         subres=res['noshear']
 
-        s2n_rat = subres['s2n_r']/subres['s2n_w']
-        mess="    mcal s2n_w: %.1f s2n_r: %.1f rat: %g nfev: %d"
-        print(mess % (subres['s2n_w'],subres['s2n_r'],s2n_rat,subres['nfev']))
+        s2n_rat = subres['s2n_r']/subres['s2n']
+        mess="    mcal s2n: %.1f s2n_r: %.1f rat: %g nfev: %d"
+        print(mess % (subres['s2n'],subres['s2n_r'],s2n_rat,subres['nfev']))
 
 
         print_pars(subres['pars'],      front='        pars: ')
@@ -1821,11 +1821,6 @@ class KMomMetacalFitterPost(SimpleFitterBase):
                 ]
 
             dt += [
-                #('mcal_s2n_r%s' % back,'f8'),
-                #('mcal_s2n_w%s' % back,'f8'),
-
-                #('mcal_r50%s' % back,'f8'),
-                #('mcal_r50_s2n%s' % back,'f8'),
                 ('mcal_flux%s' % back,'f8'),
                 ('mcal_flux_s2n%s' % back,'f8'),
             ]
@@ -1854,14 +1849,6 @@ class KMomMetacalFitterPost(SimpleFitterBase):
             d['mcal_pars%s' % back][i] = tres['pars']
             d['mcal_g%s' % back][i] = tres['g']
             d['mcal_g_cov%s' % back][i] = tres['g_cov']
-
-            #d['mcal_s2n_w%s' % back][i] = tres['s2n_w']
-            #d['mcal_s2n_r%s' % back][i] = tres['s2n_r']
-
-            #r50 = tres['pars'][4]
-            #r50_s2n = r50/sqrt(tres['pars_cov'][4,4])
-            #d['mcal_r50%s' % back][i] = r50
-            #d['mcal_r50_s2n%s' % back][i] = r50_s2n
 
             d['mcal_flux%s' % back][i] = tres['flux']
             d['mcal_flux_s2n%s' % back][i] = tres['flux_s2n']
@@ -2099,11 +2086,6 @@ class KMomMetacalFitter(SimpleFitterBase):
                 ]
 
             dt += [
-                #('mcal_s2n_r%s' % back,'f8'),
-                #('mcal_s2n_w%s' % back,'f8'),
-
-                #('mcal_r50%s' % back,'f8'),
-                #('mcal_r50_s2n%s' % back,'f8'),
                 ('mcal_flux%s' % back,'f8'),
                 ('mcal_flux_s2n%s' % back,'f8'),
             ]
@@ -2132,14 +2114,6 @@ class KMomMetacalFitter(SimpleFitterBase):
             d['mcal_pars%s' % back][i] = tres['pars']
             d['mcal_g%s' % back][i] = tres['g']
             d['mcal_g_cov%s' % back][i] = tres['g_cov']
-
-            #d['mcal_s2n_w%s' % back][i] = tres['s2n_w']
-            #d['mcal_s2n_r%s' % back][i] = tres['s2n_r']
-
-            #r50 = tres['pars'][4]
-            #r50_s2n = r50/sqrt(tres['pars_cov'][4,4])
-            #d['mcal_r50%s' % back][i] = r50
-            #d['mcal_r50_s2n%s' % back][i] = r50_s2n
 
             d['mcal_flux%s' % back][i] = tres['flux']
             d['mcal_flux_s2n%s' % back][i] = tres['flux_s2n']
@@ -4090,7 +4064,7 @@ class ShearNullFitterPrepsf(SimpleFitterBase):
 
         res['moments'] = lres['pars']
         res['moments_cov'] = lres['pars_cov']
-        res['s2n_w'] = lres['s2n']
+        res['s2n'] = lres['s2n']
 
         res['g'] = res['pars'].copy()
         res['g_cov'] = res['pars_cov'].copy()
@@ -4172,7 +4146,7 @@ class ShearNullFitterPrepsf(SimpleFitterBase):
         """
 
         if 'nfev' in res:
-            mess="    s2n_w: %.1f  ntry: %d  nfev: %d"
+            mess="    s2n: %.1f  ntry: %d  nfev: %d"
             mess = mess % (res['s2n_w'],res['ntry'],res['nfev'])
             print(mess)
 
@@ -4197,7 +4171,7 @@ class ShearNullFitterPrepsf(SimpleFitterBase):
             ('pars_cov','f8',(npars,npars)),
             ('g','f8',2),
             ('g_cov','f8',(2,2)),
-            ('s2n_w','f8'),
+            ('s2n','f8'),
         ]
 
         return dt
@@ -4216,7 +4190,7 @@ class ShearNullFitterPrepsf(SimpleFitterBase):
         d['g'][i,:] = res['g']
         d['g_cov'][i,:,:] = res['g_cov']
 
-        d['s2n_w'][i] = res['s2n_w']
+        d['s2n'][i] = res['s2n_w']
 
 class ShearNullFitterPostpsf(ShearNullFitterPrepsf):
     def _get_shearer(self):
@@ -5929,7 +5903,7 @@ class NullerBase(object):
         self._result={
             'flags':flags,
             'pars':pars,
-            's2n_w':s2n_w,
+            's2n':s2n_w,
             'nfev':res.nfev,
         }
 
@@ -6047,7 +6021,7 @@ class NullerKSigma(NullerBase):
                     'pars_real':pars_real,
                     'pars_imag':pars_imag,
                     'pars_cov':pars_cov,
-                    's2n_w':s2n,
+                    's2n':s2n,
                 }
             else:
                 retval=moms
@@ -6176,7 +6150,7 @@ class NullerGauss2(NullerBase):
                     'pars_real':pars_real,
                     'pars_imag':pars_imag,
                     'pars_cov':pars_cov,
-                    's2n_w':s2n,
+                    's2n':s2n,
                 }
             else:
                 retval=moms
@@ -6356,7 +6330,7 @@ class NullGauss2Fitter(SimpleFitterBase):
         """
 
         if 'nfev' in res:
-            mess="    s2n_w: %.1f  ntry: %d  nfev: %d"
+            mess="    s2n: %.1f  ntry: %d  nfev: %d"
             mess = mess % (res['s2n_w'],res['ntry'],res['nfev'])
             print(mess)
 
@@ -6396,7 +6370,7 @@ class NullGauss2Fitter(SimpleFitterBase):
         d['pars'][i,:] = res['pars']
 
         d['g'][i,:] = res['pars'][2:2+2]
-        d['s2n_w'][i] = res['s2n_w']
+        d['s2n'][i] = res['s2n_w']
 
         d['nfev'][i] = res['nfev']
         d['ntry'][i] = res['ntry']

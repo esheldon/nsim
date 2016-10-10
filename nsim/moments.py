@@ -69,9 +69,15 @@ class MetacalMomentsFixed(SimpleFitterBase):
 
         for type,obs in odict.iteritems():
 
-            tres=self._measure_moments(obs)
+            tres,fitter=self._measure_moments(obs)
             if tres['flags'] != 0:
                 raise TryAgainError("bad T")
+
+
+            if type=='noshear':
+                pres,fitter=self._measure_moments(obs.psf)
+                tres['psfrec_g'] = pres['g']
+                tres['psfrec_T'] = pres['T']
 
             res[type]=tres
 
@@ -137,7 +143,7 @@ class MetacalMomentsFixed(SimpleFitterBase):
         res['flux_s2n'] = flux_s2n
         res['T']        = T
 
-        return res
+        return res, None
 
     def _set_weight(self, obs):
         """
@@ -171,8 +177,8 @@ class MetacalMomentsFixed(SimpleFitterBase):
                 dt += [
                     ('mcal_wsum','f8'),
                     ('mcal_pars_cov','f8',(npars,npars)),
-                    ('mcal_gpsf','f8',2),
-                    ('mcal_Tpsf','f8'),
+                    ('mcal_psfrec_g','f8',2),
+                    ('mcal_psfrec_T','f8'),
                 ]
 
             dt += [
@@ -212,7 +218,7 @@ class MetacalMomentsFixed(SimpleFitterBase):
             d['mcal_s2n%s' % back][i] = tres['s2n']
 
             if type=='noshear':
-                for p in ['pars_cov','wsum','gpsf','Tpsf']:
+                for p in ['pars_cov','wsum','psfrec_g','psfrec_T']:
 
                     if p in tres:
                         name='mcal_%s' % p
@@ -323,9 +329,13 @@ class MetacalMomentsAM(MetacalMomentsFixed):
 
 
         print("    fitting pre")
-        pre_res=self._measure_moments(obs)
+        pre_res,pfitter=self._measure_moments(obs)
+
+        pre_res['psf_flux']= psfres['flux']
         pre_res['psf_s2n']= psfres['s2n']
-        pre_res['psf_T']= psfres['T']
+
+        pre_res['psfrec_g']= psfres['g']
+        pre_res['psfrec_T']= psfres['T']
 
         print("    doing metacal")
         obsdict=self._get_metacal(obs)
@@ -358,7 +368,9 @@ class MetacalMomentsAM(MetacalMomentsFixed):
         if res['flags'] != 0:
             raise TryAgainError("could not fit psf flux")
 
-        fitres['s2n']=res['flux']/res['flux_err']
+
+        fitres['psf_flux']=res['flux']
+        fitres['psf_s2n']=res['flux']/res['flux_err']
 
         return fitres
 
@@ -396,9 +408,6 @@ class MetacalMomentsAM(MetacalMomentsFixed):
         if res['flags'] != 0:
             raise TryAgainError("admom failed")
 
-        gm=fitter.get_gmix()
-        g1,g2,T=gm.get_g1g2T()
-
         res['g']     = res['e']
         res['g_cov'] = res['e_cov']
 
@@ -409,10 +418,7 @@ class MetacalMomentsAM(MetacalMomentsFixed):
         res['flux']     = res['flux']
         res['flux_s2n'] = res['s2n']
 
-        if get_fitter:
-            return res, fitter
-        else:
-            return res
+        return res, fitter
 
     def _copy_to_output(self, res, i):
         """
@@ -430,8 +436,12 @@ class MetacalMomentsAM(MetacalMomentsFixed):
         d['g'][i] = pres['g']
         d['g_cov'][i] = pres['g_cov']
         d['s2n'][i] = pres['s2n']
+
+        d['psf_flux'][i] = pres['psf_flux']
         d['psf_s2n'][i] = pres['psf_s2n']
-        d['psf_T'][i] = pres['psf_T']
+    
+        d['psfrec_g'][i] = pres['psfrec_g']
+        d['psfrec_T'][i] = pres['psfrec_T']
 
         for type in self.metacal_types:
             if type=='noshear':
@@ -452,8 +462,10 @@ class MetacalMomentsAM(MetacalMomentsFixed):
         dt=super(MetacalMomentsAM,self)._get_dtype()
 
         dt += [
+            ('psf_flux','f8'),
             ('psf_s2n','f8'),
-            ('psf_T','f8'),
+            ('psfrec_g','f8',2),
+            ('psfrec_T','f8'),
         ]
         for type in self.metacal_types:
             if type=='noshear':
@@ -503,7 +515,7 @@ class AMFitter(MetacalMomentsAM):
 
         obs=imdict['obs']
 
-        res=self._measure_moments(obs)
+        res,fitter=self._measure_moments(obs)
         res['flags']=0
         return res
 
@@ -704,7 +716,7 @@ class MetacalMomentsDeweight(MetacalMomentsFixed):
             res['g'][0] = (Icc - Irr)/res['T']
             res['g'][1] = 2.0*Irc/res['T']
 
-        return res
+        return res, None
 
 
     def _set_weight(self, obs):

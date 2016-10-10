@@ -940,12 +940,19 @@ class SimCosmos(SimGS):
         dev_offset=pars['dev_offset']
 
         gal = self.cat.makeGalaxy(rng=self.galsim_rng)
+
         if isinstance(gal,list) and dev_offset is not None:
             # we have separate instances of bulge and disk
             bulge,disk=gal
             bulge = bulge.shift(dx=dev_offset[0], dy=dev_offset[1])
 
             gal = galsim.Add([bulge,disk])
+
+        # there is a net orientation in these galaxies, we
+        # need to rotate them
+
+        theta = self.rng.uniform()*2.0*numpy.pi*galsim.radians
+        gal = gal.rotate(theta)
 
         if 'shear' in pars:
             shear=pars['shear']

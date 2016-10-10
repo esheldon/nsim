@@ -1949,7 +1949,14 @@ def get_s2n_weights(s2n, args):
 
 
 def get_noise_weights(g_cov, args):
-    wts = 1.0/(2*args.shapenoise**2 + g_cov[:,0,0] + g_cov[:,1,1])
+
+    wts=numpy.zeros(g_cov.shape[0])
+
+    g00=g_cov[:,0,0]
+    g11=g_cov[:,1,1]
+
+    w,=numpy.where( numpy.isfinite(g00) & numpy.isfinite(g11) )
+    wts[w] = 1.0/(2*args.shapenoise**2 + g00[w] + g11[w] )
 
     '''
     w,=numpy.where( numpy.isnan(wts) )

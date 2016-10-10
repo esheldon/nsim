@@ -71,7 +71,7 @@ class MetacalMomentsFixed(SimpleFitterBase):
 
             tres,fitter=self._measure_moments(obs)
             if tres['flags'] != 0:
-                raise TryAgainError("bad T")
+                raise TryAgainError("        bad T")
 
 
             if type=='noshear':
@@ -229,15 +229,18 @@ class MetacalMomentsFixed(SimpleFitterBase):
         print some stats
         """
 
+        preres=res['prefit']
         subres=res['noshear']
 
-        print("    flux s2n: %g" % subres['flux_s2n'])
-        print("    e1e2:  %g %g" % tuple(subres['g']))
-        print("    e_err: %g" % numpy.sqrt(subres['g_cov'][0,0]))
+        print()
+        print("    s2n: %g" % preres['s2n'])
 
-        print_pars(subres['pars'],      front='        pars: ')
+        s2n=subres['s2n']
+        g=subres['g']
+        gerr=diag(sqrt(subres['g_cov']))
 
-        print('        true: ', res['pars_true'])
+        print("    mcal s2n: %g  e:  %g +/- %g  %g +/- %g" % (s2n,g[0],gerr[0],g[1],gerr[1]))
+        #print_pars(subres['pars'],      front='        pars: ')
 
 
 
@@ -328,7 +331,7 @@ class MetacalMomentsAM(MetacalMomentsFixed):
         self._check_psf_s2n(psfres)
 
 
-        print("    fitting pre")
+        #print("    fitting pre")
         pre_res,pfitter=self._measure_moments(obs)
 
         pre_res['psf_flux']= psfres['flux']
@@ -337,7 +340,7 @@ class MetacalMomentsAM(MetacalMomentsFixed):
         pre_res['psfrec_g']= psfres['g']
         pre_res['psfrec_T']= psfres['T']
 
-        print("    doing metacal")
+        #print("    doing metacal")
         obsdict=self._get_metacal(obs)
 
         res=self._do_metacal(obsdict)
@@ -366,7 +369,7 @@ class MetacalMomentsAM(MetacalMomentsFixed):
 
         res=fitter.get_result()
         if res['flags'] != 0:
-            raise TryAgainError("could not fit psf flux")
+            raise TryAgainError("        could not fit psf flux")
 
 
         fitres['psf_flux']=res['flux']
@@ -375,10 +378,10 @@ class MetacalMomentsAM(MetacalMomentsFixed):
         return fitres
 
     def _check_psf_s2n(self, res):
-        s2n=res['s2n']
+        s2n=res['psf_s2n']
 
         if s2n < self['min_s2n']:
-            raise TryAgainError("    s2n %g < %g" % (s2n,self['min_s2n']))
+            raise TryAgainError("        s2n %g < %g" % (s2n,self['min_s2n']))
         else:
             print("    psf s/n: %g" % s2n)
 
@@ -406,7 +409,7 @@ class MetacalMomentsAM(MetacalMomentsFixed):
                 break
 
         if res['flags'] != 0:
-            raise TryAgainError("admom failed")
+            raise TryAgainError("        admom failed")
 
         res['g']     = res['e']
         res['g_cov'] = res['e_cov']
@@ -661,7 +664,7 @@ class MetacalMomentsDeweight(MetacalMomentsFixed):
                 break
 
         if res['flags'] != 0:
-            raise TryAgainError("admom failed for psf")
+            raise TryAgainError("        admom failed for psf")
 
         return res
 
@@ -681,7 +684,7 @@ class MetacalMomentsDeweight(MetacalMomentsFixed):
 
         res=super(MetacalMomentsDeweight,self)._measure_moments(obs)
         if res['flags'] != 0:
-            raise TryAgainError("bad moments")
+            raise TryAgainError("        bad moments")
 
         wpars=res['pars']
         M1 = wpars[2]/wpars[5]
@@ -693,7 +696,7 @@ class MetacalMomentsDeweight(MetacalMomentsFixed):
         try:
             Mmeas_inv = numpy.linalg.pinv(Mmeas)
         except numpy.linalg.LinAlgError:
-            raise TryAgainError("could not invert observed moment matrix")
+            raise TryAgainError("        could not invert observed moment matrix")
 
 
         Minv_deweight = Mmeas_inv - self.Mwt_inv
@@ -701,7 +704,7 @@ class MetacalMomentsDeweight(MetacalMomentsFixed):
         try:
             Mdeweight = numpy.linalg.pinv(Minv_deweight )
         except numpy.linalg.LinAlgError:
-            raise TryAgainError("could not invert deweighted moment matrix")
+            raise TryAgainError("        could not invert deweighted moment matrix")
         
         M = Mdeweight - Mpsf
 

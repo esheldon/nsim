@@ -1,0 +1,26 @@
+run: "run-cm01mcal-t04"
+sim: "sim-cm01"
+
+fitter: "metacal-moments-am-fixed"
+
+global_seed: 2951
+
+metacal_pars:
+    fixnoise: True
+    symmetrize_psf: True
+    symmetrize_dilation: 1.014
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+ngal: 100000000
+
+desired_hours: 1.0
+
+# takes longer since we have many failures
+sec_per: 0.6
+
+jobs_per_condor_sub: 5000
+
+verbose: False

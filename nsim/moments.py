@@ -332,7 +332,7 @@ class MetacalMomentsAM(MetacalMomentsFixed):
 
 
         #print("    fitting pre")
-        pre_res,pfitter=self._measure_moments(obs)
+        pre_res,self.pre_fitter=self._measure_moments(obs)
 
         pre_res['psf_flux']= psfres['flux']
         pre_res['psf_s2n']= psfres['s2n']
@@ -351,7 +351,7 @@ class MetacalMomentsAM(MetacalMomentsFixed):
 
     def _fit_psf(self, obs):
 
-        _, fitter = self._measure_moments(obs.psf, get_fitter=True)
+        _, fitter = self._measure_moments(obs.psf)
         gm=fitter.get_gmix()
         fitres=fitter.get_result()
 
@@ -387,13 +387,10 @@ class MetacalMomentsAM(MetacalMomentsFixed):
 
         return s2n
 
-    def _measure_moments(self, obs, get_fitter=False):
+    def _measure_moments(self, obs):
         """
-        moments of the power spectrum
-
-        todo: subtract noise ps. Deal with errors
+        measure adaptive moments
         """
-
         ampars=self['admom_pars']
         ntry=ampars.pop('ntry',4)
 
@@ -411,17 +408,17 @@ class MetacalMomentsAM(MetacalMomentsFixed):
         if res['flags'] != 0:
             raise TryAgainError("        admom failed")
 
+        self._set_some_pars(res)
+        return res, fitter
+
+    def _set_some_pars(self, res):
         res['g']     = res['e']
         res['g_cov'] = res['e_cov']
 
         # not right pars cov
         res['pars_cov']=res['sums_cov']*0 + 9999.e9
-
-        res['s2n']      = res['s2n']
-        res['flux']     = res['flux']
         res['flux_s2n'] = res['s2n']
 
-        return res, fitter
 
     def _copy_to_output(self, res, i):
         """
@@ -509,6 +506,106 @@ class MetacalMomentsAM(MetacalMomentsFixed):
         if 'q'==raw_input("hit a key: "):
             stop
 
+class MetacalMomentsAMFixed(MetacalMomentsAM):
+    def _do_metacal(self, odict):
+        res={}
+
+        self._set_weight(self.pre_fitter)
+
+        for type,obs in odict.iteritems():
+
+            tres=self._measure_moments_fix(obs)
+            if tres['flags'] != 0:
+                raise TryAgainError("        bad T")
+
+
+            if type=='noshear':
+                pres,fitter=self._measure_moments(obs.psf)
+                tres['psfrec_g'] = pres['g']
+                tres['psfrec_T'] = pres['T']
+
+            res[type]=tres
+
+        return res
+
+    def _measure_moments_fix(self, obs):
+        """
+        measure deweighted moments
+        """
+
+        res=self.wt_gmix.get_weighted_moments(obs)
+
+        # these are not normalized
+        wpars=res['pars']
+        M1 = wpars[2]/wpars[5]
+        M2 = wpars[3]/wpars[5]
+        T  = wpars[4]/wpars[5]
+
+        Minv = self._get_Minv(M1, M2, T)
+
+        Minv_deweight = Minv - self.Mwt_inv
+
+        try:
+            M = numpy.linalg.inv(Minv_deweight )
+        except numpy.linalg.LinAlgError:
+            raise TryAgainError("        could not invert deweighted moment matrix")
+
+        Irr = M[0,0]
+        Irc = M[0,1]
+        Icc = M[1,1]
+
+        M1 = Icc - Irr
+        M2 = 2*Irc
+        T = Icc + Irr
+
+        if T <= 0.0:
+            raise TryAgainError("        admom deweight gave T <= 0")
+
+        # pack into similar structure from admom
+        res['sums'] = res['pars']
+        res['sums_cov'] = res['pars_cov']
+
+        # these would normally represent the weight
+        res['pars'] = res['sums'] * 0 - 9999.0
+
+        cen=self.wt_gmix.get_cen()
+        res['pars'][0:0+2] = cen
+        res['pars'][2] = M1/T
+        res['pars'][3] = M2/T
+        res['pars'][4] = T
+        res['pars'][5] = 1.0
+        res['numiter'] = 1
+
+        res=ngmix.admom.copy_result(res)
+        self._set_some_pars(res)
+
+        return res
+
+    def _set_weight(self, fitter):
+        """
+        set the weight gaussian mixture, as well as 
+        its inverse covariance matrix
+        """
+
+        self.wt_gmix = fitter.get_gmix()
+
+        res=fitter.get_result()
+        pars=res['pars']
+        M1 = pars[2]
+        M2 = pars[3]
+        T  = pars[4]
+
+        self.Mwt_inv = self._get_Minv(M1, M2, T)
+
+    def _get_Minv(self, M1, M2, T):
+
+        M = _M1M2T_to_matrix(M1, M2, T)
+        try:
+            Minv = numpy.linalg.pinv(M)
+        except numpy.linalg.LinAlgError:
+            raise TryAgainError("        could not invert moment matrix")
+
+        return Minv
 
 class AMFitter(MetacalMomentsAM):
     def _setup(self, *args, **kw):

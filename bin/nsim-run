@@ -177,6 +177,12 @@ def run_sim(sim_conf,
     elif ftype=='metacal-moments-am':
         # different am fitter
         fitclass=nsim.moments.MetacalMomentsAM
+
+    elif ftype=='metacal-moments-am-fixed':
+        # different am fitter
+        fitclass=nsim.moments.MetacalMomentsAMFixed
+
+
     elif ftype=='metacal-moments-am-multi':
         fitclass=nsim.moments.MetacalMomentsAMMulti
 

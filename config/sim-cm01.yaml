@@ -26,13 +26,13 @@ psf:
 
     shape: [0.0, 0.007]
 
+cen_shift: null
+
 obj_model:
 
     model: "cosmos"
     type: "parametric"
 
-    dev_shift: null
-    cen_shift: null
 
 label: "$bulge-disk$"
 

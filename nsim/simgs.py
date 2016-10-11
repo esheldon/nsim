@@ -40,7 +40,6 @@ class SimGS(dict):
         """
 
         self.update(sim_conf)
-        assert self['obj_model']['cen_shift'] is None,"fix cen_shift to be on drawImage"
 
         seed=self.get('seed',None)
         print("    using seed:",self['seed'])
@@ -74,17 +73,15 @@ class SimGS(dict):
         else:
             nrows,ncols=self['stamp_size']
 
-        cenoff=gal_pars['cenoff']
-        if cenoff is not None:
-            print("    cenoff: %g,%g" % cenoff)
+        cen_shift=self._get_cen_shift()
 
-        psf_obs, pflux = self._make_obs(psf, nrows, ncols, wcs, cenoff,
+        psf_obs, pflux = self._make_obs(psf, nrows, ncols, wcs, cen_shift,
                                         s2n=self['psf']['s2n'], isgal=False)
 
         nrows,ncols=self['stamp_size']
         # this will be none for sims where we generate a flux pdf
         s2n=gal_pars['s2n']
-        gal_obs, gflux = self._make_obs(gal, nrows, ncols, wcs, cenoff,
+        gal_obs, gflux = self._make_obs(gal, nrows, ncols, wcs, cen_shift,
                                         s2n=s2n, isgal=True)
 
         if gflux is not None:
@@ -118,7 +115,21 @@ class SimGS(dict):
                 'gal_obj': gal}
 
 
-    def _make_obs(self, gs_obj, nrows, ncols, wcs, cenoff, s2n=None, isgal=True):
+    def _get_cen_shift(self):
+        if self.cen_pdf is not None:
+            coff1 = self.cen_pdf.sample()
+            coff2 = self.cen_pdf.sample()
+
+            cen_shift=(coff1,coff2)
+        else:
+            cen_shift=None
+
+        if cen_shift is not None:
+            print("    cen_shift: %g,%g" % cen_shift)
+
+        return cen_shift
+
+    def _make_obs(self, gs_obj, nrows, ncols, wcs, cen_shift, s2n=None, isgal=True):
         """
         get an ngmix Observation
 
@@ -131,7 +142,7 @@ class SimGS(dict):
                                    ny=nrows,
                                    wcs=wcs,
                                    dtype=numpy.float64,
-                                   offset=cenoff)
+                                   offset=cen_shift)
         im0 = gsimage.array
         if s2n is not None:
             image_nonoise, image, flux = self._scale_and_add_noise(im0, s2n)
@@ -488,14 +499,6 @@ class SimGS(dict):
         which are zero
         """
 
-        if self.cen_pdf is not None:
-            coff1 = self.cen_pdf.sample()
-            coff2 = self.cen_pdf.sample()
-
-            cenoff=(coff1,coff2)
-        else:
-            cenoff=None
-
         if self['do_ring'] and (self.counter % 2) != 0:
             print("doing ring")
             gold=self.old_pars['g']
@@ -539,8 +542,7 @@ class SimGS(dict):
                 'flux':flux,
                 's2n':s2n,
                 'r50':r50,
-                'size':r50,
-                'cenoff':cenoff}
+                'size':r50}
 
         if self.shear_pdf is not None:
             shear,shindex = self.shear_pdf.get_shear(self.rng)
@@ -550,34 +552,6 @@ class SimGS(dict):
         self.old_pars=pars
         return pars
 
-    '''
-    def _get_galaxy_pars(self):
-        """
-        Get pair parameters
-
-        if not random, then the mean pars are used, except for cen and g1,g2
-        which are zero
-        """
-
-        if self.cen_pdf is not None:
-            coff1 = self.cen_pdf.sample()
-            coff2 = self.cen_pdf.sample()
-
-            cenoff=(coff1,coff2)
-        else:
-            cenoff=None
-
-        g1,g2 = self.g_pdf.sample2d()
-
-        r50 = self.r50_pdf.sample()
-
-        pars = {'model':self['model'],
-                'g':(g1,g2),
-                'r50':r50,
-                'cenoff':cenoff}
-
-        return pars
-    '''
     def _get_flux_from_s2n(self, image, s2n):
         """
         get the flux required to give the image the requested s/n
@@ -776,7 +750,7 @@ class SimGS(dict):
 
     def _set_cen_pdf(self):
 
-        cr=self['obj_model']['cen_shift']
+        cr=self['cen_shift']
         if cr is None:
             self.cen_pdf=None
         else:
@@ -918,7 +892,6 @@ class SimCosmos(SimGS):
             'size':   -9999,
             'g':      [-9999,-9999],
             's2n':    None,
-            'cenoff': None,
             'dev_offset': dev_offset,
         }
 
@@ -936,17 +909,7 @@ class SimCosmos(SimGS):
         get the galsim object for the galaxy model
         """
 
-        cenoff=pars['cenoff']
-        dev_offset=pars['dev_offset']
-
         gal = self.cat.makeGalaxy(rng=self.galsim_rng)
-
-        if isinstance(gal,list) and dev_offset is not None:
-            # we have separate instances of bulge and disk
-            bulge,disk=gal
-            bulge = bulge.shift(dx=dev_offset[0], dy=dev_offset[1])
-
-            gal = galsim.Add([bulge,disk])
 
         # there is a net orientation in these galaxies, we
         # need to rotate them
@@ -957,12 +920,6 @@ class SimCosmos(SimGS):
         if 'shear' in pars:
             shear=pars['shear']
             gal = gal.shear(g1=shear.g1, g2=shear.g2)
-
-        if cenoff is not None:
-            gal = gal.shift(dx=cenoff[0], dy=cenoff[1])
-
-        tup=(dev_offset,cenoff)
-        print("    dev_offset: %s cenoff: %s" % tup)
 
         return gal
 
@@ -1000,14 +957,6 @@ class SimGMix(SimGS):
         which are zero
         """
 
-        if self.cen_pdf is not None:
-            coff1 = self.cen_pdf.sample()
-            coff2 = self.cen_pdf.sample()
-
-            cenoff=(coff1,coff2)
-        else:
-            cenoff=None
-
         if self.g_pdf is not None:
             g1,g2 = self.g_pdf.sample2d()
         else:
@@ -1028,8 +977,7 @@ class SimGMix(SimGS):
                 'g':(g1,g2),
                 'flux':flux,
                 'T':T,
-                'size':T,
-                'cenoff':cenoff}
+                'size':T}
 
         if self.shear_pdf is not None:
             shear,shindex = self.shear_pdf.get_shear(self.rng)
@@ -1052,8 +1000,6 @@ class SimGMix(SimGS):
 
         g1,g2=pars['g']
 
-        cenoff = pars['cenoff']
-
         gm_pars=[0.0, 0.0, 0.0, 0.0, T, flux]
         gm = ngmix.GMixModel(gm_pars, self['obj_model']['gmix_model']) 
 
@@ -1066,14 +1012,6 @@ class SimGMix(SimGS):
         if 'shear' in pars:
             shear=pars['shear']
             gal = gal.shear(g1=shear.g1, g2=shear.g2)
-
-        # in the demos, the shift was always applied after the shear, not sure
-        # if it matters
-        if cenoff is not None:
-            gal = gal.shift(dx=cenoff[0], dy=cenoff[1])
-
-        tup=(T,cenoff)
-        print("    T: %g cenoff: %s" % tup)
 
         return gal
 
@@ -1113,8 +1051,6 @@ class SimBD(SimGS):
 
         g1,g2=pars['g']
 
-        cenoff = pars['cenoff']
-
         fracdev = pars['fracdev']
         disk_flux = flux*(1.0 - fracdev)
         bulge_flux = flux*fracdev
@@ -1138,11 +1074,9 @@ class SimBD(SimGS):
             shear=pars['shear']
             gal = gal.shear(g1=shear.g1, g2=shear.g2)
 
-        if cenoff is not None:
-            gal = gal.shift(dx=cenoff[0], dy=cenoff[1])
 
-        tup=(r50,fracdev,dev_offset,cenoff)
-        print("    r50: %g fracdev: %g dev_offset: %s cenoff: %s" % tup)
+        tup=(r50,fracdev,dev_offset)
+        print("    r50: %g fracdev: %g dev_offset: %s" % tup)
 
         return gal
 
@@ -1204,8 +1138,6 @@ class SimBDD(SimBD):
         disk_g=pars['disk_g']
         bulge_g=pars['bulge_g']
 
-        cenoff = pars['cenoff']
-
         fracdev = pars['fracdev']
         disk_flux = flux*(1.0 - fracdev)
         bulge_flux = flux*fracdev
@@ -1229,11 +1161,8 @@ class SimBDD(SimBD):
             shear=pars['shear']
             gal = gal.shear(g1=shear.g1, g2=shear.g2)
 
-        if cenoff is not None:
-            gal = gal.shift(dx=cenoff[0], dy=cenoff[1])
-
-        tup=(r50,fracdev,dev_offset,cenoff)
-        print("    r50: %g fracdev: %g dev_offset: %s cenoff: %s" % tup)
+        tup=(r50,fracdev,dev_offset)
+        print("    r50: %g fracdev: %g dev_offset: %s" % tup)
         print("    disk g:",disk_g,"bulge g:",bulge_g)
 
         return gal

@@ -332,14 +332,17 @@ class MetacalMomentsAM(MetacalMomentsFixed):
         #print("    doing metacal")
         obsdict=self._get_metacal(obs)
 
-        tobs = obsdict['noshear']
-        noshear_obs = ngmix.Observation(
-            tobs.image_orig,
-            tobs.weight_orig,
-            jacobian=tobs.jacobian.copy(),
-        )
+        if False:
+            tobs = obsdict['noshear']
+            noshear_obs = ngmix.Observation(
+                tobs.image_orig,
+                tobs.weight_orig,
+                jacobian=tobs.jacobian.copy(),
+            )
 
-        pre_res,self.pre_fitter=self._measure_moments(noshear_obs)
+            pre_res,self.pre_fitter=self._measure_moments(noshear_obs)
+        else:
+            pre_res,self.pre_fitter=self._measure_moments(obs)
 
 
         pre_res['psfrec_g']= psfres['g']
@@ -498,7 +501,10 @@ class MetacalMomentsAMFixed(MetacalMomentsAM):
         measure deweighted moments
         """
 
-        res=self.wt_gmix.get_weighted_moments(obs)
+        try:
+            res=self.wt_gmix.get_weighted_moments(obs)
+        except ngmix.GMixRangeError:
+            raise TryAgainError("bad weight")
 
         # these are not normalized
         wpars=res['pars']

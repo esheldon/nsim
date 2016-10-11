@@ -329,15 +329,22 @@ class MetacalMomentsAM(MetacalMomentsFixed):
 
         psfres=self._fit_psf(obs)
 
-        #print("    fitting pre")
-        pre_res,self.pre_fitter=self._measure_moments(obs)
+        #print("    doing metacal")
+        obsdict=self._get_metacal(obs)
+
+        tobs = obsdict['noshear']
+        noshear_obs = ngmix.Observation(
+            tobs.image_orig,
+            tobs.weight_orig,
+            jacobian=tobs.jacobian.copy(),
+        )
+
+        pre_res,self.pre_fitter=self._measure_moments(noshear_obs)
 
 
         pre_res['psfrec_g']= psfres['g']
         pre_res['psfrec_T']= psfres['T']
 
-        #print("    doing metacal")
-        obsdict=self._get_metacal(obs)
 
         res=self._do_metacal(obsdict)
         res['prefit'] = pre_res

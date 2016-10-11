@@ -878,12 +878,6 @@ class SimCosmos(SimGS):
         all pars are the same except for the shift of the bulge
         """
 
-        if self.dev_offset_pdf is not None:
-            dev_offset1,dev_offset2 = self.dev_offset_pdf.sample2d()
-            dev_offset = (r50*dev_offset1, r50*dev_offset2)
-        else:
-            dev_offset=None
-
         # compatibility with older code
         pars={
             'model':  self['model'],
@@ -892,7 +886,6 @@ class SimCosmos(SimGS):
             'size':   -9999,
             'g':      [-9999,-9999],
             's2n':    None,
-            'dev_offset': dev_offset,
         }
 
 
@@ -935,10 +928,6 @@ class SimCosmos(SimGS):
         # should generally just either flux or s2n
         self._set_cen_pdf()
         self._set_shear_pdf()
-
-        # currently not supported
-        assert self['obj_model']['dev_shift'] is None
-        self._set_dev_offset_pdf()
 
     def _set_gal_cat(self):
         self.cat=galsim.COSMOSCatalog(use_real=False)

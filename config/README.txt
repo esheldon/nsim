@@ -20,6 +20,7 @@ sim-cm02
     - same as 01 but single shear [0.02, 0.00]
     - psf [0.00, 0.025]
     - run-cm02mcal01
+    100M
 
 sim-em03
     - low noise/shapenoise, shear 0.08
@@ -38,7 +39,6 @@ sim-em05
     - low noise/shapenoise, shear 0.04
     R: [ 0.89992133  0.90359143]
     Rpsf: [ 0.  0.]
-    doing one shear
     errors are 2 sigma
     m: 1.322e-03 +/- 1.580e-04  c: -7.227e-06 +/- 6.301e-06
 

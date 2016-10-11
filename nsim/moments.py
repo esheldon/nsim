@@ -328,14 +328,10 @@ class MetacalMomentsAM(MetacalMomentsFixed):
             self._do_plots(obs)
 
         psfres=self._fit_psf(obs)
-        self._check_psf_s2n(psfres)
-
 
         #print("    fitting pre")
         pre_res,self.pre_fitter=self._measure_moments(obs)
 
-        pre_res['psf_flux']= psfres['flux']
-        pre_res['psf_s2n']= psfres['s2n']
 
         pre_res['psfrec_g']= psfres['g']
         pre_res['psfrec_T']= psfres['T']
@@ -350,42 +346,9 @@ class MetacalMomentsAM(MetacalMomentsFixed):
         return res
 
     def _fit_psf(self, obs):
-
-        _, fitter = self._measure_moments(obs.psf)
-        gm=fitter.get_gmix()
-        fitres=fitter.get_result()
-
-        if False:
-            self._do_plots(obs.psf, gmix=gm)
-
-        obs.psf.set_gmix(gm)
-
-        # using jacobian center
-        fitter=ngmix.fitting.TemplateFluxFitter(
-            obs,
-            do_psf=True,
-        )
-        fitter.go()
-
+        res, fitter = self._measure_moments(obs.psf)
         res=fitter.get_result()
-        if res['flags'] != 0:
-            raise TryAgainError("        could not fit psf flux")
-
-
-        fitres['psf_flux']=res['flux']
-        fitres['psf_s2n']=res['flux']/res['flux_err']
-
-        return fitres
-
-    def _check_psf_s2n(self, res):
-        s2n=res['psf_s2n']
-
-        if s2n < self['min_s2n']:
-            raise TryAgainError("        s2n %g < %g" % (s2n,self['min_s2n']))
-        else:
-            print("    psf s/n: %g" % s2n)
-
-        return s2n
+        return res
 
     def _measure_moments(self, obs):
         """
@@ -436,9 +399,6 @@ class MetacalMomentsAM(MetacalMomentsFixed):
         d['g'][i] = pres['g']
         d['g_cov'][i] = pres['g_cov']
         d['s2n'][i] = pres['s2n']
-
-        d['psf_flux'][i] = pres['psf_flux']
-        d['psf_s2n'][i] = pres['psf_s2n']
     
         d['psfrec_g'][i] = pres['psfrec_g']
         d['psfrec_T'][i] = pres['psfrec_T']
@@ -462,8 +422,6 @@ class MetacalMomentsAM(MetacalMomentsFixed):
         dt=super(MetacalMomentsAM,self)._get_dtype()
 
         dt += [
-            ('psf_flux','f8'),
-            ('psf_s2n','f8'),
             ('psfrec_g','f8',2),
             ('psfrec_T','f8'),
         ]

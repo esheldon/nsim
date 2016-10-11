@@ -66,7 +66,7 @@ class Summer(dict):
 
             args=self.args
 
-            g,gpsf,R,Rpsf,Rsel,Rsel_psf=self._average_sums(sums)
+            g,gerr,gpsf,R,Rpsf,Rsel,Rsel_psf=self._average_sums(sums)
 
             means=get_mean_struct(self['nshear'])
             means_nocorr=get_mean_struct(self['nshear'])
@@ -81,6 +81,7 @@ class Summer(dict):
                     shear_true = sums['shear_true'][i]
 
                 gmean = g[i]
+                gmean_err = gerr[i]
 
                 c        = (Rpsf+Rsel_psf)*gpsf[i]
                 c_nocorr = Rpsf*gpsf[i]
@@ -88,8 +89,11 @@ class Summer(dict):
                 shear        = (gmean-c)/(R+Rsel)
                 shear_nocorr = (gmean-c_nocorr)/R
 
+                shear_err = gmean_err/(R+Rsel)
+                shear_err_nocorr = gmean_err/R
+
                 means['shear'][i] = shear
-                means['shear_err'][i] = 1.0
+                means['shear_err'][i] = shear_err
                 if isinstance(shear_true,ngmix.Shape):
                     means['shear_true'][i,0] = shear_true.g1
                     means['shear_true'][i,1] = shear_true.g2
@@ -97,7 +101,7 @@ class Summer(dict):
                     means['shear_true'][i] = shear_true
 
                 means_nocorr['shear'][i] = shear_nocorr
-                means_nocorr['shear_err'][i] = 1.0
+                means_nocorr['shear_err'][i] = shear_err_nocorr
                 means_nocorr['shear_true'][i] = means['shear_true'][i]
 
             means=means[wkeep]
@@ -106,14 +110,23 @@ class Summer(dict):
             self.means_nocorr=means_nocorr
             self._write_means()
 
-        if self.do_selection:
-            print("without correction")
-            junk=reredux.averaging.fit_m_c(self.means_nocorr)
-            junk=reredux.averaging.fit_m_c(self.means_nocorr,onem=True)
-            print("\nwith correction")
+        if means.size == 1:
+            if self.do_selection:
+                print("without correction")
+                junk=get_m_c_oneshear(self.means_nocorr)
+                print("\nwith correction")
 
-        self.fits=reredux.averaging.fit_m_c(self.means)
-        self.fitsone=reredux.averaging.fit_m_c(self.means,onem=True)
+            self.fits=get_m_c_oneshear(self.means)
+
+        else:
+            if self.do_selection:
+                print("without correction")
+                junk=reredux.averaging.fit_m_c(self.means_nocorr)
+                junk=reredux.averaging.fit_m_c(self.means_nocorr,onem=True)
+                print("\nwith correction")
+
+            self.fits=reredux.averaging.fit_m_c(self.means)
+            self.fitsone=reredux.averaging.fit_m_c(self.means,onem=True)
 
 
     def get_run_output(self, run):
@@ -312,6 +325,9 @@ class Summer(dict):
                     wtmax = twtmax
 
                 sums['g'][i]    += (g*wa).sum(axis=0)
+                sums['gsq'][i]  += (g**2*wa**2).sum(axis=0)
+                sums['wsq'][i]  += (wa**2).sum(axis=0)
+
                 gpsf=self._get_gpsf(data, w)
                 sums['gpsf'][i] += (gpsf*wa).sum(axis=0)
                 sums['wsum'][i] += wts.sum()
@@ -735,11 +751,19 @@ class Summer(dict):
         g = sums['g'].copy()
         gpsf = sums['gpsf'].copy()
 
+        gsq = sums['gsq'].copy()
+        wsq = sums['wsq'].copy()
+
+
         winv = 1.0/sums['wsum']
         g[:,0]    *= winv
         g[:,1]    *= winv
         gpsf[:,0] *= winv
         gpsf[:,1] *= winv
+
+        # sum(w*2g*2
+        gerrsq_sum = gsq - g**2*wsq
+        gerr = sqrt(gerrsq_sum)*winv
 
         # responses averaged over all fields
         R = zeros(2)
@@ -808,7 +832,7 @@ class Summer(dict):
             print("R:",R)
             print("Rsel:",Rsel)
 
-        return g, gpsf, R, Rpsf, Rsel, Rsel_psf
+        return g, gerr, gpsf, R, Rpsf, Rsel, Rsel_psf
 
     def _print_frac(self, ntot, nkeep):
         frac=float(nkeep)/ntot
@@ -959,6 +983,9 @@ class Summer(dict):
         dt=[
             ('wsum','f8'),
             ('g','f8',2),
+            ('gsq','f8',2),
+            ('wsq','f8',2),
+
             ('gpsf','f8',2),
 
             ('g_1p','f8',2),
@@ -1015,6 +1042,9 @@ class Summer(dict):
         biggles.configure('default','fontsize_min',1.5)
 
         means=self.means
+        if means.size == 1:
+            return
+
         fits=self.fits
         args=self.args
         #Q=calc_q(fits)
@@ -1086,6 +1116,10 @@ class Summer(dict):
         import biggles
 
         means=self.means
+
+        if means.size == 1:
+            return
+
         fits=self.fits
         args=self.args
         #Q=calc_q(fits)
@@ -1981,5 +2015,41 @@ def get_boot_struct(nboot):
 
     bs = numpy.zeros(nboot, dtype=dt)
     return bs
+
+def get_m_c_oneshear(data, nsig=2.0):
+
+    shmeas=data['shear'][0]
+    shmeas_err  = data['shear_err'][0]
+    shtrue = data['shear_true'][0]
+
+    if shtrue[1] == 0.0:
+        mel=0
+        cel=1
+    else:
+        mel=1
+        cel=0
+
+    print("errors are %g sigma" % nsig)
+
+    fits=numpy.zeros(1, dtype=[('m','f8'),
+                               ('merr','f8'),
+                               ('c','f8'),
+                               ('cerr','f8')])
+    m=shmeas[mel]/shtrue[mel]-1.0
+    merr=shmeas_err[mel]/shtrue[mel]
+
+    c=shmeas[cel]
+    cerr=shmeas_err[cel]
+
+    fits['m']=m
+    fits['merr']=merr
+
+    fits['c']=c
+    fits['cerr']=cerr
+
+
+    print("m: %.3e +/- %.3e  c: %.3e +/- %.3e" % (m,merr,c,cerr))
+
+    return fits
 
 

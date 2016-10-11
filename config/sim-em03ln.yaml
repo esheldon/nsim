@@ -22,6 +22,10 @@ psf:
     r50: 2.0
     shape: [0.0, 0.025]
 
+
+cen_shift:
+    radius: 0.5
+
 obj_model:
 
     model: "exp"
@@ -34,8 +38,6 @@ obj_model:
         type: "ba"
         sigma: 0.02
 
-    cen_shift:
-        radius: 0.5
 
 shear:
   type: "const"

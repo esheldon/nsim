@@ -1,12 +1,20 @@
 sim-cm01
     - cosmos galaxies
     - shear max 0.04
-    - run-cm01mcal-t01
-    - run-cm01mcal-t02
-        - was a bug in the sim, need to rotate randomly
-    - run-cm01mcal-t03
-        - looks fine but large errors in m since we used smaller
-        shear
+    - run-cm01mcal01
+        s/n > 10
+        R: [ 0.67937838  0.67961112]
+        Rpsf: [ 0.  0.]
+
+        Rsel: [-0.00504698 -0.00503644]
+        Rpsf_sel: [ 0.  0.]
+        without correction
+        errors are 2 sigma
+          m1: -8.651e-03 +/- 5.441e-03 c1: 5.248e-05 +/- 1.015e-04
+          m2: -6.519e-03 +/- 5.645e-03 c2: -1.735e-05 +/- 1.036e-04
+        with correction
+          m1: -1.231e-03 +/- 5.482e-03 c1: 5.287e-05 +/- 1.023e-04
+          m2: 8.987e-04 +/- 5.688e-03 c2: -1.748e-05 +/- 1.044e-04
 
 
 Nuller, no noise

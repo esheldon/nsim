@@ -1,0 +1,45 @@
+# constant everything except shape and centroid
+# low noise, more variation in parameters
+name: "sim-em05ln"
+
+simulator: "galsim"
+
+do_ring: False
+
+noise: 0.001
+
+stamp_size: [48,48]
+
+psf:
+
+    s2n: 10000.0
+
+    model: "moffat"
+    beta: 3.5
+
+    # 0.9'' fwhm in pixels is 3.422
+    # which for a beta=3.5 moffat is r50=2.07
+    r50: 2.0
+    shape: [0.0, 0.025]
+
+
+cen_shift:
+    radius: 0.5
+
+obj_model:
+
+    model: "exp"
+
+    flux: 180.0
+
+    r50: 2.0
+
+    g:
+        type: "ba"
+        sigma: 0.02
+
+
+shear:
+  type: "const"
+  shears: [0.04, 0.0]
+

@@ -1,0 +1,26 @@
+run: "run-em04ln-mcal-t01"
+sim: "sim-em04ln"
+
+fitter: "metacal-moments-am"
+
+global_seed: 2805
+
+metacal_pars:
+    fixnoise: True
+    symmetrize_psf: True
+    symmetrize_dilation: 1.05
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+ngal: 1000000
+
+desired_hours: 0.10
+
+# takes longer since we have many failures
+sec_per: 0.25
+
+jobs_per_condor_sub: 5000
+
+verbose: False

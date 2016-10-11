@@ -35,7 +35,7 @@ class Summer(dict):
         self._set_select()
 
         self.namer=Namer(front='mcal')
-        self.gpsf_name='mcal_gpsf'
+        self.gpsf_name='mcal_psfrec_g'
 
         self.step = self['metacal_pars'].get('step',0.01)
 
@@ -454,8 +454,8 @@ class Summer(dict):
                 sums['g'][i,0] += M1.sum()
                 sums['g'][i,1] += M2.sum()
 
-                if 'mcal_gpsf' in data.dtype.names:
-                    sums['gpsf'][i] += data['mcal_gpsf'][w].sum(axis=0)
+                if 'mcal_psfrec_g' in data.dtype.names:
+                    sums['gpsf'][i] += data['mcal_psfrec_g'][w].sum(axis=0)
 
                 for type in ngmix.metacal.METACAL_TYPES:
                     if type=='noshear':
@@ -548,8 +548,8 @@ class Summer(dict):
 
                 sums['g'][i] += e.sum(axis=0)
 
-                if 'mcal_gpsf' in data.dtype.names:
-                    sums['gpsf'][i] += data['mcal_gpsf'][w].sum(axis=0)
+                if 'mcal_psfrec_g' in data.dtype.names:
+                    sums['gpsf'][i] += data['mcal_psfrec_g'][w].sum(axis=0)
 
                 for type in ngmix.metacal.METACAL_TYPES:
                     if type=='noshear':
@@ -669,8 +669,8 @@ class Summer(dict):
                 sums['g'][i,0]  += (M1*wt).sum()
                 sums['g'][i,1]  += (M2*wt).sum()
 
-                if 'mcal_gpsf' in data.dtype.names:
-                    sums['gpsf'][i] += data['mcal_gpsf'][w].sum(axis=0)
+                if 'mcal_psfrec_g' in data.dtype.names:
+                    sums['gpsf'][i] += data['mcal_psfrec_g'][w].sum(axis=0)
 
                 # must use the same weight for these, equivalent to same
                 # selection

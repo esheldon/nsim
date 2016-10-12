@@ -158,45 +158,65 @@ class Summer(dict):
             if args.ntest is not None and ntot > args.ntest:
                 break
 
-            fname=self.get_run_output(run)
-            print(fname)
-            with fitsio.FITS(fname) as fits:
+            run_sums=self._try_read_sums(run)
 
-                hdu=fits[1]
+            if run_sums is None:
+                # no cache found, we need to do the sums
 
-                nrows=hdu.get_nrows()
-                nchunks = nrows//chunksize
+                run_sums=self._get_sums_struct()
 
-                if (nrows % chunksize) > 0:
-                    nchunks += 1
+                fname=self.get_run_output(run)
+                print(fname)
+                with fitsio.FITS(fname) as fits:
 
-                beg=0
-                for i in xrange(nchunks):
-                    print("    chunk %d/%d" % (i+1,nchunks))
+                    hdu=fits[1]
 
-                    end=beg+chunksize
+                    nrows=hdu.get_nrows()
+                    nchunks = nrows//chunksize
 
-                    data = hdu[beg:end]
+                    if (nrows % chunksize) > 0:
+                        nchunks += 1
 
-                    data=self._preselect(data)
+                    beg=0
 
-                    ntot += data.size
 
-                    #sums=self.do_sums1(data, sums=sums)
-                    if False and n('g') not in data.dtype.names:
-                        if True:
-                            sums=self.do_sums1_moms_wt(data, sums=sums)
-                        elif False:
-                            sums=self.do_sums1_moms(data, sums=sums)
-                        elif False:
-                            sums=self.do_sums1_moms_psfcorr(data, sums=sums)
-                    else:
-                        sums=self.do_sums1(data, sums=sums)
+                    for i in xrange(nchunks):
+                        print("    chunk %d/%d" % (i+1,nchunks))
 
-                    beg = beg + chunksize
+                        end=beg+chunksize
 
-                    if args.ntest is not None and ntot > args.ntest:
-                        break
+                        data = hdu[beg:end]
+
+                        data=self._preselect(data)
+
+                        ntot += data.size
+
+                        run_sums=self.do_sums1(data, sums=run_sums)
+
+                        beg = beg + chunksize
+
+                        if args.ntest is not None and ntot > args.ntest:
+                            break
+
+                self._write_sums(run, run_sums)
+
+            if sums is None:
+                sums=run_sums.copy()
+            else:
+                sums=add_sums(sums, run_sums)
+
+        return sums
+
+    def _try_read_sums(self, run):
+        sums_file=self._get_sums_file(run)
+
+        if os.path.exists(sums_file):
+            # we can use the sums cache
+            print("reading cached sums file:",sums_file)
+            sums = fitsio.read(sums_file)
+        else:
+            print("sums file not found:",sums_file)
+            sums=None
 
         return sums
 
@@ -928,8 +948,20 @@ class Summer(dict):
         #print("writing:",fname)
         fitsio.write(fname, self.means, clobber=True)
 
-    def _get_fname_extra(self, last=None):
-        runs=self.args.runs
+    def _write_sums(self, run, sums):
+        fname=self._get_sums_file(run)
+        eu.ostools.makedirs_fromfile(fname)
+        print("writing:",fname)
+        fitsio.write(fname, sums, clobber=True)
+
+
+    def _get_fname_extra(self, last=None, run=None):
+
+        if run is None:
+            runs=self.args.runs
+        else:
+            runs=[run]
+
         if len(runs) > 1:
             extra=runs[1:]
         else:
@@ -961,6 +993,12 @@ class Summer(dict):
 
         extra=self._get_fname_extra()
         fname=files.get_means_url(self.args.runs[0], extra=extra)
+        return fname
+
+    def _get_sums_file(self, run):
+
+        extra=self._get_fname_extra(run=run)
+        fname=files.get_sums_url(run, extra=extra)
         return fname
 
 
@@ -2053,3 +2091,13 @@ def get_m_c_oneshear(data, nsig=2.0):
     return fits
 
 
+def add_sums(sums_in, new_sums):
+
+    sums=sums_in.copy()
+    for n in sums.dtype.names:
+        if n in ['shear_true']:
+            continue
+        else:
+            sums[n] += new_sums[n]
+
+    return sums

@@ -1,0 +1,60 @@
+run: "run-cm02mcal-t01"
+sim: "sim-cm02"
+
+fitter: "metacal-max"
+
+fit_model: "gauss"
+
+global_seed: 28187
+
+metacal_pars:
+    fixnoise: True
+
+
+# min s2n on the original fit of the object
+min_s2n: 5.0
+
+psf_pars:
+    model: "gauss"
+    ntry: 2
+
+max_pars:
+    ntry: 4
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 2000
+    cov:
+        replace_cov: False
+        cov_pars:
+            m: 5
+            h: 1.0e-3
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 2.0
+
+    T:
+        type: "flat"
+        pars: [0.0, 10.0]
+
+    counts:
+        type: "flat"
+        pars: [-2.0, 1000.0]
+
+    g:
+        type: "ba"
+        sigma: 0.2
+
+ngal: 1000000
+
+desired_hours: 0.25
+
+# includes lots of objects with s/n less than the
+# threshold
+sec_per: 1.0
+
+jobs_per_condor_sub: 5000
+
+verbose: False

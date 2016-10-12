@@ -36,6 +36,7 @@ class Summer(dict):
 
         self.namer=Namer(front='mcal')
         self.gpsf_name='mcal_psfrec_g'
+        #self.gpsf_name='mcal_gpsf'
 
         self.step = self['metacal_pars'].get('step',0.01)
 

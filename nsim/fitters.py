@@ -703,6 +703,10 @@ class MaxMetacalFitter(MaxFitter):
     """
     metacal with a maximum likelihood fit
     """
+    def __init__(self, *args, **kw):
+        super(MaxMetacalFitter,self).__init__(*args, **kw)
+
+        self['min_s2n'] = self.get('min_s2n',0.0)
 
     def _dofit(self, imdict):
         """
@@ -755,6 +759,7 @@ class MaxMetacalFitter(MaxFitter):
             raise TryAgainError("failed to fit psf")
 
         mconf=self['max_pars']
+        covconf=mconf['cov']
 
         try:
             boot.fit_max(self['fit_model'],
@@ -769,13 +774,17 @@ class MaxMetacalFitter(MaxFitter):
             res['psf_pars'] = boot.mb_obs_list[0][0].psf.gmix.get_full_pars()
 
             res['s2n_r'] = rres['s2n_r']
+
+            if res['s2n_r'] < self['min_s2n']:
+                raise TryAgainError("s2n %g < %g" % (res['s2n_r'],self['min_s2n']))
+
             res['T_r'] = rres['T_r']
 
             res['psf_T'] = obs.psf.gmix.get_T()
             res['psf_T_r'] = rres['psf_T_r']
 
-            if mconf['replace_cov']:
-                boot.try_replace_cov(mconf['cov_pars'])
+            if covconf['replace_cov']:
+                boot.try_replace_cov(covconf['cov_pars'])
 
             if 'masking' in self:
                 boot.replace_masked_pixels(fitter=replace_fitter)
@@ -846,8 +855,8 @@ class MaxMetacalFitter(MaxFitter):
             if type=='noshear':
                 dt += [
                     ('mcal_pars_cov','f8',(npars,npars)),
-                    ('mcal_gpsf','f8',2),
-                    ('mcal_Tpsf','f8'),
+                    ('mcal_psfrec_g','f8',2),
+                    ('mcal_psfrec_T','f8'),
                 ]
 
             dt += [
@@ -884,9 +893,15 @@ class MaxMetacalFitter(MaxFitter):
             d['mcal_s2n_r%s' % back][i] = tres['s2n_r']
 
             if type=='noshear':
-                for p in ['pars_cov','gpsf','Tpsf']:
+                for p in ['pars_cov','psfrec_g','psfrec_T']:
                     name='mcal_%s' % p
-                    d[name][i] = tres[p]
+
+                    if p=='psfrec_g':
+                        d[name][i] = tres['gpsf']
+                    elif p=='psfrec_T':
+                        d[name][i] = tres['Tpsf']
+                    else:
+                        d[name][i] = tres[p]
 
     def _print_res(self,resfull):
         """

@@ -254,14 +254,55 @@ class Summer(dict):
 
         n=self.namer
         if self.args.weighted:
-            if type=='noshear':
-                name=n('g_cov')
+
+            if self.args.weight_type=='noise':
+                if type=='noshear':
+                    name=n('g_cov')
+                else:
+                    name=n('g_cov_%s' % type)
+
+                g_cov=data[name][w]
+
+                wts=get_noise_weights(g_cov, self.args)
+            elif self.args.weight_type=='R':
+
+                print("using R weight")
+                R1 = (data['mcal_g_1p'][w,0] - data['mcal_g_1m'][w,0])/(2*0.01)
+                R2 = (data['mcal_g_2p'][w,1] - data['mcal_g_2m'][w,1])/(2*0.01)
+
+                R = 0.5*(R1 + R2)
+
+                bs=eu.stat.Binner(R)
+                bs.dohist(min=-2, max=3, nbin=100)
+                bs.calc_stats()
+                y = bs['hist']/float(bs['hist'].sum())
+
+                if False:
+                    import biggles
+                    plt=biggles.plot(
+                        bs['center'],
+                        y,
+                        type='diamond',
+                        size=1,
+                        xlabel='R',
+                        visible=False,
+                    )
+                    plt=biggles.plot(
+                        bs['center'],
+                        y,
+                        type='solid',
+                        color='blue',
+                        plt=plt,
+                        file='/u/ki/esheldon/public_html/tmp/plots/tmp.png',
+                    )
+
+                    if 'q'==raw_input('hit a key: '):
+                        stop
+
+                wts = numpy.interp(R, bs['center'], y, left=0, right=0)
+
             else:
-                name=n('g_cov_%s' % type)
-
-            g_cov=data[name][w]
-
-            wts=get_noise_weights(g_cov, self.args)
+                raise ValueError("bad weight type: '%s'" % self.args.weight_type)
 
         else:
             wts=numpy.ones(w.size)
@@ -969,7 +1010,7 @@ class Summer(dict):
             extra=[]
 
         if self.args.weighted:
-            extra += ['weighted']
+            extra += ['weighted',self.args.weight_type]
 
         if self.args.select is not None:
             s=self.select.replace(' ','-').replace('(','').replace(')','').replace('[','').replace(']','').replace('"','').replace("'",'')

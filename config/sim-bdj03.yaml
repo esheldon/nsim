@@ -1,0 +1,72 @@
+# included knots
+name: "sim-bdj03"
+
+simulator: "galsim"
+
+noise: 0.175
+
+wcs:
+  dudx: 0.0
+  dudy: 0.263
+  dvdx: 0.263
+  dvdy: 0.0
+
+
+stamp_size: [48,48]
+
+psf:
+
+    s2n: 10000.0
+
+    model: "moffat"
+    beta: 3.5
+
+    # arcsec -> r50=0.54
+    fwhm: 0.9
+
+    shape: [0.0, 0.025]
+
+cen_shift:
+    radius: 0.5
+
+obj_model:
+
+    # joint flux-r50 distribution from cosmos
+    model: "bdjoint-diffshape"
+
+    # we don't trust all the fits
+    flux_range: [2.5, 100.0]
+    r50_range: [0.15, 1.0]
+
+    # bulge and disk have different ellipticities.
+    # bulge has less shape noise
+
+    gexp:
+        type: "ba"
+        sigma: 0.2
+    gdev:
+        type: "ba"
+        sigma: 0.1
+
+    # fraction of flux in the bulge
+    fracdev:
+        type: "uniform"
+        range: [0.0, 1.0]
+
+    # scatter knots around with the same r50 as the
+    # main galaxy (but gaussian for now)
+    # number of knots is a poisson deviate
+    knots:
+        # mean of poisson deviate
+        nmean: 1
+
+        # flux in each knot is this fraction of the
+        # total flux in the galaxy
+        flux_frac: 0.1
+
+label: "$bulge-disk$"
+
+shear:
+    type: 'const'
+
+    shears: [0.02, 0.00]

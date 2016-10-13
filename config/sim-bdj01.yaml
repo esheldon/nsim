@@ -1,0 +1,59 @@
+name: "sim-bdj01"
+
+simulator: "galsim"
+
+noise: 0.175
+
+wcs:
+  dudx: 0.0
+  dudy: 0.263
+  dvdx: 0.263
+  dvdy: 0.0
+
+
+stamp_size: [48,48]
+
+psf:
+
+    s2n: 10000.0
+
+    model: "moffat"
+    beta: 3.5
+
+    fwhm: 0.9
+
+    shape: [0.0, 0.025]
+
+cen_shift:
+    radius: 0.5
+
+obj_model:
+
+    # joint flux-r50 distribution from cosmos
+    model: "bdjoint"
+
+    # both components get the same scale length and ellipticity
+    g:
+        type: "ba"
+        sigma: 0.2
+
+    fracdev:
+        type: "uniform"
+        range: [0.0, 1.0]
+
+    dev_shift:
+        type: "uniform"
+        # in units of r50
+        radius: 1.0
+
+    cen_shift:
+        radius: 0.5
+
+label: "$bulge-disk$"
+
+# according to quick tests, 0.04 should lead to no
+# more than ~4e-4 bias
+shear:
+    type: 'const'
+
+    shears: [0.02, 0.00]

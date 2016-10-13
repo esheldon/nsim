@@ -2,7 +2,7 @@
 Simulate images using galsim instead of ngmix
 """
 from __future__ import print_function
-import os
+import os, sys
 from pprint import pprint
 
 import numpy
@@ -10,14 +10,14 @@ import fitsio
 
 import ngmix
 import esutil as eu
+from esutil.numpy_util import between
 
 from . import sim as ngmixsim
 from ngmix.priors import srandu
 
 from .util import TryAgainError, load_gmixnd
 
-from .pdfs import DiscreteSampler, PowerLaw
-
+from .pdfs import DiscreteSampler, PowerLaw, DiscreteHLRFluxSampler
 import galsim
 #try:
 #    import galsim
@@ -1107,6 +1107,99 @@ class SimBD(SimGS):
         bdr = self['obj_model']['fracdev']['range']
         self.fracdev_pdf=ngmix.priors.FlatPrior(bdr[0], bdr[1],
                                                 rng=self.rng)
+
+
+
+class SimBDJoint(SimBD):
+    """
+    joint flux-hlr distribution form cosmos sersic fits
+    """
+    def _set_pdfs(self):
+        """
+        Set all the priors
+        """
+
+        self._set_psf_pdf()
+
+        # should generally just either flux or s2n
+        self._set_joint_pdf()
+
+        self._set_fracdev_pdf()
+        self._set_dev_offset_pdf()
+        self._set_g_pdf()
+        self._set_cen_pdf()
+        self._set_shear_pdf()
+
+    def _get_galaxy_pars(self):
+        """
+        all pars are the same except for the shift of the bulge
+        """
+
+        s2n=None
+
+        r50, flux = self.joint_pdf.sample()
+        fracdev = self.fracdev_pdf.sample()
+
+        if self.g_pdf is not None:
+            g1,g2 = self.g_pdf.sample2d()
+        else:
+            g1,g2=None,None
+
+        if self.dev_offset_pdf is not None:
+            dev_offset1,dev_offset2 = self.dev_offset_pdf.sample2d()
+            dev_offset = (r50*dev_offset1, r50*dev_offset2)
+        else:
+            dev_offset=None
+
+        pars = {
+            'model':self['model'],
+            'g':(g1,g2),
+            'flux':flux,
+            's2n':s2n,
+            'r50':r50,
+            'size':r50,
+            'fracdev':fracdev,
+            'dev_offset': dev_offset,
+        }
+
+        if self.shear_pdf is not None:
+            shear,shindex = self.shear_pdf.get_shear(self.rng)
+            pars['shear'] = shear
+            pars['shear_index'] = shindex
+
+        return pars
+
+
+    def _get_cosmos_data(self):
+        fname='real_galaxy_catalog_25.2_fits.fits'
+        fname=os.path.join(
+            sys.exec_prefix,
+            'share',
+            'galsim',
+            'COSMOS_25.2_training_sample',
+            fname,
+        )
+
+        print("reading cosmos file:",fname)
+        data=fitsio.read(fname, lower=True)
+        w,=numpy.where(
+            (data['viable_sersic']==1) &
+            between(data['hlr'][:,0], 0.15, 3.0) &
+            between(data['flux'][:,0], 2.5, 100.0)
+        )
+        print("kept %d/%d" % (w.size, data.size))
+
+        data=data[w]
+        return data
+
+
+    def _set_joint_pdf(self):
+        """
+        joint size-flux from the cosmos catalog
+        """
+
+        data=self._get_cosmos_data()
+        self.joint_pdf=DiscreteHLRFluxSampler(data, rng=self.rng)
 
 class SimBDD(SimBD):
     """

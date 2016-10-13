@@ -43,6 +43,13 @@ parser.add_argument(
     '--weighted',
     action='store_true',
 )
+
+parser.add_argument(
+    '--weight-type',
+    default='noise',
+)
+
+
 parser.add_argument('--s2n-soft',type=float,default=10.0)
 parser.add_argument('--shapenoise',type=float,default=0.20)
 

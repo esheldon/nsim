@@ -86,8 +86,9 @@ def run_sim(sim_conf,
         model=sim_conf['obj_model']['model']
         if model =='bd':
             sim=nsim.simgs.SimBD(sim_conf)
-        elif model=='bdjoint':
-            sim=nsim.simgs.SimBDJoint(sim_conf)
+        elif model=='bdjoint-diffshape':
+            #sim=nsim.simgs.SimBDJoint(sim_conf)
+            sim=nsim.simgs.SimBDJointDiffshape(sim_conf)
         elif model=='bd-diffe':
             sim=nsim.simgs.SimBDD(sim_conf)
         elif model=='gmix':

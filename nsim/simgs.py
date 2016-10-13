@@ -95,8 +95,8 @@ class SimGS(dict):
         save_pars=[
             gal_pars['size'],
             gal_pars['flux'],
-            gal_pars['g'][0],
-            gal_pars['g'][1],
+            #gal_pars['g'][0],
+            #gal_pars['g'][1],
         ]
 
         if psf_pars['fwhm'] is None:
@@ -285,7 +285,9 @@ class SimGS(dict):
         import images
         keys['width']=1000
         keys['height']=1000
-        images.compare_images(im1, im2, **keys)
+        images.compare_images(im1, im2, 
+                              file='/u/ki/esheldon/public_html/tmp/plots/tmp.png',
+                              **keys)
         key=raw_input('hit a key: ')
         if key=='q':
             stop
@@ -1137,7 +1139,10 @@ class SimBDJoint(SimBD):
 
         s2n=None
 
-        r50, flux = self.joint_pdf.sample()
+        fr50 = self.joint_pdf.sample()
+        r50=fr50['r50']
+        flux=fr50['flux']
+
         fracdev = self.fracdev_pdf.sample()
 
         if self.g_pdf is not None:
@@ -1200,6 +1205,147 @@ class SimBDJoint(SimBD):
 
         data=self._get_cosmos_data()
         self.joint_pdf=DiscreteHLRFluxSampler(data, rng=self.rng)
+
+
+class SimBDJointDiffshape(SimBD):
+    """
+    joint flux-hlr distribution form cosmos sersic fits
+
+    different ellipticities
+    """
+    def _set_pdfs(self):
+        """
+        Set all the priors
+        """
+
+        self._set_psf_pdf()
+
+        # should generally just either flux or s2n
+        self._set_joint_pdf()
+
+        self._set_fracdev_pdf()
+        self._set_g_pdf()
+        self._set_cen_pdf()
+        self._set_shear_pdf()
+
+    def _set_g_pdf(self):
+        gspec=self['obj_model']['gexp']
+        self.gexp_pdf=ngmix.priors.GPriorBA(
+            gspec['sigma'],
+            rng=self.rng,
+        )
+
+        gspec=self['obj_model']['gdev']
+        self.gdev_pdf=ngmix.priors.GPriorBA(
+            gspec['sigma'],
+            rng=self.rng,
+        )
+
+    def _get_gal_obj(self, pars):
+        """
+        get the galsim object for the galaxy model
+        """
+
+        flux = pars['flux']
+        if flux is None:
+            # we will scale for s/n later
+            flux=1.0
+
+        r50 = pars['r50']
+
+        fracdev = pars['fracdev']
+        disk_flux = flux*(1.0 - fracdev)
+        bulge_flux = flux*fracdev
+
+        disk = galsim.Exponential(flux=disk_flux, half_light_radius=r50)
+        bulge = galsim.DeVaucouleurs(flux=bulge_flux, half_light_radius=r50)
+
+        # both disk and bulge get same overall shape
+        disk  = disk.shear(g1=pars['gexp'][0], g2=pars['gexp'][1])
+        bulge = bulge.shear(g1=pars['gdev'][0], g2=pars['gdev'][1])
+
+        # combine them and shear that
+        gal = galsim.Add([disk, bulge])
+
+        if 'shear' in pars:
+            shear=pars['shear']
+            gal = gal.shear(g1=shear.g1, g2=shear.g2)
+
+
+        tup=(r50,flux,fracdev)
+        print("    r50: %g flux: %g fracdev: %g" % tup)
+
+        return gal
+
+    def _get_galaxy_pars(self):
+        """
+        all pars are the same except for the shift of the bulge
+        """
+
+        s2n=None
+
+        fr50 = self.joint_pdf.sample()
+        fracdev = self.fracdev_pdf.sample()
+
+        g1exp,g2exp = self.gexp_pdf.sample2d()
+        g1dev,g2dev = self.gdev_pdf.sample2d()
+
+        pars = {
+            'model':self['model'],
+            'gexp':(g1exp,g2exp),
+            'gdev':(g1dev,g2dev),
+            'flux':fr50['flux'],
+            's2n':s2n,
+            'r50':fr50['r50'],
+            'size':fr50['r50'],
+            'fracdev':fracdev,
+        }
+
+        if self.shear_pdf is not None:
+            shear,shindex = self.shear_pdf.get_shear(self.rng)
+            pars['shear'] = shear
+            pars['shear_index'] = shindex
+
+        return pars
+
+
+    def _get_cosmos_data(self):
+        fname='real_galaxy_catalog_25.2_fits.fits'
+        fname=os.path.join(
+            sys.exec_prefix,
+            'share',
+            'galsim',
+            'COSMOS_25.2_training_sample',
+            fname,
+        )
+
+        fmin,fmax=self['obj_model']['flux_range']
+        r50min,r50max=self['obj_model']['r50_range']
+
+        print("reading cosmos file:",fname)
+        data=fitsio.read(fname, lower=True)
+        w,=numpy.where(
+            (data['viable_sersic']==1) &
+            between(data['hlr'][:,0], r50min, r50max) &
+            between(data['flux'][:,0], fmin, fmax)
+        )
+        #    between(data['hlr'][:,0], 0.15, 1.0) &
+        #    between(data['flux'][:,0], 2.5, 100.0)
+        print("kept %d/%d" % (w.size, data.size))
+
+        data=data[w]
+        return data
+
+
+    def _set_joint_pdf(self):
+        """
+        joint size-flux from the cosmos catalog
+        """
+
+        data=self._get_cosmos_data()
+        self.joint_pdf=DiscreteHLRFluxSampler(data, rng=self.rng)
+
+
 
 class SimBDD(SimBD):
     """

@@ -27,10 +27,10 @@ class DiscreteHLRFluxSampler(object):
     def sample(self):
         ri=self.rng.randint(0, self.ndata)
 
-        hlr=self.data['hlr'][ri,0]
+        r50=self.data['hlr'][ri,0]
         flux=self.data['flux'][ri,0]
 
-        return hlr, flux
+        return {'r50':r50, 'flux':flux}
 
 
 class PowerLaw(object):

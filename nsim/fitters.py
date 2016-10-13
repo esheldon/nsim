@@ -208,7 +208,7 @@ class FitterBase(dict):
                 6*ngmix.gmix._gmix_ngauss_dict[self['psf_pars']['model']]
 
         if isinstance(self.sim['obj_model'], dict):
-            npars=4
+            npars=2
         else:
             npars = ngmix.gmix.get_model_npars(self.sim['obj_model'])
 

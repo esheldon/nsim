@@ -73,6 +73,14 @@ sim-cm02
         m: 2.992e-03 +/- 2.196e-03  c: -1.247e-04 +/- 4.387e-05
 
 
+    s/n > 10 & T > 0.5 & T < 4
+        R: [ 0.67589129  0.67727893]
+        Rsel: [-0.00339147 -0.003623  ]
+        errors are 2 sigma
+        without correction
+        m: -3.699e-03 +/- 1.856e-03  c: -6.243e-05 +/- 3.709e-05
+        with correction
+        m: 1.325e-03 +/- 1.866e-03  c: -6.276e-05 +/- 3.729e-05
 
 sim-em03
     - low noise/shapenoise, shear 0.08

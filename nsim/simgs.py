@@ -754,10 +754,14 @@ class SimGS(dict):
         if cr is None:
             self.cen_pdf=None
         else:
-            self.cen_pdf=ngmix.priors.FlatPrior(
-                -cr['radius'], cr['radius'],
-                rng=self.rng,
-            )
+            type=cr.get('type','uniform')
+            if type=='uniform':
+                self.cen_pdf=ngmix.priors.FlatPrior(
+                    -cr['radius'], cr['radius'],
+                    rng=self.rng,
+                )
+            else:
+                raise ValueError("cen shift type should be 'uniform'")
 
 
     def _set_flux_pdf(self):

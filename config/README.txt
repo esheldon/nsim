@@ -21,6 +21,66 @@ sim-cm02
     - psf [0.00, 0.025]
     - run-cm02mcal01
     100M
+    s/n > 7 0.44
+        R: [ 0.60262246  0.60386582]
+        Rsel: [ 0.00142888  0.00150123]
+
+        errors are 2 sigma
+
+        without correction
+        m: 2.746e-03 +/- 1.932e-03  c: -3.872e-05 +/- 3.864e-05
+        with correction
+        m: 3.742e-04 +/- 1.927e-03  c: -3.863e-05 +/- 3.854e-05
+
+    s/n > 10 0.31
+        R: [ 0.66001441  0.66136814]
+        Rsel: [-0.00532011 -0.00529709]
+        errors are 2 sigma
+
+        without correction
+        m: -6.179e-03 +/- 1.846e-03  c: -7.312e-05 +/- 3.689e-05
+        with correction
+        m: 1.897e-03 +/- 1.861e-03  c: -7.371e-05 +/- 3.719e-05
+
+    s/n > 13 0.24
+        R: [ 0.6917118   0.69310289]
+        Rsel: [-0.00802338 -0.0079643 ]
+        errors are 2 sigma
+
+        without correction
+        m: -9.761e-03 +/- 1.915e-03  c: -8.397e-05 +/- 3.825e-05
+        with correction
+        m: 1.860e-03 +/- 1.937e-03  c: -8.494e-05 +/- 3.870e-05
+
+    s/n > 16 0.19
+        R: [ 0.71327437  0.71462901]
+        Rsel: [-0.00933091 -0.00947295]
+        errors are 2 sigma
+
+        without correction
+        m: -9.440e-03 +/- 2.032e-03  c: -9.604e-05 +/- 4.059e-05
+        with correction
+        m: 3.690e-03 +/- 2.059e-03  c: -9.733e-05 +/- 4.113e-05
+
+    s/n > 19 0.16
+        R: [ 0.72857764  0.72992744]
+        Rsel: [-0.01074877 -0.01068286]
+        errors are 2 sigma
+
+        without correction
+        m: -1.181e-02 +/- 2.164e-03  c: -1.228e-04 +/- 4.323e-05
+        with correction
+        m: 2.992e-03 +/- 2.196e-03  c: -1.247e-04 +/- 4.387e-05
+
+
+    s/n > 10 & T > 0.5 & T < 4
+        R: [ 0.67589129  0.67727893]
+        Rsel: [-0.00339147 -0.003623  ]
+        errors are 2 sigma
+        without correction
+        m: -3.699e-03 +/- 1.856e-03  c: -6.243e-05 +/- 3.709e-05
+        with correction
+        m: 1.325e-03 +/- 1.866e-03  c: -6.276e-05 +/- 3.729e-05
 
 sim-em03
     - low noise/shapenoise, shear 0.08

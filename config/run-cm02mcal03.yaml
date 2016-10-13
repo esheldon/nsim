@@ -1,0 +1,40 @@
+run: "run-cm02mcal03"
+sim: "sim-cm02"
+
+fitter: "metacal-max"
+
+global_seed: 8122
+
+metacal_pars:
+    fixnoise: True
+    symmetrize_psf: True
+    symmetrize_dilation: 1.05
+
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 2.0
+
+    T:
+        type: "flat"
+        pars: [0.0, 40.0]
+
+    counts:
+        type: "flat"
+        pars: [-100.0, 1.0e5]
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+ngal: 100000000
+
+desired_hours: 2.0
+
+# takes longer since we have many failures
+sec_per: 0.6
+
+jobs_per_condor_sub: 5000
+
+verbose: False

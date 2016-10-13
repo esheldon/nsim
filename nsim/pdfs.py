@@ -15,6 +15,23 @@ class DiscreteSampler(object):
         ri=self.rng.randint(0, self.nvals)
         return self.vals[ri]
 
+class DiscreteHLRFluxSampler(object):
+    def __init__(self, data, rng=None):
+        self.data=data
+        self.ndata=len(data)
+
+        if rng is None:
+            rng=numpy.random.RandomState()
+        self.rng=rng
+
+    def sample(self):
+        ri=self.rng.randint(0, self.ndata)
+
+        r50=self.data['hlr'][ri,0]
+        flux=self.data['flux'][ri,0]
+
+        return {'r50':r50, 'flux':flux}
+
 
 class PowerLaw(object):
     def __init__(self, index, xmin, xmax, npts=10000):

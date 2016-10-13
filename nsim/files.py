@@ -277,6 +277,16 @@ def get_means_url(run, extra=None):
     f='%s-means%s.fits' % (run,extra)
     return path_join(dir, f)
 
+def get_sums_url(run, extra=None):
+    dir=get_means_dir(run)
+    if extra is not None:
+        extra = '-'+extra
+    else:
+        extra=''
+
+    f='%s-sums%s.fits' % (run,extra)
+    return path_join(dir, f)
+
 '''
 def get_psample_summed_url(run, is2n, itrial=None, fs=None, ext='fits'):
     """

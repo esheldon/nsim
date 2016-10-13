@@ -1,0 +1,60 @@
+# modeled after the BFD paper Bernstein et al. 2015
+# the main difference is the many shear orientations
+
+name: "sim-bfd03"
+
+simulator: "galsim"
+
+# doesn't matter since we set s2n pdf
+noise: 1.0
+
+stamp_size: [48,48]
+
+psf:
+
+    s2n: 10000.0
+
+    model: "moffat"
+    beta: 3.5
+
+    r50: 1.5
+
+    # equivalent to [0.0, 0.05] for BFD e
+    shape: [0.0, 0.025]
+
+cen_shift:
+    type: "uniform"
+    radius: 0.5
+
+obj_model:
+
+    model: "bd"
+
+    # BDF e was 0.2, so we use 0.1 for g
+    g:
+        type: "ba"
+        sigma: 0.1
+
+    s2n:
+        type: "uniform"
+        range: [5.0, 25.0]
+
+    r50:
+        type: "uniform"
+        range: [1.5, 3.0]
+
+    fracdev:
+        type: "uniform"
+        range: [0.0, 1.0]
+
+    dev_shift:
+        type: "uniform"
+        # in units of r50
+        radius: 1.0
+
+
+label: "$bulge-disk$"
+
+shear:
+  type: 'const'
+  shears: [0.02, 0.0]

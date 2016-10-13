@@ -68,17 +68,18 @@ class SimGS(dict):
 
         gal, gal_pars, psf, psf_pars = self._get_galsim_objects()
 
-        if 'psf_stamp_size' in self:
-            nrows,ncols=self['psf_stamp_size']
-        else:
+        if 'stamp_size' in self:
             nrows,ncols=self['stamp_size']
+        else:
+            nrows,ncols=None,None
+
+        psf_nrows,psf_ncols=self['psf_stamp_size']
 
         cen_shift=self._get_cen_shift()
 
-        psf_obs, pflux = self._make_obs(psf, nrows, ncols, wcs, cen_shift,
+        psf_obs, pflux = self._make_obs(psf, psf_nrows, psf_ncols, wcs, cen_shift,
                                         s2n=self['psf']['s2n'], isgal=False)
 
-        nrows,ncols=self['stamp_size']
         # this will be none for sims where we generate a flux pdf
         s2n=gal_pars['s2n']
         gal_obs, gflux = self._make_obs(gal, nrows, ncols, wcs, cen_shift,
@@ -143,6 +144,7 @@ class SimGS(dict):
                                    wcs=wcs,
                                    dtype=numpy.float64,
                                    offset=cen_shift)
+        print("    dims: %d,%d" % tuple(gsimage.array.shape))
         im0 = gsimage.array
         if s2n is not None:
             image_nonoise, image, flux = self._scale_and_add_noise(im0, s2n)
@@ -1059,8 +1061,13 @@ class SimBD(SimGS):
 
         # the bulge can be offset from the disk
         dev_offset = pars['dev_offset']
+
+        # always put the more prominent at the center
         if dev_offset is not None:
-            bulge = bulge.shift(dx=dev_offset[0], dy=dev_offset[1])
+            if fracdev > 0.5:
+                disk = disk.shift(dx=dev_offset[0], dy=dev_offset[1])
+            else:
+                bulge = bulge.shift(dx=dev_offset[0], dy=dev_offset[1])
 
         # combine them and shear that
         gal = galsim.Add([disk, bulge])

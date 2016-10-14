@@ -1,0 +1,26 @@
+# new sim feature putting most prominent of b/d at the center
+run: "run-bfd04mcal03"
+sim: "sim-bfd04"
+
+fitter: "metacal-moments-am"
+
+global_seed: 17305
+
+metacal_pars:
+    fixnoise: True
+    symmetrize_psf: True
+    symmetrize_dilation: 1.05
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+ngal: 100000000
+
+desired_hours: 2.0
+
+sec_per: 0.3
+
+jobs_per_condor_sub: 5000
+
+verbose: False

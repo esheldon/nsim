@@ -27,11 +27,17 @@ class MetacalMomentsFixed(SimpleFitterBase):
     def _setup(self, *args, **kw):
         super(MetacalMomentsFixed,self)._setup(*args, **kw)
 
+        mpars=self['metacal_pars']
         deftypes=[
             'noshear',
             '1p','1m','2p','2m',
         ]
-        mpars=self['metacal_pars']
+        sym=mpars.get('symmetrize_psf',False)
+        if not sym:
+            deftypes += [
+                '1p_psf','1m_psf',
+                '2p_psf','2m_psf',
+            ]
         self.metacal_types=mpars.get('types',deftypes)
         print("doing types:",self.metacal_types)
 
@@ -75,6 +81,7 @@ class MetacalMomentsFixed(SimpleFitterBase):
 
 
             if type=='noshear':
+                #pres,fitter=self._measure_moments(obs.psf_nopix)
                 pres,fitter=self._measure_moments(obs.psf)
                 tres['psfrec_g'] = pres['g']
                 tres['psfrec_T'] = pres['T']
@@ -327,9 +334,8 @@ class MetacalMomentsAM(MetacalMomentsFixed):
         if False:
             self._do_plots(obs)
 
-        psfres=self._fit_psf(obs)
+        psfres, fitter = self._measure_moments(obs.psf)
 
-        #print("    doing metacal")
         obsdict=self._get_metacal(obs)
 
         if False:
@@ -353,11 +359,6 @@ class MetacalMomentsAM(MetacalMomentsFixed):
         res['prefit'] = pre_res
 
         res['flags']=0
-        return res
-
-    def _fit_psf(self, obs):
-        res, fitter = self._measure_moments(obs.psf)
-        res=fitter.get_result()
         return res
 
     def _measure_moments(self, obs):

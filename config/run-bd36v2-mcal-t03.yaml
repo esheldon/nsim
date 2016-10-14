@@ -1,0 +1,24 @@
+run: "run-bd36v2-mcal-t03"
+sim: "sim-bd36v2"
+
+fitter: "metacal-moments-am"
+
+global_seed: 21847
+
+metacal_pars:
+    fixnoise: True
+    shear_pixelized_psf: True
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+ngal: 2000000
+
+desired_hours: 0.25
+
+sec_per: 0.4
+
+jobs_per_condor_sub: 5000
+
+verbose: False

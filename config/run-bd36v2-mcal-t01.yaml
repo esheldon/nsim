@@ -3,7 +3,7 @@ sim: "sim-bd36v2"
 
 fitter: "metacal-moments-am"
 
-global_seed: 143
+global_seed: 2233
 
 metacal_pars:
     fixnoise: True
@@ -12,9 +12,9 @@ admom_pars:
     ntry: 4
     maxiter: 200
 
-ngal: 10000000
+ngal: 2000000
 
-desired_hours: 2.0
+desired_hours: 0.25
 
 sec_per: 0.4
 

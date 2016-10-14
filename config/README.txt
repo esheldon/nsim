@@ -730,6 +730,67 @@ low noise bd, larger psf and gals
               c1: -2.380e-05 +/- 7.694e-05
               c2: 4.860e-06 +/- 7.686e-05
 
+- run-bfd03
+    - shear 0.02,0
+    - s/n range 7,14
+        R: [ 0.93925423  0.94131859]
+        Rpsf: [ 0.  0.]
+
+        Rsel: [ 0.015688   0.0159415]
+        Rpsf_sel: [ 0.  0.]
+        without correction
+        errors are 2 sigma
+        m: 1.684e-02 +/- 1.913e-03  c: 1.320e-04 +/- 3.824e-05
+
+        with correction
+        errors are 2 sigma
+        m: 1.322e-04 +/- 1.881e-03  c: 1.298e-04 +/- 3.760e-05
+
+
+- run-bfd04
+    - shear 0.02,0
+    - center on prominent component
+    - s/n range 6,13
+        R: [ 0.91697362  0.91877857]
+        Rpsf: [ 0.  0.]
+
+        Rsel: [ 0.01799667  0.01796608]
+        Rpsf_sel: [ 0.  0.]
+        without correction
+        errors are 2 sigma
+        m: 1.854e-02 +/- 1.363e-03  c: 7.995e-05 +/- 2.725e-05
+
+        with correction
+        errors are 2 sigma
+        m: -1.063e-03 +/- 1.336e-03  c: 7.842e-05 +/- 2.673e-05
+    - s/n range 6,15
+        R: [ 0.93046573  0.93222593]
+        Rpsf: [ 0.  0.]
+
+        Rsel: [ 0.01620526  0.0161065 ]
+        Rpsf_sel: [ 0.  0.]
+        without correction
+        errors are 2 sigma
+        m: 1.552e-02 +/- 1.115e-03  c: 7.300e-05 +/- 2.231e-05
+
+        with correction
+        errors are 2 sigma
+        m: -1.861e-03 +/- 1.096e-03  c: 7.176e-05 +/- 2.193e-05
+
+    - s/n range 7,14
+        R: [ 0.93941759  0.94121921]
+        Rpsf: [ 0.  0.]
+
+        Rsel: [ 0.01601717  0.01589697]
+        Rpsf_sel: [ 0.  0.]
+        without correction
+        errors are 2 sigma
+        m: 1.467e-02 +/- 1.201e-03  c: 7.507e-05 +/- 2.402e-05
+
+        with correction
+        errors are 2 sigma
+        m: -2.338e-03 +/- 1.181e-03  c: 7.382e-05 +/- 2.362e-05
+
 
 REAL METACAL
 --------------

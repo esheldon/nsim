@@ -8,6 +8,7 @@ simulator: "galsim"
 # doesn't matter since we set s2n pdf
 noise: 1.0
 
+psf_stamp_size: [48,48]
 stamp_size: [48,48]
 
 psf:

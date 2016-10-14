@@ -1064,10 +1064,11 @@ class SimBD(SimGS):
 
         # always put the more prominent at the center
         if dev_offset is not None:
-            if fracdev > 0.5:
-                disk = disk.shift(dx=dev_offset[0], dy=dev_offset[1])
-            else:
-                bulge = bulge.shift(dx=dev_offset[0], dy=dev_offset[1])
+            bulge = bulge.shift(dx=dev_offset[0], dy=dev_offset[1])
+        #    if fracdev > 0.5:
+        #        disk = disk.shift(dx=dev_offset[0], dy=dev_offset[1])
+        #    else:
+        #        bulge = bulge.shift(dx=dev_offset[0], dy=dev_offset[1])
 
         # combine them and shear that
         gal = galsim.Add([disk, bulge])

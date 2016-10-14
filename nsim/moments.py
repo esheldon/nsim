@@ -73,7 +73,9 @@ class MetacalMomentsFixed(SimpleFitterBase):
     def _do_metacal(self, odict):
         res={}
 
-        for type,obs in odict.iteritems():
+        for type in self.metacal_types:
+            #print("    doing metacal:",type)
+            obs=odict[type]
 
             tres,fitter=self._measure_moments(obs)
             if tres['flags'] != 0:
@@ -236,11 +238,13 @@ class MetacalMomentsFixed(SimpleFitterBase):
         print some stats
         """
 
-        preres=res['prefit']
         subres=res['noshear']
 
         print()
-        print("    s2n: %g" % preres['s2n'])
+
+        if 'prefit' in res:
+            preres=res['prefit']
+            print("    s2n: %g" % preres['s2n'])
 
         s2n=subres['s2n']
         g=subres['g']
@@ -348,15 +352,16 @@ class MetacalMomentsAM(MetacalMomentsFixed):
 
             pre_res,self.pre_fitter=self._measure_moments(noshear_obs)
         else:
-            pre_res,self.pre_fitter=self._measure_moments(obs)
+            #pre_res,self.pre_fitter=self._measure_moments(obs)
+            pass
 
 
-        pre_res['psfrec_g']= psfres['g']
-        pre_res['psfrec_T']= psfres['T']
+        #pre_res['psfrec_g']= psfres['g']
+        #pre_res['psfrec_T']= psfres['T']
 
 
         res=self._do_metacal(obsdict)
-        res['prefit'] = pre_res
+        #res['prefit'] = pre_res
 
         res['flags']=0
         return res
@@ -405,14 +410,15 @@ class MetacalMomentsAM(MetacalMomentsFixed):
 
         d=self.data
 
-        pres=res['prefit']
-        d['pars'][i] = pres['pars']
-        d['g'][i] = pres['g']
-        d['g_cov'][i] = pres['g_cov']
-        d['s2n'][i] = pres['s2n']
-    
-        d['psfrec_g'][i] = pres['psfrec_g']
-        d['psfrec_T'][i] = pres['psfrec_T']
+        if 'prefit' in res:
+            pres=res['prefit']
+            d['pars'][i] = pres['pars']
+            d['g'][i] = pres['g']
+            d['g_cov'][i] = pres['g_cov']
+            d['s2n'][i] = pres['s2n']
+        
+            d['psfrec_g'][i] = pres['psfrec_g']
+            d['psfrec_T'][i] = pres['psfrec_T']
 
         for type in self.metacal_types:
             if type=='noshear':

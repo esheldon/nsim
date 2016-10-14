@@ -819,6 +819,15 @@ low noise bd, larger psf and gals
         errors are 2 sigma
         m: -2.338e-03 +/- 1.181e-03  c: 7.382e-05 +/- 2.362e-05
 
+- run-bfd05
+    - generate range of flux and let the fitter fail to decide
+    the lower edge of s/n
+
+    this way there is to selection on s/n or psf direction before it hits the
+    adaptive moments code.  Then only the symmetrized psf is used
+
+    this should improve the additive leakage at the very least.  Not sure
+    about multiplicative
 
 REAL METACAL
 --------------

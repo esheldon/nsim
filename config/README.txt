@@ -102,6 +102,16 @@ sim-em05
     errors are 2 sigma
     m: 1.322e-03 +/- 1.580e-04  c: -7.227e-06 +/- 6.301e-06
 
+- sim-bd36v2
+    - for all these, a reasonable selection must be made
+    - for checking psf corr in admom
+    - run-bd36v2-mcal-t01
+        using prepix psf for shape but pixelized doesn't work
+    - run-bd36v2-mcal-t02
+        using all pre pix works at this level
+    - run-bd36v2-mcal-t03
+        shearing the pixelized psf works
+
 
 Nuller, no noise
 ----------------

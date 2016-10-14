@@ -731,6 +731,7 @@ low noise bd, larger psf and gals
               c2: 4.860e-06 +/- 7.686e-05
 
 - run-bfd03
+    - run-bfd03mcal01
     - shear 0.02,0
     - s/n range 7,14
         R: [ 0.93925423  0.94131859]
@@ -746,6 +747,9 @@ low noise bd, larger psf and gals
         errors are 2 sigma
         m: 1.322e-04 +/- 1.881e-03  c: 1.298e-04 +/- 3.760e-05
 
+    - run-bfd03mcal02
+        nsim ccb448d5fc271ffd01dea508f816a01df10e0ae9
+        ngmix 09618523846ea56a78c30d6405fe8c70875a65e6
 
 - run-bfd04
     - shear 0.02,0

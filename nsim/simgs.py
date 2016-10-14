@@ -288,7 +288,7 @@ class SimGS(dict):
         keys['width']=1000
         keys['height']=1000
         images.compare_images(im1, im2, 
-                              file='/u/ki/esheldon/public_html/tmp/plots/tmp.png',
+                              #file='/u/ki/esheldon/public_html/tmp/plots/tmp.png',
                               **keys)
         key=raw_input('hit a key: ')
         if key=='q':
@@ -1276,8 +1276,12 @@ class SimBDJointDiffshape(SimBD):
         disk  = disk.shear(g1=pars['gexp'][0], g2=pars['gexp'][1])
         bulge = bulge.shear(g1=pars['gdev'][0], g2=pars['gdev'][1])
 
+        olist=[disk,bulge]
+
+        olist += self._make_knots(pars['knots'], r50)
+
         # combine them and shear that
-        gal = galsim.Add([disk, bulge])
+        gal = galsim.Add(olist)
 
         if 'shear' in pars:
             shear=pars['shear']
@@ -1288,6 +1292,19 @@ class SimBDJointDiffshape(SimBD):
         print("    r50: %g flux: %g fracdev: %g" % tup)
 
         return gal
+
+    def _make_knots(self, knots, r50):
+        olist=[]
+
+        for i in xrange(knots['num']):
+            dx,dy = self.rng.normal(scale=r50, size=2)
+
+            obj=galsim.Gaussian(sigma=1.0e-3, flux=knots['flux'])
+            obj=obj.shift(dx=dx, dy=dy)
+
+            olist.append(obj)
+
+        return olist
 
     def _get_galaxy_pars(self):
         """
@@ -1302,6 +1319,15 @@ class SimBDJointDiffshape(SimBD):
         g1exp,g2exp = self.gexp_pdf.sample2d()
         g1dev,g2dev = self.gdev_pdf.sample2d()
 
+        if 'knots' in self['obj_model']:
+            kp=self['obj_model']['knots']
+            num_knots=self.rng.poisson(lam=kp['nmean'])
+            knot_flux = kp['flux_frac']*fr50['flux']
+            knots={'num':num_knots, 'flux':knot_flux}
+            print("    num knots:",num_knots)
+        else:
+            knots=None
+
         pars = {
             'model':self['model'],
             'gexp':(g1exp,g2exp),
@@ -1311,6 +1337,7 @@ class SimBDJointDiffshape(SimBD):
             'r50':fr50['r50'],
             'size':fr50['r50'],
             'fracdev':fracdev,
+            'knots':knots,
         }
 
         if self.shear_pdf is not None:

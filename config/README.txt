@@ -747,6 +747,20 @@ low noise bd, larger psf and gals
         errors are 2 sigma
         m: 1.322e-04 +/- 1.881e-03  c: 1.298e-04 +/- 3.760e-05
 
+	- s/n range [6,13]
+		R: [ 0.9168445   0.91848337]
+		Rpsf: [ 0.  0.]
+
+		Rsel: [ 0.01790138  0.01773929]
+		Rpsf_sel: [ 0.  0.]
+		without correction
+		errors are 2 sigma
+		m: 2.028e-02 +/- 2.169e-03  c: 1.412e-04 +/- 4.340e-05
+
+		with correction
+		errors are 2 sigma
+		m: 7.440e-04 +/- 2.128e-03  c: 1.385e-04 +/- 4.258e-05
+
     - run-bfd03mcal02
         nsim ccb448d5fc271ffd01dea508f816a01df10e0ae9
         ngmix 09618523846ea56a78c30d6405fe8c70875a65e6

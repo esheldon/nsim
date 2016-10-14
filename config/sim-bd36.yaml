@@ -15,6 +15,7 @@ wcs:
   dvdx:    -1.0
   dvdy:     0.0
 
+psf_stamp_size: [48,48]
 stamp_size: [48,48]
 
 psf:
@@ -36,6 +37,7 @@ psf:
       cen: [0.0, 0.007]
       sigma: [0.018, 0.018]
 
+cen_shift: null
 
 obj_model:
 
@@ -65,7 +67,6 @@ obj_model:
         # in units of r50
         radius: 1.0
 
-    cen_shift: null
 
 label: "$bulge-disk$"
 

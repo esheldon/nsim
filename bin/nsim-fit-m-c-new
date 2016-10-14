@@ -49,6 +49,8 @@ parser.add_argument(
     default='noise',
 )
 
+parser.add_argument('--force',action='store_true',help='force redo of sums')
+parser.add_argument('--etype',action='store_true',help='shapes are e type')
 
 parser.add_argument('--s2n-soft',type=float,default=10.0)
 parser.add_argument('--shapenoise',type=float,default=0.20)

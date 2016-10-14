@@ -90,6 +90,7 @@ class Summer(dict):
                 shear        = (gmean-c)/(R+Rsel)
                 shear_nocorr = (gmean-c_nocorr)/R
 
+
                 shear_err = gmean_err/(R+Rsel)
                 shear_err_nocorr = gmean_err/R
 
@@ -161,7 +162,7 @@ class Summer(dict):
 
             run_sums=self._try_read_sums(run)
 
-            if run_sums is None:
+            if args.force or run_sums is None:
                 # no cache found, we need to do the sums
 
                 run_sums=self._get_sums_struct()
@@ -859,6 +860,8 @@ class Summer(dict):
         #R *= (-1)
         #R[:]=1
 
+        if self.args.etype:
+            Rpsf *= 0.5
         print("R:",R)
         print("Rpsf:",Rpsf)
 

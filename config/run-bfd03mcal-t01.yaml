@@ -1,0 +1,23 @@
+run: "run-bfd03mcal-t01"
+sim: "sim-bfd03"
+
+fitter: "metacal-moments-am"
+
+global_seed: 14306
+
+metacal_pars:
+    fixnoise: True
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+ngal: 10000000
+
+desired_hours: 2.0
+
+sec_per: 0.4
+
+jobs_per_condor_sub: 5000
+
+verbose: False

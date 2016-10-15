@@ -1,0 +1,25 @@
+run: "run-bfd05mcal03"
+sim: "sim-bfd05"
+
+fitter: "metacal-moments-am"
+
+global_seed: 23357
+
+metacal_pars:
+    fixnoise: True
+    symmetrize_psf: True
+    symmetrize_dilation: 1.05
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+ngal: 200000000
+
+desired_hours: 4.0
+
+sec_per: 0.3
+
+jobs_per_condor_sub: 5000
+
+verbose: False

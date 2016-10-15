@@ -829,6 +829,36 @@ low noise bd, larger psf and gals
     this should improve the additive leakage at the very least.  Not sure
     about multiplicative
 
+    - run-bfd05mcal01
+
+    s/n > 10 0.66
+    R: [ 0.97470274  0.97661092]
+    Rpsf: [ 0.  0.]
+
+    Rsel: [ 0.00506914  0.00505831]
+    Rpsf_sel: [ 0.  0.]
+    without correction
+    errors are 2 sigma
+    m: 4.880e-03 +/- 1.054e-03  c: -1.290e-05 +/- 2.107e-05
+
+    with correction
+    errors are 2 sigma
+    m: -3.187e-04 +/- 1.049e-03  c: -1.283e-05 +/- 2.096e-05
+
+    7 < s/n < 17 0.51
+    R: [ 0.96258704  0.96451971]
+    Rpsf: [ 0.  0.]
+
+    Rsel: [ 0.01389209  0.01369961]
+    Rpsf_sel: [ 0.  0.]
+    without correction
+    errors are 2 sigma
+    m: 1.644e-02 +/- 1.582e-03  c: -2.658e-05 +/- 3.162e-05
+
+    with correction
+    errors are 2 sigma
+    m: 1.981e-03 +/- 1.559e-03  c: -2.621e-05 +/- 3.118e-05
+
 REAL METACAL
 --------------
 

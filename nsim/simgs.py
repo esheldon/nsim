@@ -1295,6 +1295,8 @@ class SimBDJointDiffshape(SimBD):
 
     def _make_knots(self, knots, r50):
         olist=[]
+        if knots is None:
+            return olist
 
         for i in xrange(knots['num']):
             dx,dy = self.rng.normal(scale=r50, size=2)

@@ -1,4 +1,3 @@
-# new sim feature putting most prominent of b/d at the center
 run: "run-bfd05mcal01"
 sim: "sim-bfd05"
 

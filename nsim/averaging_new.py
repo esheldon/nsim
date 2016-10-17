@@ -920,6 +920,8 @@ class Summer(dict):
         size=self._get_size(data, w, type=type)
         flux=self._get_flux(data, w, type=type)
 
+        T_r = self._get_T_r(data, w, type=type)
+
         if self.namer('flux_s2n') in data.dtype.names:
             flux_s2n = self._get_flux_s2n(data, w, type=type)
 
@@ -943,6 +945,16 @@ class Summer(dict):
             name='%s_%s' % (name, type)
 
         return name
+
+    def _get_T_r(self, data, w, type=None):
+        n=self.namer
+
+        Tname=n('T_r')
+        if Tname in data.dtype.names:
+            print("getting T_r")
+            return data[Tname][w]
+        else:
+            return None
 
     def _get_s2n(self, data, w, type=None):
         name=self._get_s2n_name(data, type=type)

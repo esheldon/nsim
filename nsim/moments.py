@@ -84,7 +84,7 @@ class MetacalMomentsFixed(SimpleFitterBase):
 
             if type=='noshear':
                 #pres,fitter=self._measure_moments(obs.psf_nopix)
-                pres,fitter=self._measure_moments(obs.psf)
+                pres,fitter=self._measure_moments(obs.psf, doround=False)
                 tres['psfrec_g'] = pres['g']
                 tres['psfrec_T'] = pres['T']
 
@@ -192,6 +192,8 @@ class MetacalMomentsFixed(SimpleFitterBase):
 
             dt += [
                 ('mcal_s2n%s' % back,'f8'),
+                ('mcal_s2n_r%s' % back,'f8'),
+                ('mcal_T_r%s' % back,'f8'),
                 ('mcal_flux%s' % back,'f8'),
                 ('mcal_flux_s2n%s' % back,'f8'),
             ]
@@ -225,6 +227,8 @@ class MetacalMomentsFixed(SimpleFitterBase):
             d['mcal_flux_s2n%s' % back][i] = tres['flux_s2n']
 
             d['mcal_s2n%s' % back][i] = tres['s2n']
+            d['mcal_s2n_r%s' % back][i] = tres['s2n_r']
+            d['mcal_T_r%s' % back][i] = tres['T_r']
 
             if type=='noshear':
                 for p in ['pars_cov','wsum','psfrec_g','psfrec_T']:
@@ -338,7 +342,7 @@ class MetacalMomentsAM(MetacalMomentsFixed):
         if False:
             self._do_plots(obs)
 
-        psfres, fitter = self._measure_moments(obs.psf)
+        psfres, fitter = self._measure_moments(obs.psf, doround=False)
 
         obsdict=self._get_metacal(obs)
 
@@ -366,7 +370,7 @@ class MetacalMomentsAM(MetacalMomentsFixed):
         res['flags']=0
         return res
 
-    def _measure_moments(self, obs):
+    def _measure_moments(self, obs, doround=True):
         """
         measure adaptive moments
         """
@@ -379,7 +383,13 @@ class MetacalMomentsAM(MetacalMomentsFixed):
             guess=self._get_guess(obs)
 
             fitter.go(guess)
+
             res=fitter.get_result()
+
+            if doround:
+                if res['flags'] != 0:
+                    continue
+                self._set_flux(obs,fitter)
 
             if res['flags'] == 0:
                 break
@@ -388,7 +398,44 @@ class MetacalMomentsAM(MetacalMomentsFixed):
             raise TryAgainError("        admom failed")
 
         self._set_some_pars(res)
+        if doround:
+            self._set_round_s2n(obs,fitter)
         return res, fitter
+
+    def _set_flux(self, obs, amfitter):
+        gmix=amfitter.get_gmix()
+        obs.set_gmix(gmix)
+
+        fitter=ngmix.fitting.TemplateFluxFitter(obs)
+        fitter.go()
+
+        fres=fitter.get_result()
+        if fres['flags'] != 0:
+            res['flags'] = fres
+            raise TryAgainError("could not get flux")
+
+        res=amfitter.get_result()
+        res['flux']=fres['flux']
+        res['flux_err']=fres['flux_err']
+        res['flux_s2n']=fres['flux']/fres['flux_err']
+
+    def _set_round_s2n(self, obs, fitter):
+
+        gm  = fitter.get_gmix()
+        gmr = gm.make_round()
+
+        e1,e2,T=gm.get_e1e2T()
+        e1r,e2r,T_r=gmr.get_e1e2T()
+
+        res=fitter.get_result()
+        flux=res['flux']
+        gmr.set_flux(flux)
+
+        res['s2n_r']=gmr.get_model_s2n(obs)
+        res['T_r'] = T_r
+
+        #print("T ratio:",T_r/T)
+        #print("s2n ratio:",res['s2n_r']/res['s2n'])
 
     def _set_some_pars(self, res):
         res['g']     = res['e']
@@ -396,7 +443,7 @@ class MetacalMomentsAM(MetacalMomentsFixed):
 
         # not right pars cov
         res['pars_cov']=res['sums_cov']*0 + 9999.e9
-        res['flux_s2n'] = res['s2n']
+        #res['flux_s2n'] = res['s2n']
 
 
     def _copy_to_output(self, res, i):

@@ -1,3 +1,25 @@
+sim-bdj02
+    - joint flux-size
+    - no offset bulge/disk but different ellipticities
+    - run-bdj02mcal02
+        s/n > 10
+        R: [ 0.58252801  0.58382766]
+        Rpsf: [ 0.  0.]
+
+        Rsel: [ 0.00234494  0.00245866]
+        Rpsf_sel: [ 0.  0.]
+        without correction
+        errors are 2 sigma
+        m: 6.847e-03 +/- 2.560e-03  c: 9.619e-05 +/- 5.119e-05
+
+        with correction
+        errors are 2 sigma
+        m: 2.810e-03 +/- 2.550e-03  c: 9.579e-05 +/- 5.097e-05
+    - run-bdj02mcal03
+        - keep round measures
+        - nsim 17a146e7258607857754ad566f0b198426388664
+        - ngmix 09618523846ea56a78c30d6405fe8c70875a65e6
+
 sim-cm01
     - cosmos galaxies
     - shear max 0.04

@@ -15,6 +15,24 @@ sim-bdj02
         with correction
         errors are 2 sigma
         m: 2.810e-03 +/- 2.550e-03  c: 9.579e-05 +/- 5.097e-05
+
+        - maybe just the sample that we end up using, after failures,
+          is too biased
+            - to avoid failures, would need priors for a max like
+              fit.  Can we get away without power law priors?
+            - maybe go back to power-law flux sim and add simple
+            size-flux relation.  Use them as priors and see how
+            well it works
+            - keep in mind new bfd sim worked ok
+
+        - could there be quadratic term in selections?
+        generally small; looks like the correct value would be ~0.0064
+        factor of ~2.7 times larger than we calculate
+            - I checked 2nd der. and not big enough
+
+        - maybe select round s/n?  running one with that but doubt it
+          will help.
+
     - run-bdj02mcal03
         - keep round measures
         - nsim 17a146e7258607857754ad566f0b198426388664

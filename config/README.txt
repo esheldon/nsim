@@ -2,55 +2,65 @@ sim-bdj02
     - joint flux-size
     - no offset bulge/disk but different ellipticities
     - run-bdj02mcal02
-        s/n > 10
-        R: [ 0.58252801  0.58382766]
-        Rpsf: [ 0.  0.]
-
-        Rsel: [ 0.00234494  0.00245866]
-        Rpsf_sel: [ 0.  0.]
-        without correction
-        errors are 2 sigma
-        m: 6.847e-03 +/- 2.560e-03  c: 9.619e-05 +/- 5.119e-05
-
-        with correction
-        errors are 2 sigma
-        m: 2.810e-03 +/- 2.550e-03  c: 9.579e-05 +/- 5.097e-05
-
-        - maybe just the sample that we end up using, after failures,
-          is too biased
-            - to avoid failures, would need priors for a max like
-              fit.  Can we get away without power law priors?
-            - maybe go back to power-law flux sim and add simple
-            size-flux relation.  Use them as priors and see how
-            well it works
-            - keep in mind new bfd sim worked ok
-
-        - could there be quadratic term in selections?
-        generally small; looks like the correct value would be ~0.0064
-        factor of ~2.7 times larger than we calculate
-            - I checked 2nd der. and not big enough
-
-        - maybe select round s/n?  running one with that but doubt it
-          will help.
-
-    - run-bdj02mcal03, 04
+    - run-bdj02mcal02, 03, 04
         - keep round measures
         - nsim 17a146e7258607857754ad566f0b198426388664
         - ngmix 09618523846ea56a78c30d6405fe8c70875a65e6
 
+        s/n > 7
+        R: [ 0.5443324   0.54580278]
+        Rsel: [ 0.00854793  0.00852353]
+
+        errors are 2 sigma
+
+        without correction
+        m: 1.600e-02 +/- 1.433e-03  c: 1.406e-05 +/- 2.867e-05
+        with correction
+        m: 2.949e-04 +/- 1.411e-03  c: 1.385e-05 +/- 2.822e-05
+
         s/n > 10
         R: [ 0.5824979   0.58388609]
-        Rpsf: [ 0.  0.]
-
         Rsel: [ 0.0024774  0.0024687]
-        Rpsf_sel: [ 0.  0.]
-        without correction
-        errors are 2 sigma
-        m: 4.074e-03 +/- 1.297e-03  c: -7.494e-06 +/- 2.593e-05
 
-        with correction
         errors are 2 sigma
+
+        without correction
+        m: 4.074e-03 +/- 1.297e-03  c: -7.494e-06 +/- 2.593e-05
+        with correction
         m: -1.783e-04 +/- 1.292e-03  c: -7.463e-06 +/- 2.582e-05
+
+        s/n > 13
+        R: [ 0.60050139  0.60183131]
+        Rsel: [-0.00069465 -0.00062885]
+
+        errors are 2 sigma
+
+        without correction
+        m: -8.168e-04 +/- 1.313e-03  c: 1.710e-05 +/- 2.624e-05
+        with correction
+        m: 3.404e-04 +/- 1.314e-03  c: 1.711e-05 +/- 2.626e-05
+
+        s/n > 16
+        R: [ 0.60993142  0.61122301]
+        Rsel: [-0.00269143 -0.00253466]
+
+        errors are 2 sigma
+
+        without correction
+        m: -3.113e-03 +/- 1.392e-03  c: -6.551e-06 +/- 2.782e-05
+        with correction
+        m: 1.306e-03 +/- 1.399e-03  c: -6.578e-06 +/- 2.794e-05
+
+        s/n > 19
+        R: [ 0.61138895  0.61263673]
+        Rsel: [-0.0048101  -0.00477586]
+
+        errors are 2 sigma
+
+        without correction
+        m: -7.278e-03 +/- 1.520e-03  c: -1.736e-05 +/- 3.037e-05
+        with correction
+        m: 5.942e-04 +/- 1.532e-03  c: -1.749e-05 +/- 3.060e-05
 
 sim-cm01
     - cosmos galaxies

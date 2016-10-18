@@ -1152,9 +1152,7 @@ class SimBDJoint(SimBD):
 
         s2n=None
 
-        fr50 = self.joint_pdf.sample()
-        r50=fr50['r50']
-        flux=fr50['flux']
+        r50,flux = self.joint_pdf.sample()
 
         fracdev = self.fracdev_pdf.sample()
 
@@ -1187,7 +1185,18 @@ class SimBDJoint(SimBD):
 
         return pars
 
+    def _set_joint_pdf(self):
+        """
+        joint size-flux from the cosmos catalog
+        """
 
+        self.joint_pdf = pdfs.CosmosR50Flux(
+            self['obj_model']['r50_range'],
+            self['obj_model']['flux_range'],
+        )
+
+
+    '''
     def _get_cosmos_data(self):
         fname='real_galaxy_catalog_25.2_fits.fits'
         fname=os.path.join(
@@ -1223,7 +1232,7 @@ class SimBDJoint(SimBD):
 
         data=self._get_cosmos_data()
         self.joint_pdf=DiscreteHLRFluxSampler(data, rng=self.rng)
-
+    '''
 
 class SimBDJointDiffshape(SimBD):
     """

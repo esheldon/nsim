@@ -17,6 +17,7 @@ from ngmix.priors import srandu
 
 from .util import TryAgainError, load_gmixnd
 
+from . import pdfs
 from .pdfs import DiscreteSampler, PowerLaw, DiscreteHLRFluxSampler
 import galsim
 #try:
@@ -1197,12 +1198,17 @@ class SimBDJoint(SimBD):
             fname,
         )
 
+        fmin,fmax=self['obj_model']['flux_range']
+        r50min,r50max=self['obj_model']['r50_range']
+
         print("reading cosmos file:",fname)
         data=fitsio.read(fname, lower=True)
         w,=numpy.where(
             (data['viable_sersic']==1) &
-            between(data['hlr'][:,0], 0.15, 3.0) &
-            between(data['flux'][:,0], 2.5, 100.0)
+            #between(data['hlr'][:,0], 0.15, 3.0) &
+            #between(data['flux'][:,0], 2.5, 100.0)
+            between(data['hlr'][:,0], r50min, r50max) &
+            between(data['flux'][:,0], fmin, fmax)
         )
         print("kept %d/%d" % (w.size, data.size))
 
@@ -1315,7 +1321,7 @@ class SimBDJointDiffshape(SimBD):
 
         s2n=None
 
-        fr50 = self.joint_pdf.sample()
+        r50, flux = self.joint_pdf.sample()
         fracdev = self.fracdev_pdf.sample()
 
         g1exp,g2exp = self.gexp_pdf.sample2d()
@@ -1324,7 +1330,7 @@ class SimBDJointDiffshape(SimBD):
         if 'knots' in self['obj_model']:
             kp=self['obj_model']['knots']
             num_knots=self.rng.poisson(lam=kp['nmean'])
-            knot_flux = kp['flux_frac']*fr50['flux']
+            knot_flux = kp['flux_frac']*flux
             knots={'num':num_knots, 'flux':knot_flux}
             print("    num knots:",num_knots)
         else:
@@ -1334,10 +1340,10 @@ class SimBDJointDiffshape(SimBD):
             'model':self['model'],
             'gexp':(g1exp,g2exp),
             'gdev':(g1dev,g2dev),
-            'flux':fr50['flux'],
+            'flux':flux,
             's2n':s2n,
-            'r50':fr50['r50'],
-            'size':fr50['r50'],
+            'r50':r50,
+            'size':r50,
             'fracdev':fracdev,
             'knots':knots,
         }
@@ -1349,7 +1355,18 @@ class SimBDJointDiffshape(SimBD):
 
         return pars
 
+    def _set_joint_pdf(self):
+        """
+        joint size-flux from the cosmos catalog
+        """
 
+        self.joint_pdf = pdfs.CosmosR50Flux(
+            self['obj_model']['r50_range'],
+            self['obj_model']['flux_range'],
+        )
+
+
+    '''
     def _get_cosmos_data(self):
         fname='real_galaxy_catalog_25.2_fits.fits'
         fname=os.path.join(
@@ -1377,7 +1394,6 @@ class SimBDJointDiffshape(SimBD):
         data=data[w]
         return data
 
-
     def _set_joint_pdf(self):
         """
         joint size-flux from the cosmos catalog
@@ -1385,6 +1401,7 @@ class SimBDJointDiffshape(SimBD):
 
         data=self._get_cosmos_data()
         self.joint_pdf=DiscreteHLRFluxSampler(data, rng=self.rng)
+    '''
 
 
 

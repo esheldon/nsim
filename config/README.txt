@@ -33,10 +33,24 @@ sim-bdj02
         - maybe select round s/n?  running one with that but doubt it
           will help.
 
-    - run-bdj02mcal03
+    - run-bdj02mcal03, 04
         - keep round measures
         - nsim 17a146e7258607857754ad566f0b198426388664
         - ngmix 09618523846ea56a78c30d6405fe8c70875a65e6
+
+        s/n > 10
+        R: [ 0.5824979   0.58388609]
+        Rpsf: [ 0.  0.]
+
+        Rsel: [ 0.0024774  0.0024687]
+        Rpsf_sel: [ 0.  0.]
+        without correction
+        errors are 2 sigma
+        m: 4.074e-03 +/- 1.297e-03  c: -7.494e-06 +/- 2.593e-05
+
+        with correction
+        errors are 2 sigma
+        m: -1.783e-04 +/- 1.292e-03  c: -7.463e-06 +/- 2.582e-05
 
 sim-cm01
     - cosmos galaxies

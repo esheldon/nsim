@@ -403,7 +403,11 @@ class MetacalMomentsAM(MetacalMomentsFixed):
         return res, fitter
 
     def _set_flux(self, obs, amfitter):
-        gmix=amfitter.get_gmix()
+        try:
+            gmix=amfitter.get_gmix()
+        except ngmix.GMixRangeError as err:
+            raise TryAgainError(str(err))
+
         obs.set_gmix(gmix)
 
         fitter=ngmix.fitting.TemplateFluxFitter(obs)
@@ -421,7 +425,11 @@ class MetacalMomentsAM(MetacalMomentsFixed):
 
     def _set_round_s2n(self, obs, fitter):
 
-        gm  = fitter.get_gmix()
+        try:
+            gm=amfitter.get_gmix()
+        except ngmix.GMixRangeError as err:
+            raise TryAgainError(str(err))
+
         gmr = gm.make_round()
 
         e1,e2,T=gm.get_e1e2T()

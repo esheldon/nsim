@@ -1,3 +1,4 @@
+# knots
 run: "run-bdj03mcal-t01"
 sim: "sim-bdj03"
 
@@ -14,10 +15,11 @@ admom_pars:
     ntry: 4
     maxiter: 200
 
-ngal: 100000000
+ngal: 2000000
 
-desired_hours: 2.0
+desired_hours: 0.25
 
+# should have been 0.7, new sim is considerably slower
 sec_per: 0.5
 
 jobs_per_condor_sub: 5000

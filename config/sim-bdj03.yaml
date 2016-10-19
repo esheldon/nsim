@@ -12,6 +12,7 @@ wcs:
   dvdy: 0.0
 
 
+psf_stamp_size: [48,48]
 stamp_size: [48,48]
 
 psf:
@@ -53,16 +54,13 @@ obj_model:
         type: "uniform"
         range: [0.0, 1.0]
 
-    # scatter knots around with the same r50 as the
-    # main galaxy (but gaussian for now)
-    # number of knots is a poisson deviate
+    # use random-walk to place knots, with fraction
+    # of disk flux [0,1.0]
     knots:
-        # mean of poisson deviate
-        nmean: 1
-
-        # flux in each knot is this fraction of the
-        # total flux in the galaxy
-        flux_frac: 0.1
+        num: 100
+        flux_frac:
+            type: "uniform"
+            range: [0.0, 1.0]
 
 label: "$bulge-disk$"
 

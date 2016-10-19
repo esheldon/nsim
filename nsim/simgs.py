@@ -1281,22 +1281,36 @@ class SimBDJointDiffshape(SimBD):
         r50 = pars['r50']
 
         fracdev = pars['fracdev']
-        disk_flux = flux*(1.0 - fracdev)
+        disk_flux_total = flux*(1.0 - fracdev)
         bulge_flux = flux*fracdev
 
-        disk = galsim.Exponential(flux=disk_flux, half_light_radius=r50)
+        # the "disk" can be made partially or even entirely
+        # of knots
+        knot_pars=pars['knots']
+        if knot_pars is None:
+            disk_flux = disk_flux_total
+            knots = []
+        else:
+            knot_frac = knot_pars['knot_frac']
+            disk_flux = (1.0 - knot_frac)*disk_flux_total
+            knot_flux = knot_frac*disk_flux_total
+            rwg=pdfs.RandomWalkGalaxy(r50, knot_flux, npoints=knot_pars['num'])
+            knots = [rwg.get_gsobj()]
+
+        disk_raw = galsim.Exponential(flux=disk_flux, half_light_radius=r50)
+        disk_objs = [disk_raw] + knots
+
+        disk = galsim.Add(disk_objs)
+
+        # the bulge is always smooth
         bulge = galsim.DeVaucouleurs(flux=bulge_flux, half_light_radius=r50)
 
-        # both disk and bulge get same overall shape
+        # disk and bulge get independent shapes
         disk  = disk.shear(g1=pars['gexp'][0], g2=pars['gexp'][1])
         bulge = bulge.shear(g1=pars['gdev'][0], g2=pars['gdev'][1])
 
-        olist=[disk,bulge]
-
-        olist += self._make_knots(pars['knots'], r50)
-
         # combine them and shear that
-        gal = galsim.Add(olist)
+        gal = galsim.Add([disk, bulge])
 
         if 'shear' in pars:
             shear=pars['shear']
@@ -1304,24 +1318,13 @@ class SimBDJointDiffshape(SimBD):
 
 
         tup=(r50,flux,fracdev)
-        print("    r50: %g flux: %g fracdev: %g" % tup)
+        mess="    r50: %g flux: %g fracdev: %g"
+        if knot_pars is not None:
+            tup += (knot_pars['num'],knot_frac)
+            mess += " knots: %d knot_frac: %g"
+        print(mess % tup)
 
         return gal
-
-    def _make_knots(self, knots, r50):
-        olist=[]
-        if knots is None:
-            return olist
-
-        for i in xrange(knots['num']):
-            dx,dy = self.rng.normal(scale=r50, size=2)
-
-            obj=galsim.Gaussian(sigma=1.0e-3, flux=knots['flux'])
-            obj=obj.shift(dx=dx, dy=dy)
-
-            olist.append(obj)
-
-        return olist
 
     def _get_galaxy_pars(self):
         """
@@ -1336,14 +1339,14 @@ class SimBDJointDiffshape(SimBD):
         g1exp,g2exp = self.gexp_pdf.sample2d()
         g1dev,g2dev = self.gdev_pdf.sample2d()
 
-        if 'knots' in self['obj_model']:
-            kp=self['obj_model']['knots']
-            num_knots=self.rng.poisson(lam=kp['nmean'])
-            knot_flux = kp['flux_frac']*flux
-            knots={'num':num_knots, 'flux':knot_flux}
-            print("    num knots:",num_knots)
-        else:
-            knots=None
+        knots = self['obj_model'].get('knots',None)
+        if knots is not None:
+            ffrac=knots['flux_frac']
+            assert ffrac['type']=="uniform"
+            knots['knot_frac'] = self.rng.uniform(
+                low=ffrac['range'][0],
+                high=ffrac['range'][1],
+            )
 
         pars = {
             'model':self['model'],

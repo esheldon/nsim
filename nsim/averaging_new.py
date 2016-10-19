@@ -2144,7 +2144,7 @@ def get_m_c_oneshear(data, nsig=2.0):
     fits['cerr']=cerr
 
 
-    print("m: %.3e +/- %.3e  c: %.3e +/- %.3e" % (m,merr,c,cerr))
+    print("m: %.3e +/- %.3e  c: %.3e +/- %.3e" % (m,nsig*merr,c,nsig*cerr))
 
     return fits
 

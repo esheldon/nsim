@@ -426,11 +426,10 @@ class MetacalMomentsAM(MetacalMomentsFixed):
     def _set_round_s2n(self, obs, fitter):
 
         try:
-            gm=fitter.get_gmix()
+            gm  = fitter.get_gmix()
+            gmr = gm.make_round()
         except ngmix.GMixRangeError as err:
             raise TryAgainError(str(err))
-
-        gmr = gm.make_round()
 
         e1,e2,T=gm.get_e1e2T()
         e1r,e2r,T_r=gmr.get_e1e2T()

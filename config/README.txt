@@ -3,64 +3,71 @@ sim-bdj02
     - no offset bulge/disk but different ellipticities
     - run-bdj02mcal02
     - run-bdj02mcal02, 03, 04
+    - run-bdj04mcal01, 02
         - keep round measures
         - nsim 17a146e7258607857754ad566f0b198426388664
         - ngmix 09618523846ea56a78c30d6405fe8c70875a65e6
 
-        s/n > 7
-        R: [ 0.5443324   0.54580278]
-        Rsel: [ 0.00854793  0.00852353]
-
-        errors are 2 sigma
-
-        without correction
-        m: 1.600e-02 +/- 1.433e-03  c: 1.406e-05 +/- 2.867e-05
-        with correction
-        m: 2.949e-04 +/- 1.411e-03  c: 1.385e-05 +/- 2.822e-05
 
         s/n > 10
-        R: [ 0.5824979   0.58388609]
-        Rsel: [ 0.0024774  0.0024687]
 
-        errors are 2 sigma
+        R: [ 0.58256719  0.58388799]
+        Rpsf: [ 0.  0.]
 
+        Rsel: [ 0.00244727  0.002489  ]
+        Rpsf_sel: [ 0.  0.]
         without correction
-        m: 4.074e-03 +/- 1.297e-03  c: -7.494e-06 +/- 2.593e-05
+        errors are 2 sigma
+        m: 4.533e-03 +/- 1.956e-03  c: -1.023e-05 +/- 3.910e-05
+
         with correction
-        m: -1.783e-04 +/- 1.292e-03  c: -7.463e-06 +/- 2.582e-05
+        errors are 2 sigma
+        m: 3.307e-04 +/- 1.948e-03  c: -1.019e-05 +/- 3.894e-05
 
         s/n > 13
-        R: [ 0.60050139  0.60183131]
-        Rsel: [-0.00069465 -0.00062885]
 
-        errors are 2 sigma
+        R: [ 0.6006253   0.60190092]
+        Rpsf: [ 0.  0.]
 
+        Rsel: [-0.00062481 -0.00064261]
+        Rpsf_sel: [ 0.  0.]
         without correction
-        m: -8.168e-04 +/- 1.313e-03  c: 1.710e-05 +/- 2.624e-05
+        errors are 2 sigma
+        m: -2.357e-04 +/- 1.980e-03  c: 4.471e-07 +/- 3.957e-05
+
         with correction
-        m: 3.404e-04 +/- 1.314e-03  c: 1.711e-05 +/- 2.626e-05
+        errors are 2 sigma
+        m: 8.054e-04 +/- 1.982e-03  c: 4.475e-07 +/- 3.961e-05
 
         s/n > 16
-        R: [ 0.60993142  0.61122301]
-        Rsel: [-0.00269143 -0.00253466]
 
-        errors are 2 sigma
+        R: [ 0.61005625  0.6113501 ]
+        Rpsf: [ 0.  0.]
 
+        Rsel: [-0.00269864 -0.00259559]
+        Rpsf_sel: [ 0.  0.]
         without correction
-        m: -3.113e-03 +/- 1.392e-03  c: -6.551e-06 +/- 2.782e-05
+        errors are 2 sigma
+        m: -3.552e-03 +/- 2.100e-03  c: -1.429e-05 +/- 4.196e-05
+
         with correction
-        m: 1.306e-03 +/- 1.399e-03  c: -6.578e-06 +/- 2.794e-05
+        errors are 2 sigma
+        m: 8.760e-04 +/- 2.109e-03  c: -1.435e-05 +/- 4.214e-05
 
         s/n > 19
-        R: [ 0.61138895  0.61263673]
-        Rsel: [-0.0048101  -0.00477586]
 
-        errors are 2 sigma
+        R: [ 0.61143597  0.61272529]
+        Rpsf: [ 0.  0.]
 
+        Rsel: [-0.00477415 -0.00474265]
+        Rpsf_sel: [ 0.  0.]
         without correction
-        m: -7.278e-03 +/- 1.520e-03  c: -1.736e-05 +/- 3.037e-05
+        errors are 2 sigma
+        m: -6.452e-03 +/- 2.292e-03  c: -2.617e-05 +/- 4.579e-05
+
         with correction
-        m: 5.942e-04 +/- 1.532e-03  c: -1.749e-05 +/- 3.060e-05
+        errors are 2 sigma
+        m: 1.367e-03 +/- 2.310e-03  c: -2.637e-05 +/- 4.615e-05
 
 sim-cm01
     - cosmos galaxies

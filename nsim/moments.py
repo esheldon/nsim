@@ -405,44 +405,45 @@ class MetacalMomentsAM(MetacalMomentsFixed):
     def _set_flux(self, obs, amfitter):
         try:
             gmix=amfitter.get_gmix()
+
+            obs.set_gmix(gmix)
+
+            fitter=ngmix.fitting.TemplateFluxFitter(obs)
+            fitter.go()
+
+            fres=fitter.get_result()
+            if fres['flags'] != 0:
+                res['flags'] = fres
+                raise TryAgainError("could not get flux")
+
+            res=amfitter.get_result()
+            res['flux']=fres['flux']
+            res['flux_err']=fres['flux_err']
+            res['flux_s2n']=fres['flux']/fres['flux_err']
+
         except ngmix.GMixRangeError as err:
             raise TryAgainError(str(err))
-
-        obs.set_gmix(gmix)
-
-        fitter=ngmix.fitting.TemplateFluxFitter(obs)
-        fitter.go()
-
-        fres=fitter.get_result()
-        if fres['flags'] != 0:
-            res['flags'] = fres
-            raise TryAgainError("could not get flux")
-
-        res=amfitter.get_result()
-        res['flux']=fres['flux']
-        res['flux_err']=fres['flux_err']
-        res['flux_s2n']=fres['flux']/fres['flux_err']
 
     def _set_round_s2n(self, obs, fitter):
 
         try:
             gm  = fitter.get_gmix()
             gmr = gm.make_round()
+
+            e1,e2,T=gm.get_e1e2T()
+            e1r,e2r,T_r=gmr.get_e1e2T()
+
+            res=fitter.get_result()
+            flux=res['flux']
+            gmr.set_flux(flux)
+
+            res['s2n_r']=gmr.get_model_s2n(obs)
+            res['T_r'] = T_r
+
+            #print("T ratio:",T_r/T)
+            #print("s2n ratio:",res['s2n_r']/res['s2n'])
         except ngmix.GMixRangeError as err:
             raise TryAgainError(str(err))
-
-        e1,e2,T=gm.get_e1e2T()
-        e1r,e2r,T_r=gmr.get_e1e2T()
-
-        res=fitter.get_result()
-        flux=res['flux']
-        gmr.set_flux(flux)
-
-        res['s2n_r']=gmr.get_model_s2n(obs)
-        res['T_r'] = T_r
-
-        #print("T ratio:",T_r/T)
-        #print("s2n ratio:",res['s2n_r']/res['s2n'])
 
     def _set_some_pars(self, res):
         res['g']     = res['e']

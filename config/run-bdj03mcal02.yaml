@@ -1,0 +1,26 @@
+# knots
+run: "run-bdj03mcal02"
+sim: "sim-bdj03"
+
+fitter: "metacal-moments-am"
+
+global_seed: 24717
+
+metacal_pars:
+    fixnoise: True
+    symmetrize_psf: True
+    symmetrize_dilation: 1.05
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+ngal: 200000000
+
+desired_hours: 4.0
+
+sec_per: 0.7
+
+jobs_per_condor_sub: 5000
+
+verbose: False

@@ -9,10 +9,12 @@ from numpy import where, isfinite
 
 import ngmix
 from ngmix.fitting import print_pars
+from ngmix.shape import Shape
 from .util import TryAgainError
 
 from .fitters import SimpleFitterBase
 
+import galsim
 
 
 
@@ -252,7 +254,9 @@ class MetacalMomentsFixed(SimpleFitterBase):
 
         s2n=subres['s2n']
         g=subres['g']
-        gerr=diag(sqrt(subres['g_cov']))
+
+        cov = subres['g_cov'].clip(min=0, max=None)
+        gerr=diag(sqrt(cov))
 
         print("    mcal s2n: %g  e:  %g +/- %g  %g +/- %g" % (s2n,g[0],gerr[0],g[1],gerr[1]))
         #print_pars(subres['pars'],      front='        pars: ')
@@ -535,6 +539,134 @@ class MetacalMomentsAM(MetacalMomentsFixed):
 
         if 'q'==raw_input("hit a key: "):
             stop
+
+
+class MetacalGaussK(MetacalMomentsAM):
+    def _dofit(self, imdict):
+
+        obs=imdict['obs']
+        if False:
+            self._do_plots(obs)
+
+        self.flux_guess = obs.image.sum()
+        self.psf_flux_guess = obs.psf.image.sum()
+
+        obsdict=self._get_metacal(obs)
+
+        res=self._do_metacal(obsdict)
+
+        res['flags']=0
+        return res
+
+    def _get_metacal(self, obs):
+
+        noise_obs = ngmix.simobs.simulate_obs(None, obs)
+
+        # just doing this to get the dim, dk.  This is wasting time
+        # but I'm not sure how much
+        mb_iilist, dim, dk = ngmix.observation.make_iilist(obs)
+
+        odict={}
+
+        mcal_pars=self['metacal_pars']
+        km = KMetacal(obs,  dim, dk, **mcal_pars)
+        kmnoise = KMetacal(noise_obs,  dim, dk, **mcal_pars)
+
+        for type in self.metacal_types:
+
+            kobs = km.get_kobs_galshear(type)
+            nkobs = kmnoise.get_kobs_galshear(type)
+
+            kobs.kr.array[:,:] += nkobs.kr.array[:,:]
+            kobs.ki.array[:,:] += nkobs.ki.array[:,:]
+
+            # doubling the variance
+            kobs.weight *= 0.5
+
+            #var = 0.5*(nkobs.kr.array.var() + nkobs.ki.array.var())
+            #kobs.weight.array[:,:] = 1.0/var
+
+            odict[type] = kobs
+
+        return odict
+
+    def _do_metacal(self, odict):
+        res={}
+
+        for type in self.metacal_types:
+            obs=odict[type]
+
+            tres,fitter=self._fit_one(obs, self.flux_guess)
+            if tres['flags'] != 0:
+                raise TryAgainError("        failed to fit")
+
+            if type=='noshear':
+                pres,fitter=self._fit_one(obs.psf, self.psf_flux_guess)
+                tres['psfrec_g'] = pres['g']
+                tres['psfrec_T'] = pres['pars'][4]
+
+            res[type]=tres
+
+        return res
+
+
+    def _fit_one(self, obs, flux_guess):
+        """
+        actually do a max like fit, but we want to share
+        this simpler interface
+        """
+        mpars=self['max_pars']
+        lmpars=mpars['lmpars']
+
+        ntry=mpars.pop('ntry',4)
+
+        fitter=ngmix.fitting.LMGaussK(obs, lmpars=lmpars)
+
+        for i in xrange(ntry):
+            guess=self._get_guess(obs, flux_guess)
+
+            fitter.go(guess)
+
+            res=fitter.get_result()
+
+            if res['flags'] == 0:
+                break
+
+        if res['flags'] != 0:
+            raise TryAgainError("        lm failed")
+
+        pcov=res['pars_cov']
+        if pcov[5,5] > 0:
+            pars=res['pars']
+            res['flux'] = pars[5]
+            res['flux_s2n'] = pars[5]/pcov[5,5]
+        else:
+            raise TryAgainError("        bad flux error")
+
+        res['s2n'] = res['s2n_w']
+        res['s2n_r'] = res['s2n']
+        res['numiter'] = res['nfev']
+        res['T_r'] = -9999.0
+
+        return res, fitter
+
+    def _get_guess(self, obs, flux_guess):
+
+
+        rng=self.rng
+
+        scale=obs.jacobian.get_scale()
+        Tguess = 10.0*scale**2
+        #Tguess = 4.0*scale**2
+
+        pars=zeros(6)
+        pars[0:0+2] = rng.uniform(low=-0.5*scale, high=0.5*scale, size=2)
+        pars[2:2+2] = rng.uniform(low=-0.3, high=0.3, size=2)
+        pars[4]     = Tguess*(1.0 + rng.uniform(low=-0.1, high=0.1))
+        pars[5]     = flux_guess*(1.0 + rng.uniform(low=-0.1, high=0.1))
+
+        return pars
+
 
 class MetacalMomentsAMFixed(MetacalMomentsAM):
     def _do_metacal(self, odict):
@@ -1093,3 +1225,137 @@ def get_all_metacal_multi(obs, step=0.01, **kw):
 
     return obsdict_list
 
+def get_shears(step):
+    return {
+        'noshear':None,
+        '1p':Shape( step, 0.0),
+        '1m':Shape(-step, 0.0),
+        '2p':Shape( 0.0,  step),
+        '2m':Shape( 0.0, -step),
+    }
+
+class KMetacal(ngmix.metacal.Metacal):
+    """
+    currently only works with symmetrized psf
+
+    """
+    def __init__(self, obs, dim, dk, step=0.01, **kw):
+
+        self.dk=dk
+        self.dim=dim
+        self.step=step
+        self.shears=get_shears(step)
+        self.dilation=1.0 + 2.0*step
+
+        super(KMetacal,self).__init__(obs, **kw)
+
+        assert self.symmetrize_psf
+
+    def _set_data(self):
+        """
+        only with pixel for now
+        """
+        super(KMetacal,self)._set_data()
+
+        self._dilated_psf_nopix = self.psf_int_nopix.dilate(self.dilation)
+        self._dilated_psf = galsim.Convolve(self.psf_int_nopix,self.pixel)
+        self._dilated_psf_kr, self._dilated_psf_ki = self._make_kimages(self._dilated_psf)
+
+    def get_kobs_galshear(self, shtype):
+        """
+        This is the case where we shear the image, for calculating R
+
+        parameters
+        ----------
+        shear: ngmix.Shape
+            The shear to apply
+
+        get_unsheared: bool
+            Get an observation only convolved by the target psf, not
+            sheared
+        """
+
+        kr, ki = self.get_target_kimages(shtype)
+        newobs = self._make_kobs(kr, ki)
+
+        return newobs
+
+
+    def get_target_kimages(self, shtype):
+        """
+        get the target image, convolved with the specified psf
+        and possibly sheared
+
+        parameters
+        ----------
+        psf_obj: A galsim object
+            psf object by which to convolve.  An interpolated image,
+            or surface brightness profile
+        shear: ngmix.Shape, optional
+            The shear to apply
+
+        returns
+        -------
+        galsim image object
+        """
+
+        shear=self.shears[shtype]
+        imconv = self._get_target_gal_obj(shear=shear)
+
+        # this should carry over the wcs
+        kr,ki = self._make_kimages(imconv)
+        return kr, ki
+
+    def _get_target_gal_obj(self, shear=None):
+        if shear is not None:
+            shim_nopsf = self.get_sheared_image_nopsf(shear)
+        else:
+            shim_nopsf = self.image_int_nopsf
+
+        imconv = galsim.Convolve([shim_nopsf, self._dilated_psf])
+
+        return imconv
+
+    def _make_kimages(self, obj):
+        # this should carry over the wcs
+        kr,ki = obj.drawKImage(
+            dtype=numpy.float64,
+            nx=self.dim,
+            ny=self.dim,
+            scale=self.dk,
+        )
+
+        return kr, ki
+
+    def _make_kobs(self, kr, ki):
+        from ngmix.observation import KObservation
+
+        psf_kr, psf_ki = self._dilated_psf_kr.copy(), self._dilated_psf_ki.copy()
+
+        weight = kr.copy()
+        medweight = numpy.median(self.obs.weight)
+        weight.array[:,:] = 0.5*medweight
+
+        # parseval's theorem
+        #weight *= (1.0/weight.array.size)
+        weight *= (1.0/self.obs.image.size)
+
+
+        psf_medweight = numpy.median(self.obs.psf.weight)
+        psf_weight = psf_kr.copy()
+        psf_weight.array[:,:] = 0.5*psf_medweight
+
+        psf_kobs = KObservation(
+            psf_kr,
+            psf_ki,
+            weight=psf_weight,
+        )
+
+        kobs = KObservation(
+            kr,
+            ki,
+            weight=weight,
+            psf=psf_kobs,
+        )
+
+        return kobs

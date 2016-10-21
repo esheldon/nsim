@@ -185,6 +185,11 @@ def run_sim(sim_conf,
         # different am fitter
         fitclass=nsim.moments.MetacalMomentsAMFixed
 
+    elif ftype=='metacal-gaussk':
+        # gauss fitter in k space
+        fitclass=nsim.moments.MetacalGaussK
+
+
 
     elif ftype=='metacal-moments-am-multi':
         fitclass=nsim.moments.MetacalMomentsAMMulti

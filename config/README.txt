@@ -1,73 +1,107 @@
-sim-bdj02
+sim-bdj02, sim-bdj04
     - joint flux-size
     - no offset bulge/disk but different ellipticities
-    - run-bdj02mcal02
-    - run-bdj02mcal02, 03, 04
-    - run-bdj04mcal01, 02
+    - run-bdj02mcal02 100M
+    - run-bdj02mcal03 100M
+    - run-bdj02mcal04 200M
+    - bdj04 uses kde rather than drawing from discrete size-flux distribution
+    - run-bdj04mcal01 100M
+    - run-bdj04mcal02 200M
+    - run-bdj04mcal03 400M collating
+    - current total 1.1 billion
+    04 config exists but not yet run
         - keep round measures
         - nsim 17a146e7258607857754ad566f0b198426388664
         - ngmix 09618523846ea56a78c30d6405fe8c70875a65e6
 
+        - s/n > 5   0.60
+            R: [ 0.48448735  0.48596413]
+            Rsel: [ 0.01614582  0.01630361]
 
-        s/n > 10
+            errors are 2 sigma
 
-        R: [ 0.58256719  0.58388799]
-        Rpsf: [ 0.  0.]
+            without correction
+            m: 3.685e-02 +/- 2.159e-03  c: 5.654e-06 +/- 4.327e-05
+            with correction
+            m: 3.410e-03 +/- 2.089e-03  c: 5.470e-06 +/- 4.187e-05
 
-        Rsel: [ 0.00244727  0.002489  ]
-        Rpsf_sel: [ 0.  0.]
-        without correction
-        errors are 2 sigma
-        m: 4.533e-03 +/- 1.956e-03  c: -1.023e-05 +/- 3.910e-05
+        - s/n > 7   0.40
 
-        with correction
-        errors are 2 sigma
-        m: 3.307e-04 +/- 1.948e-03  c: -1.019e-05 +/- 3.894e-05
+            R: [ 0.54443889  0.54584471]
+            Rsel: [ 0.00847147  0.00852087]
 
-        s/n > 13
+            errors are 2 sigma
 
-        R: [ 0.6006253   0.60190092]
-        Rpsf: [ 0.  0.]
+            without correction
+            m: 1.646e-02 +/- 1.720e-03  c: 2.260e-05 +/- 3.440e-05
+            with correction
+            m: 8.852e-04 +/- 1.694e-03  c: 2.225e-05 +/- 3.388e-05
 
-        Rsel: [-0.00062481 -0.00064261]
-        Rpsf_sel: [ 0.  0.]
-        without correction
-        errors are 2 sigma
-        m: -2.357e-04 +/- 1.980e-03  c: 4.471e-07 +/- 3.957e-05
+        - s/n > 10   0.26
+            R: [ 0.58258469  0.58394626]
+            Rsel: [ 0.00242887  0.00250881]
 
-        with correction
-        errors are 2 sigma
-        m: 8.054e-04 +/- 1.982e-03  c: 4.475e-07 +/- 3.961e-05
+            errors are 2 sigma
 
-        s/n > 16
+            without correction
+            m: 4.153e-03 +/- 1.557e-03  c: 8.413e-06 +/- 3.112e-05
 
-        R: [ 0.61005625  0.6113501 ]
-        Rpsf: [ 0.  0.]
+            with correction
+            m: -1.607e-05 +/- 1.550e-03  c: 8.377e-06 +/- 3.098e-05
 
-        Rsel: [-0.00269864 -0.00259559]
-        Rpsf_sel: [ 0.  0.]
-        without correction
-        errors are 2 sigma
-        m: -3.552e-03 +/- 2.100e-03  c: -1.429e-05 +/- 4.196e-05
+        - s/n > 13 0.19
 
-        with correction
-        errors are 2 sigma
-        m: 8.760e-04 +/- 2.109e-03  c: -1.435e-05 +/- 4.214e-05
+            R: [ 0.60065149  0.60198641]
+            Rsel: [-0.00062067 -0.00058982]
+            errors are 2 sigma
 
-        s/n > 19
+            without correction
+            m: -8.810e-04 +/- 1.576e-03  c: 1.919e-05 +/- 3.149e-05
 
-        R: [ 0.61143597  0.61272529]
-        Rpsf: [ 0.  0.]
+            with correction
+            m: 1.525e-04 +/- 1.577e-03  c: 1.921e-05 +/- 3.152e-05
 
-        Rsel: [-0.00477415 -0.00474265]
-        Rpsf_sel: [ 0.  0.]
-        without correction
-        errors are 2 sigma
-        m: -6.452e-03 +/- 2.292e-03  c: -2.617e-05 +/- 4.579e-05
 
-        with correction
-        errors are 2 sigma
-        m: 1.367e-03 +/- 2.310e-03  c: -2.637e-05 +/- 4.615e-05
+        - s/n > 16 0.14
+            R: [ 0.61009083  0.61143357]
+            Rsel: [-0.00267634 -0.00263742]
+            errors are 2 sigma
+
+            without correction
+            m: -3.719e-03 +/- 1.671e-03  c: 9.384e-06 +/- 3.339e-05
+            with correction
+            m: 6.708e-04 +/- 1.678e-03  c: 9.425e-06 +/- 3.354e-05
+
+
+        - s/n > 19 0.10
+            R: [ 0.61147198  0.61281569]
+            Rsel: [-0.00479133 -0.00472642]
+
+            errors are 2 sigma
+
+            without correction
+            m: -6.893e-03 +/- 1.824e-03  c: 3.908e-07 +/- 3.644e-05
+            with correction
+            m: 9.505e-04 +/- 1.838e-03  c: 3.938e-07 +/- 3.672e-05
+
+
+        - weighted s/n > 5
+            without correction
+            m: 1.082e-01 +/- 2.008e-03  c: 1.428e-05 +/- 4.041e-05
+            with correction
+            m: 2.772e-03 +/- 1.817e-03  c: 1.291e-05 +/- 3.654e-05
+
+        - weighted s/n > 7
+            without correction
+            m: 5.327e-02 +/- 1.577e-03  c: 2.121e-05 +/- 3.155e-05
+            with correction
+            m: 8.485e-04 +/- 1.499e-03  c: 2.015e-05 +/- 2.997e-05
+
+
+- sim-bdj03
+    - including 100 knots generated using a random walk of 40 steps
+    - run-bdj03mcal01 - running at bnl
+    - run-bdj03mcal02 - running at slac
 
 sim-cm01
     - cosmos galaxies

@@ -1,0 +1,35 @@
+# knots
+run: "run-bdj03mcal-t02"
+sim: "sim-bdj03"
+
+fitter: "metacal-gaussk"
+
+global_seed: 104
+
+metacal_pars:
+    fixnoise: True
+    symmetrize_psf: True
+    symmetrize_dilation: 1.05
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+
+max_pars:
+    ntry: 4
+    lmpars:
+        maxfev: 4000
+        ftol: 1.0e-5
+        xtol: 1.0e-5
+
+ngal: 2000000
+
+desired_hours: 0.25
+
+# should have been 0.7, new sim is considerably slower
+sec_per: 0.5
+
+jobs_per_condor_sub: 5000
+
+verbose: False

@@ -559,7 +559,9 @@ class MetacalGaussK(MetacalMomentsAM):
         return res
 
     def _get_metacal(self, obs):
-
+        """
+        simplified version of fixnoise, using minus shear
+        """
         noise_obs = ngmix.simobs.simulate_obs(None, obs)
 
         # just doing this to get the dim, dk.  This is wasting time
@@ -575,7 +577,20 @@ class MetacalGaussK(MetacalMomentsAM):
         for type in self.metacal_types:
 
             kobs = km.get_kobs_galshear(type)
-            nkobs = kmnoise.get_kobs_galshear(type)
+
+            if type=='1p':
+                nkobs = kmnoise.get_kobs_galshear("1m")
+            elif type=="1m":
+                nkobs = kmnoise.get_kobs_galshear("1p")
+            elif type=='2p':
+                nkobs = kmnoise.get_kobs_galshear("2m")
+            elif type=="2m":
+                nkobs = kmnoise.get_kobs_galshear("2p")
+            elif type=="noshear":
+                nkobs = kmnoise.get_kobs_galshear("noshear")
+            else:
+                raise ValueError("bad type: '%s'" % type)
+
 
             kobs.kr.array[:,:] += nkobs.kr.array[:,:]
             kobs.ki.array[:,:] += nkobs.ki.array[:,:]

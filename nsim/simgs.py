@@ -145,7 +145,8 @@ class SimGS(dict):
                                    wcs=wcs,
                                    dtype=numpy.float64,
                                    offset=cen_shift)
-        #print("    dims: %d,%d" % tuple(gsimage.array.shape))
+        if nrows is None:
+            print("    dims: %d,%d" % tuple(gsimage.array.shape))
         im0 = gsimage.array
         if s2n is not None:
             image_nonoise, image, flux = self._scale_and_add_noise(im0, s2n)

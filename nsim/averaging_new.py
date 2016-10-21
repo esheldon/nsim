@@ -932,7 +932,7 @@ class Summer(dict):
     def _get_s2n_name(self, data, type=None):
         n=self.namer
         if n('s2n_r') in data.dtype.names:
-            print("using s2n_r")
+            #print("using s2n_r")
             name=n('s2n_r')
         elif n('s2n') in data.dtype.names:
             name=n('s2n')
@@ -952,7 +952,7 @@ class Summer(dict):
 
         Tname=n('T_r')
         if Tname in data.dtype.names:
-            print("getting T_r")
+            #print("getting T_r")
             return data[Tname][w]
         else:
             return None

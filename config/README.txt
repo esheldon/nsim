@@ -103,6 +103,41 @@ sim-bdj02, sim-bdj04
     - run-bdj03mcal01 - running at bnl
     - run-bdj03mcal02 - running at slac
 
+    - s/n > 10
+        R: [ 0.58485071  0.58608179]
+        Rsel: [ 0.00210668  0.00222463]
+
+        errors are 2 sigma
+
+        without correction
+        m: 6.052e-03 +/- 3.840e-03  c: -3.775e-05 +/- 7.678e-05
+        with correction
+        m: 2.442e-03 +/- 3.827e-03  c: -3.761e-05 +/- 7.649e-05
+
+    - s/n > 13
+
+        R: [ 0.6040723   0.60536753]
+        Rsel: [-0.00102727 -0.00078197]
+
+        errors are 2 sigma
+
+        without correction
+        m: -7.277e-04 +/- 3.899e-03  c: -2.828e-05 +/- 7.791e-05
+        with correction
+        m: 9.746e-04 +/- 3.906e-03  c: -2.831e-05 +/- 7.802e-05
+
+    - s/n > 16
+        R: [ 0.61424202  0.61561442]
+        Rsel: [-0.00309217 -0.0030546 ]
+
+        errors are 2 sigma
+
+        without correction
+        m: -5.008e-03 +/- 4.147e-03  c: -1.756e-05 +/- 8.284e-05
+        with correction
+        m: 2.659e-05 +/- 4.168e-03  c: -1.765e-05 +/- 8.325e-05
+
+
 sim-cm01
     - cosmos galaxies
     - shear max 0.04

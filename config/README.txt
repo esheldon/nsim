@@ -7,7 +7,7 @@ sim-bdj02, sim-bdj04
     - bdj04 uses kde rather than drawing from discrete size-flux distribution
     - run-bdj04mcal01 100M
     - run-bdj04mcal02 200M
-    - run-bdj04mcal03 400M collating
+    - run-bdj04mcal03 400M
     - current total 1.1 billion
     04 config exists but not yet run
         - keep round measures
@@ -100,42 +100,158 @@ sim-bdj02, sim-bdj04
 
 - sim-bdj03
     - including 100 knots generated using a random walk of 40 steps
-    - run-bdj03mcal01 - running at bnl
-    - run-bdj03mcal02 - running at slac
+    - run-bdj03mcal01 100M
+         - running at bnl
+    - run-bdj03mcal02 200M at slac
+    - run-bdj03mcal05 200M 
+
+    - s/n > 7
+        R: [ 0.54516386  0.54649352]
+        Rpsf: [ 0.  0.]
+
+        Rsel: [ 0.00819069  0.00820421]
+        Rpsf_sel: [ 0.  0.]
+        without correction
+        errors are 2 sigma
+        m: 1.498e-02 +/- 2.817e-03  c: -2.895e-05 +/- 5.636e-05
+
+        with correction
+        errors are 2 sigma
+        m: -4.174e-05 +/- 2.776e-03  c: -2.852e-05 +/- 5.552e-05
 
     - s/n > 10
-        R: [ 0.58485071  0.58608179]
-        Rsel: [ 0.00210668  0.00222463]
+        R: [ 0.58477091  0.58605968]
+        Rpsf: [ 0.  0.]
 
-        errors are 2 sigma
-
+        Rsel: [ 0.00213697  0.00220354]
+        Rpsf_sel: [ 0.  0.]
         without correction
-        m: 6.052e-03 +/- 3.840e-03  c: -3.775e-05 +/- 7.678e-05
+        errors are 2 sigma
+        m: 2.266e-03 +/- 2.554e-03  c: -1.433e-05 +/- 5.107e-05
+
         with correction
-        m: 2.442e-03 +/- 3.827e-03  c: -3.761e-05 +/- 7.649e-05
+        errors are 2 sigma
+        m: -1.383e-03 +/- 2.545e-03  c: -1.428e-05 +/- 5.088e-05
 
     - s/n > 13
+        R: [ 0.60403765  0.6053359 ]
+        Rpsf: [ 0.  0.]
 
-        R: [ 0.6040723   0.60536753]
-        Rsel: [-0.00102727 -0.00078197]
-
-        errors are 2 sigma
-
+        Rsel: [-0.00097403 -0.00085889]
+        Rpsf_sel: [ 0.  0.]
         without correction
-        m: -7.277e-04 +/- 3.899e-03  c: -2.828e-05 +/- 7.791e-05
+        errors are 2 sigma
+        m: -2.325e-03 +/- 2.593e-03  c: -1.043e-05 +/- 5.182e-05
+
         with correction
-        m: 9.746e-04 +/- 3.906e-03  c: -2.831e-05 +/- 7.802e-05
+        errors are 2 sigma
+        m: -7.139e-04 +/- 2.597e-03  c: -1.044e-05 +/- 5.190e-05
+
 
     - s/n > 16
-        R: [ 0.61424202  0.61561442]
-        Rsel: [-0.00309217 -0.0030546 ]
+        R: [ 0.61422075  0.61559831]
+        Rpsf: [ 0.  0.]
 
-        errors are 2 sigma
-
+        Rsel: [-0.00306198 -0.00303583]
+        Rpsf_sel: [ 0.  0.]
         without correction
-        m: -5.008e-03 +/- 4.147e-03  c: -1.756e-05 +/- 8.284e-05
+        errors are 2 sigma
+        m: -5.011e-03 +/- 2.758e-03  c: -2.039e-05 +/- 5.510e-05
+
         with correction
-        m: 2.659e-05 +/- 4.168e-03  c: -1.765e-05 +/- 8.325e-05
+        errors are 2 sigma
+        m: -2.587e-05 +/- 2.772e-03  c: -2.049e-05 +/- 5.537e-05
+
+
+    - s/n > 19
+        R: [ 0.61641633  0.61779205]
+        Rpsf: [ 0.  0.]
+
+        Rsel: [-0.00521847 -0.00517292]
+        Rpsf_sel: [ 0.  0.]
+        without correction
+        errors are 2 sigma
+        m: -9.597e-03 +/- 3.014e-03  c: -2.838e-05 +/- 6.019e-05
+
+        with correction
+        errors are 2 sigma
+        m: -1.141e-03 +/- 3.040e-03  c: -2.862e-05 +/- 6.070e-05
+
+
+
+
+    - these were gaussk which doesn't work yet
+    - run-bdj03mcal03
+    - run-bdj03mcal04
+
+- combining bdj02-03-04 so far
+    - 1.1 billion + 300 M = 1.4 billion
+    - s/n > 7
+        R: [ 0.54463494  0.54602017]
+        Rpsf: [ 0.  0.]
+
+        Rsel: [ 0.00839554  0.00843524]
+        Rpsf_sel: [ 0.  0.]
+        without correction
+        errors are 2 sigma
+        m: 1.606e-02 +/- 1.468e-03  c: 8.648e-06 +/- 2.937e-05
+
+        with correction
+        errors are 2 sigma
+        m: 6.344e-04 +/- 1.446e-03  c: 8.517e-06 +/- 2.892e-05
+
+    - s/n > 10
+        R: [ 0.58317692  0.58451876]
+        Rpsf: [ 0.  0.]
+
+        Rsel: [ 0.0023498   0.00242612]
+        Rpsf_sel: [ 0.  0.]
+        without correction
+        errors are 2 sigma
+        m: 3.640e-03 +/- 1.329e-03  c: 2.236e-06 +/- 2.657e-05
+
+        with correction
+        errors are 2 sigma
+        m: -3.873e-04 +/- 1.324e-03  c: 2.227e-06 +/- 2.646e-05
+    - s/n > 13
+        R: [ 0.60157058  0.60289554]
+        Rpsf: [ 0.  0.]
+
+        Rsel: [-0.00071658 -0.00066285]
+        Rpsf_sel: [ 0.  0.]
+        without correction
+        errors are 2 sigma
+        m: -1.275e-03 +/- 1.347e-03  c: 1.112e-05 +/- 2.691e-05
+
+        with correction
+        errors are 2 sigma
+        m: -8.353e-05 +/- 1.348e-03  c: 1.113e-05 +/- 2.694e-05
+    - s/n > 16
+        R: [ 0.61121323  0.61256543]
+        Rpsf: [ 0.  0.]
+
+        Rsel: [-0.00278115 -0.0027457 ]
+        Rpsf_sel: [ 0.  0.]
+        without correction
+        errors are 2 sigma
+        m: -4.072e-03 +/- 1.429e-03  c: 1.253e-06 +/- 2.856e-05
+
+        with correction
+        errors are 2 sigma
+        m: 4.806e-04 +/- 1.436e-03  c: 1.259e-06 +/- 2.869e-05
+    - s/n > 19
+        R: [ 0.61281928  0.6141717 ]
+        Rpsf: [ 0.  0.]
+
+        Rsel: [-0.00490771 -0.00484808]
+        Rpsf_sel: [ 0.  0.]
+        without correction
+        errors are 2 sigma
+        m: -7.634e-03 +/- 1.561e-03  c: -7.495e-06 +/- 3.118e-05
+
+        with correction
+        errors are 2 sigma
+        m: 3.775e-04 +/- 1.573e-03  c: -7.555e-06 +/- 3.142e-05
 
 
 sim-cm01

@@ -101,9 +101,10 @@ sim-bdj02, sim-bdj04
 - sim-bdj03
     - including 100 knots generated using a random walk of 40 steps
     - run-bdj03mcal01 100M
-         - running at bnl
-    - run-bdj03mcal02 200M at slac
+         - running at bnl, still...
+    - run-bdj03mcal02 200M
     - run-bdj03mcal05 200M 
+    - run-bdj03mcal06 400M - running at slac
 
     - s/n > 7
         R: [ 0.54516386  0.54649352]

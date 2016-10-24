@@ -171,6 +171,10 @@ def run_sim(sim_conf,
         fitclass=nsim.fitters.MetacalMomentsOld
 
 
+    elif ftype=='metacal-momnull-gauss':
+        fitclass=nsim.moments.MetacalNullGaussFitter
+
+
     elif ftype=='metacal-moments-fixed':
         fitclass=nsim.moments.MetacalMomentsFixed
 

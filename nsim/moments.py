@@ -10,6 +10,8 @@ from numpy import where, isfinite
 import ngmix
 from ngmix.fitting import print_pars
 from ngmix.shape import Shape
+
+from . import util
 from .util import TryAgainError
 
 from .fitters import SimpleFitterBase
@@ -17,6 +19,10 @@ from .fitters import SimpleFitterBase
 import galsim
 
 
+DEFTYPES=[
+    'noshear',
+    '1p','1m','2p','2m',
+]
 
 
 
@@ -58,6 +64,7 @@ class MetacalMomentsFixed(SimpleFitterBase):
 
         res=self._do_metacal(odict)
         res['flags']=0
+
         return res
 
     def _get_metacal(self, obs):
@@ -1058,6 +1065,356 @@ class MetacalMomentsDeweight(MetacalMomentsFixed):
 
         return dt
 
+class NullerBase(object):
+    def __init__(self, obs, **kw):
+        self.obs=obs
+        self.jacobian=self.obs.jacobian.copy()
+
+        self.kw=kw
+
+        self.npars=4
+
+    def get_result(self):
+        """
+        get the result dictionary
+        """
+        if not hasattr(self,'_result'):
+            raise RuntimeError("run go() first")
+        
+        return self._result
+
+    def go(self, guess):
+        """
+        run the root finder and set the result
+        """
+        import scipy.optimize
+
+        assert len(guess)==self.npars
+
+        root_res=scipy.optimize.root(
+            self.get_moments,
+            guess,
+            options=self.kw,
+            method='lm',
+        )
+
+        if not root_res.success:
+            self._result={'flags':1}
+            return
+
+        fit_pars=root_res.x
+
+        res=self.get_moments(fit_pars, more=True)
+        if res['s2n_denom_sum'] <= 0:
+            self._result={'flags':1}
+            return
+
+
+        # rename some things
+        res['sums'] = res['pars']
+        res['sums_cov'] = res['pars_cov']
+        res['pars'] = fit_pars
+
+        res['g'] = -fit_pars[2:2+2]
+
+        # now some noise calculations
+
+        res['s2n'] = res['s2n_numer_sum']/sqrt(res['s2n_denom_sum'])
+        res['e_err'] = 2.0/res['s2n']
+
+        gerr=0.5*res['e_err']
+        res['g_cov'] = diag([ gerr**2 ]*2)
+
+        res['flags'] = 0
+        res['nfev'] = root_res.nfev
+
+        self._result = res
+
+class NullerGauss(NullerBase):
+    def __init__(self, obs, T, **kw):
+
+        super(NullerGauss,self).__init__(obs, **kw)
+        self.T = T
+
+        wtpars = [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            T,
+            1.0,
+        ]
+        self.wt_gmix = ngmix.GMixModel(wtpars, "gauss")
+
+    def get_moments(self, pars, more=False):
+        """
+        pars are [cen1, cen2, shear1, shear2]
+        """
+        obs=self.obs
+        obs.jacold=obs.jacobian
+
+        row_offset, col_offset = pars[0],pars[1]
+        s1, s2 = pars[2], pars[3]
+        try:
+            
+            wt_gmix=self.wt_gmix
+            try:
+                shear=ngmix.Shape(s1, s2)
+
+                j=util.get_sheared_jacobian(
+                    self.jacobian,
+                    shear,
+                )
+
+                obs.jacobian=j
+
+                wt_gmix.set_cen(row_offset, col_offset)
+
+                res=wt_gmix.get_weighted_moments(obs)
+
+                if more:
+                    retval=res
+
+                else:
+                    # these are the un-normalized moments
+                    retval = res['pars'][0:0+4]
+
+            except ngmix.GMixRangeError as err:
+                retval = zeros(4) + 9.9e9
+        finally:
+            obs.jacobian=obs.jacold
+
+        return retval
+
+class MetacalNullGaussFitter(SimpleFitterBase):
+
+    def _setup(self, *args, **kw):
+        super(MetacalNullGaussFitter,self)._setup(*args, **kw)
+        self['npars']=4
+
+        self.metacal_types=self['metacal_pars'].get('types',DEFTYPES)
+
+    def _dofit(self, imdict):
+
+        obs=imdict['obs']
+
+        odict=self._get_metacal(obs)
+
+        weight_pars = self._fit_gauss(odict['noshear'])
+
+        res=self._do_metacal(odict, weight_pars)
+        res['flags']=0
+        return res
+
+    def _get_metacal(self, obs):
+        mcpars=self['metacal_pars']
+        analytic_psf=mcpars.get('analytic_psf',None)
+        odict=ngmix.metacal.get_all_metacal(
+            obs,
+            psf=analytic_psf,
+            rng=self.rng,
+            **mcpars
+        )
+
+        return odict
+
+
+    def _do_metacal(self, odict, weight_pars):
+        res={}
+
+        for type in self.metacal_types:
+            #print("    doing metacal:",type)
+            obs=odict[type]
+
+            res[type] = self._do_one_null_fit(obs, weight_pars)
+
+        return res
+
+    def _do_one_null_fit(self, obs, weight_pars):
+
+        mpars=self['max_pars']
+        T = weight_pars[4]
+        nuller=NullerGauss(obs, T, maxiter=mpars['lm_pars']['maxfev'])
+
+        guess0 = weight_pars[0:4]
+
+        for i in xrange(mpars['ntry']):
+
+            guess=self._get_guess(guess0)
+            nuller.go(guess)
+
+            res=nuller.get_result()
+            if res['flags']==0:
+                break
+
+        if res['flags'] != 0:
+            raise TryAgainError("failed to find null")
+
+        res['ntry'] = i+1
+
+        return res
+
+    def _get_guess(self, guess0):
+
+        guess=guess0.copy()
+
+        sh=self.get_shape_guess(guess[2], guess[3])
+
+        guess[0:0+2] += self.rng.uniform(low=-0.1,high=0.1,size=2)
+        guess[2:2+2] = (sh.g1, sh.g2)
+
+        return guess
+
+    def get_shape_guess(self, g1, g2, width=0.01, nmaxrand=10):
+        """
+        Get guess, making sure in range
+        """
+        rng=self.rng
+
+        shape=ngmix.Shape(g1, g2)
+        shape_guess=None
+
+        for i in xrange(nmaxrand):
+            try:
+                g1_offset = rng.uniform(low=-width,high=width)
+                g2_offset = rng.uniform(low=-width,high=width)
+                shape_new=shape.get_sheared(g1_offset, g2_offset)
+
+                if shape_new.g < 0.98:
+                    shape_guess=shape_new
+                    break
+
+            except GMixRangeError:
+                pass
+
+        if shape_guess is None:
+            g1g=rng.uniform(low=-0.1, high=0.1)
+            g2g=rng.uniform(low=-0.1, high=0.1)
+            shape_guess=ngmix.Shape(g1g,g2g)
+
+        return shape_guess
+
+
+
+    def _fit_gauss(self, obs):
+        """
+        fit a gaussian to get a good weight function
+        """
+
+        mpars=self['max_pars']
+
+        Tguess=4.0
+        runner = ngmix.bootstrap.PSFRunner(
+            obs,
+            "gauss",
+            Tguess,
+            mpars['lm_pars'],
+        )
+        runner.go(ntry=mpars['ntry'])
+
+        res=runner.fitter.get_result()
+        if res['flags'] != 0:
+            raise TryAgainError("failed to fit gaussian")
+
+        pars=res['pars']
+
+        return pars
+
+
+    def _print_res(self,allres):
+        """
+        print some stats
+        """
+
+        res=allres['noshear']
+        if 'nfev' in res:
+            mess="    s2n: %.1f  ntry: %d  nfev: %d"
+            mess = mess % (res['s2n'],res['ntry'],res['nfev'])
+            print(mess)
+
+        print_pars(res['pars'],      front='        pars: ')
+
+        if allres['pars_true'][0] is not None:
+            print_pars(allres['pars_true'], front='        true: ')
+
+    def _get_dtype(self):
+        """
+        get the dtype for the output struct
+        """
+        npars=self['npars']
+
+        # super of super
+        dt=super(MetacalNullGaussFitter,self)._get_dtype()
+
+        for type in self.metacal_types:
+
+            if type=='noshear':
+                back=''
+            else:
+                back='_%s' % type
+
+            dt += [
+                ('mcal_pars%s' % back,'f8',npars),
+
+                ('mcal_g%s' % back,'f8',2),
+                ('mcal_g_cov%s' % back,'f8',(2,2)),
+
+                ('mcal_s2n%s' % back,'f8'),
+
+                ('mcal_sums%s' % back,'f8',6),
+
+                ('mcal_nfev%s' % back, 'i4'),
+                ('mcal_ntry%s' % back, 'i4'),
+            ]
+
+            if type=='noshear':
+                dt += [
+                    ('mcal_wsum','f8'),
+                ]
+
+            dt += [
+            ]
+
+        return dt
+
+
+    def _copy_to_output(self, res, i):
+        """
+        copy parameters specific to this class
+        """
+
+        # note copying super of our super, since
+        # we didn't do a regular fit
+        super(SimpleFitterBase,self)._copy_to_output(res, i)
+
+        d=self.data
+
+        for type in self.metacal_types:
+
+            tres=res[type]
+            if type=='noshear':
+                back=''
+            else:
+                back='_%s' % type
+
+            d['mcal_pars%s' % back][i] = tres['pars']
+
+            d['mcal_g%s' % back][i] = tres['g']
+            d['mcal_g_cov%s' % back][i] = tres['g_cov']
+
+            d['mcal_s2n%s' % back][i] = tres['s2n']
+
+            d['mcal_sums%s' % back][i] = tres['sums']
+
+            d['mcal_nfev%s' % back][i] = tres['nfev']
+            d['mcal_ntry%s' % back][i] = tres['ntry']
+
+            if type=='noshear':
+                for p in ['wsum']:
+
+                    if p in tres:
+                        name='mcal_%s' % p
+                        d[name][i] = tres[p]
 
 
 def _get_weight(obs, config):

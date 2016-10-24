@@ -140,8 +140,19 @@ class CosmosR50Flux(object):
 
 class RandomWalkGalaxy(object):
     """
-    place point sources randomly by letting them to
+    place point sources randomly by letting them do
     a random walk
+    
+    paramters
+    ---------
+    hlr: float
+        Half-light radius for the final distribution
+    flux: float
+        Total flux of the set of points
+    npoints: int, optional
+        Total number of points to use.  Default 100
+    nstep: int, optional
+        Number of steps in random walk.  Default 40
     """
     def __init__(self, hlr, flux, npoints=100, nstep=40):
 
@@ -157,6 +168,9 @@ class RandomWalkGalaxy(object):
         self._set_gsobj()
 
     def get_gsobj(self):
+        """
+        get the galsim object
+        """
         return self.g
 
     def _set_gsobj(self):

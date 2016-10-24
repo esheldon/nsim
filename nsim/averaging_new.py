@@ -331,7 +331,11 @@ class Summer(dict):
         return g
 
     def _get_gpsf(self, data, w):
-        return data[self.gpsf_name][w]
+        name=self.gpsf_name
+        if name in data.dtype.names:
+            return data[name][w]
+        else:
+            return None
 
     def do_sums1(self, data, sums=None):
         """
@@ -391,9 +395,11 @@ class Summer(dict):
                 sums['gsq'][i]  += (g**2*wa**2).sum(axis=0)
                 sums['wsq'][i]  += (wa**2).sum(axis=0)
 
-                gpsf=self._get_gpsf(data, w)
-                sums['gpsf'][i] += (gpsf*wa).sum(axis=0)
                 sums['wsum'][i] += wts.sum()
+
+                gpsf=self._get_gpsf(data, w)
+                if gpsf is not None:
+                    sums['gpsf'][i] += (gpsf*wa).sum(axis=0)
 
                 for type in ngmix.metacal.METACAL_TYPES:
                     if type=='noshear':

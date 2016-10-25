@@ -971,11 +971,24 @@ class Summer(dict):
 
     def _get_size(self, data, w, type=None):
         name=self._get_pars_name(data, type=type)
-        return data[name][w,4]
+
+        size=None
+        if name in data.dtype.names:
+            if data[name].shape[1] >= 6:
+                size = data[name][w,4]
+
+        return size
 
     def _get_flux(self, data, w, type=None):
         name=self._get_pars_name(data, type=type)
-        return data[name][w,5]
+
+        flux=None
+        if name in data.dtype.names:
+            if data[name].shape[1] >= 6:
+                flux = data[name][w,5]
+
+
+        return flux
 
 
     def _get_pars_name(self, data, type=None):

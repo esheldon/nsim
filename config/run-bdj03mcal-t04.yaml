@@ -3,7 +3,7 @@ sim: "sim-bdj03"
 
 fitter: "metacal-momnull-gauss"
 
-global_seed: 32094
+global_seed: 1453
 
 metacal_pars:
     fixnoise: False
@@ -17,9 +17,9 @@ max_pars:
     cov:
         replace_cov: False
 
-ngal: 2000000
+ngal: 20000000
 
-desired_hours: 0.25
+desired_hours: 0.75
 
 sec_per: 0.7
 

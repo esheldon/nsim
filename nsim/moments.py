@@ -1291,7 +1291,6 @@ class MetacalNullGaussFitter(SimpleFitterBase):
             nobs = ndict[type]
 
             tres=res[type]
-            nuller = tres['nuller']
             coeffs1 = tres['coeffs1']
             coeffs2 = tres['coeffs2']
 
@@ -1303,10 +1302,6 @@ class MetacalNullGaussFitter(SimpleFitterBase):
 
             res[type]['g_noise'] = (s1,s2)
 
-        print(
-            "        diff gnoise:",
-            res['1p']['g_noise'][0] - res['1m']['g_noise'][0],
-        )
     def _get_metacal(self, obs):
         mcpars=self['metacal_pars']
         analytic_psf=mcpars.get('analytic_psf',None)

@@ -1574,7 +1574,7 @@ class MetacalNullGaussFitter(SimpleFitterBase):
             d['mcal_ntry%s' % back][i] = tres['ntry']
 
             if do_noise_shear and type != 'noshear':
-                d['mcal_g_noise%s' % back] = tres['g_noise']
+                d['mcal_g_noise%s' % back][i] = tres['g_noise']
 
             if type=='noshear':
                 for p in ['wsum']:

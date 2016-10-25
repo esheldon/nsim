@@ -1,0 +1,32 @@
+run: "run-bdj03mcal-t05"
+sim: "sim-bdj03"
+
+fitter: "metacal-momnull-gauss"
+
+global_seed: 13095
+
+metacal_pars:
+    fixnoise: False
+    symmetrize_psf: True
+    symmetrize_dilation: 1.05
+
+    do_noise_shear: True
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+max_pars:
+    ntry: 5
+    lm_pars:
+        maxfev: 4000
+
+ngal: 2000000
+
+desired_hours: 0.25
+
+sec_per: 0.7
+
+jobs_per_condor_sub: 5000
+
+verbose: False

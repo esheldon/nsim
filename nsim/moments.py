@@ -1074,6 +1074,9 @@ class NullerBase(object):
 
         self.npars=4
 
+        self._par_list=[]
+        self._mom_list=[]
+
     def get_result(self):
         """
         get the result dictionary
@@ -1184,6 +1187,10 @@ class NullerGauss(NullerBase):
         finally:
             obs.jacobian=obs.jacold
 
+        if not more:
+            self._par_list.append( pars )
+            self._mom_list.append( retval )
+
         return retval
 
 class MetacalNullGaussFitter(SimpleFitterBase):
@@ -1197,15 +1204,109 @@ class MetacalNullGaussFitter(SimpleFitterBase):
     def _dofit(self, imdict):
 
         obs=imdict['obs']
-
         odict=self._get_metacal(obs)
 
-        weight_pars = self._fit_gauss(odict['noshear'])
 
-        res=self._do_metacal(odict, weight_pars)
+        guess0, T = self._get_weight_and_guess_from_admom(obs)
+
+        res=self._do_metacal(odict, guess0, T)
+
+        if self['metacal_pars']['do_noise_shear']:
+            self._fit_lines(res)
+            nobs=ngmix.simobs.simulate_obs(None, obs)
+            ndict=self._get_metacal(nobs)
+            self._add_noise_shears(ndict, T, res)
+
         res['flags']=0
         return res
 
+    def _fit_lines(self, res):
+        """
+        we want to predict gamma, so the lines are
+
+            gamma1 = A1 * M1 + B1
+            gamma2 = A2 * M2 + B2
+        
+        """
+        nuse=3
+
+        g1off=array([-0.01, 0.0, 0.01])
+        g2off=array([-0.01, 0.0, 0.01])
+
+        M1 = zeros(nuse)
+        M2 = zeros(nuse)
+
+        for type in res:
+            tres=res[type]
+
+            tpars = tres['pars']
+
+            nuller=tres['nuller']
+
+            send_pars=tpars.copy()
+
+            g1 = tpars[2] + g1off
+            g2 = tpars[3] + g2off
+
+            for i in xrange(nuse):
+
+                send_pars[2] = g1[i]
+                send_pars[3] = g2[i]
+
+                if send_pars[2]**2 + send_pars[3]**2 > 0.999:
+                    raise TryAgainError("could not fit line")
+
+                tmoms = nuller.get_moments(send_pars)
+                M1[i] = tmoms[2]
+                M2[i] = tmoms[3]
+
+
+            a1, b1 = util.fit_line(g1, M1)
+            a2, b2 = util.fit_line(g2, M2)
+
+            tres['coeffs1'] = (a1, b1)
+            tres['coeffs2'] = (a2, b2)
+
+            if False:
+                import biggles
+                tab=biggles.Table(1,2)
+                plt1=biggles.plot(M1, g1, visible=False)
+                plt1=biggles.plot(M1, a1*M1 + b1, type='solid', color='blue', plt=plt1, visible=False)
+
+                plt2=biggles.plot(M2, g2, visible=False)
+                plt2=biggles.plot(M2, a2*M2 + b2, type='solid', color='blue', plt=plt2, visible=False)
+
+                tab[0,0] = plt1
+                tab[0,1] = plt2
+
+                tab.show()
+                if 'q'==raw_input("hit a key: "):
+                    stop
+
+    def _add_noise_shears(self, ndict, T, res):
+
+        maxiter=self['max_pars']['lm_pars']['maxfev']
+        
+        for type in res:
+            nobs = ndict[type]
+
+            tres=res[type]
+            nuller = tres['nuller']
+            coeffs1 = tres['coeffs1']
+            coeffs2 = tres['coeffs2']
+
+            nuller=NullerGauss(nobs, T, maxiter=maxiter)
+
+            moms=nuller.get_moments(tres['pars'])
+            s1 = coeffs1[0]*moms[2] + coeffs1[1]
+            s2 = coeffs2[0]*moms[3] + coeffs2[1]
+
+            res[type]['g_noise'] = (s1,s2)
+
+        print(
+            "        diff gnoise:",
+            res['1p']['g_noise'][0] - res['1m']['g_noise'][0],
+        )
     def _get_metacal(self, obs):
         mcpars=self['metacal_pars']
         analytic_psf=mcpars.get('analytic_psf',None)
@@ -1219,24 +1320,23 @@ class MetacalNullGaussFitter(SimpleFitterBase):
         return odict
 
 
-    def _do_metacal(self, odict, weight_pars):
+    def _do_metacal(self, odict, guess0, T):
         res={}
 
         for type in self.metacal_types:
             #print("    doing metacal:",type)
             obs=odict[type]
 
-            res[type] = self._do_one_null_fit(obs, weight_pars)
+            res[type] = self._do_one_null_fit(obs, guess0, T)
 
         return res
 
-    def _do_one_null_fit(self, obs, weight_pars):
+    def _do_one_null_fit(self, obs, guess0, T):
+
+        #print_pars(guess0, front="guess0: ")
 
         mpars=self['max_pars']
-        T = weight_pars[4]
         nuller=NullerGauss(obs, T, maxiter=mpars['lm_pars']['maxfev'])
-
-        guess0 = weight_pars[0:4]
 
         for i in xrange(mpars['ntry']):
 
@@ -1248,9 +1348,12 @@ class MetacalNullGaussFitter(SimpleFitterBase):
                 break
 
         if res['flags'] != 0:
-            raise TryAgainError("failed to find null")
+            raise TryAgainError("        failed to find null")
 
+        #print_pars(res['pars'], front="pars:   ")
         res['ntry'] = i+1
+
+        res['nuller'] = nuller
 
         return res
 
@@ -1293,6 +1396,59 @@ class MetacalNullGaussFitter(SimpleFitterBase):
             shape_guess=ngmix.Shape(g1g,g2g)
 
         return shape_guess
+
+    def _get_weight_and_guess_from_admom(self, obs):
+        """
+        measure adaptive moments
+        """
+
+        try:
+            ampars=self['admom_pars']
+            ntry=ampars.pop('ntry',4)
+
+            fitter=ngmix.admom.Admom(obs, **ampars)
+
+            for i in xrange(ntry):
+                guess=self._get_admom_guess(obs)
+
+                fitter.go(guess)
+
+                res=fitter.get_result()
+
+                if res['flags'] == 0:
+                    break
+
+            if res['flags'] != 0:
+                raise TryAgainError("        initial admom failed")
+
+            gmix=fitter.get_gmix()
+            c1,c2=gmix.get_cen()
+            g1,g2,T0 = gmix.get_g1g2T()
+
+            guess = numpy.array( [c1,c2,-g1,-g2] )
+            #T = ngmix.moments.get_Tround(T, g1, g2)
+            T = T0
+
+        except ngmix.GMixRangeError:
+            raise TryAgainError("        failed to get guess from admom")
+
+        return guess, T
+
+    def _get_admom_guess(self, obs):
+
+        rng=self.rng
+
+        scale=obs.jacobian.get_scale()
+        Tguess = 10.0*scale**2
+
+        pars=zeros(6)
+        pars[0:0+2] = rng.uniform(low=-0.5*scale, high=0.5*scale, size=2)
+        pars[2:2+2] = rng.uniform(low=-0.3, high=0.3, size=2)
+        pars[4]     = Tguess*(1.0 + rng.uniform(low=-0.1, high=0.1))
+        pars[5]     = 1.0
+
+        guess=ngmix.GMixModel(pars, "gauss")
+        return guess
 
 
 
@@ -1346,6 +1502,9 @@ class MetacalNullGaussFitter(SimpleFitterBase):
         # super of super
         dt=super(MetacalNullGaussFitter,self)._get_dtype()
 
+
+        do_noise_shear=self['metacal_pars']['do_noise_shear']
+
         for type in self.metacal_types:
 
             if type=='noshear':
@@ -1367,6 +1526,9 @@ class MetacalNullGaussFitter(SimpleFitterBase):
                 ('mcal_ntry%s' % back, 'i4'),
             ]
 
+            if do_noise_shear and type != 'noshear':
+                dt += [('mcal_g_noise%s' % back, 'f8',2)]
+
             if type=='noshear':
                 dt += [
                     ('mcal_wsum','f8'),
@@ -1386,6 +1548,8 @@ class MetacalNullGaussFitter(SimpleFitterBase):
         # note copying super of our super, since
         # we didn't do a regular fit
         super(SimpleFitterBase,self)._copy_to_output(res, i)
+
+        do_noise_shear=self['metacal_pars']['do_noise_shear']
 
         d=self.data
 
@@ -1408,6 +1572,9 @@ class MetacalNullGaussFitter(SimpleFitterBase):
 
             d['mcal_nfev%s' % back][i] = tres['nfev']
             d['mcal_ntry%s' % back][i] = tres['ntry']
+
+            if do_noise_shear and type != 'noshear':
+                d['mcal_g_noise%s' % back] = tres['g_noise']
 
             if type=='noshear':
                 for p in ['wsum']:

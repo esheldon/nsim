@@ -756,3 +756,31 @@ def _get_kmom_R(data, front, step=0.01):
     TR2 = (pars_2p[:,4]-pars_2m[:,4])/(2*step)
 
     return M1R, TR1, M2R, TR2
+
+
+def fit_line(y, x):
+    """
+    fit a line such that y = ax + b
+        
+    We can rewrite the line equation as
+
+        gamma = Ap 
+
+    where A = [[x 1]], and the ones are inserted for the intercept
+
+    this is accomplished using vstack
+
+    A = vstack( [x, ones(len(x))] ).T
+
+    coeff,_,_,_ = np.linalg.lstsq(A, y)[0]
+
+    a,b = coeff
+    """
+    from numpy import vstack, ones
+
+    A = vstack([x, ones(len(x))]).T
+
+    coeff, _, _, _ = numpy.linalg.lstsq(A, y)
+    a,b = coeff
+    return a,b
+

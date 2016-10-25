@@ -1278,8 +1278,9 @@ class MetacalNullGaussFitter(SimpleFitterBase):
 
                 tab[0,0] = plt1
                 tab[0,1] = plt2
+                tab.aspect_ratio=0.5
 
-                tab.show()
+                tab.show(width=800,height=800)
                 if 'q'==raw_input("hit a key: "):
                     stop
 

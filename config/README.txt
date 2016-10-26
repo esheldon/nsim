@@ -104,7 +104,9 @@ sim-bdj02, sim-bdj04
          - running at bnl, still...
     - run-bdj03mcal02 200M
     - run-bdj03mcal05 200M 
-    - run-bdj03mcal06 400M - running at slac
+    - run-bdj03mcal06 400M
+    - run-bdj03mcal07 200M
+    - run-bdj03mcal08 200M - running at slac
 
     - s/n > 7
         R: [ 0.54516386  0.54649352]
@@ -186,8 +188,6 @@ sim-bdj02, sim-bdj04
     - run-bdj03mcal04
 
 - combining bdj02-03-04 so far
-    - 2 billion
-
     - s/n > 7  0.41
         R: [ 0.54477435  0.54618374]
         Rpsf: [ 0.  0.]

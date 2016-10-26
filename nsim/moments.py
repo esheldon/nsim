@@ -1074,8 +1074,6 @@ class NullerBase(object):
 
         self.npars=4
 
-        self._par_list=[]
-        self._mom_list=[]
 
     def get_result(self):
         """
@@ -1118,7 +1116,10 @@ class NullerBase(object):
         res['sums_cov'] = res['pars_cov']
         res['pars'] = fit_pars
 
-        res['g'] = -fit_pars[2:2+2]
+        if self.npars==2:
+            res['g'] = -fit_pars[0:0+2]
+        else:
+            res['g'] = -fit_pars[2:2+2]
 
         # now some noise calculations
 
@@ -1187,11 +1188,63 @@ class NullerGauss(NullerBase):
         finally:
             obs.jacobian=obs.jacold
 
-        if not more:
-            self._par_list.append( pars )
-            self._mom_list.append( retval )
+        return retval
+
+class NullerGaussShape(NullerBase):
+    def __init__(self, obs, T, cen, **kw):
+
+        super(NullerGaussShape,self).__init__(obs, **kw)
+        self.npars=2
+
+        self.T = T
+
+        wtpars = [
+            cen[0],
+            cen[1],
+            0.0,
+            0.0,
+            T,
+            1.0,
+        ]
+        self.wt_gmix = ngmix.GMixModel(wtpars, "gauss")
+
+    def get_moments(self, pars, more=False):
+        """
+        pars are [cen1, cen2, shear1, shear2]
+        """
+        obs=self.obs
+        obs.jacold=obs.jacobian
+
+        s1, s2 = pars[0], pars[1]
+        try:
+            
+            wt_gmix=self.wt_gmix
+            try:
+                shear=ngmix.Shape(s1, s2)
+
+                j=util.get_sheared_jacobian(
+                    self.jacobian,
+                    shear,
+                )
+
+                obs.jacobian=j
+
+                res=wt_gmix.get_weighted_moments(obs)
+
+                if more:
+                    retval=res
+
+                else:
+                    # these are the un-normalized moments
+                    retval = res['pars'][2:2+2]
+
+            except ngmix.GMixRangeError as err:
+                retval = zeros(2) + 9.9e9
+        finally:
+            obs.jacobian=obs.jacold
 
         return retval
+
 
 class MetacalNullGaussFitter(SimpleFitterBase):
 
@@ -1212,10 +1265,19 @@ class MetacalNullGaussFitter(SimpleFitterBase):
         res=self._do_metacal(odict, guess0, T)
 
         if self['metacal_pars']['do_noise_shear']:
-            self._fit_lines(res)
+            #self._fit_lines(res)
             nobs=ngmix.simobs.simulate_obs(None, obs)
             ndict=self._get_metacal(nobs)
-            self._add_noise_shears(ndict, T, res)
+            #self._add_noise_shears(ndict, T, res)
+
+            nguess0 = guess0.copy()
+            nguess0[2:2+2] = 0.0
+            nres=self._do_metacal(ndict, nguess0, T, shape_only=True)
+            for type in res:
+                gn=nres[type]['g']
+                res[type]['g_noise'] = gn
+                if type=='1p':
+                    print("g_noise:",gn[0], gn[1])
 
         res['flags']=0
         return res
@@ -1316,23 +1378,27 @@ class MetacalNullGaussFitter(SimpleFitterBase):
         return odict
 
 
-    def _do_metacal(self, odict, guess0, T):
+    def _do_metacal(self, odict, guess0, T, shape_only=False):
         res={}
 
         for type in self.metacal_types:
             #print("    doing metacal:",type)
             obs=odict[type]
 
-            res[type] = self._do_one_null_fit(obs, guess0, T)
+            res[type] = self._do_one_null_fit(obs, guess0, T, shape_only=shape_only)
 
         return res
 
-    def _do_one_null_fit(self, obs, guess0, T):
-
-        #print_pars(guess0, front="guess0: ")
+    def _do_one_null_fit(self, obs, guess0, T, shape_only=False):
 
         mpars=self['max_pars']
-        nuller=NullerGauss(obs, T, maxiter=mpars['lm_pars']['maxfev'])
+
+        if shape_only:
+            cen=guess0[0:0+2]
+            guess0=guess0[2:2+2]
+            nuller=NullerGaussShape(obs, T, cen, maxiter=mpars['lm_pars']['maxfev'])
+        else:
+            nuller=NullerGauss(obs, T, maxiter=mpars['lm_pars']['maxfev'])
 
         for i in xrange(mpars['ntry']):
 
@@ -1357,10 +1423,13 @@ class MetacalNullGaussFitter(SimpleFitterBase):
 
         guess=guess0.copy()
 
-        sh=self.get_shape_guess(guess[2], guess[3])
-
-        guess[0:0+2] += self.rng.uniform(low=-0.1,high=0.1,size=2)
-        guess[2:2+2] = (sh.g1, sh.g2)
+        if guess.size == 2:
+            sh=self.get_shape_guess(guess[0], guess[1])
+            guess[:] = (sh.g1,sh.g2)
+        else:
+            guess[0:0+2] += self.rng.uniform(low=-0.1,high=0.1,size=2)
+            sh=self.get_shape_guess(guess[0], guess[1])
+            guess[2:2+2] = (sh.g1, sh.g2)
 
         return guess
 
@@ -1369,6 +1438,10 @@ class MetacalNullGaussFitter(SimpleFitterBase):
         Get guess, making sure in range
         """
         rng=self.rng
+
+        g=sqrt(g1**2 + g2**2)
+        if g > 1.0:
+            g1,g2=rng.uniform(low=-0.1, high=0.1, size=2)
 
         shape=ngmix.Shape(g1, g2)
         shape_guess=None

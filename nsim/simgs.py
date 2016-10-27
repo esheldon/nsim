@@ -387,7 +387,7 @@ class SimGS(dict):
 
         psf, psf_pars  = self._get_psf_obj()
 
-        if gal_pars['model']=='star':
+        if 'star' in gal_pars['model']:
             gal = psf.withFlux(gal_pars['flux'])
         else:
             gal0 = self._get_gal_obj(gal_pars)
@@ -1196,45 +1196,6 @@ class SimBDJoint(SimBD):
             self['obj_model']['flux_range'],
         )
 
-
-    '''
-    def _get_cosmos_data(self):
-        fname='real_galaxy_catalog_25.2_fits.fits'
-        fname=os.path.join(
-            sys.exec_prefix,
-            'share',
-            'galsim',
-            'COSMOS_25.2_training_sample',
-            fname,
-        )
-
-        fmin,fmax=self['obj_model']['flux_range']
-        r50min,r50max=self['obj_model']['r50_range']
-
-        print("reading cosmos file:",fname)
-        data=fitsio.read(fname, lower=True)
-        w,=numpy.where(
-            (data['viable_sersic']==1) &
-            #between(data['hlr'][:,0], 0.15, 3.0) &
-            #between(data['flux'][:,0], 2.5, 100.0)
-            between(data['hlr'][:,0], r50min, r50max) &
-            between(data['flux'][:,0], fmin, fmax)
-        )
-        print("kept %d/%d" % (w.size, data.size))
-
-        data=data[w]
-        return data
-
-
-    def _set_joint_pdf(self):
-        """
-        joint size-flux from the cosmos catalog
-        """
-
-        data=self._get_cosmos_data()
-        self.joint_pdf=DiscreteHLRFluxSampler(data, rng=self.rng)
-    '''
-
 class SimBDJointDiffshape(SimBD):
     """
     joint flux-hlr distribution form cosmos sersic fits
@@ -1377,44 +1338,6 @@ class SimBDJointDiffshape(SimBD):
             self['obj_model']['r50_range'],
             self['obj_model']['flux_range'],
         )
-
-
-    '''
-    def _get_cosmos_data(self):
-        fname='real_galaxy_catalog_25.2_fits.fits'
-        fname=os.path.join(
-            sys.exec_prefix,
-            'share',
-            'galsim',
-            'COSMOS_25.2_training_sample',
-            fname,
-        )
-
-        fmin,fmax=self['obj_model']['flux_range']
-        r50min,r50max=self['obj_model']['r50_range']
-
-        print("reading cosmos file:",fname)
-        data=fitsio.read(fname, lower=True)
-        w,=numpy.where(
-            (data['viable_sersic']==1) &
-            between(data['hlr'][:,0], r50min, r50max) &
-            between(data['flux'][:,0], fmin, fmax)
-        )
-        #    between(data['hlr'][:,0], 0.15, 1.0) &
-        #    between(data['flux'][:,0], 2.5, 100.0)
-        print("kept %d/%d" % (w.size, data.size))
-
-        data=data[w]
-        return data
-
-    def _set_joint_pdf(self):
-        """
-        joint size-flux from the cosmos catalog
-        """
-
-        data=self._get_cosmos_data()
-        self.joint_pdf=DiscreteHLRFluxSampler(data, rng=self.rng)
-    '''
 
 
 

@@ -14,7 +14,7 @@ admom_pars:
     ntry: 4
     maxiter: 200
 
-ngal: 200000000
+ngal: 100000000
 
 desired_hours: 1.0
 

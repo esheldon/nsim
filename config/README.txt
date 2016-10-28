@@ -155,6 +155,12 @@ sim-bdj02, sim-bdj04
             m: 8.485e-04 +/- 1.499e-03  c: 2.015e-05 +/- 2.997e-05
 
 
+- sim-bdj03stars
+    - same properties except stars
+    - run-bdj03stars-mcal01 100M at bnl
+    - run-bdj03stars-mcal02 100M at slac
+    * run-bdj03stars-mcal03 100M at slac
+
 - sim-bdj03
     - including 100 knots generated using a random walk of 40 steps
     - run-bdj03mcal01 100M
@@ -164,6 +170,7 @@ sim-bdj02, sim-bdj04
     - run-bdj03mcal06 400M
     - run-bdj03mcal07 200M
     - run-bdj03mcal08 200M - running at slac
+    - run-bdj03mcal09 200M
 
     - s/n > 7
         R: [ 0.54516386  0.54649352]

@@ -73,6 +73,7 @@ class Summer(dict):
             means_nocorr=get_mean_struct(self['nshear'])
             
             wkeep,=numpy.where(sums['wsum'] > 0)
+            print("total wsum:",sums['wsum'].sum())
 
             for i in xrange(self['nshear']):
 
@@ -1058,6 +1059,7 @@ class Summer(dict):
 
         if len(extra) > 0:
             extra = '-'.join(extra)
+            extra = extra.replace('run-','')
         else:
             extra=None
 

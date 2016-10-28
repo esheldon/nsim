@@ -22,8 +22,6 @@ parser=argparse.ArgumentParser(formatter_class=fclass)
 parser.add_argument('--cache', action='store_true',
                     help='read from local cache')
 
-parser.add_argument('--num', type=int, default=1000000,
-                    help='how many to use for plotting')
 
 
 def get_psf_r50(sim_conf):
@@ -37,7 +35,7 @@ def get_psf_r50(sim_conf):
     return psf.half_light_radius
 
 
-def read_data(run, args):
+def read_data(run, args, num=1000000):
     fname=files.get_output_url(run)
     if args.cache:
         bname = os.path.basename(fname)
@@ -47,12 +45,16 @@ def read_data(run, args):
     data=fitsio.read(
         fname,
         columns=['pars_true'],
-        rows=arange(args.num),
+        rows=arange(num),
     )
 
     return data
 
 def main():
+
+    # rough fraction used
+    fac=5142970./7706823.
+    #fac = 0.75
 
     biggles.configure('default','fontsize_min',2.0)
     biggles.configure('_HalfAxis','ticks_size',2.0)
@@ -73,7 +75,8 @@ def main():
     data=read_data(run, args)
     real_r50 = data['pars_true'][:,0]
 
-    rdata = sim.joint_pdf.sample(data.size)  
+    nsample = int(data.size/fac)
+    rdata = sim.joint_pdf.sample(nsample)
     input_r50 = rdata[:,0]
 
     w,=where(real_r50 > 0.001)
@@ -89,24 +92,28 @@ def main():
 
     line_input='solid'
     line_real='dashed'
+    line_psf='dotted'
 
-    color_input='black'
-    color_real='red'
+    #color_input='blue'
+    color_input='seagreen'
+    #color_real='red'
+    color_real='brown'
+    color_psf='steelblue'
 
 
     xmin=0.1
     xmax=1.0
     binsize = (xmax-xmin)/50.0
 
-    real_d = eu.stat.histogram(
-        real_r50,
+    input_d = eu.stat.histogram(
+        input_r50,
         min=xmin,
         max=xmax,
         binsize=binsize,
         more=True,
     )
-    input_d = eu.stat.histogram(
-        input_r50,
+    real_d = eu.stat.histogram(
+        real_r50,
         min=xmin,
         max=xmax,
         binsize=binsize,
@@ -133,15 +140,16 @@ def main():
     psf_line = biggles.Curve(
         [psf_r50, psf_r50],
         [0.0, ymax],
-        color='blue',
+        color=color_psf,
+        type=line_psf,
         width=2,
     )
     psf_line.label='psf'
 
     plist=[
+        psf_line,
         input_curve,
         real_curve,
-        psf_line,
     ]
     key=biggles.PlotKey(
         0.9,0.9,
@@ -153,7 +161,8 @@ def main():
     plt=biggles.FramedPlot()
     plt.xlabel=xlabel=r'$r_{50} [arcsec]$'
     plt.y1.draw_ticklabels=False
-    plt.aspect_ratio=1.0
+    #plt.aspect_ratio=1.0
+    plt.aspect_ratio=1.0/1.618
     plt.yrange=[0.0, ymax]
 
     plt.add( *plist)

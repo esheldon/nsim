@@ -92,9 +92,9 @@ def main():
     line_used='dotted'
     line_mcal='dashed'
 
-    color_all='black'
-    color_used='blue'
-    color_mcal='red'
+    color_all='seagreen'
+    color_used='magenta'
+    color_mcal='brown'
 
     log_s2n_all = log10(s2n_all)
     log_s2n_used = log10(s2n_used)
@@ -231,7 +231,8 @@ def main():
     #log_plt.xlabel=xlabel=r'$log_{10}(S/N)$'
     log_plt.xlabel=xlabel=r'$(S/N)$'
     log_plt.y1.draw_ticklabels=False
-    log_plt.aspect_ratio=1.0
+    #log_plt.aspect_ratio=1.0
+    log_plt.aspect_ratio=1.0/1.618
     #log_plt.xrange=[xmin,xmax]
     log_plt.xrange=[0.85,115]
     log_plt.yrange=[0.0, 1.1*log_s2n_all_d['hist'].max()]

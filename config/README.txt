@@ -1,4 +1,6 @@
 - combining bdj02-03-04 so far
+    total kept 2.6 billion
+    total simulated ~ 2.6*7706823./5142970 = 3.9 billion
     - s/n > 7  0.41
         R: [ 0.54477435  0.54618374]
         Rsel: [ 0.00832147  0.00838952]

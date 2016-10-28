@@ -1,118 +1,275 @@
 #!/usr/bin/env python
+"""
+make a histogram of the input s/n and the s/n finally
+used
+"""
+
 from __future__ import print_function
 import sys
 import os
 import numpy
 from numpy import log10, where, arange
+
+import fitsio
 import biggles
 
 import nsim
 from nsim import files
+
+import esutil as eu
 
 import argparse
 
 fclass=argparse.ArgumentDefaultsHelpFormatter
 parser=argparse.ArgumentParser(formatter_class=fclass)
 
-parser.add_argument('run', help='run to use in fit')
-parser.add_argument('epsfile', help='eps file to write')
 parser.add_argument('-n', type=int, default=1000000,
                     help='number to plot')
+parser.add_argument('--cache', action='store_true',
+                    help='read from local cache')
 
 
+def read_onecol(fname):
+    print("reading:",fname)
+
+    s2n = numpy.fromfile(fname, sep='\n')
+    return s2n
+
+def get_all_s2n(run):
+    dir=nsim.files.get_output_dir(run)
+
+    fname='s2n-expected.txt'
+    fname=os.path.join(dir, fname)
+    return read_onecol(fname)
+
+
+def get_used_s2n(run):
+    dir=nsim.files.get_output_dir(run)
+
+    fname='s2n-used.txt'
+    fname=os.path.join(dir, fname)
+
+    return read_onecol(fname)
+
+def get_mcal_s2n(run):
+    dir=nsim.files.get_output_dir(run)
+
+    fname='s2n-mcal.txt'
+    fname=os.path.join(dir, fname)
+
+    return read_onecol(fname)
+
+
+
+def read_data(run, args):
+    fname=files.get_output_url(run)
+    if args.cache:
+        bname = os.path.basename(fname)
+        fname=os.path.join('$TMPDIR', bname)
+
+    data=fitsio.read(
+        fname,
+        columns=['s2n_true','mcal_s2n'],
+        rows=arange(args.n),
+    )
+
+    return data
 
 def main():
+    run='run-bdj03mcal01'
+    args = parser.parse_args()
+
+    epsfile=nsim.files.get_plot_url(run, extra='s2n')
+    eu.ostools.makedirs_fromfile(epsfile)
 
     biggles.configure('default','fontsize_min',2.0)
 
-    args = parser.parse_args()
-    data=files.read_output(args.run, 0, 0,
-                           columns=['s2n_w','mcal_s2n_r'],
-                           rows=arange(args.n))
+    s2n_all = get_all_s2n(run)
+    s2n_used = get_used_s2n(run)
+    s2n_mcal = get_mcal_s2n(run)
 
-    s2n = data['s2n_w']
-    s2n_mcal=data['mcal_s2n_r']
+    min_s2n=0.001
+    w,=where(s2n_all > min_s2n)
+    print("keeping %d/%d all" % (w.size, s2n_all.size))
+    s2n_all = s2n_all[w]
 
-    w,=where( (s2n > 0.001) & (s2n_mcal > 0.001) )
+    w,=where(s2n_used > min_s2n)
+    print("keeping %d/%d used" % (w.size, s2n_used.size))
+    s2n_used = s2n_used[w]
 
-    log_s2n = log10(data['s2n_w'][w])
-    log_s2n_mcal = log10(data['mcal_s2n_r'][w])
+    w,=where(s2n_mcal > min_s2n)
+    print("keeping %d/%d mcal" % (w.size, s2n_mcal.size))
+    s2n_mcal = s2n_mcal[w]
 
-    tab=biggles.Table(1,2)
+    line_all='solid'
+    line_used='dotted'
+    line_mcal='dashed'
+
+    color_all='black'
+    color_used='blue'
+    color_mcal='red'
+
+    log_s2n_all = log10(s2n_all)
+    log_s2n_used = log10(s2n_used)
+    log_s2n_mcal = log10(s2n_mcal)
+
+    #tab=biggles.Table(1,2)
 
     xmin=1
     xmax=20.1
-    norm=1
-    s2n_curve=biggles.make_histc(
-        s2n,
-        min=xmin,max=xmax, nbin=100,
-        norm=norm,
-        smooth=True,
-        label='no fixnoise',
+    binsize=0.2
+
+    """
+    s2n_all_d = eu.stat.histogram(
+        s2n_all,
+        min=xmin,
+        max=xmax,
+        binsize=binsize,
+        more=True,
     )
-    s2n_mcal_curve=biggles.make_histc(
+    s2n_used_d= eu.stat.histogram(
+        s2n_used,
+        min=xmin,
+        max=xmax,
+        binsize=binsize,
+        more=True,
+    )
+    s2n_mcal_d= eu.stat.histogram(
         s2n_mcal,
-        min=xmin,max=xmax, nbin=100,
-        norm=norm,
-        color='red',
-        type='dashed',
-        smooth=True,
-        label='fixnoise',
+        min=xmin,
+        max=xmax,
+        binsize=binsize,
+        more=True,
     )
+
+    s2n_curve = biggles.Curve(
+        s2n_all_d['center'],
+        s2n_all_d['hist'],
+        color=color_all,
+        type=line_all,
+    )
+    s2n_curve.label='input'
+
+    s2n_used_curve = biggles.Curve(
+        s2n_used_d['center'],
+        s2n_used_d['hist'],
+        color=color_used,
+        type=line_used,
+    )
+    s2n_used_curve.label='used'
+
+    s2n_mcal_curve = biggles.Curve(
+        s2n_mcal_d['center'],
+        s2n_mcal_d['hist'],
+        color=color_mcal,
+        type=line_mcal,
+    )
+    s2n_mcal_curve.label='mcal'
+
+
+    plist=[
+        s2n_curve,
+        s2n_used_curve,
+        s2n_mcal_curve,
+    ]
     key=biggles.PlotKey(
         0.9,0.9,
-        [s2n_curve,s2n_mcal_curve],
+        plist,
         halign='right'
     )
     plt=biggles.FramedPlot()
     plt.xlabel=xlabel=r'$(S/N)$'
     plt.y1.draw_ticklabels=False
     plt.aspect_ratio=1.0
-    plt.yrange=[0.0, 0.16]
+    plt.yrange=[0.0, 1.1*s2n_all_d['hist'].max()]
     plt.xrange=[0.0,xmax]
 
-    plt.add(
-        s2n_curve,
-        s2n_mcal_curve,
-        key,
-    )
+    plt.add( *plist )
+    plt.add(key)
 
+    """
 
     xmin=0.0
-    xmax=4.0
-    log_s2n_curve=biggles.make_histc(
-        log_s2n,
-        min=xmin,max=xmax, nbin=100,
-        norm=norm,
-        smooth=True,
-        label='no fixnoise',
+    xmax=2.0
+    binsize=0.02
+
+    log_s2n_all_d = eu.stat.histogram(
+        log_s2n_all,
+        min=xmin,
+        max=xmax,
+        binsize=binsize,
+        more=True,
     )
-    log_s2n_mcal_curve=biggles.make_histc(
+    #log_s2n_used_d= eu.stat.histogram(
+    #    log_s2n_used,
+    #    min=xmin,
+    #    max=xmax,
+    #    binsize=binsize,
+    #    more=True,
+    #)
+    log_s2n_mcal_d= eu.stat.histogram(
         log_s2n_mcal,
-        min=xmin,max=xmax, nbin=100,
-        norm=norm,
-        color='red',
-        type='dashed',
-        smooth=True,
-        label='fixnoise',
+        min=xmin,
+        max=xmax,
+        binsize=binsize,
+        more=True,
     )
+
+    log_s2n_curve = biggles.Curve(
+        10.0**log_s2n_all_d['center'],
+        log_s2n_all_d['hist'],
+        color=color_all,
+        type=line_all,
+    )
+    #log_s2n_used_curve = biggles.Curve(
+    #    10.0**log_s2n_used_d['center'],
+    #    log_s2n_used_d['hist'],
+    #    color=color_used,
+    #    type=line_used,
+    #)
+    log_s2n_mcal_curve = biggles.Curve(
+        10.0**log_s2n_mcal_d['center'],
+        log_s2n_mcal_d['hist'],
+        color=color_mcal,
+        type=line_mcal,
+    )
+
+    log_s2n_curve.label='input'
+    #log_s2n_used_curve.label='used'
+    #log_s2n_mcal_curve.label='metacalibration'
+    log_s2n_mcal_curve.label='used'
+
+
     log_plt=biggles.FramedPlot()
-    log_plt.xlabel=xlabel=r'$log_{10}(S/N)$'
+    #log_plt.xlabel=xlabel=r'$log_{10}(S/N)$'
+    log_plt.xlabel=xlabel=r'$(S/N)$'
     log_plt.y1.draw_ticklabels=False
     log_plt.aspect_ratio=1.0
-    log_plt.xrange=[xmin,xmax]
-    log_plt.yrange=[0.0, 1.7]
+    #log_plt.xrange=[xmin,xmax]
+    log_plt.xrange=[0.85,115]
+    log_plt.yrange=[0.0, 1.1*log_s2n_all_d['hist'].max()]
+    log_plt.xlog=True
 
-    log_plt.add(
+    plist=[
         log_s2n_curve,
+        #log_s2n_used_curve,
         log_s2n_mcal_curve,
+    ]
+    key=biggles.PlotKey(
+        0.9,0.9,
+        plist,
+        halign='right'
     )
 
+    log_plt.add( *plist)
+    log_plt.add(key)
 
-    tab[0,0] = plt
-    tab[0,1] = log_plt
 
-    print("writing:",args.epsfile)
-    tab.write_eps(args.epsfile)
+    #tab[0,0] = plt
+    #tab[0,1] = log_plt
+
+    print("writing:",epsfile)
+    #tab.write_eps(epsfile)
+    log_plt.write_eps(epsfile)
 
 main()

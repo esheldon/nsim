@@ -25,8 +25,6 @@ parser=argparse.ArgumentParser(formatter_class=fclass)
 
 parser.add_argument('-n', type=int, default=1000000,
                     help='number to plot')
-parser.add_argument('--cache', action='store_true',
-                    help='read from local cache')
 
 
 def read_onecol(fname):
@@ -61,28 +59,17 @@ def get_mcal_s2n(run):
 
 
 
-def read_data(run, args):
-    fname=files.get_output_url(run)
-    if args.cache:
-        bname = os.path.basename(fname)
-        fname=os.path.join('$TMPDIR', bname)
-
-    data=fitsio.read(
-        fname,
-        columns=['s2n_true','mcal_s2n'],
-        rows=arange(args.n),
-    )
-
-    return data
 
 def main():
+    biggles.configure('default','fontsize_min',2.0)
+    biggles.configure('_HalfAxis','ticks_size',2.0)
+
     run='run-bdj03mcal01'
     args = parser.parse_args()
 
     epsfile=nsim.files.get_plot_url(run, extra='s2n')
     eu.ostools.makedirs_fromfile(epsfile)
 
-    biggles.configure('default','fontsize_min',2.0)
 
     s2n_all = get_all_s2n(run)
     s2n_used = get_used_s2n(run)
@@ -105,9 +92,9 @@ def main():
     line_used='dotted'
     line_mcal='dashed'
 
-    color_all='black'
-    color_used='blue'
-    color_mcal='red'
+    color_all='seagreen'
+    color_used='magenta'
+    color_mcal='brown'
 
     log_s2n_all = log10(s2n_all)
     log_s2n_used = log10(s2n_used)
@@ -244,7 +231,8 @@ def main():
     #log_plt.xlabel=xlabel=r'$log_{10}(S/N)$'
     log_plt.xlabel=xlabel=r'$(S/N)$'
     log_plt.y1.draw_ticklabels=False
-    log_plt.aspect_ratio=1.0
+    #log_plt.aspect_ratio=1.0
+    log_plt.aspect_ratio=1.0/1.618
     #log_plt.xrange=[xmin,xmax]
     log_plt.xrange=[0.85,115]
     log_plt.yrange=[0.0, 1.1*log_s2n_all_d['hist'].max()]

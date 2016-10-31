@@ -5,6 +5,7 @@ import os
 import numpy
 from numpy import log10, where, arange
 import biggles
+import fitsio
 
 import ngmix
 import nsim
@@ -13,78 +14,161 @@ from nsim import files
 import galsim
 
 import argparse
+import esutil as eu
 
 fclass=argparse.ArgumentDefaultsHelpFormatter
 parser=argparse.ArgumentParser(formatter_class=fclass)
 
-parser.add_argument('simname', help='sim to use')
-parser.add_argument('epsfile', help='eps file to write')
+parser.add_argument('--cache', action='store_true',
+                    help='read from local cache')
 
-nplot=4000000
-nbin=100
-#nplot=10000
+
+
+def get_psf_r50(sim_conf):
+    pconf=sim_conf['psf']
+    assert pconf['model']=='moffat'
+
+    psf=galsim.Moffat(
+        pconf['beta'],
+        fwhm=pconf['fwhm'],
+    )
+    return psf.half_light_radius
+
+
+def read_data(run, args, num=1000000):
+    fname=files.get_output_url(run)
+    if args.cache:
+        bname = os.path.basename(fname)
+        fname=os.path.join('$TMPDIR', bname)
+
+    print("reading:",fname)
+    data=fitsio.read(
+        fname,
+        columns=['pars_true'],
+        rows=arange(num),
+    )
+
+    return data
 
 def main():
 
-    biggles.configure('default','fontsize_min',2.0)
+    # rough fraction used
+    fac=5142970./7706823.
+    #fac = 0.75
 
+    biggles.configure('default','fontsize_min',2.0)
+    biggles.configure('_HalfAxis','ticks_size',2.0)
+
+    run='run-bdj03mcal01'
     args = parser.parse_args()
 
-    conf=files.read_config(args.simname)
+    epsfile=nsim.files.get_plot_url(run, extra='r50')
 
-    pspec = conf['psf']['fwhm']
-    if pspec['type'] != 'lognormal':
-        print('psf fwhm type must be lognormal')
+    run_conf=files.read_config(run)
+    sim_conf=files.read_config(run_conf['sim'])
+    sim_conf['seed']=3
 
-    pp = ngmix.priors.LogNormal(pspec['mean'],pspec['sigma'])
+    psf_r50 = get_psf_r50(sim_conf)
 
-    gspec = conf['obj_model']['r50']
-    if gspec['type'] != 'lognormal':
-        print('object r50 type must be lognormal')
-    gp = ngmix.priors.LogNormal(gspec['mean'],gspec['sigma'])
+    sim=nsim.simgs.SimBDJointDiffshape(sim_conf)
+
+    data=read_data(run, args)
+    real_r50 = data['pars_true'][:,0]
+
+    nsample = int(data.size/fac)
+    rdata = sim.joint_pdf.sample(nsample)
+    input_r50 = rdata[:,0]
+
+    w,=where(real_r50 > 0.001)
+    print("keeping %d/%d real" % (w.size, real_r50.size))
+    real_r50=real_r50[w]
+
+    w,=where(input_r50 > 0.001)
+    print("keeping %d/%d input" % (w.size, input_r50.size))
+    input_r50=input_r50[w]
+
+    log_real_r50 = log10(real_r50)
+    log_input_r50 = log10(input_r50)
+
+    line_input='solid'
+    line_real='dashed'
+    line_psf='dotted'
+
+    #color_input='blue'
+    color_input='seagreen'
+    #color_real='red'
+    color_real='brown'
+    color_psf='steelblue'
 
 
-    pfwhm_r = pp.sample(nplot)
-    gr = gp.sample(nplot)
+    xmin=0.1
+    xmax=1.0
+    binsize = (xmax-xmin)/50.0
 
-    pr = pfwhm_r*0
-    print("converting fwhm to r50")
-    for i in xrange(pr.size):
-        m=galsim.Moffat(beta=conf['psf']['beta'],
-                        fwhm=pfwhm_r[i])
-        pr[i] = m.half_light_radius
+    input_d = eu.stat.histogram(
+        input_r50,
+        min=xmin,
+        max=xmax,
+        binsize=binsize,
+        more=True,
+    )
+    real_d = eu.stat.histogram(
+        real_r50,
+        min=xmin,
+        max=xmax,
+        binsize=binsize,
+        more=True,
+    )
 
-    gcurve =biggles.make_histc(gr,
-                               nbin=nbin,
-                               min=0,
-                               max=6,
-                               smooth=True,
-                               norm=1,
-                               label='galaxies')
+    input_curve = biggles.Curve(
+        input_d['center'],
+        input_d['hist'],
+        color=color_input,
+        type=line_input,
+    )
+    real_curve = biggles.Curve(
+        real_d['center'],
+        real_d['hist'],
+        color=color_real,
+        type=line_real,
+    )
 
+    input_curve.label='input'
+    real_curve.label='used'
 
-    pcurve =biggles.make_histc(pr,
-                               nbin=nbin,
-                               min=0,
-                               max=6,
-                               smooth=True,
-                               color='red',
-                               type='dashed',
-                               norm=0.25,
-                               label='PSF')
+    ymax=1.1*input_d['hist'].max()
+    psf_line = biggles.Curve(
+        [psf_r50, psf_r50],
+        [0.0, ymax],
+        color=color_psf,
+        type=line_psf,
+        width=2,
+    )
+    psf_line.label='psf'
 
-    key=biggles.PlotKey(0.9,0.9,[gcurve,pcurve],
-                        halign='right')
+    plist=[
+        psf_line,
+        input_curve,
+        real_curve,
+    ]
+    key=biggles.PlotKey(
+        0.9,0.9,
+        plist,
+        halign='right'
+    )
+
 
     plt=biggles.FramedPlot()
-    plt.xlabel=r'$r_{50} [pixels]$'
+    plt.xlabel=xlabel=r'$r_{50} [arcsec]$'
     plt.y1.draw_ticklabels=False
-    plt.yrange=[0,0.75]
+    #plt.aspect_ratio=1.0
     plt.aspect_ratio=1.0/1.618
+    plt.yrange=[0.0, ymax]
 
-    plt.add(gcurve, pcurve, key)
+    plt.add( *plist)
+    plt.add(key)
 
-    print("writing:",args.epsfile)
-    plt.write_eps(args.epsfile)
+    print("writing:",epsfile)
+    plt.write_eps(epsfile)
 
 main()

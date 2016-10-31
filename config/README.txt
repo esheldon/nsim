@@ -161,7 +161,12 @@ sim-bdj02, sim-bdj04
     - same properties except stars
     - run-bdj03stars-mcal01 100M at bnl
     - run-bdj03stars-mcal02 100M at slac
-    * run-bdj03stars-mcal03 100M at slac
+    - run-bdj03stars-mcal03 100M at slac
+
+- sim-bdj03mask
+    - same properties except with a mask
+    - run-bdj03mask-mcal01 100M at slac
+
 
 - sim-bdj03
     - including 100 knots generated using a random walk of 40 steps

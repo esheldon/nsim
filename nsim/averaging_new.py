@@ -1022,8 +1022,9 @@ class Summer(dict):
     def _write_means(self):
         fname=self._get_means_file()
         eu.ostools.makedirs_fromfile(fname)
-        #print("writing:",fname)
-        fitsio.write(fname, self.means, clobber=True)
+        print("writing:",fname)
+        fitsio.write(fname, self.means, extname="corr", clobber=True)
+        fitsio.write(fname, self.means_nocorr, extname="nocorr")
 
     def _write_sums(self, run, sums):
         fname=self._get_sums_file(run)

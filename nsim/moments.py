@@ -46,6 +46,16 @@ class MetacalMomentsFixed(SimpleFitterBase):
                 '1p_psf','1m_psf',
                 '2p_psf','2m_psf',
             ]
+
+            if 'shear_pixelized_psf' in mpars:
+                assert mpars['shear_pixelized_psf']==True
+            elif 'prepix' in mpars:
+                assert mpars['prepix']==True
+            else:
+                raise ValueError("if not symmetrizing with am, must "
+                                 "set shear_pixelized_psf "
+                                 "or prepix")
+
         self.metacal_types=mpars.get('types',deftypes)
         print("doing types:",self.metacal_types)
 

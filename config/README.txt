@@ -1182,7 +1182,21 @@ low noise bd, larger psf and gals
 - sim-bfd06
     - larger psf, 0.9''
     - run-bfd06mcal01 - 100M SLAC
-    - run-bfd06mcal02 - 100M BNL
+    * run-bfd06mcal02 - 100M BNL
+
+    6 < s/n < 15 0.69
+        R: [ 0.78685948  0.78871887]
+        Rsel: [ 0.01340114  0.01368396]
+        total wsum: 69269344.0
+
+        errors are 2 sigma
+
+        without correction
+        m: 1.308e-02 +/- 3.593e-03  c: 5.576e-05 +/- 7.186e-05
+
+        with correction
+        m: -3.888e-03 +/- 3.533e-03  c: 5.481e-05 +/- 7.064e-05
+
 
 REAL METACAL
 --------------

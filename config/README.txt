@@ -1062,6 +1062,8 @@ low noise bd, larger psf and gals
             - run-bd36v2-mcal-t03
                 shearing the pixelized psf works
 
+    - run-bfd03mcal03
+        - shear_pixelized_psf: True
 
 - sim-bfd04
     - run-bfd04mcal01, 02

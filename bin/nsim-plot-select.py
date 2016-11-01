@@ -36,7 +36,6 @@ def read_means(s2n_min, args):
 
 def doplot(s2n_min, data, args):
 
-    biggles.configure('default','fontsize_min',2.0)
 
     """
     data['m'] /= 1.0e-3
@@ -80,73 +79,80 @@ def doplot(s2n_min, data, args):
     cplt.add( biggles.Curve([5,20],[0,0]))
     """
 
+    ccolor='steelblue'
+    ncolor='firebrick2'
+
     psize=2.5
+
+
+    csyms=[
+        {'color':ccolor,'type':'filled circle','size':psize},
+        {'color':'black','type':'circle','size':psize},
+    ]
+    nsyms=[
+        {'color':ncolor,'type':'filled diamond','size':psize},
+        {'color':'black','type':'diamond','size':psize},
+    ]
+
+    clines=[
+        {'color':ccolor},
+    ]
+    nlines=[
+        {'color':ncolor},
+    ]
+
     types={
         'mtypes': [
             {
                 'name':'m',
                 'err':'merr',
-                'color':'blue',
-                'type':'filled circle',
-                'size':psize,
+                'syms':csyms,
+                'lines':clines,
                 'label':'corrected for selection',
             }
             ,
             {
                 'name':'m_nocorr',
                 'err':'merr_nocorr',
-                'color':'red',
-                'type':'filled diamond',
-                'size':psize,
+                'syms':nsyms,
+                'lines':nlines,
                 'label':'not corrected',
             }
         ],
-        'ctypes': [
-            {
-                'name':'c',
-                'err':'cerr',
-                'color':'blue',
-                'type':'filled circle',
-                'size':psize,
-                'label':'corrected for selection',
-            }
-            ,
-            {
-                'name':'c_nocorr',
-                'err':'cerr_nocorr',
-                'color':'red',
-                'type':'filled diamond',
-                'size':psize,
-                'label':'not corrected',
-            }
-        ]
     }
 
     mlist=[]
     for mtype in types['mtypes']:
-        mcurve=biggles.Curve(
-            s2n_min,
-            data[ mtype['name'] ],
-            color=mtype['color'],
-        )
-        mpts=biggles.Points(
-            s2n_min,
-            data[ mtype['name'] ],
-            type=mtype['type'],
-            size=mtype['size'],
-            color=mtype['color'],
-        )
-        merr=biggles.SymmetricErrorBarsY(
-            s2n_min,
-            data[ mtype['name'] ],
-            data[ mtype['err'] ],
-            color=mtype['color'],
-        )
-        mpts.label = mtype['label']
+        for line in mtype['lines']:
+            mcurve=biggles.Curve(
+                s2n_min,
+                data[ mtype['name'] ],
+                color=line['color'],
+            )
+            mplt.add(mcurve)
 
-        mplt.add(mcurve, mpts, merr)
+        for isym,sym in enumerate(mtype['syms']):
+            if isym == 0:
+                merr=biggles.SymmetricErrorBarsY(
+                    s2n_min,
+                    data[ mtype['name'] ],
+                    data[ mtype['err'] ],
+                    color=sym['color'],
+                )
+                mplt.add(merr)
 
-        mlist.append( mpts )
+            mpts=biggles.Points(
+                s2n_min,
+                data[ mtype['name'] ],
+                type=sym['type'],
+                size=sym['size'],
+                color=sym['color'],
+            )
+            mplt.add(mpts)
+
+            if isym == 0:
+                mpts.label = mtype['label']
+                mlist.append( mpts )
 
     mkey = biggles.PlotKey(0.9, 0.9, mlist, halign='right')
     mplt.add( mkey)
@@ -186,6 +192,8 @@ def doplot(s2n_min, data, args):
 
 
 def main():
+
+    biggles.configure('default','fontsize_min',2.5)
 
     args=parser.parse_args()
 

@@ -1197,6 +1197,19 @@ low noise bd, larger psf and gals
         with correction
         m: -3.888e-03 +/- 3.533e-03  c: 5.481e-05 +/- 7.064e-05
 
+    7 < s/n < 14 0.54
+        R: [ 0.79414535  0.79608279]
+        Rsel: [ 0.01293373  0.01314959]
+        Rpsf_sel: [ 0.  0.]
+        total wsum: 53808468.0
+
+        errors are 2 sigma
+
+        without correction
+        m: 1.123e-02 +/- 3.860e-03  c: 8.348e-05 +/- 7.716e-05
+
+        with correction
+        m: -4.978e-03 +/- 3.798e-03  c: 8.213e-05 +/- 7.590e-05
 
 REAL METACAL
 --------------

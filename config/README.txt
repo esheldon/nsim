@@ -1045,7 +1045,26 @@ low noise bd, larger psf and gals
         nsim ccb448d5fc271ffd01dea508f816a01df10e0ae9
         ngmix 09618523846ea56a78c30d6405fe8c70875a65e6
 
-- run-bfd04
+    - notes
+        - seeing selection effect in c.  I think this is
+          because the s/n the sim produces are for the
+          non-round psf, so a selection effect is built
+          into the sim.  But we cannot correct for that
+          because we only see the round psf.
+        - Can try without symmetrization, and with
+            shear_pixelized_psf: True
+          for admom with no psf correction.
+          Note it seemed that doing everything per pixel
+          also worked in small sims.
+          Examples are
+            - run-bd36v2-mcal-t02
+                using all pre pix works at this level
+            - run-bd36v2-mcal-t03
+                shearing the pixelized psf works
+
+
+- sim-bfd04
+    - run-bfd04mcal01, 02
     - shear 0.02,0
     - center on prominent component
     - s/n range 6,13
@@ -1099,37 +1118,69 @@ low noise bd, larger psf and gals
     this should improve the additive leakage at the very least.  Not sure
     about multiplicative
 
-    - run-bfd05mcal01
-    - run-bfd05mcal02
+    - run-bfd05mcal01 100M
+    - run-bfd05mcal02 100M
+    - run-bfd05mcal03 200M
 
         s/n > 10
 
-        R: [ 0.9747876   0.97656808]
-        Rpsf: [ 0.  0.]
+            R: [ 0.9747876   0.97656808]
+            Rsel: [ 0.00493772  0.00494469]
+            Rpsf_sel: [ 0.  0.]
+            total wsum: 261172455.0
 
-        Rsel: [ 0.00493772  0.00494469]
-        Rpsf_sel: [ 0.  0.]
-        without correction
-        errors are 2 sigma
-        m: 5.454e-03 +/- 5.299e-04  c: 4.509e-07 +/- 1.059e-05
+            errors are 2 sigma
 
-        with correction
-        errors are 2 sigma
-        m: 3.869e-04 +/- 5.272e-04  c: 4.486e-07 +/- 1.054e-05
+            without correction
+            m: 5.454e-03 +/- 1.060e-03  c: 4.509e-07 +/- 2.118e-05
+
+            with correction
+            m: 3.869e-04 +/- 1.054e-03  c: 4.486e-07 +/- 2.107e-05
 
         s/n > 13
-        R: [ 0.97608703  0.97786592]
-        Rpsf: [ 0.  0.]
 
-        Rsel: [ 0.00255628  0.00260813]
-        Rpsf_sel: [ 0.  0.]
-        without correction
-        errors are 2 sigma
-        m: 3.163e-03 +/- 5.517e-04  c: 1.807e-06 +/- 1.102e-05
+            R: [ 0.97608703  0.97786592]
+            Rsel: [ 0.00255628  0.00260813]
+            total wsum: 200793421.0
 
-        with correction
-        errors are 2 sigma
-        m: 5.425e-04 +/- 5.502e-04  c: 1.802e-06 +/- 1.099e-05
+            errors are 2 sigma
+
+            without correction
+            m: 3.163e-03 +/- 1.103e-03  c: 1.807e-06 +/- 2.205e-05
+
+            with correction
+            m: 5.425e-04 +/- 1.100e-03  c: 1.802e-06 +/- 2.199e-05
+
+        6 < s2n < 19
+            R: [ 0.9570559   0.95911929]
+            Rsel: [ 0.01382813  0.01393062]
+            total wsum: 262208051.0
+
+            errors are 2 sigma
+
+            without correction
+            m: 1.667e-02 +/- 1.440e-03  c: -1.301e-05 +/- 2.878e-05
+
+            with correction
+            m: 2.187e-03 +/- 1.419e-03  c: -1.282e-05 +/- 2.837e-05
+
+        6 < s2n < 18 0.61 further away from upper edge
+            R: [ 0.9537956   0.95586955]
+            Rsel: [ 0.01449498  0.01457652]
+            total wsum: 242828488.0
+
+            errors are 2 sigma
+
+            without correction
+            m: 1.747e-02 +/- 1.534e-03  c: -1.330e-05 +/- 3.067e-05
+
+            with correction
+            m: 2.241e-03 +/- 1.511e-03  c: -1.310e-05 +/- 3.021e-05
+
+- sim-bfd06
+    - larger psf, 0.9''
+    - run-bfd06mcal01 - 100M SLAC
+    - run-bfd06mcal02 - 100M BNL
 
 REAL METACAL
 --------------

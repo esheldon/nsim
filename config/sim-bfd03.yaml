@@ -1,5 +1,4 @@
 # modeled after the BFD paper Bernstein et al. 2015
-# the main difference is the many shear orientations
 
 name: "sim-bfd03"
 

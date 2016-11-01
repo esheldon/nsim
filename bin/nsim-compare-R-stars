@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+"""
+"""
 from __future__ import print_function
 import sys
 import os
@@ -21,38 +23,65 @@ parser=argparse.ArgumentParser(formatter_class=fclass)
 parser.add_argument('gal_run', help='gal run to use')
 parser.add_argument('star_run', help='star run to use')
 parser.add_argument('epsfile', help='eps file to write')
-parser.add_argument('--frac', type=float, default=0.1, help='fraction to plot')
+parser.add_argument('--starfrac', type=float, default=0.1,
+                    help=('adjust ratios so that star frac '
+                          'is the requested variable.  Should '
+                          'reflect the fraction of stars '
+                          'in the entire set of sims.'))
 
-#nplot=4000000
-nplot=10000
-nbin=100
+def read_runs(gal_run, star_run, star_frac):
 
-def read_run(run, frac):
+    # fraction of galaxy sample to plot
+    gal_frac=0.1
 
-    url=files.get_output_url(run, 0, 0)
-    print("reading from:",url)
-    with fitsio.FITS(url) as fits:
-        nrows=fits[1].get_nrows()
-        n = int(nrows*frac)
-        data = fits[1]['mcal_R'][0:n]
+    gal_url=files.get_output_url(gal_run)
+    star_url=files.get_output_url(star_run)
 
-    return data[:,0,0]
+    columns=[
+        'mcal_s2n',
+        'mcal_g_1p',
+        'mcal_g_1m',
+    ]
+
+    print("reading from:",gal_url)
+    with fitsio.FITS(gal_url) as galfits:
+
+        gal_nrows=galfits[1].get_nrows()
+        gal_nread = int(gal_nrows*gal_frac)
+        gdata = galfits[1][ columns ][0:gal_nread]
+
+        print("reading from:",star_url)
+        with fitsio.FITS(star_url) as starfits:
+
+            star_nread = int(gal_nread*star_frac)
+
+            sdata = starfits[1][ columns ][0:star_nread]
+
+    w,=numpy.where(gdata['mcal_s2n'] > 10)
+    gal_R = (gdata['mcal_g_1p'][w,0] - gdata['mcal_g_1m'][w,0])/(2*0.01)
+
+    w,=numpy.where(sdata['mcal_s2n'] > 10)
+    star_R = (sdata['mcal_g_1p'][w,0] - sdata['mcal_g_1m'][w,0])/(2*0.01)
+
+
+    return gal_R, star_R
 
 def main():
 
     biggles.configure('default','fontsize_min',2.0)
 
+    frac=0.1
+
     args = parser.parse_args()
 
-    gal_R=read_run(args.gal_run, args.frac)
-    star_R=read_run(args.star_run, args.frac)
+    gal_R, star_R = read_runs(args.gal_run, args.star_run, args.starfrac)
 
     R11 = numpy.zeros(gal_R.size + star_R.size)
     R11[0:gal_R.size] = gal_R
     R11[gal_R.size:]  = star_R
 
     Rmin=-1.5
-    Rmax= 2.0
+    Rmax= 2.5
     nbin=100
     hobj,edges,hist = biggles.make_histc(
         R11,
@@ -69,7 +98,7 @@ def main():
         max=Rmax,
         nbin=nbin,
         smooth=True,
-        color='blue',
+        color='steelblue',
         type='dotdashed',
         label='Galaxies',
         get_hdata=True,
@@ -81,7 +110,7 @@ def main():
         max=Rmax,
         nbin=nbin,
         smooth=True,
-        color='red',
+        color='firebrick2',
         type='dashed',
         width=2,
         label='Stars',
@@ -92,11 +121,11 @@ def main():
                         halign='left')
 
     plt=biggles.FramedPlot()
-    plt.xlabel=r'$R_{1,1}$'
+    plt.xlabel=r'$R$'
     plt.y1.draw_ticklabels=False
     plt.yrange=[0, 1.1*hist.max()]
-    #plt.aspect_ratio=1.0/1.618
-    plt.aspect_ratio=0.9
+    plt.aspect_ratio=1.0/1.618
+    #plt.aspect_ratio=0.9
 
     plt.add(hobj,gobj,sobj, key)
 

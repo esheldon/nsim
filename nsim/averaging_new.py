@@ -36,6 +36,8 @@ class Summer(dict):
 
         self.namer=Namer(front='mcal')
         self.gpsf_name='mcal_psfrec_g'
+        self.gpsf_orig_name='psfrec_g'
+
         #self.gpsf_name='mcal_gpsf'
 
         self.step = self['metacal_pars'].get('step',0.01)
@@ -67,7 +69,7 @@ class Summer(dict):
 
             args=self.args
 
-            g,gerr,gpsf,R,Rpsf,Rsel,Rsel_psf=self._average_sums(sums)
+            g,gerr,gpsf,gpsf_orig,R,Rpsf,Rsel,Rsel_psf=self._average_sums(sums)
 
             means=get_mean_struct(self['nshear'])
             means_nocorr=get_mean_struct(self['nshear'])
@@ -86,6 +88,11 @@ class Summer(dict):
                 gmean_err = gerr[i]
 
                 c        = (Rpsf+Rsel_psf)*gpsf[i]
+
+                if self.args.corr_psf_orig:
+                    print("correcting for orig psf",gpsf_orig[i])
+                    c += Rsel_psf*gpsf_orig[i]
+
                 c_nocorr = Rpsf*gpsf[i]
 
                 shear        = (gmean-c)/(R+Rsel)
@@ -334,9 +341,17 @@ class Summer(dict):
     def _get_gpsf(self, data, w):
         name=self.gpsf_name
         if name in data.dtype.names:
-            return data[name][w]
+            gpsf=data[name][w]
         else:
-            return None
+            gpsf=None
+
+        name=self.gpsf_orig_name
+        if name in data.dtype.names:
+            gpsf_orig=data[name][w]
+        else:
+            gpsf_orig=None
+
+        return gpsf, gpsf_orig
 
     def do_sums1(self, data, sums=None):
         """
@@ -398,9 +413,11 @@ class Summer(dict):
 
                 sums['wsum'][i] += wts.sum()
 
-                gpsf=self._get_gpsf(data, w)
+                gpsf, gpsf_orig =self._get_gpsf(data, w)
                 if gpsf is not None:
                     sums['gpsf'][i] += (gpsf*wa).sum(axis=0)
+                if gpsf_orig is not None:
+                    sums['gpsf_orig'][i] += (gpsf_orig*wa).sum(axis=0)
 
                 for type in ngmix.metacal.METACAL_TYPES:
                     if type=='noshear':
@@ -449,365 +466,8 @@ class Summer(dict):
             self._print_frac(ntot,nkeep)
         return sums
 
-    def _get_M1M2corr(self, pars, psf_pars):
-        M1 = pars[:,2]
-        M2 = pars[:,3]
-        T = pars[:,4]
-        Fsum = pars[:,5]
 
-        psfM1 = psf_pars[:,2]
-        psfM2 = psf_pars[:,3]
-        psfT = psf_pars[:,4]
-        psfFsum = psf_pars[:,5]
 
-        Frat = Fsum/psfFsum
-        M1 = M1 - psfM1*Frat
-        M2 = M2 - psfM2*Frat
-        T = T - psfT*Frat
-
-        w,=numpy.where(T == 0)
-        if w.size > 0:
-            print("found",w.size,"zeros")
-        e1=M1/T
-        e2=M2/T
-        return e1,e2
-
-    def _get_M1M2corr_nodiv(self, pars, psf_pars):
-        M1 = pars[:,2]
-        M2 = pars[:,3]
-        T = pars[:,4]
-        Fsum = pars[:,5]
-
-        psfM1 = psf_pars[:,2]
-        psfM2 = psf_pars[:,3]
-        psfT = psf_pars[:,4]
-        psfFsum = psf_pars[:,5]
-
-        Frat = Fsum/psfFsum
-        M1 = M1 - psfM1*Frat
-        M2 = M2 - psfM2*Frat
-        T = T - psfT*Frat
-
-        return M1, M2
-
-
-
-
-    def do_sums1_moms_psfcorr(self, data, sums=None):
-        """
-        just a binner and summer, no logic here
-        """
-
-        #getfunc=self._get_M1M2corr
-        getfunc=self._get_M1M2corr_nodiv
-
-        nshear=self['nshear']
-        args=self.args
-
-        h,rev = eu.stat.histogram(data['shear_index'],
-                                  min=0,
-                                  max=nshear-1,
-                                  rev=True)
-        nind = h.size
-        assert nshear==nind
-
-        if sums is None:
-            sums=self._get_sums_struct()
-
-        ntot=0
-        nkeep=0
-        for i in xrange(nshear):
-            if rev[i] != rev[i+1]:
-                wfield=rev[ rev[i]:rev[i+1] ]
-
-                # first select on the noshear measurement
-                if self.select is not None:
-                    w=self._do_select(data['mcal_s2n'][wfield])
-                    w=wfield[w]
-                else:
-                    w=wfield
-
-                ntot  += wfield.size
-                nkeep += w.size
-
-                sums['wsum'][i] += w.size
-
-                M1, M2 = getfunc(
-                    data['mcal_pars'][w],
-                    data['mcal_psf_pars'][w],
-                )
-
-                sums['g'][i,0] += M1.sum()
-                sums['g'][i,1] += M2.sum()
-
-                if 'mcal_psfrec_g' in data.dtype.names:
-                    sums['gpsf'][i] += data['mcal_psfrec_g'][w].sum(axis=0)
-
-                for type in ngmix.metacal.METACAL_TYPES:
-                    if type=='noshear':
-                        continue
-                    mcalname='mcal_pars_%s' % type
-                    psf_mcalname='mcal_psf_pars_%s' % type
-
-                    if mcalname in data.dtype.names:
-                        sumname='g_%s' % type
-
-                        M1, M2 = getfunc(data[mcalname][w],data[psf_mcalname][w])
-                        sums[sumname][i,0] += M1.sum()
-                        sums[sumname][i,1] += M2.sum()
-                    else:
-                        #print("    skipping:",mcalname)
-                        pass
-
-                # now the selection terms
-
-                if self.select is not None:
-                    for type in ngmix.metacal.METACAL_TYPES:
-                        if type=='noshear':
-                            continue
-                        s2n_name='mcal_s2n_%s' % type
-
-                        if s2n_name in data.dtype.names:
-                            wsumname = 's_wsum_%s' % type
-                            sumname = 's_g_%s' % type
-
-                            w=self._do_select(data[s2n_name][wfield])
-                            w=wfield[w]
-                            sums[wsumname][i] += w.size
-
-                            M1, M2 = getfunc(data['mcal_pars'][w],data['mcal_psf_pars'][w])
-
-                            sums[sumname][i,0]  += M1.sum()
-                            sums[sumname][i,1]  += M2.sum()
-                        else:
-                            #print("    skipping:",s2n_name)
-                            pass
-
-        if self.select is not None:
-            self._print_frac(ntot,nkeep)
-        return sums
-
-
-    def do_sums1_moms(self, data, sums=None):
-        """
-        just a binner and summer, no logic here
-        """
-
-        di=4
-
-        s2n_name=self._get_s2n_name(data)
-
-        nshear=self['nshear']
-        args=self.args
-
-        h,rev = eu.stat.histogram(data['shear_index'],
-                                  min=0,
-                                  max=nshear-1,
-                                  rev=True)
-        nind = h.size
-        assert nshear==nind
-
-        if sums is None:
-            sums=self._get_sums_struct()
-
-        ntot=0
-        nkeep=0
-        for i in xrange(nshear):
-            if rev[i] != rev[i+1]:
-                wfield=rev[ rev[i]:rev[i+1] ]
-
-                # first select on the noshear measurement
-                if self.select is not None:
-                    w=self._do_select(data[s2n_name][wfield])
-                    w=wfield[w]
-                else:
-                    w=wfield
-
-                ntot  += wfield.size
-                nkeep += w.size
-
-                sums['wsum'][i] += w.size
-
-                e=data['mcal_pars'][w,2:2+2]
-                e[:,0] /= data['mcal_pars'][w,di]
-                e[:,1] /= data['mcal_pars'][w,di]
-
-                sums['g'][i] += e.sum(axis=0)
-
-                if 'mcal_psfrec_g' in data.dtype.names:
-                    sums['gpsf'][i] += data['mcal_psfrec_g'][w].sum(axis=0)
-
-                for type in ngmix.metacal.METACAL_TYPES:
-                    if type=='noshear':
-                        continue
-                    mcalname='mcal_pars_%s' % type
-
-                    if mcalname in data.dtype.names:
-                        sumname='g_%s' % type
-
-                        e = data[mcalname][w,2:2+2]
-                        e[:,0] /= data[mcalname][w,di]
-                        e[:,1] /= data[mcalname][w,di]
-                        sums[sumname][i] += e.sum(axis=0)
-                    else:
-                        #print("    skipping:",mcalname)
-                        pass
-
-                # now the selection terms
-
-                if self.select is not None:
-                    for type in ngmix.metacal.METACAL_TYPES:
-                        if type=='noshear':
-                            continue
-                        ts2n_name='%s_%s' % (s2n_name,type)
-
-                        if ts2n_name in data.dtype.names:
-                            wsumname = 's_wsum_%s' % type
-                            sumname = 's_g_%s' % type
-
-                            w=self._do_select(data[ts2n_name][wfield])
-                            w=wfield[w]
-                            sums[wsumname][i] += w.size
-
-                            e=data['mcal_pars'][w,2:2+2]
-                            e[:,0] /= data['mcal_pars'][w,di]
-                            e[:,1] /= data['mcal_pars'][w,di]
-                            sums[sumname][i]  += e.sum(axis=0)
-                        else:
-                            #print("    skipping:",ts2n_name)
-                            pass
-
-        if self.select is not None:
-            self._print_frac(ntot,nkeep)
-        return sums
-
-    def _get_noise_weight_mom(self, data, w, type):
-        if type=='noshear':
-            tstr=''
-        else:
-            tstr='_%s' % type
-        parname='mcal_pars%s' % tstr
-        covname='mcal_pars_cov%s' % tstr
-
-        M1=data[parname][w,2]
-        M2=data[parname][w,3]
-        T=data[parname][w,4]
-
-        e1=M1/T
-        e2=M2/T
-
-        VM1=data[covname][w,2,2]
-        VM2=data[covname][w,3,3]
-        VT=data[covname][w,4,4]
-        Ve = VM1/T + VM2/T + VT*M1/T**2 + VT*M2/T**2
-
-        Ti2=1/T**2
-        Ve = ( VM1*Ti2 + e1**2 *VT * Ti2  +
-               VM2*Ti2 + e2**2 *VT * Ti2 )
-        wt = 1.0/(2*0.3**2 + Ve)
-
-        return wt
-
-
-    def do_sums1_moms_wt(self, data, sums=None):
-        """
-        just a binner and summer, no logic here
-        """
-
-        self.do_selection=True
-
-        nshear=self['nshear']
-        args=self.args
-
-        h,rev = eu.stat.histogram(data['shear_index'],
-                                  min=0,
-                                  max=nshear-1,
-                                  rev=True)
-        nind = h.size
-        assert nshear==nind
-
-        if sums is None:
-            sums=self._get_sums_struct()
-
-        ntot=0
-        nkeep=0
-        for i in xrange(nshear):
-            if rev[i] != rev[i+1]:
-                wfield=rev[ rev[i]:rev[i+1] ]
-
-                # first select on the noshear measurement
-                if self.select is not None:
-                    w=self._do_select(data['mcal_s2n'][wfield])
-                    w=wfield[w]
-                else:
-                    w=wfield
-
-                ntot  += wfield.size
-                nkeep += w.size
-
-
-                M1=data['mcal_pars'][w,2]
-                M2=data['mcal_pars'][w,3]
-
-                wt=self._get_noise_weight_mom(data, w, 'noshear')
-
-                sums['wsum'][i] += wt.sum()
-                sums['g'][i,0]  += (M1*wt).sum()
-                sums['g'][i,1]  += (M2*wt).sum()
-
-                if 'mcal_psfrec_g' in data.dtype.names:
-                    sums['gpsf'][i] += data['mcal_psfrec_g'][w].sum(axis=0)
-
-                # must use the same weight for these, equivalent to same
-                # selection
-                for type in ngmix.metacal.METACAL_TYPES:
-                    if type=='noshear':
-                        continue
-                    mcalname='mcal_pars_%s' % type
-
-                    if mcalname in data.dtype.names:
-                        sumname='g_%s' % type
-
-                        M1 = data[mcalname][w,2]
-                        M2 = data[mcalname][w,3]
-                        sums[sumname][i,0] += (M1*wt).sum()
-                        sums[sumname][i,1] += (M2*wt).sum()
-                    else:
-                        #print("    skipping:",mcalname)
-                        pass
-
-                # now the selection terms, always needed since
-                # we are weighting
-                for type in ngmix.metacal.METACAL_TYPES:
-                    if type=='noshear':
-                        continue
-                    ts2n_name='mcal_s2n_%s' % type
-
-                    if ts2n_name in data.dtype.names:
-                        wsumname = 's_wsum_%s' % type
-                        sumname = 's_g_%s' % type
-
-                        if self.select is not None:
-                            w=self._do_select(data[ts2n_name][wfield])
-                            w=wfield[w]
-                        else:
-                            w=wfield
-
-                        M1=data['mcal_pars'][w,2]
-                        M2=data['mcal_pars'][w,3]
-
-                        wt=self._get_noise_weight_mom(data, w, type)
-
-                        sums[wsumname][i]  += wt.sum()
-                        sums[sumname][i,0] += (M1*wt).sum()
-                        sums[sumname][i,1] += (M2*wt).sum()
-                    else:
-                        #print("    skipping:",ts2n_name)
-                        pass
-
-        if self.select is not None:
-            self._print_frac(ntot,nkeep)
-        return sums
 
 
     def _average_sums(self, sums):
@@ -820,6 +480,7 @@ class Summer(dict):
         # g averaged in each field
         g = sums['g'].copy()
         gpsf = sums['gpsf'].copy()
+        gpsf_orig = sums['gpsf_orig'].copy()
 
         gsq = sums['gsq'].copy()
         wsq = sums['wsq'].copy()
@@ -830,6 +491,8 @@ class Summer(dict):
         g[:,1]    *= winv
         gpsf[:,0] *= winv
         gpsf[:,1] *= winv
+        gpsf_orig[:,0] *= winv
+        gpsf_orig[:,1] *= winv
 
         # sum(w*2g*2
         gerrsq_sum = gsq - g**2*wsq
@@ -869,6 +532,7 @@ class Summer(dict):
 
         if self.args.etype:
             Rpsf *= 0.5
+            #Rpsf *= (0.01/0.019998000199980003)
         print("R:",R)
         print("Rpsf:",Rpsf)
 
@@ -893,6 +557,10 @@ class Summer(dict):
                 Rsel_psf[0] = (s_g1p_psf - s_g1m_psf)*factor
                 Rsel_psf[1] = (s_g2p_psf - s_g2m_psf)*factor
 
+                if self.args.etype:
+                    Rsel_psf *= 0.5
+                    #Rsel_psf *= (0.01/0.019998000199980003)
+
             print()
             print("Rsel:",Rsel)
             print("Rpsf_sel:",Rsel_psf)
@@ -904,7 +572,7 @@ class Summer(dict):
             print("R:",R)
             print("Rsel:",Rsel)
 
-        return g, gerr, gpsf, R, Rpsf, Rsel, Rsel_psf
+        return g, gerr, gpsf, gpsf_orig, R, Rpsf, Rsel, Rsel_psf
 
     def _print_frac(self, ntot, nkeep):
         frac=float(nkeep)/ntot
@@ -1104,6 +772,7 @@ class Summer(dict):
             ('wsq','f8',2),
 
             ('gpsf','f8',2),
+            ('gpsf_orig','f8',2),
 
             ('g_1p','f8',2),
             ('g_1m','f8',2),

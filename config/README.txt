@@ -1064,6 +1064,35 @@ low noise bd, larger psf and gals
 
     - run-bfd03mcal03
         - shear_pixelized_psf: True
+            R: [ 0.97761431  0.97896054]
+            Rpsf: [ 0.42721946  0.4265702 ]
+            Rsel: [ 0.01839214  0.01858892]
+            Rpsf_sel: [ 0.00743555  0.00757659]
+            total wsum: 60312887.0
+            without correction
+            errors are 2 sigma
+            m: 1.912e-02 +/- 3.294e-03  c: 6.807e-04 +/- 6.585e-05
+
+            with correction
+            m: 2.976e-04 +/- 3.233e-03  c: 3.125e-04 +/- 6.462e-05
+
+    - run-bfd03mcal04
+        - shear_pixelized_psf: True
+    - run-bfd03mcal05
+        - prepix: True
+            R: [ 0.99172149  0.99316725]
+            Rpsf: [ 0.41862991  0.41835985]
+            Rsel: [ 0.02002599  0.02111829]
+            Rpsf_sel: [ 0.00435481  0.00491338]
+            total wsum: 57807025.0
+
+            errors are 2 sigma
+
+            without correction
+            m: 1.615e-02 +/- 3.481e-03  c: 5.492e-04 +/- 6.984e-05
+
+            with correction
+            m: -3.959e-03 +/- 3.412e-03  c: 2.958e-04 +/- 6.838e-05
 
 - sim-bfd04
     - run-bfd04mcal01, 02

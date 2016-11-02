@@ -386,7 +386,10 @@ class MetacalMomentsAM(MetacalMomentsFixed):
 
 
         res=self._do_metacal(obsdict)
-        #res['prefit'] = pre_res
+
+        res['psf'] = {}
+        res['psf']['g'] = psfres['g']
+        res['psf']['T'] = psfres['T']
 
         res['flags']=0
         return res
@@ -486,15 +489,9 @@ class MetacalMomentsAM(MetacalMomentsFixed):
 
         d=self.data
 
-        if 'prefit' in res:
-            pres=res['prefit']
-            d['pars'][i] = pres['pars']
-            d['g'][i] = pres['g']
-            d['g_cov'][i] = pres['g_cov']
-            d['s2n'][i] = pres['s2n']
-        
-            d['psfrec_g'][i] = pres['psfrec_g']
-            d['psfrec_T'][i] = pres['psfrec_T']
+        pres=res['psf']
+        d['psfrec_g'][i] = pres['g']
+        d['psfrec_T'][i] = pres['T']
 
         for type in self.metacal_types:
             if type=='noshear':

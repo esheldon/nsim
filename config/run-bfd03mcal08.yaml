@@ -1,0 +1,32 @@
+# same as -t04, 06
+run: "run-bfd03mcal08"
+sim: "sim-bfd03"
+
+fitter: "metacal-moments-am"
+
+global_seed: 24714
+
+metacal_pars:
+    fixnoise: True
+    symmetrize_psf: True
+    symmetrize_dilation: 1.05
+
+    types: ['noshear',
+            '1p','1m','2p','2m',
+            '1p_psf','1m_psf',
+            '2p_psf','2m_psf']
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+ngal: 200000000
+
+desired_hours: 4.0
+
+# it runs in 0.3, but use 0.4 to handle expectations
+sec_per: 0.4
+
+jobs_per_condor_sub: 5000
+
+verbose: False

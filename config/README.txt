@@ -1094,6 +1094,25 @@ low noise bd, larger psf and gals
             with correction
             m: -3.959e-03 +/- 3.412e-03  c: 2.958e-04 +/- 6.838e-05
 
+    - run-bfd03mcal06  100M
+    - run-bfd03mcal-t04 20M
+        - include all terms, then in corrections applyu
+          selection correction using the non-round psf
+          shape
+
+            R: [ 0.94452474  0.94626365]
+            Rpsf: [ 0.42929269  0.42908344]
+            Rsel: [ 0.01485494  0.01493406]
+            Rpsf_sel: [ 0.00263672  0.00267752]
+            total wsum: 73325633.0
+
+            errors are 2 sigma
+
+            without correction
+            m: 1.430e-02 +/- 2.815e-03  c: 1.241e-04 +/- 5.630e-05
+
+            with correction
+            m: -1.403e-03 +/- 2.771e-03  c: -7.865e-06 +/- 5.542e-05
 - sim-bfd04
     - run-bfd04mcal01, 02
     - shear 0.02,0

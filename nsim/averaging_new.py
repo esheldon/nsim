@@ -234,25 +234,9 @@ class Summer(dict):
         """
         sub-classes might make a pre-selection, e.g. of some flags
         """
-
-        if False:
-            minv=-7
-            maxv= 9
-            g_1p = data['mcal_g_1p'][:,0]
-            g_1m = data['mcal_g_1m'][:,0]
-            g_2p = data['mcal_g_2p'][:,1]
-            g_2m = data['mcal_g_2m'][:,1]
-
-            R1=(g_1p-g_1m)/(2.0*self.step)
-            R2=(g_2p-g_2m)/(2.0*self.step)
-
-            w,=numpy.where(between(R1, minv, maxv) & between(R2, minv, maxv))
-            print("kept %d/%d in preselect" % (w.size, data.size))
-            data=data[w]
         
-        if False:
-            #w,=numpy.where(data['mcal_flux_s2n'] > 7)
-            w,=numpy.where(data['s2n_true'] > 7)
+        if self.args.preselect:
+            w,=numpy.where(data['s2n_true'] > 5)
             print("kept %d/%d in preselect" % (w.size, data.size))
             data=data[w]
  
@@ -715,6 +699,9 @@ class Summer(dict):
 
         if self.args.weighted:
             extra += ['weighted',self.args.weight_type]
+
+        if self.args.preselect:
+            extra += ['preselect']
 
         if self.args.select is not None:
             s=self.select.replace(' ','-').replace('(','').replace(')','').replace('[','').replace(']','').replace('"','').replace("'",'')

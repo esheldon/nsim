@@ -49,6 +49,8 @@ parser.add_argument(
     default='noise',
 )
 
+parser.add_argument('--preselect',action='store_true',help='preselect s2n_true > 5')
+
 parser.add_argument('--force',action='store_true',help='force redo of sums')
 
 parser.add_argument('--corr-psf-orig',action='store_true',help='apply selection correction based on original psf')

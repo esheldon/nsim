@@ -1246,23 +1246,31 @@ class SimBDJointDiffshape(SimBD):
         disk_flux_total = flux*(1.0 - fracdev)
         bulge_flux = flux*fracdev
 
+
         # the "disk" can be made partially or even entirely
         # of knots
         knot_pars=pars['knots']
         if knot_pars is None:
             disk_flux = disk_flux_total
-            knots = []
+            knots = None
         else:
             knot_frac = knot_pars['knot_frac']
             disk_flux = (1.0 - knot_frac)*disk_flux_total
             knot_flux = knot_frac*disk_flux_total
-            rwg=pdfs.RandomWalkGalaxy(r50, knot_flux, npoints=knot_pars['num'])
-            knots = [rwg.get_gsobj()]
+
+            knots = galsim.RandomWalk(
+                npoints=knot_pars['num'],
+                half_light_radius=r50,
+                flux=knot_flux,
+                rng=self.galsim_rng,
+            )
 
         disk_raw = galsim.Exponential(flux=disk_flux, half_light_radius=r50)
-        disk_objs = [disk_raw] + knots
 
-        disk = galsim.Add(disk_objs)
+        if knots is not None:
+            disk = galsim.Add([disk_raw, knots])
+        else:
+            disk = disk_raw
 
         # the bulge is always smooth
         bulge = galsim.DeVaucouleurs(flux=bulge_flux, half_light_radius=r50)
@@ -1303,6 +1311,7 @@ class SimBDJointDiffshape(SimBD):
 
         knots = self['obj_model'].get('knots',None)
         if knots is not None:
+
             ffrac=knots['flux_frac']
             assert ffrac['type']=="uniform"
             knots['knot_frac'] = self.rng.uniform(

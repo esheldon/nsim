@@ -70,7 +70,12 @@ class FitterBase(dict):
         self.tm_sim=0.0
         self.tm_fit=0.0
 
-        nprocessed=0
+        # number we simulated
+        n_sim=0
+
+        # total we attempted to fit
+        n_proc=0
+
         for igal in xrange(self['ngal']):
             self.igal=igal
             print('%s/%s' % (igal+1,self['ngal']) )
@@ -79,38 +84,49 @@ class FitterBase(dict):
                 continue
 
             while True:
-                nprocessed += 1
+                n_sim += 1
                 try:
 
                     tm0=time.time()
                     imdict = self.sim.get_image()
                     self.tm_sim += time.time()-tm0
 
-                    tm0=time.time()
-                    res=self.process_one(imdict)
-                    self.tm_fit += time.time()-tm0
+                    if imdict['s2n'] > self['s2n_min']:
+                        n_proc += 1
+
+                        # only objects that successfully get fit
+                        # contribute to this
+                        tm0=time.time()
+                        res=self.process_one(imdict)
+                        self.tm_fit += time.time()-tm0
 
 
-                    if 'shear' in imdict['gal_info']:
-                        res['shear_true'] = imdict['gal_info']['shear']
-                        res['shear_index'] = imdict['gal_info']['shear_index']
+                        if 'shear' in imdict['gal_info']:
+                            res['shear_true'] = \
+                                imdict['gal_info']['shear']
+                            res['shear_index'] = \
+                                imdict['gal_info']['shear_index']
 
-                    self._copy_to_output(res, igal)
+                        self._copy_to_output(res, igal)
 
-                    self._set_elapsed_time()
-                    self._try_checkpoint()
+                        self._set_elapsed_time()
+                        self._try_checkpoint()
 
-                    break
+                        break
+                    else:
+                        tup = imdict['s2n'],self['s2n_min']
+                        print("        skipping low s2n: %g < %g" % tup)
+
                 except TryAgainError as err:
                     print(str(err))
 
         self._set_elapsed_time()
 
-        print("nprocessed (including failures):",nprocessed)
+        print("nprocessed (including failures):",n_proc)
         print('time minutes:',self.tm_minutes)
-        print('time per image sec:',self.tm/nprocessed)
-        print('time to simulate:',self.tm_sim/nprocessed)
-        print('time to fit:',self.tm_fit/nprocessed)
+        print('time per (total):',self.tm/self['ngal'])
+        print('time to simulate:',self.tm_sim/n_sim)
+        print('time to fit:',self.tm_fit/n_proc)
 
     def process_one(self, imdict):
         """
@@ -178,6 +194,8 @@ class FitterBase(dict):
         """
         Check and set the configurations
         """
+
+        self['s2n_min'] = self.get('s2n_min',-9999.0)
 
         self['nrand'] = self.get('nrand',1)
         if self['nrand'] is None:

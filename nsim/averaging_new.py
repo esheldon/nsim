@@ -464,7 +464,6 @@ class Summer(dict):
         # g averaged in each field
         g = sums['g'].copy()
         gpsf = sums['gpsf'].copy()
-        gpsf_orig = sums['gpsf_orig'].copy()
 
         gsq = sums['gsq'].copy()
         wsq = sums['wsq'].copy()
@@ -475,8 +474,13 @@ class Summer(dict):
         g[:,1]    *= winv
         gpsf[:,0] *= winv
         gpsf[:,1] *= winv
-        gpsf_orig[:,0] *= winv
-        gpsf_orig[:,1] *= winv
+
+        if 'gpsf_orig' in sums.dtype.names:
+            gpsf_orig = sums['gpsf_orig'].copy()
+            gpsf_orig[:,0] *= winv
+            gpsf_orig[:,1] *= winv
+        else:
+            gpsf_orig=None
 
         # sum(w*2g*2
         gerrsq_sum = gsq - g**2*wsq

@@ -27,7 +27,19 @@ except ImportError:
     pass
 
 class Summer(dict):
-    def __init__(self, conf, args, shears=None, nshear=None):
+    def __init__(self, args):
+
+        if 'runs' in args.runs:
+            # this is a runs config file
+            data=files.read_config(args.runs)
+            self.runs=data['runs']
+
+        else:
+            self.runs=[args.runs]
+
+        conf = nsim.files.read_config(self.runs[0])
+        conf['simc'] = nsim.files.read_config(conf['sim'])
+
         self.update(conf)
         self.args=args
         self.chunksize=args.chunksize
@@ -42,15 +54,9 @@ class Summer(dict):
 
         self.step = self['metacal_pars'].get('step',0.01)
 
-        self.shears = shears
-
-        if shears is None and nshear is None:
-            raise RuntimeError("send either shears= or nshear=")
-
-        if shears is not None:
-            self['nshear']=len(self.shears)
-        else:
-            self['nshear'] = nshear
+        shear_pdf = shearpdf.get_shear_pdf(conf['simc'])
+        self.shears=shear_pdf.shears
+        self['nshear']=len(self.shears)
 
         if args.R is not None:
             self.Rinput = array([float(R) for R in args.R.split(',')])
@@ -62,8 +68,6 @@ class Summer(dict):
         if self.args.fit_only:
             self.means=self._read_means()
         else:
-
-            extra=self._get_fname_extra()
 
             sums = self.do_sums()
 
@@ -118,7 +122,7 @@ class Summer(dict):
             means_nocorr=means_nocorr[wkeep]
             self.means=means
             self.means_nocorr=means_nocorr
-            self._write_means()
+            #self._write_means()
 
         if means.size == 1:
             if self.do_selection:
@@ -164,7 +168,7 @@ class Summer(dict):
 
         sums=None
         ntot=0
-        for run in args.runs:
+        for run in self.runs:
             if args.ntest is not None and ntot > args.ntest:
                 break
 
@@ -691,15 +695,16 @@ class Summer(dict):
 
     def _get_fname_extra(self, last=None, run=None):
 
+        # name will be singular if we use args.runs
         if run is None:
             runs=self.args.runs
         else:
-            runs=[run]
+            runs=run
 
-        if len(runs) > 1:
-            extra=runs[1:]
-        else:
-            extra=[]
+        #if len(runs) > 1:
+        #    extra=runs[1:]
+        #else:
+        extra=[]
 
         if self.args.weighted:
             extra += ['weighted',self.args.weight_type]
@@ -730,7 +735,7 @@ class Summer(dict):
     def _get_means_file(self):
 
         extra=self._get_fname_extra()
-        fname=files.get_means_url(self.args.runs[0], extra=extra)
+        fname=files.get_means_url(self.args, extra=extra)
         return fname
 
     def _get_sums_file(self, run):
@@ -916,706 +921,6 @@ class Summer(dict):
 
         if args.show:
             plt.show(width=1000, height=1000)
-
-class SummerNSim(Summer):
-    """
-    For NSim we have the shears in the simulation config
-    """
-    def __init__(self, conf, args):
-
-        shear_pdf = shearpdf.get_shear_pdf(conf['simc'])
-        shears=shear_pdf.shears
-        super(SummerNSim,self).__init__(conf, args, shears=shears)
-
-
-class SummerMoments(SummerNSim):
-    def go(self):
-
-        if self.args.fit_only:
-            self.means=self._read_means()
-        else:
-
-            extra=self._get_fname_extra()
-
-            sums = self.do_sums()
-
-            args=self.args
-
-            e,R,Rsel=self._average_sums(sums)
-
-            means=get_mean_struct(self['nshear'])
-            means_nocorr=get_mean_struct(self['nshear'])
-
-            for i in xrange(self['nshear']):
-
-                shear_true = self.shears[i]
-
-                emean = e[i]
-
-                shear        = emean/(R+Rsel)
-                shear_nocorr = emean/R
-
-                means['shear'][i] = shear
-                means['shear_err'][i] = 1.0
-                if isinstance(shear_true,ngmix.Shape):
-                    means['shear_true'][i,0] = shear_true.g1
-                    means['shear_true'][i,1] = shear_true.g2
-                else:
-                    means['shear_true'][i] = shear_true
-
-                means_nocorr['shear'][i] = shear_nocorr
-                means_nocorr['shear_err'][i] = 1.0
-                means_nocorr['shear_true'][i] = means['shear_true'][i]
-
-            self.means=means
-            self.means_nocorr=means_nocorr
-            self._write_means()
-
-        if self.do_selection:
-            print("without correction")
-            junk=reredux.averaging.fit_m_c(self.means_nocorr)
-            junk=reredux.averaging.fit_m_c(self.means_nocorr,onem=True)
-            print("\nwith correction")
-
-        self.fits=reredux.averaging.fit_m_c(self.means)
-        self.fitsone=reredux.averaging.fit_m_c(self.means,onem=True)
-
-
-    def _get_M_T(self, data, w, type):
-        if type=='noshear':
-            name='mcal_pars'
-        else:
-            name='mcal_pars_%s' % type
-
-        #Finv = 1.0/data[name][w,5]
-        #Finv = 1.0/data['pars'][w,5]
-
-        M = data[name][w,2:2+2].copy()
-        T = data[name][w,4].copy()
-
-        #M[:,0] *= Finv
-        #M[:,1] *= Finv
-        #T      *= Finv
-
-        return M,T
-
-
-    def _get_M_T_as_e(self, data, w, type):
-        if type=='noshear':
-            name='mcal_pars'
-        else:
-            name='mcal_pars_%s' % type
-
-        #Finv = 1.0/data[name][w,5]
-        #Finv = 1.0/data['pars'][w,5]
-
-        M = data[name][w,2:2+2].copy()
-        T = data[name][w,4].copy()
-
-        M[:,0] /= T
-        M[:,1] /= T
-
-        T[:] = 1.0
-
-        return M,T
-
-
-    def do_sums1(self, data, sums=None):
-        """
-        just a binner and summer, no logic here
-        """
-
-        s2n_name='mcal_s2n'
-
-        nshear=self['nshear']
-        args=self.args
-
-        h,rev = eu.stat.histogram(data['shear_index'],
-                                  min=0,
-                                  max=nshear-1,
-                                  rev=True)
-        nind = h.size
-        assert nshear==nind
-
-        if sums is None:
-            sums=self._get_sums_struct()
-
-        ntot=0
-        nkeep=0
-        for i in xrange(nshear):
-            if rev[i] != rev[i+1]:
-                wfield=rev[ rev[i]:rev[i+1] ]
-
-                # first select on the noshear measurement
-                if self.select is not None:
-                    w=self._do_select(data[s2n_name][wfield])
-                    w=wfield[w]
-                else:
-                    w=wfield
-
-                ntot  += wfield.size
-                nkeep += w.size
-
-                sums['wsum'][i] += w.size
-
-                M,T = self._get_M_T(data, w, 'noshear')
-                sums['M'][i] += M.sum(axis=0)
-                sums['T'][i] += T.sum()
-
-                for type in ngmix.metacal.METACAL_TYPES:
-                    if type=='noshear':
-                        continue
-
-                    Msumname='M_%s' % type
-                    Tsumname='T_%s' % type
-
-                    name='mcal_pars_%s' % type
-                    if name in data.dtype.names:
-                        M,T = self._get_M_T(data, w, type)
-                        sums[Msumname][i] += M.sum(axis=0)
-                        sums[Tsumname][i] += T.sum()
-
-                # now the selection terms
-                if self.select is not None:
-                    for type in ngmix.metacal.METACAL_TYPES:
-                        if type=='noshear':
-                            continue
-
-                        ts2n_name='%s_%s' % (s2n_name,type)
-
-                        if ts2n_name in data.dtype.names:
-
-                            wsumname = 's_wsum_%s' % type
-                            Msumname = 's_M_%s' % type
-                            Tsumname = 's_T_%s' % type
-
-                            w=self._do_select(data[ts2n_name][wfield])
-                            w=wfield[w]
-                            sums[wsumname][i] += w.size
-
-                            M,T = self._get_M_T(data, w, 'noshear')
-                            sums[Msumname][i] += M.sum(axis=0)
-                            sums[Tsumname][i] += T.sum()
-                        else:
-                            pass
-
-        if self.select is not None:
-            self._print_frac(ntot,nkeep)
-        return sums
-
-
-
-
-    def _average_sums(self, sums):
-        """
-        divide by sum of weights and get g for each field
-
-        Also average the responses over all data
-        """
-
-        M = sums['M'].copy()
-        T = sums['T'].copy()
-
-        #
-        # averaged in each field
-        #
-
-
-        winv = 1.0/sums['wsum']
-        M[:,0] *= winv
-        M[:,1] *= winv
-        T      *= winv
-
-        Ta = T[:,numpy.newaxis]
-        e = 0.5*M/Ta
-
-        # overall means for responses
-
-        wsum=sums['wsum'].sum()
-        M_mean = sums['M'].sum(axis=0)/wsum
-        T_mean = sums['T'].sum()/wsum
-        T_meana = zeros(2) + T_mean
-
-        factor = 1.0/(2.0*self.step)
-
-        M1p = sums['M_1p'][:,0].sum()/wsum
-        M1m = sums['M_1m'][:,0].sum()/wsum
-        M2p = sums['M_2p'][:,1].sum()/wsum
-        M2m = sums['M_2m'][:,1].sum()/wsum
-
-        T1p = sums['T_1p'].sum()/wsum
-        T1m = sums['T_1m'].sum()/wsum
-        T2p = sums['T_2p'].sum()/wsum
-        T2m = sums['T_2m'].sum()/wsum
-
-        RM = zeros(2)
-        RT = zeros(2)
-
-        RM[0] = (M1p - M1m)*factor
-        RM[1] = (M2p - M2m)*factor
-
-        RT[0] = (T1p - T1m)*factor
-        RT[1] = (T2p - T2m)*factor
-
-        R = (1.0/T_meana) * RM  -  (M_mean/T_meana**2) * RT
-        R *= 0.5
-
-        print("RM:",RM)
-        print("RT:",RT)
-        print("R: ",R)
-
-        # selection terms
-        if self.do_selection:
-
-            RMsel = zeros(2)
-            RTsel = zeros(2)
-
-            s_M1p = sums['s_M_1p'][:,0].sum()/sums['s_wsum_1p'].sum()
-            s_M1m = sums['s_M_1m'][:,0].sum()/sums['s_wsum_1m'].sum()
-            s_M2p = sums['s_M_2p'][:,1].sum()/sums['s_wsum_2p'].sum()
-            s_M2m = sums['s_M_2m'][:,1].sum()/sums['s_wsum_2m'].sum()
-
-            s_T1p = sums['s_T_1p'].sum()/sums['s_wsum_1p'].sum()
-            s_T1m = sums['s_T_1m'].sum()/sums['s_wsum_1m'].sum()
-            s_T2p = sums['s_T_2p'].sum()/sums['s_wsum_2p'].sum()
-            s_T2m = sums['s_T_2m'].sum()/sums['s_wsum_2m'].sum()
-
-
-            RMsel[0] = (s_M1p - s_M1m)*factor
-            RMsel[1] = (s_M2p - s_M2m)*factor
-            RTsel[0] = (s_T1p - s_T1m)*factor
-            RTsel[1] = (s_T2p - s_T2m)*factor
-
-            Rsel = (1.0/T_meana) * RMsel  -  (M_mean/T_meana**2) * RTsel
-            Rsel *= 0.5
-
-            print("Rsel:",Rsel)
-        else:
-            Rsel=zeros(2)
-
-        return e, R, Rsel
-
-    def _get_sums_dt(self):
-        dt=[
-            ('wsum','f8'),
-            ('M','f8',2),
-            ('T','f8'),
-
-            ('M_1p','f8',2),
-            ('M_1m','f8',2),
-            ('M_2p','f8',2),
-            ('M_2m','f8',2),
-
-            ('T_1p','f8'),
-            ('T_1m','f8'),
-            ('T_2p','f8'),
-            ('T_2m','f8'),
-
-
-            # selection terms
-            ('s_wsum_1p','f8'),
-            ('s_wsum_1m','f8'),
-            ('s_wsum_2p','f8'),
-            ('s_wsum_2m','f8'),
-            ('s_M_1p','f8',2),
-            ('s_M_1m','f8',2),
-            ('s_M_2p','f8',2),
-            ('s_M_2m','f8',2),
-
-            ('s_T_1p','f8'),
-            ('s_T_1m','f8'),
-            ('s_T_2p','f8'),
-            ('s_T_2m','f8'),
-
-        ]
-        return dt
-
-class SummerMomentsNoNorm(SummerMoments):
-
-    def _get_M(self, data, w, type):
-        if type=='noshear':
-            name='mcal_pars'
-        else:
-            name='mcal_pars_%s' % type
-
-        M = data[name][w,2:2+2].copy()
-        return M
-
-    def do_sums1(self, data, sums=None):
-        """
-        just a binner and summer, no logic here
-        """
-
-        s2n_name='mcal_s2n'
-
-        nshear=self['nshear']
-        args=self.args
-
-        h,rev = eu.stat.histogram(data['shear_index'],
-                                  min=0,
-                                  max=nshear-1,
-                                  rev=True)
-        nind = h.size
-        assert nshear==nind
-
-        if sums is None:
-            sums=self._get_sums_struct()
-
-        ntot=0
-        nkeep=0
-        for i in xrange(nshear):
-            if rev[i] != rev[i+1]:
-                wfield=rev[ rev[i]:rev[i+1] ]
-
-                # first select on the noshear measurement
-                if self.select is not None:
-                    w=self._do_select(data[s2n_name][wfield])
-                    w=wfield[w]
-                else:
-                    w=wfield
-
-                ntot  += wfield.size
-                nkeep += w.size
-
-                sums['wsum'][i] += w.size
-
-                M = self._get_M(data, w, 'noshear')
-                sums['M'][i] += M.sum(axis=0)
-
-                for type in ngmix.metacal.METACAL_TYPES:
-                    if type=='noshear':
-                        continue
-
-                    Msumname='M_%s' % type
-
-                    name='mcal_pars_%s' % type
-                    if name in data.dtype.names:
-                        M = self._get_M(data, w, type)
-                        sums[Msumname][i] += M.sum(axis=0)
-
-                # now the selection terms
-                if self.select is not None:
-                    for type in ngmix.metacal.METACAL_TYPES:
-                        if type=='noshear':
-                            continue
-
-                        ts2n_name='%s_%s' % (s2n_name,type)
-
-                        if ts2n_name in data.dtype.names:
-
-                            wsumname = 's_wsum_%s' % type
-                            Msumname = 's_M_%s' % type
-
-                            w=self._do_select(data[ts2n_name][wfield])
-                            w=wfield[w]
-                            sums[wsumname][i] += w.size
-
-                            M = self._get_M(data, w, 'noshear')
-                            sums[Msumname][i] += M.sum(axis=0)
-                        else:
-                            pass
-
-        if self.select is not None:
-            self._print_frac(ntot,nkeep)
-        return sums
-
-
-
-
-    def _average_sums(self, sums):
-        """
-        divide by sum of weights and get g for each field
-
-        Also average the responses over all data
-        """
-
-        M = sums['M'].copy()
-
-        #
-        # averaged in each field
-        #
-
-
-        winv = 1.0/sums['wsum']
-        M[:,0] *= winv
-        M[:,1] *= winv
-
-        wsum=sums['wsum'].sum()
-
-        factor = 1.0/(2.0*self.step)
-
-        M1p = sums['M_1p'][:,0].sum()/wsum
-        M1m = sums['M_1m'][:,0].sum()/wsum
-        M2p = sums['M_2p'][:,1].sum()/wsum
-        M2m = sums['M_2m'][:,1].sum()/wsum
-
-        R = zeros(2)
-
-        R[0] = (M1p - M1m)*factor
-        R[1] = (M2p - M2m)*factor
-
-        print("R: ",R)
-
-        # selection terms
-        if self.do_selection:
-
-            Rsel = zeros(2)
-
-            s_M1p = sums['s_M_1p'][:,0].sum()/sums['s_wsum_1p'].sum()
-            s_M1m = sums['s_M_1m'][:,0].sum()/sums['s_wsum_1m'].sum()
-            s_M2p = sums['s_M_2p'][:,1].sum()/sums['s_wsum_2p'].sum()
-            s_M2m = sums['s_M_2m'][:,1].sum()/sums['s_wsum_2m'].sum()
-
-            Rsel[0] = (s_M1p - s_M1m)*factor
-            Rsel[1] = (s_M2p - s_M2m)*factor
-
-            print("Rsel:",Rsel)
-        else:
-            Rsel=zeros(2)
-
-        return M, R, Rsel
-
-    def _get_sums_dt(self):
-        dt=[
-            ('wsum','f8'),
-            ('M','f8',2),
-
-            ('M_1p','f8',2),
-            ('M_1m','f8',2),
-            ('M_2p','f8',2),
-            ('M_2m','f8',2),
-
-            # selection terms
-            ('s_wsum_1p','f8'),
-            ('s_wsum_1m','f8'),
-            ('s_wsum_2p','f8'),
-            ('s_wsum_2m','f8'),
-            ('s_M_1p','f8',2),
-            ('s_M_1m','f8',2),
-            ('s_M_2p','f8',2),
-            ('s_M_2m','f8',2),
-
-        ]
-        return dt
-
-
-class AMSummer(SummerNSim):
-    doM=False
-
-    def _set_select(self):
-        super(AMSummer,self)._set_select()
-        #if self.doM:
-        #    return
-
-        select=self.select
-        if select is None:
-            select=[]
-        else:
-            select = ['( ' + select +' )']
-
-        select += ['(T > 0.01)']
-
-        self.select = ' & '.join(select)
-        print("selection:",self.select)
-
-        self.do_selection=True
-
-    def _do_select(self, data, w, type):
-        """
-        currently only s/n
-        """
-        from numpy import abs
-
-        s2n_name='mcal_s2n'
-        T_name = 'mcal_T'
-
-        if type != 'noshear':
-            s2n_name = '%s_%s' % (s2n_name, type)
-            T_name   = '%s_%s' % (T_name,   type)
-
-        s2n = data[s2n_name][w]
-        T   = data[T_name][w]
-
-        g=self._get_g(data, w, type)
-        e1 = g[:,0]*2
-        e2 = g[:,1]*2
-
-        e = numpy.sqrt(e1**2 + e2**2)
-
-        logic=eval(self.select)
-
-        wsel,=numpy.where(logic)
-
-        return w[wsel]
-
-    def _get_gpsf(self, data, w):
-        Tpsf = data['mcal_psf_icc'][w]+data['mcal_psf_irr'][w]
-        Tpsf_inv=1.0/Tpsf
-
-        e1psf = (data['mcal_psf_icc'][w]-data['mcal_psf_irr'][w])*Tpsf_inv
-        e2psf = 2*data['mcal_psf_irc'][w]*Tpsf_inv
-
-        g1psf, g2psf = ngmix.shape.e1e2_to_g1g2(e1psf, e2psf)
-
-        gpsf=numpy.zeros( (w.size, 2))
-
-        gpsf[:,0] = g1psf
-        gpsf[:,1] = g2psf
-
-        return gpsf
-
-    def _get_gpsf_frome(self, data, w):
-        Tpsf = data['mcal_psf_icc'][w]+data['mcal_psf_irr'][w]
-        Tpsf_inv=1.0/Tpsf
-
-        g1psf = 0.5*(data['mcal_psf_icc'][w]-data['mcal_psf_irr'][w])*Tpsf_inv
-        g2psf = 0.5*2*data['mcal_psf_irc'][w]*Tpsf_inv
-
-        gpsf=numpy.zeros( (w.size, 2))
-
-        gpsf[:,0] = g1psf
-        gpsf[:,1] = g2psf
-
-        return gpsf
-
-    def _get_M(self, data, w, type):
-        irr_name='mcal_irr'
-        irc_name='mcal_irc'
-        icc_name='mcal_icc'
-        if type != 'noshear':
-            irr_name='%s_%s' % (irr_name,type)
-            irc_name='%s_%s' % (irc_name,type)
-            icc_name='%s_%s' % (icc_name,type)
-
-        irr = data[irr_name][w]
-        irc = data[irc_name][w]
-        icc = data[icc_name][w]
-
-        M1 = icc - irr
-        M2 = 2.0*irc
-        T= irr + icc
-
-        return M1, M2, T
-
-
-    def _get_e(self, data, w, type):
-        """
-        really getting e, but multiply by 0.5 to
-        approximately get in right scale as g
-        """
-
-        M1, M2, T = self._get_M(data, w, type)
-
-        Tinv=1.0/T
-
-        # 0.5 to approximately put in g units, just so we can
-        # more easily examine the response
-        e=numpy.zeros( (w.size, 2) )
-        e[:,0] = M1*Tinv
-        e[:,1] = M2*Tinv
-
-        return e
-
-    def _get_g(self, data, w, type):
-        g=self._get_e(data, w,type)
-        if g is not None:
-            g *= 0.5
-        return g
-
-    def do_sums1(self, data, sums=None):
-        """
-        just a binner and summer, no logic here
-        """
-
-
-        s2n_name='mcal_s2n'
-        T_name = 'mcal_T'
-
-        nshear=self['nshear']
-        args=self.args
-
-        h,rev = eu.stat.histogram(data['shear_index'],
-                                  min=0,
-                                  max=nshear-1,
-                                  rev=True)
-        nind = h.size
-        assert nshear==nind
-
-        if sums is None:
-            sums=self._get_sums_struct()
-
-        ntot=0
-        nkeep=0
-        for i in xrange(nshear):
-            if rev[i] != rev[i+1]:
-                wfield=rev[ rev[i]:rev[i+1] ]
-
-                # first select on the noshear measurement
-                if self.select is not None:
-                    w=self._do_select(data, wfield, 'noshear')
-                else:
-                    w=wfield
-
-                ntot  += wfield.size
-                nkeep += w.size
-
-                sums['wsum'][i] += w.size
-
-                if self.doM:
-                    M1,M2,T = self._get_M(data, w, 'noshear')
-                    sums['g'][i,0]    += M1.sum()
-                    sums['g'][i,1]    += M2.sum()
-                else:
-                    g    = self._get_g(data, w, 'noshear')
-                    sums['g'][i]    += g.sum(axis=0)
-
-                gpsf = self._get_gpsf(data, w)
-                sums['gpsf'][i] += gpsf.sum(axis=0)
-
-                for type in ngmix.metacal.METACAL_TYPES:
-                    if type=='noshear':
-                        continue
-
-                    sumname='g_%s' % type
-
-                    if self.doM:
-                        M1,M2,T = self._get_M(data, w, type)
-                        sums[sumname][i,0] += M1.sum()
-                        sums[sumname][i,1] += M2.sum()
-                    else:
-                        g = self._get_g(data, w, type)
-                        if g is not None:
-                            sums[sumname][i] += g.sum(axis=0)
-
-                # now the selection terms
-                if self.select is not None:
-                    for type in ngmix.metacal.METACAL_TYPES:
-                        if type=='noshear':
-                            continue
-
-                        ts2n_name='%s_%s' % (s2n_name,type)
-
-                        if ts2n_name in data.dtype.names:
-
-                            wsumname = 's_wsum_%s' % type
-                            sumname = 's_g_%s' % type
-
-                            w=self._do_select(data, wfield, type)
-                            sums[wsumname][i] += w.size
-
-                            if self.doM:
-                                M1,M2,T = self._get_M(data, w, 'noshear')
-                                sums[sumname][i,0] += M1.sum()
-                                sums[sumname][i,1] += M2.sum()
-                            else:
-                                g = self._get_g(data, w, 'noshear')
-                                sums[sumname][i] += g.sum(axis=0)
-                        else:
-                            pass
-
-        if self.select is not None:
-            self._print_frac(ntot,nkeep)
-        return sums
 
 
 # quick line fit pulled from great3-public code

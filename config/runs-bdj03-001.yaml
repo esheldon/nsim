@@ -25,5 +25,5 @@ runs: [
     'run-bdj03mcal16',
     'run-bdj03mcal17',
     'run-bdj03mcal18',
-    #'run-bdj03mcal19',
+    'run-bdj03mcal19',
     ]

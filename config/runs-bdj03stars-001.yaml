@@ -1,0 +1,39 @@
+name: 'runs-bdj03stars-001'
+
+runs: [
+    'run-bdj02mcal02',
+    'run-bdj02mcal03',
+    'run-bdj02mcal04',
+
+    'run-bdj04mcal01',
+    'run-bdj04mcal02',
+    'run-bdj04mcal03',
+
+    'run-bdj03mcal01',
+    'run-bdj03mcal02',
+    'run-bdj03mcal05',
+    'run-bdj03mcal06',
+    'run-bdj03mcal07',
+    'run-bdj03mcal08',
+    'run-bdj03mcal09',
+    'run-bdj03mcal10',
+    'run-bdj03mcal11',
+    'run-bdj03mcal12',
+    'run-bdj03mcal13',
+    'run-bdj03mcal14',
+    'run-bdj03mcal15',
+    'run-bdj03mcal16',
+    'run-bdj03mcal17',
+    'run-bdj03mcal18',
+    'run-bdj03mcal19',
+
+    'run-bdj03mcal20',
+    'run-bdj03mcal21',
+    'run-bdj03mcal22',
+    'run-bdj03mcal23',
+    'run-bdj03mcal24',
+
+    #'run-bdj03stars-mcal01',
+    'run-bdj03stars-mcal02',
+    'run-bdj03stars-mcal03',
+    ]

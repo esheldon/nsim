@@ -122,7 +122,7 @@ class Summer(dict):
             means_nocorr=means_nocorr[wkeep]
             self.means=means
             self.means_nocorr=means_nocorr
-            #self._write_means()
+            self._write_means()
 
         if means.size == 1:
             if self.do_selection:
@@ -735,7 +735,7 @@ class Summer(dict):
     def _get_means_file(self):
 
         extra=self._get_fname_extra()
-        fname=files.get_means_url(self.args, extra=extra)
+        fname=files.get_means_url(self.args.runs, extra=extra)
         return fname
 
     def _get_sums_file(self, run):

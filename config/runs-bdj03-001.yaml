@@ -26,4 +26,10 @@ runs: [
     'run-bdj03mcal17',
     'run-bdj03mcal18',
     'run-bdj03mcal19',
+
+    'run-bdj03mcal20',
+    'run-bdj03mcal21',
+    'run-bdj03mcal22',
+    'run-bdj03mcal23',
+    'run-bdj03mcal24',
     ]

@@ -1,83 +1,24 @@
 - combining bdj02-03-04 so far
-    total kept 2.6 billion
-    total simulated ~ 2.6*7706823./5142970 = 3.9 billion
+    total with preselect > 5: 4.8 billion
+    so we should geneate 480 million stars after preselect
+    we lost bdj03stars-mcal01, but we have 02 03 which each
+    had 77,000,000 after preselect
+
+    We need 326,000,000 more stars, with preselect
+
+    just do 3 more runs with 110000000 each
+
     - s/n > 7  0.41
-R: [ 0.54484366  0.54622672]
-Rpsf: [ 0.  0.]
-
-Rsel: [ 0.00828631  0.00835635]
-Rpsf_sel: [ 0.  0.]
-total wsum: 1042628065.0
-writing: /nfs/slac/des/fs1/g/sims/esheldon/lensing/shapesim/run-bdj02mcal02/fit-m-c/run-bdj02mcal02-means-bdj02mcal03-bdj02mcal04-bdj03mcal01-bdj03mcal02-bdj03mcal05-bdj03mcal06-bdj03mcal07-bdj03mcal08-bdj03mcal09-bdj04mcal01-bdj04mcal02-bdj04mcal03-select-s2n->-7.fits
-without correction
-errors are 2 sigma
-m: 1.548e-02 +/- 1.112e-03  c: 8.533e-06 +/- 2.224e-05
-
-with correction
-errors are 2 sigma
-m: 2.679e-04 +/- 1.095e-03  c: 8.405e-06 +/- 2.191e-05
 
     - s/n > 10 0.27
-        R: [ 0.58385907  0.58520873]
-        Rpsf: [ 0.  0.]
-
-        Rsel: [ 0.00227927  0.00231507]
-        Rpsf_sel: [ 0.  0.]
-        total wsum: 683068905.0
-        without correction
-        errors are 2 sigma
-        m: 3.295e-03 +/- 1.007e-03  c: 2.143e-06 +/- 2.014e-05
-
-        with correction
-        errors are 2 sigma
-        m: -6.062e-04 +/- 1.004e-03  c: 2.135e-06 +/- 2.006e-05
 
     - s/n > 13 0.19
-        R: [ 0.60263339  0.6039715 ]
-        Rpsf: [ 0.  0.]
-
-        Rsel: [-0.00081802 -0.00077184]
-        Rpsf_sel: [ 0.  0.]
-        total wsum: 481153762.0
-        without correction
-        errors are 2 sigma
-        m: -1.595e-03 +/- 1.021e-03  c: 9.269e-06 +/- 2.041e-05
-
-        with correction
-        errors are 2 sigma
-        m: -2.384e-04 +/- 1.023e-03  c: 9.281e-06 +/- 2.044e-05
 
     - s/n > 16 0.14
-        R: [ 0.61250619  0.61386907]
-        Rpsf: [ 0.  0.]
-
-        Rsel: [-0.00290895 -0.00283071]
-        Rpsf_sel: [ 0.  0.]
-        total wsum: 352065996.0
-        without correction
-        errors are 2 sigma
-        m: -4.700e-03 +/- 1.085e-03  c: 5.638e-06 +/- 2.168e-05
-
-        with correction
-        errors are 2 sigma
-        m: 4.904e-05 +/- 1.090e-03  c: 5.664e-06 +/- 2.178e-05
 
     - s/n > 19 0.10
 
 
-        R: [ 0.61435763  0.61571014]
-        Rpsf: [ 0.  0.]
-
-        Rsel: [-0.00505983 -0.00500221]
-        Rpsf_sel: [ 0.  0.]
-        total wsum: 262488938.0
-        without correction
-        errors are 2 sigma
-        m: -8.376e-03 +/- 1.185e-03  c: -4.236e-07 +/- 2.368e-05
-
-        with correction
-        errors are 2 sigma
-        m: -1.408e-04 +/- 1.195e-03  c: -4.270e-07 +/- 2.387e-05
 
 sim-bdj02, sim-bdj04
     - joint flux-size

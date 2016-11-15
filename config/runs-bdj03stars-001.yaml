@@ -36,4 +36,8 @@ runs: [
     #'run-bdj03stars-mcal01',
     'run-bdj03stars-mcal02',
     'run-bdj03stars-mcal03',
+    'run-bdj03stars-mcal04',
+    'run-bdj03stars-mcal05',
+    'run-bdj03stars-mcal06',
+
     ]

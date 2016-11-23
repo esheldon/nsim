@@ -45,11 +45,8 @@ max_pars:
         method: "lm"
         lm_pars:
             maxfev: 4000
-    cov_pars:
-        m: 5
-        h: 1.0e-3
-
-    replace_cov: False
+    cov:
+        replace_cov: False
 
 ngal: 2000000
 

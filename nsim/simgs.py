@@ -74,7 +74,10 @@ class SimGS(dict):
         else:
             nrows,ncols=None,None
 
-        psf_nrows,psf_ncols=self['psf_stamp_size']
+        if 'psf_stamp_size' in self:
+            psf_nrows,psf_ncols=self['psf_stamp_size']
+        else:
+            psf_nrows,psf_ncols=self['stamp_size']
 
         cen_shift=self._get_cen_shift()
 
@@ -756,7 +759,7 @@ class SimGS(dict):
 
     def _set_cen_pdf(self):
 
-        cr=self['cen_shift']
+        cr=self.get('cen_shift',None)
         if cr is None:
             self.cen_pdf=None
         else:

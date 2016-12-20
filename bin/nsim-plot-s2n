@@ -64,7 +64,7 @@ def main():
     biggles.configure('default','fontsize_min',2.0)
     biggles.configure('_HalfAxis','ticks_size',2.0)
 
-    run='run-bdj03mcal01'
+    run='run-bdj03mcal02'
     args = parser.parse_args()
 
     epsfile=nsim.files.get_plot_url(run, extra='s2n')
@@ -92,7 +92,7 @@ def main():
     line_used='dotted'
     line_mcal='dashed'
 
-    color_all='seagreen'
+    color_all='steelblue'
     color_used='magenta'
     color_mcal='brown'
 

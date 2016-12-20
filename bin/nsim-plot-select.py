@@ -20,9 +20,9 @@ def get_fname(s2n_min, args):
      #root='/u/ki/esheldon/lensing/shapesim/run-bdj02mcal02/fit-m-c/run-bdj02mcal02-means-bdj02mcal03-bdj02mcal04-bdj03mcal01-bdj03mcal02-bdj03mcal05-bdj03mcal06-bdj03mcal07-bdj03mcal08-bdj03mcal09-bdj04mcal01-bdj04mcal02-bdj04mcal03'
 
      if args.stars:
-         raise RuntimeError("implement stars runs")
+         fname='/nfs/slac/des/fs1/g/sims/esheldon/lensing/shapesim/runs-bdj03stars-001/fit-m-c/runs-bdj03stars-001-means-preselect-select-s2n->-%d.fits' % s2n_min
      else:
-        fname='/nfs/slac/des/fs1/g/sims/esheldon/lensing/shapesim/runs-bdj03-001/fit-m-c/runs-bdj03-001-means-preselect-select-s2n->-%d.fits' % s2n_min
+         fname='/nfs/slac/des/fs1/g/sims/esheldon/lensing/shapesim/runs-bdj03-001/fit-m-c/runs-bdj03-001-means-preselect-select-s2n->-%d.fits' % s2n_min
 
      #fname = '%s-select-s2n->-%d.fits' % (root, s2n_min)
 

@@ -641,13 +641,22 @@ class Summer(dict):
         return size
 
     def _get_flux(self, data, w, type=None):
-        name=self._get_pars_name(data, type=type)
+        name=self._get_flux_name(type=type)
+        if name not in data.dtype.names:
+            ispars=True
+            name=self._get_pars_name(data, type=type)
+        else:
+            ispars=False
 
         flux=None
         if name in data.dtype.names:
-            if data[name].shape[1] >= 6:
-                flux = data[name][w,5]
-
+            if ispars:
+                if data[name].shape[1] >= 6:
+                    print("flux name:",name)
+                    flux = data[name][w,5]
+            else:
+                print("flux is:",name)
+                flux = data[name][w]
 
         return flux
 
@@ -659,6 +668,15 @@ class Summer(dict):
             name='%s_%s' % (name, type)
 
         return name
+
+    def _get_flux_name(self, type=None):
+        n=self.namer
+        name=n('flux')
+        if type is not None and type != 'noshear':
+            name='%s_%s' % (name, type)
+
+        return name
+
 
     def _get_flux_s2n(self, data, w, type=None):
         name=self._get_flux_s2n_name(data, type=type)

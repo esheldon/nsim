@@ -1,3 +1,4 @@
+# had a bug, don't use!
 # want a total of 225 million for all these 0.10 shear sims
 run: "run-bdj06mcal01"
 sim: "sim-bdj06"

@@ -366,7 +366,11 @@ class MetacalMomentsAM(MetacalMomentsFixed):
         psfres, fitter = self._measure_moments(obs.psf, doround=False)
 
         obsdict=self._get_metacal(obs)
-
+        import images
+        print("imtot:        ",obs.image.sum())
+        print("imtot noshear:",obsdict['noshear'].image.sum())
+        print("psfmtot:        ",obs.psf.image.sum())
+        print("psftot noshear:",obsdict['noshear'].psf.image.sum())
         if False:
             tobs = obsdict['noshear']
             noshear_obs = ngmix.Observation(
@@ -449,7 +453,11 @@ class MetacalMomentsAM(MetacalMomentsFixed):
             raise TryAgainError(str(err))
 
     def _set_round_s2n(self, obs, fitter):
+        res=fitter.get_result()
+        res['s2n_r'] = res['s2n']
+        res['T_r']   = res['T']
 
+        """
         try:
             gm  = fitter.get_gmix()
             gmr = gm.make_round()
@@ -468,6 +476,7 @@ class MetacalMomentsAM(MetacalMomentsFixed):
             #print("s2n ratio:",res['s2n_r']/res['s2n'])
         except ngmix.GMixRangeError as err:
             raise TryAgainError(str(err))
+        """
 
     def _set_some_pars(self, res):
         res['g']     = res['e']

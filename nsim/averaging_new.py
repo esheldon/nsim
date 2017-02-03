@@ -474,6 +474,8 @@ class Summer(dict):
 
 
         winv = 1.0/sums['wsum']
+        wainv = winv[:,newaxis]
+
         g[:,0]    *= winv
         g[:,1]    *= winv
         gpsf[:,0] *= winv
@@ -488,7 +490,7 @@ class Summer(dict):
 
         # sum(w*2g*2
         gerrsq_sum = gsq - g**2*wsq
-        gerr = sqrt(gerrsq_sum)*winv
+        gerr = sqrt(gerrsq_sum)*wainv
 
         # responses averaged over all fields
         R = zeros(2)
@@ -652,7 +654,7 @@ class Summer(dict):
         if name in data.dtype.names:
             if ispars:
                 if data[name].shape[1] >= 6:
-                    print("flux name:",name)
+                    #print("flux name:",name)
                     flux = data[name][w,5]
             else:
                 print("flux is:",name)

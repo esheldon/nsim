@@ -657,7 +657,7 @@ class Summer(dict):
                     #print("flux name:",name)
                     flux = data[name][w,5]
             else:
-                print("flux is:",name)
+                #print("flux is:",name)
                 flux = data[name][w]
 
         return flux

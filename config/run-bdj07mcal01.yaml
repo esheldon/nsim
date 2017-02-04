@@ -1,5 +1,5 @@
 # want a total of 630 million
-run: "run-bdj07mcal02"
+run: "run-bdj07mcal01"
 sim: "sim-bdj07"
 
 fitter: "metacal-moments-am"

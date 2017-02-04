@@ -67,4 +67,4 @@ label: "$bulge-disk$"
 shear:
     type: 'const'
 
-    shears: [0.08, 0.00]
+    shears: [0.06, 0.00]

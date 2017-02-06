@@ -396,6 +396,11 @@ class SimGS(dict):
             gal0 = self._get_gal_obj(gal_pars)
             gal = galsim.Convolve([psf, gal0])
 
+        bias=self['psf']['bias']
+        if bias is not None:
+            #print("biasing psf size by:",bias['dilate'])
+            psf = psf.dilate(bias['dilate'])
+
         return gal, gal_pars, psf, psf_pars
 
     def _get_gal_obj(self, pars):
@@ -595,6 +600,7 @@ class SimGS(dict):
         if self['masks'] is not None:
             self._load_masks()
 
+        self['psf']['bias'] = self['psf'].get('bias',None)
         self._set_pdfs()
 
     def _load_masks(self):
@@ -881,6 +887,8 @@ class SimCosmos(SimGS):
         self['masks'] = self.get('masks',None)
         if self['masks'] is not None:
             self._load_masks()
+
+        self['psf']['bias'] = self['psf'].get('bias',None)
 
         self._set_pdfs()
 

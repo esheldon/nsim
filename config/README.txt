@@ -1,3 +1,19 @@
+- looking at breakdown of weak shear approx
+    - 1 sigma errors
+    - 0.02 from all the bdj03 runs
+        3.781e-03 +/- 3.094e-04
+
+    - 0.10 run-bdj06mcal01 (had wrong s2n, had to use flux s2n)
+        5.867e-03 +/- 4.487e-04
+    - 0.10 run-bdj06mcal02 fixed s2n
+        5.769e-03 +/- 3.591e-4
+
+        - combined
+            0.00581, 0.00028
+
+    - 0.06 run-bdj07mcal01 (will add 02 and 03 soon)
+        2.148e-03 +/- 5.085e-4
+
 - combining bdj02-03-04 so far
     total with preselect > 5: 4.8 billion
     so we should geneate 480 million stars after preselect

@@ -1,0 +1,28 @@
+# want a total of 630 million
+run: "run-bdj07mcal02"
+sim: "sim-bdj07"
+
+fitter: "metacal-moments-am"
+
+global_seed: 14042
+
+s2n_min: 5.0
+
+metacal_pars:
+    fixnoise: True
+    symmetrize_psf: True
+    symmetrize_dilation: 1.05
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+ngal: 200000000
+
+desired_hours: 4.0
+
+sec_per: 0.6
+
+jobs_per_condor_sub: 5000
+
+verbose: False

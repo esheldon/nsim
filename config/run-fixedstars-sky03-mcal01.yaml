@@ -1,0 +1,66 @@
+# added lower bound on s/n to speed things up
+# knots
+run: "run-fixedstars-sky03-mcal01"
+sim: "sim-fixedstars-sky03"
+
+fitter: "metacal-new"
+fit_model: "gauss"
+
+global_seed: 24
+
+min_s2n: 5
+
+metacal_pars:
+    fixnoise: True
+    symmetrize_psf: True
+    symmetrize_dilation: 1.05
+
+use_logpars: False
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    T:
+        type: "two-sided-erf"
+        pars: [-10.0, 0.03, 1.0e+06, 1.0e+05]
+
+    counts:
+        type: "two-sided-erf"
+        pars: [0.0, 0.1, 100.0, 1.0]
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov:
+        replace_cov: True
+        cov_pars:
+            m: 5
+            h: 1.0e-3
+
+
+
+
+
+ngal: 80000
+
+#desired_hours: 4.0
+desired_hours: 0.10
+
+sec_per: 0.6
+
+jobs_per_condor_sub: 5000
+
+verbose: False

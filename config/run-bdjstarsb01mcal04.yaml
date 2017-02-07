@@ -1,0 +1,63 @@
+run: "run-bdjstarsb01mcal04"
+sim: "sim-bdjstarsb01"
+
+fitter: "metacal-new"
+fit_model: "gauss"
+
+global_seed: 6082
+
+
+metacal_pars:
+    fixnoise: True
+    symmetrize_psf: True
+    symmetrize_dilation: 1.05
+
+use_logpars: False
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    T:
+        type: "two-sided-erf"
+        pars: [-10.0, 0.03, 1.0e+06, 1.0e+05]
+
+    counts:
+        type: "two-sided-erf"
+        pars: [0.0, 0.1, 100.0, 1.0]
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+psf_pars:
+    model: "coellip3"
+    ntry: 10
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov:
+        replace_cov: True
+        cov_pars:
+            m: 5
+            h: 1.0e-3
+
+
+
+
+
+ngal: 12000
+
+#desired_hours: 4.0
+desired_hours: 0.25
+
+sec_per: 1.5
+
+jobs_per_condor_sub: 5000
+
+verbose: False

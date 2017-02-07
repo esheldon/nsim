@@ -1,0 +1,6 @@
+name: 'runs-bdj07-001'
+
+runs: [
+    "run-bdj07mcal01",
+    "run-bdj07mcal02",
+]

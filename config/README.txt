@@ -11,8 +11,9 @@
         - combined
             0.00581, 0.00028
 
-    - 0.06 run-bdj07mcal01 (will add 02 and 03 soon)
-        2.148e-03 +/- 5.085e-4
+    - 0.06 run-bdj07mcal01 and 2 (will add 02 and 03 soon)
+        errors are 2 sigma
+        m: 2.289e-03 +/- 7.210e-04  c: -3.885e-06 +/- 4.287e-05
 
 - combining bdj02-03-04 so far
     total with preselect > 5: 4.8 billion

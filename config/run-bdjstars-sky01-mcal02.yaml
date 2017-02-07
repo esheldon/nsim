@@ -1,0 +1,30 @@
+run: "run-bdjstars-sky01-mcal02"
+sim: "sim-bdjstars-sky01"
+
+fitter: "metacal-moments-am"
+
+global_seed: 1423
+
+
+metacal_pars:
+    fixnoise: True
+    symmetrize_psf: True
+    symmetrize_dilation: 1.05
+
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+
+
+ngal: 80000
+
+#desired_hours: 4.0
+desired_hours: 0.25
+
+sec_per: 0.6
+
+jobs_per_condor_sub: 5000
+
+verbose: False

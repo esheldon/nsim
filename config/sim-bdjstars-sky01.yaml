@@ -1,0 +1,66 @@
+# .1% biased stars
+# lower noise
+name: "sim-bdjstars-sky01"
+
+simulator: "galsim"
+
+noise: 0.001
+
+sky: 0.02
+
+wcs:
+  dudx: 0.0
+  dudy: 0.263
+  dvdx: 0.263
+  dvdy: 0.0
+
+
+psf_stamp_size: [48,48]
+stamp_size: [48,48]
+
+psf:
+
+    s2n: 10000.0
+
+    model: "moffat"
+    beta: 3.5
+
+    # arcsec -> r50=0.54
+    fwhm: 0.9
+
+    shape: [0.0, 0.025]
+
+
+cen_shift:
+    radius: 0.5
+
+obj_model:
+
+    # joint flux-r50 distribution from cosmos
+    model: "bdjoint-diffshape-star"
+
+    # we don't trust all the fits
+    flux_range: [2.5, 100.0]
+    r50_range: [0.15, 1.0]
+
+    # we don't actuallly use these for the stars
+
+    gexp:
+        type: "ba"
+        sigma: 0.2
+    gdev:
+        type: "ba"
+        sigma: 0.1
+
+    # fraction of flux in the bulge
+    fracdev:
+        type: "uniform"
+        range: [0.0, 1.0]
+
+
+label: "$bulge-disk$"
+
+shear:
+    type: 'const'
+
+    shears: [0.02, 0.00]

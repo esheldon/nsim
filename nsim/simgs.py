@@ -148,6 +148,10 @@ class SimGS(dict):
                                    wcs=wcs,
                                    dtype=numpy.float64,
                                    offset=cen_shift)
+        if isgal and 'sky' in self:
+            #print("sky:",self['sky'],"max image value:",gsimage.array.max())
+            gsimage.array[:,:] += self['sky']
+
         if nrows is None:
             print("    dims: %d,%d" % tuple(gsimage.array.shape))
         im0 = gsimage.array

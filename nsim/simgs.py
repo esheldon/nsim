@@ -20,11 +20,6 @@ from .util import TryAgainError, load_gmixnd
 from . import pdfs
 from .pdfs import DiscreteSampler, PowerLaw, DiscreteHLRFluxSampler
 import galsim
-#try:
-#    import galsim
-#    have_galsim=True
-#except ImportError:
-#    have_galsim=False
 
 class SimGS(dict):
     def __init__(self, sim_conf):
@@ -100,8 +95,6 @@ class SimGS(dict):
         save_pars=[
             gal_pars['size'],
             gal_pars['flux'],
-            #gal_pars['g'][0],
-            #gal_pars['g'][1],
         ]
 
         if psf_pars['fwhm'] is None:
@@ -141,8 +134,6 @@ class SimGS(dict):
         for psfs, send s2n=
         """
 
-        #gsimage = galsim.ImageD(ncols, nrows, wcs=self.galsim_wcs)
-        #gs_obj.drawImage(image=gsimage)
         gsimage = gs_obj.drawImage(nx=ncols,
                                    ny=nrows,
                                    wcs=wcs,
@@ -305,7 +296,6 @@ class SimGS(dict):
 
 
     def _add_noise(self, im0):
-        #nim = numpy.random.normal(loc=0.0,
         nim = self.rng.normal(loc=0.0,
                               scale=self['noise'],
                               size=im0.shape)
@@ -326,7 +316,6 @@ class SimGS(dict):
 
         scaled_image = im0 * factor
 
-        #nim = numpy.random.normal(loc=0.0,
         nim = self.rng.normal(loc=0.0,
                               scale=self['noise'],
                               size=im0.shape)
@@ -361,17 +350,6 @@ class SimGS(dict):
             dvdy,
         )
 
-
-        # our sims are always in pixels for now
-        """        
-        det = numpy.abs( dudy*dvdx-dudx*dvdy )
-        scale = numpy.sqrt(det)
-
-        wcs=galsim.JacobianWCS(dudx/scale,
-                               dudy/scale,
-                               dvdx/scale,
-                               dvdy/scale)
-        """
         return wcs
 
     def _get_jacobian(self, image, wcs):

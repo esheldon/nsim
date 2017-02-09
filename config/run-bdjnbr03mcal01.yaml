@@ -1,0 +1,27 @@
+run: "run-bdjnbr03mcal01"
+sim: "sim-bdjnbr03"
+
+fitter: "metacal-moments-am"
+
+global_seed: 1705
+
+s2n_min: 5.0
+
+metacal_pars:
+    fixnoise: True
+    symmetrize_psf: True
+    symmetrize_dilation: 1.05
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+ngal: 60000
+
+desired_hours: 0.1
+
+sec_per: 0.6
+
+jobs_per_condor_sub: 5000
+
+verbose: False

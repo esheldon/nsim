@@ -1,3 +1,21 @@
+- neighbor tests
+    - sim-bdjnbr04
+        star with nbr gal, same flux, somewhere within box
+    - sim-bdjnbr05
+        star with neighbor star somewhere within the box, same flux
+    - sim-bdjnbr06
+        star with neighbor star same flux within 3.8 pixels
+    - sim-bdjnbr07
+        star with neighbor star same flux within 11.4 pix
+    - sim-bdjnbr08
+        star with neighbor star same flux within 0.5 pix
+    - sim-bdjnbr09
+        star with neighbor star same flux within 1.0 pix
+    - sim-bdjnbr10
+        star with neighbor star same flux within 1.5 pix
+    - sim-bdjnbr11
+        star with neighbor star same flux, offset gaussian 1 pix
+
 - looking at breakdown of weak shear approx
     - 1 sigma errors
     - 0.02 from all the bdj03 runs

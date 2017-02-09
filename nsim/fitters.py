@@ -165,7 +165,7 @@ class FitterBase(dict):
         """
         Write a plot file of the trials
         """
-        raise RuntimeError("over-ride me")
+        return
 
     def _dofit(self, imdict):
         """

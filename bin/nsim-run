@@ -87,8 +87,12 @@ def run_sim(sim_conf,
         if model =='bd':
             sim=nsim.simgs.SimBD(sim_conf)
         elif 'bdjoint-diffshape' in model:
-            #sim=nsim.simgs.SimBDJoint(sim_conf)
-            sim=nsim.simgs.SimBDJointDiffshape(sim_conf)
+
+            if 'nbrs' in sim_conf['obj_model']:
+                sim=nsim.simgs.SimBDJointDiffshapeNbr(sim_conf)
+            else:
+                sim=nsim.simgs.SimBDJointDiffshape(sim_conf)
+
         elif model=='bd-diffe':
             sim=nsim.simgs.SimBDD(sim_conf)
         elif model=='gmix':
@@ -310,6 +314,7 @@ def main():
     print('reading config files')
     run_conf = nsim.files.read_config(args.run)
     sim_conf = nsim.files.read_config(run_conf['sim'])
+    sim_conf['make_plots'] = args.make_plots
 
     if args.profile_image is not None:
         print('profiling sim with pycallgraph')

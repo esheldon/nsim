@@ -102,6 +102,9 @@ class SimGS(dict):
         else:
             psf_save_pars=psf_pars['fwhm']
 
+        if self['make_plots']:
+            self._make_plots(gal_obs)
+
         self.counter += 1
         return {'obs':gal_obs,
                 's2n':s2n,
@@ -112,6 +115,12 @@ class SimGS(dict):
                 'psf_obj': psf,
                 'gal_obj': gal}
 
+    def _make_plots(self, obs):
+        import images
+
+        images.multiview(obs.image)
+        if raw_input('hit a key: ')=='q':
+            stop
 
     def _get_cen_shift(self):
         if self.cen_pdf is not None:
@@ -1341,6 +1350,145 @@ class SimBDJointDiffshape(SimBD):
             self['obj_model']['flux_range'],
         )
 
+
+class SimBDJointDiffshapeNbr(SimBDJointDiffshape):
+    """
+    create neighbors
+    """
+    def _set_pdfs(self):
+        super(SimBDJointDiffshapeNbr,self)._set_pdfs()
+
+        nbrconf = self['obj_model']['nbrs']
+        shift_type=nbrconf['shift']['type']
+        if shift_type=='uniform_box':
+            pass
+        elif shift_type=="normal2d":
+            self.nbr_offset_pdf=ngmix.priors.SimpleGauss2D(
+                0.0,
+                0.0,
+                nbrconf['shift']['radius'],
+                nbrconf['shift']['radius'],
+                rng=self.rng,
+            )
+
+        elif shift_type == 'disk':
+            self.nbr_offset_pdf = ngmix.priors.ZDisk2D(
+                nbrconf['shift']['radius'],
+                rng=self.rng,
+            )
+
+        else:
+            raise ValueError("bad nbr shift type: '%s'" % shift_type)
+
+    def _get_galsim_objects(self):
+        """
+        get the galaxy and psf galsim objects
+        """
+
+        gal, gal_pars, psf, psf_pars = super(SimBDJointDiffshapeNbr,self)._get_galsim_objects()
+
+        # we are relying on getting the right psf here, if generating stars
+        assert self['psf'].get('bias',None)==None
+
+        nbrconf = self['obj_model']['nbrs']
+
+        if nbrconf['central'] == 'star':
+            central = psf.withFlux(gal_pars['flux'])
+        else:
+            central = gal.copy()
+
+        num=nbrconf['num']
+        if nbrconf['nbr'] == 'star':
+            nbrs = [psf.withFlux(gal_pars['flux']) for i in xrange(num)]
+        else:
+            nbrs=[]
+            for i in xrange(num):
+                flux = gal.flux * nbrconf['flux_frac']
+                nbr = gal.withFlux(flux)
+
+                theta = self.rng.uniform(low=0.0, high=numpy.pi*2)
+                nbr = nbr.rotate(theta*galsim.radians)
+                nbrs.append(nbr)
+
+        retval = (central, nbrs)
+        return retval, gal_pars, psf, psf_pars
+
+    def _get_nbr_offset(self):
+        nbrconf = self['obj_model']['nbrs']
+        if nbrconf['shift']['type']=="uniform-box":
+            offset=self.rng.uniform(low=-bhalf,high=bhalf,size=2)
+        else:
+            return self.nbr_offset_pdf.sample2d()
+
+    def _make_obs(self, gs_obj, nrows, ncols, wcs, cen_shift, s2n=None, isgal=True):
+        """
+        get an ngmix Observation
+
+        for psfs, send s2n=
+        """
+
+        if not isgal:
+            return super(SimBDJointDiffshapeNbr,self)._make_obs(
+                gs_obj, nrows, ncols, 
+                wcs, cen_shift, s2n=s2n, isgal=isgal,
+            )
+
+        central, nbrs = gs_obj
+        # draw the central first
+        # gal is actually central, nbrs
+        gsimage = central.drawImage(
+            nx=ncols,
+            ny=nrows,
+            wcs=wcs,
+            dtype=numpy.float64,
+            offset=cen_shift,
+        )
+        
+        bhalf = 0.5*gsimage.array.shape[0]
+        for nbr in nbrs:
+            offset=self._get_nbr_offset()
+
+            nbr.drawImage(
+                image=gsimage,
+                offset=offset,
+                add_to_image=True,
+            )
+
+        if nrows is None:
+            print("    dims: %d,%d" % tuple(gsimage.array.shape))
+
+        im0 = gsimage.array
+        if s2n is not None:
+            image_nonoise, image, flux = self._scale_and_add_noise(im0, s2n)
+        else:
+            flux=None
+            image_nonoise = im0.copy()
+            image = self._add_noise(image_nonoise)
+
+        jacob = self._get_jacobian(image_nonoise,gsimage.wcs)
+
+        weight = numpy.zeros( image.shape ) + self['ivar']
+
+        bmask=None
+        if isgal and self['bad_pixels'] is not None:
+            bmask=self._set_bad_pixels(image, weight)
+        elif isgal and self['masks'] is not None:
+            bmask=self._set_mask(image, weight)
+
+        obs = ngmix.Observation(
+            image,
+            weight=weight,
+            bmask=bmask,
+            jacobian=jacob
+        )
+
+        # monkey patching
+        obs.image_nonoise = image_nonoise
+
+        if False and s2n is None:
+            self._compare_images(image_nonoise,image,label1='im',label2='noisy')
+
+        return obs, flux
 
 
 class SimBDD(SimBD):

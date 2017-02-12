@@ -166,6 +166,9 @@ class SimGS(dict):
 
         weight = numpy.zeros( image.shape ) + self['ivar']
 
+        if isgal and 'fake_uberseg' in self:
+            self._add_fake_uberseg(weight)
+
         bmask=None
         if isgal and self['bad_pixels'] is not None:
             bmask=self._set_bad_pixels(image, weight)
@@ -186,6 +189,50 @@ class SimGS(dict):
             self._compare_images(image_nonoise,image,label1='im',label2='noisy')
 
         return obs, flux
+
+    def _add_fake_uberseg(self, weight):
+        """
+        for now just a circle
+        """
+
+        sconf=self['fake_uberseg']
+
+        cen = (numpy.array(weight.shape)-1.0)/2.0
+        rmax = sconf['rmax_frac']*cen[0]
+        rsq_max = rmax**2
+
+        rows,cols = numpy.mgrid[
+            0:weight.shape[0],
+            0:weight.shape[1],
+        ]
+
+        rows = numpy.array(rows, dtype='f8')
+        cols = numpy.array(cols,dtype='f8')
+
+        if sconf['type']=='circle':
+            axis_ratio=1.0
+        elif sconf['type']=='ellipse':
+            axis_ratio=sconf['axis_ratio']
+        else:
+            raise ValueError("bad fake useg type: '%s'" % sconf['type'])
+
+        if 'offset' in sconf:
+            offset = self.rng.normal(scale=sconf['offset']['sigma'],size=2)
+            print("offset:",offset)
+            cen += offset
+
+        rm = rows-cen[0]
+        cm = cols-cen[1]
+        rsq = ( rm*axis_ratio)**2 - 2*rm*cm*0.2 + cm**2
+
+        w=numpy.where(rsq > rsq_max)
+        weight[w] = 0.0
+
+        if False:
+            import images
+            images.multiview(weight)
+            if raw_input('hit a key')=='q':
+                stop
 
     def _set_bad_pixels(self, image, weight):
 

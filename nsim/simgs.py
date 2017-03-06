@@ -72,7 +72,7 @@ class SimGS(dict):
         if 'psf_stamp_size' in self:
             psf_nrows,psf_ncols=self['psf_stamp_size']
         else:
-            psf_nrows,psf_ncols=self['stamp_size']
+            psf_nrows,psf_ncols=nrows,ncols
 
         cen_shift=self._get_cen_shift()
 
@@ -465,7 +465,8 @@ class SimGS(dict):
             raise ValueError("bad galaxy model: '%s'" % pars['model'])
 
         # first give it an intrinsic shape
-        gal = gal.shear(g1=g1, g2=g2)
+        if g1 is not None:
+            gal = gal.shear(g1=g1, g2=g2)
 
         # now shear it
         if 'shear' in pars:

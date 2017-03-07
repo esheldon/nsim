@@ -1,4 +1,9 @@
 from __future__ import print_function
+try:
+    xrange
+except:
+    xrange=range
+
 import os, sys
 import numpy
 from numpy import exp, log, zeros, ones, sqrt, newaxis

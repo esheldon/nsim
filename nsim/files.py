@@ -22,13 +22,17 @@ def get_s2n_nrepeat(s2n, fac=0.4):
     return nrep
 
 
-def get_config_dir():
+def get_nsim_dir():
     if 'NSIM_DIR' in os.environ:
         d=os.environ['NSIM_DIR']
     else:
         d=sys.exec_prefix
 
-    return path_join(d,'share','nsim_config')
+    return d
+
+def get_config_dir():
+    nsim_dir=get_nsim_dir()
+    return path_join(nsim_dir,'share','nsim_config')
 
 def get_config_file(run):
     d=get_config_dir()

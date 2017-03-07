@@ -2,6 +2,11 @@
 fit simulated images
 """
 from __future__ import print_function
+try:
+    xrange
+except:
+    xrange=range
+
 import os
 import time
 from pprint import pprint

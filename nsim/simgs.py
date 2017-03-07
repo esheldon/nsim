@@ -2,6 +2,16 @@
 Simulate images using galsim instead of ngmix
 """
 from __future__ import print_function
+try:
+    xrange
+except:
+    xrange=range
+try:
+    raw_input
+except:
+    raw_input=input
+
+
 import os, sys
 from pprint import pprint
 

@@ -2,6 +2,10 @@
 moment based code
 """
 from __future__ import print_function
+try:
+    xrange
+except:
+    xrange=range
 
 import numpy
 from numpy import array, zeros, ones, log, log10, exp, sqrt, diag

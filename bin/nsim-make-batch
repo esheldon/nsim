@@ -3,6 +3,11 @@
     %prog system run
 """
 from __future__ import print_function
+try:
+    xrange
+except:
+    xrange=range
+
 import sys
 import os
 from math import ceil
@@ -303,8 +308,8 @@ exit $status
 
 
 def get_command():
-    dir=os.environ['NSIM_DIR']
-    cmd = os.path.join(dir, 'bin/nsim-run')
+    dir=files.get_nsim_dir()
+    cmd = os.path.join(dir,'bin','nsim-run')
     return cmd
 
 class MakerBase(dict):
@@ -415,7 +420,8 @@ class MakerBase(dict):
 
 class WQMaker(MakerBase):
     def get_tmpdir(self):
-        tmpdir='/data/esheldon/tmp'
+        #'/data/esheldon/tmp'
+        tmpdir=os.environ['TMPDIR']
         return tmpdir
 
     def get_batch_dir(self):

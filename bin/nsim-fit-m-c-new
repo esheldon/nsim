@@ -21,8 +21,6 @@ import argparse
 import esutil as eu
 from esutil.numpy_util import between
 
-import reredux
-
 
 fclass=argparse.ArgumentDefaultsHelpFormatter
 parser=argparse.ArgumentParser(formatter_class=fclass)

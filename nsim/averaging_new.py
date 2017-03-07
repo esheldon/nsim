@@ -1,4 +1,9 @@
 from __future__ import print_function
+try:
+    xrange
+except:
+    xrange=range
+
 import sys
 import os
 import shutil
@@ -20,11 +25,6 @@ from .util import Namer
 import argparse
 import esutil as eu
 from esutil.numpy_util import between
-
-try:
-    import reredux
-except ImportError:
-    pass
 
 class Summer(dict):
     def __init__(self, args):
@@ -135,12 +135,12 @@ class Summer(dict):
         else:
             if self.do_selection:
                 print("without correction")
-                junk=reredux.averaging.fit_m_c(self.means_nocorr)
-                junk=reredux.averaging.fit_m_c(self.means_nocorr,onem=True)
+                junk=fit_m_c(self.means_nocorr)
+                junk=fit_m_c(self.means_nocorr,onem=True)
                 print("\nwith correction")
 
-            self.fits=reredux.averaging.fit_m_c(self.means)
-            self.fitsone=reredux.averaging.fit_m_c(self.means,onem=True)
+            self.fits=fit_m_c(self.means)
+            self.fitsone=fit_m_c(self.means,onem=True)
 
 
     def get_run_output(self, run):
@@ -1173,3 +1173,85 @@ def add_sums(sums_in, new_sums):
             sums[n] += new_sums[n]
 
     return sums
+
+def fit_m_c(data, doprint=True, onem=False, max_shear=None, nocorr_select=False, nsig=2.0):
+
+    strue = data['shear_true']
+
+    sdiff = data['shear'] - data['shear_true']
+
+    serr  = data['shear_err']
+
+    if max_shear is not None:
+        stot_true = sqrt(strue[:,0]**2 + strue[:,1]**2)
+        w,=where(stot_true < max_shear)
+        if w.size == 0:
+            raise ValueError("no shears less than %g" % max_shear)
+        print("kept %d/%d with shear < %g" % (w.size,data.size,max_shear))
+        strue=strue[w,:]
+        sdiff=sdiff[w,:]
+        serr=serr[w,:]
+
+
+    m = numpy.zeros(2)
+    merr = numpy.zeros(2)
+    c = numpy.zeros(2)
+    cerr = numpy.zeros(2)
+
+    print("errors are %g sigma" % nsig)
+    if onem:
+        fits=numpy.zeros(1, dtype=[('m','f8'),
+                                   ('merr','f8'),
+                                   ('c1','f8'),
+                                   ('c1err','f8'),
+                                   ('c2','f8'),
+                                   ('c2err','f8')])
+
+
+        fitter=MCFitter(strue, sdiff, serr)
+        fitter.dofit()
+        res=fitter.get_result()
+
+        pars=res['pars']
+        perr=res['perr']
+        fits['m'] = pars[0]
+        fits['c1'] = pars[1]
+        fits['c2'] = pars[2]
+        fits['merr'] = perr[0]
+        fits['c1err'] = perr[1]
+        fits['c2err'] = perr[2]
+
+        if doprint:
+            print('  m:  %.3e +/- %.3e' % (pars[0],nsig*perr[0]))
+            print('  c1: %.3e +/- %.3e' % (pars[1],nsig*perr[1]))
+            print('  c2: %.3e +/- %.3e' % (pars[2],nsig*perr[2]))
+        return fits
+
+    fits=numpy.zeros(1, dtype=[('m','f8',2),
+                               ('merr','f8',2),
+                               ('c','f8',2),
+                               ('cerr','f8',2),
+                               ('r','f8',2)])
+
+    for i in [0,1]:
+
+        #c, c_err, m, m_err, covar = fitline(strue[:,i], sdiff[:,i])
+        res = fitline(strue[:,i], sdiff[:,i])
+        r = res['cov']/numpy.sqrt(res['slope_err']**2 * res['offset_err']**2)
+        fits['m'][0,i] = res['slope']
+        fits['merr'][0,i] = res['slope_err']
+        fits['c'][0,i] = res['offset']
+        fits['cerr'][0,i] = res['offset_err']
+        fits['r'][0,i] = r
+
+        if doprint:
+            print_m_c(i+1,
+                      res['slope'],
+                      nsig*res['slope_err'],
+                      res['offset'],
+                      nsig*res['offset_err'],
+                      r=r)
+
+    return fits
+
+

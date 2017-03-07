@@ -41,7 +41,7 @@ class MetacalMomentsFixed(SimpleFitterBase):
             '1p','1m','2p','2m',
         ]
         sym=mpars.get('symmetrize_psf',False)
-        if not sym:
+        if not sym and 'psf' not in mpars:
             deftypes += [
                 '1p_psf','1m_psf',
                 '2p_psf','2m_psf',
@@ -79,10 +79,8 @@ class MetacalMomentsFixed(SimpleFitterBase):
 
     def _get_metacal(self, obs):
         mcpars=self['metacal_pars']
-        analytic_psf=None
         odict=ngmix.metacal.get_all_metacal(
             obs,
-            psf=analytic_psf,
             rng=self.rng,
             **mcpars
         )
@@ -920,10 +918,8 @@ class MetacalMomentsAMMulti(MetacalMomentsAM):
  
     def _get_metacal(self, obs):
         mcpars=self['metacal_pars']
-        analytic_psf=None
         odict_list=get_all_metacal_multi(
             obs,
-            psf=analytic_psf,
             rng=self.rng,
             **mcpars
         )
@@ -1374,10 +1370,9 @@ class MetacalNullGaussFitter(SimpleFitterBase):
 
     def _get_metacal(self, obs):
         mcpars=self['metacal_pars']
-        analytic_psf=mcpars.get('analytic_psf',None)
+
         odict=ngmix.metacal.get_all_metacal(
             obs,
-            psf=analytic_psf,
             rng=self.rng,
             **mcpars
         )

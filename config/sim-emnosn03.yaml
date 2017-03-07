@@ -1,0 +1,49 @@
+# no shape noise
+# exp moffat
+
+name: "sim-emnosn03"
+
+simulator: "galsim"
+
+do_ring: True
+noise: 0.001
+
+psf_stamp_size: [48,48]
+
+psf:
+
+    s2n: 10000.0
+
+    model: "moffat"
+    beta: 3.5
+
+    r50: 2.0
+
+    shape: [0.0, 0.025]
+
+cen_shift:
+    radius: 0.5
+
+obj_model:
+
+    model: "exp"
+
+
+    g:
+        type: "ba"
+        sigma: 0.2
+
+    flux:
+        type: "lognormal"
+        mean: 180.0
+        sigma: 100.0
+
+    r50:
+        type: "lognormal"
+        mean: 3.0
+        sigma: 0.1
+
+shear:
+    type: 'const'
+
+    shears: [0.02, 0.00]

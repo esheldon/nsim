@@ -22,13 +22,14 @@ import ngmix
 import esutil as eu
 from esutil.numpy_util import between
 
+from . import psfs
 from . import sim as ngmixsim
 from ngmix.priors import srandu
 
 from .util import TryAgainError, load_gmixnd
 
 from . import pdfs
-from .pdfs import DiscreteSampler, PowerLaw, DiscreteHLRFluxSampler
+from .pdfs import DiscreteSampler, PowerLaw
 import galsim
 
 class SimGS(dict):
@@ -490,69 +491,11 @@ class SimGS(dict):
 
     def _get_psf_obj(self):
         """
-        get the galsim object for the psf
+        get the galsim object for the psf and a dict holding
+        r50,fwhm
         """
 
-        pspec = self['psf']
-
-        model=pspec['model']
-
-        r50, fwhm = self._get_psf_size()
-
-        if model=='moffat':
-            psf = galsim.Moffat(beta=pspec['beta'],
-                                half_light_radius=r50,
-                                fwhm=fwhm)
-        elif model=='gauss':
-            psf = galsim.Gaussian(half_light_radius=r50,
-                                  fwhm=fwhm)
-        else:
-            raise ValueError("bad psf model: '%s'" % model)
-
-        psf_g1, psf_g2 = self._get_psf_shape()
-        psf = psf.shear(g1=psf_g1, g2=psf_g2)
-
-        return psf, {'fwhm':fwhm, 'r50':r50}
-
-    def _get_psf_size(self):
-        r50=None
-        fwhm=None
-        if self.psf_r50_pdf is not None:
-            r50 = self.psf_r50_pdf.sample()
-            print("    psf r50: %g" % r50)
-        elif self.psf_fwhm_pdf is not None:
-            fwhm = self.psf_fwhm_pdf.sample()
-            print("    psf fwhm: %g" % fwhm)
-        elif 'r50' in self['psf']:
-            r50 = self['psf']['r50']
-        elif 'fwhm' in self['psf']:
-            fwhm = self['psf']['fwhm']
-        return r50, fwhm
-
-    def _get_psf_shape(self):
-        pspec = self['psf']
-
-        if self.psf_ellip_pdf is not None:
-            psf_g1, psf_g2 = self.psf_ellip_pdf.sample()
-            print("    psf (pdf) shape: %g %g" % (psf_g1, psf_g2))
-
-        elif 'randomized_orientation' in pspec:
-            ro=pspec['randomized_orientation']
-            if ro["dist"]=="uniform":
-                #angle = numpy.random.random()*2*numpy.pi
-                angle = self.rng.uniform()*2*numpy.pi
-                psf_shape = ngmix.Shape(ro['magnitude'], 0.0)
-                psf_shape.rotate(angle)
-                psf_g1 = psf_shape.g1
-                psf_g2 = psf_shape.g2
-                print("    psf rand orient. shape: %g %g" % (psf_g1, psf_g2))
-            else:
-                raise ValueError("only uniform randomized psf orientation for now")
-        else:
-            psf_g1=pspec['shape'][0]
-            psf_g2=pspec['shape'][1]
-
-        return psf_g1, psf_g2
+        return self.psf_sampler()
 
     def _get_galaxy_pars(self):
         """
@@ -716,58 +659,12 @@ class SimGS(dict):
         self.shear_pdf = shearpdf.get_shear_pdf(self)
 
     def _set_psf_pdf(self):
-        pspec = self['psf']
-
-        self.psf_r50_pdf=None
-        self.psf_fwhm_pdf=None
-
-        if 'fwhm' in pspec:
-            if isinstance(pspec['fwhm'], dict):
-                type=pspec['fwhm']['type']
-                if type=='discrete-pdf':
-                    fname=os.path.expandvars( pspec['fwhm']['file'] )
-                    print("Reading fwhm values from file:",fname)
-                    vals=numpy.fromfile(fname, sep='\n')
-                    psf_fwhm_pdf=DiscreteSampler(vals,
-                                                 rng=self.rng)
-                elif type=='lognormal':
-                    psf_fwhm_pdf=ngmix.priors.LogNormal(
-                        pspec['fwhm']['mean'],
-                        pspec['fwhm']['sigma'],
-                        rng=self.rng,
-                    )
-                else:
-                    raise ValueError("bad fwhm type: '%s'" % type)
-
-                if 'range' in pspec['fwhm']:
-                    bounds=pspec['fwhm']['range']
-                    print("   bounding psf fwhm to:",bounds)
-                    psf_fwhm_pdf = ngmix.priors.Bounded1D(psf_fwhm_pdf,bounds)
-
-                self.psf_fwhm_pdf  = psf_fwhm_pdf 
+        
+        if self['psf']['model'] == 'multi-component':
+            self.psf_sampler=psfs.MultiComponentPSF(self['psf'], self.rng)
         else:
-            if isinstance(pspec['r50'], dict):
-                r50pdf = pspec['r50']
-                assert r50pdf['type']=="lognormal","r50 pdf log normal for now"
+            self.psf_sampler=psfs.PSFSampler(self['psf'], self.rng)
 
-                self.psf_r50_pdf = ngmix.priors.LogNormal(
-                    r50pdf['mean'],
-                    r50pdf['sigma'],
-                    rng=self.rng,
-                )
-
-        if isinstance(pspec['shape'],dict):
-            ppdf=pspec['shape']
-            assert ppdf['type']=="normal2d"
-            self.psf_ellip_pdf=ngmix.priors.SimpleGauss2D(
-                ppdf['cen'][0],
-                ppdf['cen'][1],
-                ppdf['sigma'][0],
-                ppdf['sigma'][1],
-                rng=self.rng,
-            )
-        else:
-            self.psf_ellip_pdf=None
 
     def _set_g_pdf(self):
         if 'g' in self['obj_model']:

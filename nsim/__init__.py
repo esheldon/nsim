@@ -5,6 +5,8 @@ from . import simgs
 from . import fitters
 from . import moments
 
+from . import psfs
+
 from . import fwhm
 from . import util
 from . import sample

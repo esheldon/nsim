@@ -1,0 +1,38 @@
+# no shape noise
+# multiple-moffat
+
+name: "sim-emult01"
+
+simulator: "galsim"
+
+#do_ring: True
+noise: 0.001
+
+psf_stamp_size: [48,48]
+
+psf:
+
+    s2n: 10000.0
+
+    model: "multi-component"
+
+    components:
+        - {model: moffat, beta: 3.5, r50: 2.5, flux: 0.5, shapenoise: 0.025}
+        - {model: moffat, beta: 3.5, r50: 1.0, flux: 0.3, shapenoise: 0.05}
+        - {model: moffat, beta: 3.5, r50: 3.0, flux: 0.2, shapenoise: 0.01}
+
+cen_shift:
+    radius: 0.5
+
+obj_model:
+
+    model: "exp"
+
+    flux: 180.0
+
+    r50: 3.0
+
+shear:
+    type: 'const'
+
+    shears: [0.01, 0.00]

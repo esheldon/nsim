@@ -1,6 +1,8 @@
 # no shape noise
 # exp moffat
-# small psf
+# small psf and gal.  The psf is same as used
+# in bfd, the galaxy is a single size and flux so
+# we don't get variations in R
 
 name: "sim-emnosn06"
 

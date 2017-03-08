@@ -1015,8 +1015,9 @@ class SimBD(SimGS):
         bulge = galsim.DeVaucouleurs(flux=bulge_flux, half_light_radius=r50)
 
         # both disk and bulge get same overall shape
-        disk  = disk.shear(g1=g1, g2=g2)
-        bulge = bulge.shear(g1=g1, g2=g2)
+        if g1 is not None:
+            disk  = disk.shear(g1=g1, g2=g2)
+            bulge = bulge.shear(g1=g1, g2=g2)
 
         # the bulge can be offset from the disk
         dev_offset = pars['dev_offset']

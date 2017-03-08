@@ -1,0 +1,27 @@
+run: "run-bfd01r-mcal02"
+sim: "sim-bfd01r"
+
+fitter: "metacal-moments-am"
+
+global_seed: 2386
+
+s2n_min: 5.0
+
+metacal_pars:
+    psf: 'mingauss'
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+# with significant size variation, expect this
+# small number to have some remaining bias
+ngal: 10000000
+
+desired_hours: 3.25
+
+sec_per: 0.35
+
+jobs_per_condor_sub: 5000
+
+verbose: False

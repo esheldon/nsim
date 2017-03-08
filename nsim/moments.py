@@ -39,28 +39,33 @@ class MetacalMomentsFixed(SimpleFitterBase):
     def _setup(self, *args, **kw):
         super(MetacalMomentsFixed,self)._setup(*args, **kw)
 
+        self['metacal_pars'] = self.get('metacal_pars',{})
+
         mpars=self['metacal_pars']
-        deftypes=[
-            'noshear',
-            '1p','1m','2p','2m',
-        ]
-        sym=mpars.get('symmetrize_psf',False)
-        if not sym and 'psf' not in mpars:
-            deftypes += [
-                '1p_psf','1m_psf',
-                '2p_psf','2m_psf',
+
+        if 'types' not in mpars:
+            deftypes=[
+                'noshear',
+                '1p','1m','2p','2m',
             ]
+            sym=mpars.get('symmetrize_psf',False)
+            if not sym and 'psf' not in mpars:
+                deftypes += [
+                    '1p_psf','1m_psf',
+                    '2p_psf','2m_psf',
+                ]
 
-            if 'shear_pixelized_psf' in mpars:
-                assert mpars['shear_pixelized_psf']==True
-            elif 'prepix' in mpars:
-                assert mpars['prepix']==True
-            else:
-                raise ValueError("if not symmetrizing with am, must "
-                                 "set shear_pixelized_psf "
-                                 "or prepix")
+                if 'shear_pixelized_psf' in mpars:
+                    assert mpars['shear_pixelized_psf']==True
+                elif 'prepix' in mpars:
+                    assert mpars['prepix']==True
+                else:
+                    raise ValueError("if not symmetrizing with am, must "
+                                     "set shear_pixelized_psf "
+                                     "or prepix")
+            mpars['types'] = deftypes
 
-        self.metacal_types=mpars.get('types',deftypes)
+        self.metacal_types=mpars['types']
         print("doing types:",self.metacal_types)
 
 

@@ -1,0 +1,26 @@
+run: "run-emnosn07mcal01"
+sim: "sim-emnosn07"
+
+fitter: "metacal-moments-am"
+
+global_seed: 30187
+
+s2n_min: 5.0
+
+metacal_pars:
+    psf: "gauss"
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+ngal: 10000000
+
+desired_hours: 2.0
+
+# hmm.. slower for noisy psf
+sec_per: 0.4
+
+jobs_per_condor_sub: 5000
+
+verbose: False

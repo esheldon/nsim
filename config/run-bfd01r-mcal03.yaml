@@ -1,0 +1,29 @@
+# running with dk=stepK()/4
+
+run: "run-bfd01r-mcal03"
+sim: "sim-bfd01r"
+
+fitter: "metacal-moments-am"
+
+global_seed: 20659
+
+s2n_min: 5.0
+
+metacal_pars:
+    psf: 'gauss'
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+# with significant size variation, expect this
+# small number to have some remaining bias
+ngal: 1000000
+
+desired_hours: 0.325
+
+sec_per: 0.35
+
+jobs_per_condor_sub: 5000
+
+verbose: False

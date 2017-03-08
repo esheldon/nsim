@@ -1,0 +1,34 @@
+# noisy psf, so removed all other sources
+# of shape noise, including centering
+
+name: "sim-emnosn07"
+
+simulator: "galsim"
+
+noise: 0.001
+
+psf_stamp_size: [48,48]
+
+psf:
+
+    s2n: 400.0
+
+    model: "moffat"
+    beta: 3.5
+
+    r50: 1.5
+
+    shape: [0.0, 0.025]
+
+obj_model:
+
+    model: "exp"
+
+    flux: 180.0
+
+    r50: 2.0
+
+shear:
+    type: 'const'
+
+    shears: [0.01, 0.00]

@@ -1,0 +1,44 @@
+# noisy psf
+# similar to bfd but high s/n, round and no offsets
+# only thing varying is size of total object
+
+name: "sim-bfd02r"
+
+simulator: "galsim"
+
+noise: 0.001
+
+psf_stamp_size: [48,48]
+
+psf:
+
+    # typical psf s/n in DES
+    s2n: 400.0
+
+    model: "moffat"
+    beta: 3.5
+
+    r50: 1.5
+
+    # equivalent to [0.0, 0.05] for BFD e
+    shape: [0.0, 0.025]
+
+obj_model:
+
+    model: "bd"
+
+    flux: 180.0
+
+    r50:
+        type: "uniform"
+        range: [1.5, 3.0]
+
+    fracdev:
+        type: "uniform"
+        range: [0.0, 1.0]
+
+    dev_shift: null
+
+shear:
+    type: 'const'
+    shears: [0.01, 0.00]

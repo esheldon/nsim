@@ -1,0 +1,8 @@
+# using the guassian weight
+name: 'runs-emult02gauss'
+
+runs: [
+    'run-emult02mcal02',
+    'run-emult02mcal04',
+    'run-emult02mcal06',
+]

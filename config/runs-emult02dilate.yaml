@@ -1,0 +1,8 @@
+# using just dilation
+name: 'runs-emult02dilate'
+
+runs: [
+    'run-emult02mcal01',
+    'run-emult02mcal03',
+    'run-emult02mcal05',
+]

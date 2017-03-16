@@ -1094,6 +1094,162 @@ class SpergelFitter(SimpleFitterBase):
             # set outside of fitter
             d['ntry'][i] = res['ntry']
 
+
+class GalsimFitter(SimpleFitterBase):
+
+    def _get_guesser(self, obs):
+        r50guess_pixels = 2.0
+        scale=obs.jacobian.get_scale()
+        r50guess = r50guess_pixels*scale
+        flux_guess = obs.image.sum()
+
+        guesser=ngmix.guessers.R50FluxGuesser(
+            r50guess,
+            flux_guess,
+            prior=self.prior,
+        )
+
+        return guesser
+
+    def _get_runner(self, obs):
+
+        guesser=self._get_guesser(obs)
+
+        mconf=self['max_pars']
+        runner=ngmix.gsfit.GalsimRunner(
+            obs,
+            self['fit_model'],
+            guesser,
+            lm_pars=mconf['lm_pars'],
+            prior=self.prior,
+        )
+        return runner
+
+    def _fit_am(self, obs, ntry=4):
+        rng=self.rng
+
+        am=ngmix.admom.Admom(obs, maxiter=1000)
+        
+        scale=obs.jacobian.get_scale()
+        Tguess=4.0*scale
+
+        grange=0.02
+
+        for i in xrange(ntry):
+            pars=[
+                rng.uniform(low=-0.1*scale, high=0.1*scale),
+                rng.uniform(low=-0.1*scale, high=0.1*scale),
+                rng.uniform(low=-grange,high=grange),
+                rng.uniform(low=-grange,high=grange),
+                Tguess*(1.0 + rng.uniform(low=-0.1,high=0.1)),
+                1.0,
+            ]
+            guess=ngmix.GMixModel(pars, "gauss")
+
+            am.go(guess)
+            res=am.get_result()
+            if res['flags']==0:
+                break
+
+        if res['flags'] != 0:
+            raise TryAgainError("failed to fit psf: %s" % pres['flagstr'])
+
+        pgm=am.get_gmix()
+        g1,g2,T=pgm.get_g1g2T()
+
+        return g1,g2,T
+
+    def _dofit(self, imdict):
+        """
+        Fit according to the requested method
+        """
+
+        obs=imdict['obs']
+
+        mconf=self['max_pars']
+
+        try:
+            runner=self._get_runner(obs)
+
+            runner.go(ntry=mconf['ntry'])
+
+            fitter=runner.get_fitter() 
+            res=fitter.get_result()
+            if res['flags'] != 0:
+                raise TryAgainError("failed to fit galaxy")
+
+            g1,g2,T=self._fit_am(obs.psf)
+            res['gpsf'] = numpy.array([g1,g2])
+            res['Tpsf'] = T
+
+        except GMixRangeError as err:
+            raise TryAgainError("failed to fit galaxy: %s" % str(err))
+
+        return fitter
+
+    def _print_res(self,res):
+        """
+        print some stats
+        """
+
+        if 'nfev' in res:
+            mess="    s2n_r: %.1f  ntry: %d  nfev: %d"
+            mess = mess % (res['s2n_r'],res['ntry'],res['nfev'])
+            print(mess)
+
+        print_pars(res['pars'],      front='        pars: ')
+        print_pars(res['pars_err'],  front='        perr: ')
+
+        if res['pars_true'][0] is not None:
+            print_pars(res['pars_true'], front='        true: ')
+
+
+    def _get_dtype(self):
+        """
+        get the dtype for the output struct
+        """
+        npars=self['npars']
+
+        dt=super(GalsimFitter,self)._get_dtype()
+        dt += [
+            ('s2n_r','f8'),
+            ('nfev','i4'),
+            ('ntry','i4')
+        ]
+
+        return dt
+
+    def _copy_to_output(self, res, i):
+
+        # note super here
+        super(SimpleFitterBase,self)._copy_to_output(res, i)
+
+        d=self.data
+
+        d['pars'][i,:] = res['pars']
+        d['pars_cov'][i,:,:] = res['pars_cov']
+
+        if 'psf_pars' in res:
+            d['psf_pars'][i,:] = res['psf_pars']
+
+        d['g'][i,:] = res['g']
+        d['g_cov'][i,:,:] = res['g_cov']
+
+        if 'psf_T' in res:
+            d['psf_T'][i] = res['psf_T']
+
+        if 's2n_r' in res:
+            d['s2n_r'][i] = res['s2n_r']
+
+        if 'nfev' in res:
+            d['nfev'][i] = res['nfev']
+            # set outside of fitter
+            d['ntry'][i] = res['ntry']
+
+
+
+
+
 class SpergelMetacalFitter(SpergelFitter):
     def _setup(self, *args, **kw):
         super(SpergelMetacalFitter,self)._setup(*args, **kw)
@@ -1106,19 +1262,6 @@ class SpergelMetacalFitter(SpergelFitter):
         for t in ngmix.metacal.METACAL_REQUIRED_TYPES:
             if t not in self.metacal_types:
                 self.metacal_types.append(t)
-
-    def _get_analytic_psf(self, obs, pars):
-        import galsim
-        if pars['model']=='moffat':
-            obj=galsim.Moffat(
-                pars['beta'],
-                half_light_radius=pars['r50'],
-            )
-        else:
-            raise ValueError("bad analytic psf model: '%s'" % pars['model'])
-
-        obj = obj.withFlux(obs.psf.image.sum())
-        return obj
 
     def _dofit(self, imdict):
         """
@@ -1141,14 +1284,9 @@ class SpergelMetacalFitter(SpergelFitter):
             mc=ngmix.metacal.Metacal(obs)
             mcpars=self['metacal_pars']
 
-            if 'analytic_psf' in mcpars:
-                apsf=self._get_analytic_psf(obs, mcpars['analytic_psf'])
-            else:
-                apsf=None
 
             odict=ngmix.metacal.get_all_metacal(
                 obs,
-                psf=apsf,
                 rng=self.rng,
                 **mcpars
             )
@@ -1942,11 +2080,7 @@ class KMomMetacalFitter(SimpleFitterBase):
 
     def _set_metacal(self, obs):
         mpars=self['metacal_pars']
-        if ('analytic_psf' in mpars and
-                mpars['analytic_psf']['model']=='ksigma'):
-            self.kmcal=KMetacalKSigma(obs, mpars, self.rng)
-        else:
-            self.kmcal=KMetacal(obs, self['metacal_pars'], self.wtobj, self.rng)
+        self.kmcal=KMetacal(obs, self['metacal_pars'], self.wtobj, self.rng)
 
     def _do_metacal(self):
         res={}
@@ -2187,17 +2321,6 @@ class KMetacal(dict):
 
         self._setup()
 
-    def get_sheared_ps(self, type):
-        kr,ki,nkr,nki,self.wkr,self.wki=self.get_sheared_images(type)
-
-        ps = kr.array**2 + ki.array**2
-        nps = nkr.array**2 + nki.array**2
-
-        ps -= nps
-
-        wt2=self.wkr.array**2 + self.wki.array**2
-        return ps, wt2
-
     def get_sheared_images(self, type):
         """
         get the sheared image, reconvolved by psf and weight
@@ -2295,26 +2418,9 @@ class KMetacal(dict):
             psf=psf.dilate(shear_dilation)
 
             self.final_psf = psf
-        elif self['analytic_psf']:
-            psf=self._get_analytic_psf()
-            psf=psf.dilate(shear_dilation)
-            self.final_psf=psf
         else:
             raise RuntimeError("either symmetrize psf or analytic psf")
 
-    def _get_analytic_psf(self):
-        import galsim
-
-        pars=self['analytic_psf']
-        if pars['model']=='moffat':
-            obj=galsim.Moffat(
-                pars['beta'],
-                half_light_radius=pars['r50'],
-            )
-        else:
-            raise ValueError("bad analytic psf model: '%s'" % pars['model'])
-
-        return obj
 
     def _set_gal_gsobj(self):
 
@@ -2434,104 +2540,6 @@ class KMetacal(dict):
             im=self.kiscratch.copy(),
         )
         return kr, ki
-
-
-class KMetacalKSigma(KMetacal):
-    def __init__(self, obs, config, rng):
-        self.obs=obs
-        self.update(config)
-        self.rng=rng
-
-        self._setup()
-
-    def get_sheared_ps(self, type):
-        obj=self.ii_nopsf
-        nobj=self.nii_nopsf
-
-        shear=self.get_shear(type)
-        if shear is not None:
-            obj=obj.shear(g1=shear.g1, g2=shear.g2)
-
-            nshear=shear
-            if self['shear_noise']==True:
-                nobj=nobj.shear(g1=nshear.g1, g2=nshear.g2)
-
-        # returning weight for noise calculations
-        kr,ki=self._drawk(obj)
-        nkr,nki=self._drawk(nobj)
-
-        ps = kr.array**2 + ki.array**2
-        nps = nkr.array**2 + nki.array**2
-
-        if False:
-            self._plot_images(ps, nps, ps-nps, (ps-nps)*self.wps, 
-                              label1='PS', label2='NPS', label3='PS-NPS',
-                              label4='WPS*(PS-NPS)')
-
-
-        ps -= nps
-        ps  *= self.wps
-
-
-        if False:
-            self._plot_images(ps, self.wps, label1='PS Subtracted',label2='WPS')
-
-        return ps, self.wps
-
-    def _plot_images(self, im1, im2, im3, im4, label1='', label2='', label3='', label4=''):
-        import biggles
-        import images
-        tab=biggles.Table(4,1)
-
-        tab[0,0]=images.multiview(im1, title=label1, show=False) 
-        tab[1,0]=images.multiview(im2, title=label2, show=False) 
-        tab[2,0]=images.multiview(im3, title=label3, show=False) 
-        tab[3,0]=images.multiview(im4, title=label4, show=False) 
-
-        tab.write_img(1000,2000,'/u/ki/esheldon/public_html/tmp/plots/tmp.png')
-        if 'q'==raw_input('hit a key: '):
-            stop
-
-    def _set_psf_gsobj(self):
-        import deconv
-        obs=self.obs
-
-
-        # normalized
-        psf_gsimage = galsim.Image(
-            obs.psf.image/obs.psf.image.sum(),
-            wcs=obs.psf.jacobian.get_galsim_wcs(),
-        )
-        self.psf_ii = self._make_interpolated_image(psf_gsimage)
-        self.psf_ii_inv = galsim.Deconvolve(self.psf_ii)
-
-        self._set_dims_dk_jacob()
-
-        # sigma in real space
-        sigma=self['analytic_psf']['sigma']
-
-        # the k space size is in k pixels sigmak/dk
-        # since sigmak=1/sigma, then we want (1/sigma)/dk
-        # so multiply real space sigma by dk
-
-        sigma *= self.dk
-
-        cen=self.jacobian.get_cen()
-        N=4.0
-        kmax = numpy.sqrt(2*N)/sigma
-        if kmax > cen[0]:
-            raise ValueError("kmax exceeds rmax: %g > %g" % (kmax,cen[0]))
-
-        kwt=deconv.weight.KSigmaWeight(sigma)
-
-        wtim, rows, cols = kwt.get_weight(
-            [self.dim,self.dim],
-            cen,
-        )
-        self.wps = wtim**2
-
-    def _set_weight_image(self):
-        pass
 
 
 class MaxMetacalRoundAnalyticPSFFitter(MaxMetacalFitter):

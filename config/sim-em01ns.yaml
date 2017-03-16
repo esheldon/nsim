@@ -1,0 +1,49 @@
+# no shear
+name: "sim-em01ns"
+
+simulator: "galsim"
+
+noise: 0.1
+
+stamp_size: [48, 48]
+psf_stamp_size: [48,48]
+
+psf:
+
+    s2n: 10000.0
+
+    model: "moffat"
+    beta: 3.5
+
+    r50: 2.0
+
+    shape: [0.0, 0.0]
+
+cen_shift:
+    radius: 0.5
+
+obj_model:
+
+    model: "exp"
+
+    g:
+        type: ba
+        sigma: 0.2
+
+    #flux: 100.0
+    #r50: 3.0
+
+    flux:
+        type: "lognormal"
+        mean: 100.0
+        sigma: 20.0
+
+    r50:
+        type: "lognormal"
+        mean: 3.0
+        sigma: 0.1
+
+
+#shear:
+#    type: 'const'
+#    shears: [0.0, 0.0]

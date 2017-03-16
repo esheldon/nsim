@@ -215,10 +215,11 @@ class FitterBase(dict):
         self['use_logpars']=self.get('use_logpars',False)
 
         if 'fit_model' in self:
-            if self['fit_model']=='spergel':
-                self['npars']=7
-            elif self['fit_model']=='spergel-exp':
-                self['npars']=6
+            if self['fitter'] == 'galsim-max':
+                if self['fit_model']=='spergel':
+                    self['npars']=7
+                else:
+                    self['npars']=6
             else:
                 self['npars']=ngmix.gmix.get_model_npars(self['fit_model'])
         else:
@@ -940,161 +941,6 @@ class MaxMetacalFitter(MaxFitter):
 
 
 
-class SpergelFitter(SimpleFitterBase):
-
-    def _get_guesser(self, obs):
-        r50guess_pixels = 2.0
-        scale=obs.jacobian.get_scale()
-        r50guess = r50guess_pixels*scale
-        flux_guess = obs.image.sum()
-
-        # equivalent to sersic n=1, exponential
-        nuguess=0.5
-
-        guesser=ngmix.guessers.R50NuFluxGuesser(
-            r50guess,
-            nuguess,
-            flux_guess,
-            prior=self.prior,
-        )
-
-        return guesser
-
-    def _get_runner(self, obs):
-
-        guesser=self._get_guesser(obs)
-
-        mconf=self['max_pars']
-        runner=ngmix.spergel.SpergelRunner(
-            obs,
-            mconf['lm_pars'],
-            guesser,
-            prior=self.prior,
-        )
-        return runner
-
-    def _fit_am(self, obs, ntry=4):
-        rng=self.rng
-
-        am=ngmix.admom.Admom(obs, maxiter=1000)
-        
-        scale=obs.jacobian.get_scale()
-        Tguess=4.0*scale
-
-        grange=0.02
-
-        for i in xrange(ntry):
-            pars=[
-                rng.uniform(low=-0.1*scale, high=0.1*scale),
-                rng.uniform(low=-0.1*scale, high=0.1*scale),
-                rng.uniform(low=-grange,high=grange),
-                rng.uniform(low=-grange,high=grange),
-                Tguess*(1.0 + rng.uniform(low=-0.1,high=0.1)),
-                1.0,
-            ]
-            guess=ngmix.GMixModel(pars, "gauss")
-
-            am.go(guess)
-            res=am.get_result()
-            if res['flags']==0:
-                break
-
-        if res['flags'] != 0:
-            raise TryAgainError("failed to fit psf: %s" % pres['flagstr'])
-
-        pgm=am.get_gmix()
-        g1,g2,T=pgm.get_g1g2T()
-
-        return g1,g2,T
-
-    def _dofit(self, imdict):
-        """
-        Fit according to the requested method
-        """
-
-        obs=imdict['obs']
-
-        mconf=self['max_pars']
-
-        try:
-            runner=self._get_runner(obs)
-
-            runner.go(ntry=mconf['ntry'])
-
-            fitter=runner.get_fitter() 
-            res=fitter.get_result()
-            if res['flags'] != 0:
-                raise TryAgainError("failed to fit galaxy")
-
-            g1,g2,T=self._fit_am(obs.psf)
-            res['gpsf'] = numpy.array([g1,g2])
-            res['Tpsf'] = T
-
-        except GMixRangeError as err:
-            raise TryAgainError("failed to fit galaxy: %s" % str(err))
-
-        return fitter
-
-    def _print_res(self,res):
-        """
-        print some stats
-        """
-
-        if 'nfev' in res:
-            mess="    s2n_r: %.1f  ntry: %d  nfev: %d"
-            mess = mess % (res['s2n_r'],res['ntry'],res['nfev'])
-            print(mess)
-
-        print_pars(res['pars'],      front='        pars: ')
-        print_pars(res['pars_err'],  front='        perr: ')
-
-        if res['pars_true'][0] is not None:
-            print_pars(res['pars_true'], front='        true: ')
-
-
-    def _get_dtype(self):
-        """
-        get the dtype for the output struct
-        """
-        npars=self['npars']
-
-        dt=super(SpergelFitter,self)._get_dtype()
-        dt += [
-            ('s2n_r','f8'),
-            ('nfev','i4'),
-            ('ntry','i4')
-        ]
-
-        return dt
-
-    def _copy_to_output(self, res, i):
-
-        # note super here
-        super(SimpleFitterBase,self)._copy_to_output(res, i)
-
-        d=self.data
-
-        d['pars'][i,:] = res['pars']
-        d['pars_cov'][i,:,:] = res['pars_cov']
-
-        if 'psf_pars' in res:
-            d['psf_pars'][i,:] = res['psf_pars']
-
-        d['g'][i,:] = res['g']
-        d['g_cov'][i,:,:] = res['g_cov']
-
-        if 'psf_T' in res:
-            d['psf_T'][i] = res['psf_T']
-
-        if 's2n_r' in res:
-            d['s2n_r'][i] = res['s2n_r']
-
-        if 'nfev' in res:
-            d['nfev'][i] = res['nfev']
-            # set outside of fitter
-            d['ntry'][i] = res['ntry']
-
-
 class GalsimFitter(SimpleFitterBase):
 
     def _get_guesser(self, obs):
@@ -1116,7 +962,7 @@ class GalsimFitter(SimpleFitterBase):
         guesser=self._get_guesser(obs)
 
         mconf=self['max_pars']
-        runner=ngmix.gsfit.GalsimRunner(
+        runner=ngmix.galsimfit.GalsimRunner(
             obs,
             self['fit_model'],
             guesser,
@@ -1245,6 +1091,28 @@ class GalsimFitter(SimpleFitterBase):
             d['nfev'][i] = res['nfev']
             # set outside of fitter
             d['ntry'][i] = res['ntry']
+
+
+class SpergelFitter(GalsimFitter):
+
+    def _get_guesser(self, obs):
+        r50guess_pixels = 2.0
+        scale=obs.jacobian.get_scale()
+        r50guess = r50guess_pixels*scale
+        flux_guess = obs.image.sum()
+
+        # equivalent to sersic n=1, exponential
+        nuguess=0.5
+
+        guesser=ngmix.guessers.R50NuFluxGuesser(
+            r50guess,
+            nuguess,
+            flux_guess,
+            prior=self.prior,
+        )
+
+        return guesser
+
 
 
 
@@ -1433,40 +1301,7 @@ class SpergelMetacalFitter(SpergelFitter):
         print_pars(res['pars_true'], front='        true: ')
 
 
-
-class SpergelExpFitter(SpergelFitter):
-    """
-    fit the spergel model with nu=0.5, an exponential disk
-    """
-    def _get_guesser(self, obs):
-
-        r50guess_pixels = 2.0
-        scale=obs.jacobian.get_scale()
-        r50guess = r50guess_pixels*scale
-        flux_guess = obs.image.sum()
-
-        guesser=ngmix.guessers.R50FluxGuesser(
-            r50guess,
-            flux_guess,
-            prior=self.prior,
-        )
-
-        return guesser
-
-    def _get_runner(self, obs):
-
-        guesser=self._get_guesser(obs)
-
-        mconf=self['max_pars']
-        runner=ngmix.spergel.SpergelExpRunner(
-            obs,
-            mconf['lm_pars'],
-            guesser,
-            prior=self.prior,
-        )
-        return runner
-
-class SpergelMetacalExpFitter(SpergelMetacalFitter):
+class GalsimMetacalFitter(SpergelMetacalFitter):
     # argh, need to fix this, the code is duplicated
     def _get_guesser(self, obs):
 
@@ -1488,13 +1323,15 @@ class SpergelMetacalExpFitter(SpergelMetacalFitter):
         guesser=self._get_guesser(obs)
 
         mconf=self['max_pars']
-        runner=ngmix.spergel.SpergelExpRunner(
+        runner=ngmix.galsimfit.GalsimRunner(
             obs,
+            self['fit_model'],
             mconf['lm_pars'],
             guesser,
             prior=self.prior,
         )
         return runner
+
 
 class KMomMetacalFitterPost(SimpleFitterBase):
     """

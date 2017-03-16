@@ -1,14 +1,17 @@
-# spergel profile
+# exp profile with galsim fitter
 run: "run-em01ns-max01"
 sim: "sim-em01ns"
 
-fitter: "spergel-exp"
+fitter: "galsim-max"
+fit_model: "spergel"
 
-global_seed: 1017
+global_seed: 1011
 
 priors:
-    # for spergel, this is really a combined
-    # offset from the centers for the PSF and galaxy
+
+    # for k space fitting, this is really a combined offset from the centers
+    # for the PSF and galaxy
+
     cen:
         type: "normal2d"
         sigma: 1.0
@@ -25,6 +28,10 @@ priors:
         type: "ba"
         sigma: 0.2
 
+    nu:
+        type: "flat"
+        pars: [-0.8, 3.5]
+
 max_pars:
     ntry: 5
     lm_pars:
@@ -37,9 +44,9 @@ max_pars:
 
 ngal: 100000
 
-desired_hours: 0.10
+desired_hours: 0.0
 
 # 0.12 for fitting
-sec_per: 0.13
+sec_per: 0.02
 
 verbose: False

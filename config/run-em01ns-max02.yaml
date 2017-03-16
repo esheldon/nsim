@@ -2,10 +2,8 @@
 run: "run-em01ns-max02"
 sim: "sim-em01ns"
 
-fitter: "gsmax"
-#fit_model: "exp"
-#fit_model: "dev"
-#fit_model: "gauss"
+fitter: "galsim-max"
+fit_model: "exp"
 
 global_seed: 101
 
@@ -44,7 +42,6 @@ ngal: 100000
 
 desired_hours: 0.10
 
-# 0.12 for fitting
-sec_per: 0.13
+sec_per: 0.02
 
 verbose: False

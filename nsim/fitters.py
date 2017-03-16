@@ -1101,8 +1101,9 @@ class SpergelFitter(GalsimFitter):
         r50guess = r50guess_pixels*scale
         flux_guess = obs.image.sum()
 
-        # equivalent to sersic n=1, exponential
-        nuguess=0.5
+        # 0.5 is equivalent to sersic n=1, exponential
+        nuguess=numpy.random.uniform(low=0.0,high=1.0)
+        #nuguess = self.prior.nu_prior.sample()
 
         guesser=ngmix.guessers.R50NuFluxGuesser(
             r50guess,

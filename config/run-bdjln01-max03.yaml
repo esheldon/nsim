@@ -1,0 +1,53 @@
+run: "run-bdjln01-max03"
+sim: "sim-bdjln01"
+
+fitter: "max"
+fit_model: "exp"
+
+global_seed: 38
+
+priors:
+
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+
+    T:
+        type: "flat"
+        pars: [-0.1, 10000.0]
+
+
+    counts:
+        type: "flat"
+        pars: [0.001, 4000.0]
+
+    g:
+        type: "ba"
+        sigma: 0.2
+
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+max_pars:
+    ntry: 5
+    method: 'lm'
+    lm_pars:
+        maxfev: 1000
+    cov:
+        replace_cov: False
+        cov_pars:
+            m: 5
+            h: 1.0e-3
+
+
+ngal: 100000
+
+desired_hours: 0.07
+
+# 0.12 for fitting
+sec_per: 0.025
+
+verbose: False

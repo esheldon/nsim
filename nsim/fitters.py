@@ -646,9 +646,12 @@ class MaxFitter(SimpleFitterBase):
             raise TryAgainError("failed to fit psf")
 
         mconf=self['max_pars']
+        covconf=mconf['cov']
+
         try:
             boot.fit_max(self['fit_model'],
-                         mconf['pars'],
+                         #mconf['pars'],
+                         mconf,
                          prior=self.prior,
                          ntry=mconf['ntry'])
 
@@ -664,8 +667,9 @@ class MaxFitter(SimpleFitterBase):
             res['psf_T'] = imdict['obs'].psf.gmix.get_T()
             res['psf_T_r'] = rres['psf_T_r']
 
-            if mconf['replace_cov']:
-                boot.try_replace_cov(mconf['cov_pars'])
+
+            if covconf['replace_cov']:
+                boot.try_replace_cov(covconf['cov_pars'])
 
             if self['use_round_T']:
                 res['T_s2n_r'] = boot.get_max_fitter().get_T_s2n()

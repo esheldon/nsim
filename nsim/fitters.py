@@ -431,7 +431,13 @@ class SimpleFitterBase(FitterBase):
                     T_prior = ngmix.priors.Normal(logT_mean, logT_sigma, rng=self.rng)
 
                 else:
-                    T_prior = ngmix.priors.LogNormal(Tp['mean'],Tp['sigma'], rng=self.rng)
+                    shift=Tp.get('shift',None)
+                    T_prior = ngmix.priors.LogNormal(
+                        Tp['mean'],
+                        Tp['sigma'],
+                        shift=shift,
+                        rng=self.rng,
+                    )
 
             elif Tp['type']=="two-sided-erf":
                 T_prior_pars = Tp['pars']
@@ -451,7 +457,12 @@ class SimpleFitterBase(FitterBase):
 
             elif r50p['type']=='lognormal':
 
-                r50_prior = ngmix.priors.LogNormal(r50p['mean'],r50p['sigma'], rng=self.rng)
+                r50_prior = ngmix.priors.LogNormal(
+                    r50p['mean'],
+                    r50p['sigma'],
+                    shift=r50p.get('shift',None),
+                    rng=self.rng,
+                )
 
             elif r50p['type']=="two-sided-erf":
                 r50_prior=ngmix.priors.TwoSidedErf(*r50p['pars'], rng=self.rng)
@@ -468,6 +479,15 @@ class SimpleFitterBase(FitterBase):
 
             if nup['type']=="gmixnd":
                 nu_prior = load_gmixnd(nup, rng=self.rng)
+
+            elif nup['type']=='lognormal':
+                nu_prior = ngmix.priors.LogNormal(
+                    nup['mean'],
+                    nup['sigma'],
+                    shift=nup.get('shift',None),
+                    rng=self.rng,
+                )
+
 
             elif nup['type']=="two-sided-erf":
                 nu_prior=ngmix.priors.TwoSidedErf(*nup['pars'], rng=self.rng)
@@ -518,7 +538,14 @@ class SimpleFitterBase(FitterBase):
                 )
 
             else:
-                counts_prior = ngmix.priors.LogNormal(cp['mean'],cp['sigma'], rng=self.rng)
+                counts_prior = ngmix.priors.LogNormal(
+                    cp['mean'],
+                    cp['sigma'],
+                    shift=cp.get('shift',None),
+                    rng=self.rng,
+                )
+
+
 
 
         elif cp['type']=='normal':

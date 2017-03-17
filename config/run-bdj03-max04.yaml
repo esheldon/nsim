@@ -1,0 +1,53 @@
+run: "run-bdj03-max04"
+sim: "sim-bdj03"
+
+fitter: "galsim-max"
+fit_model: "spergel"
+
+global_seed: 5
+
+s2n_min: 5.0
+
+priors:
+
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    r50:
+        type: "lognormal"
+        mean: 0.3
+        sigma: 0.15
+
+    counts:
+        type: "flat"
+        pars: [0.001, 4000.0]
+
+    g:
+        type: "ba"
+        sigma: 0.2
+
+    nu:
+        type: "lognormal"
+        mean: 1.0
+        sigma: 0.7
+        shift: -1
+
+max_pars:
+    ntry: 5
+    lm_pars:
+        maxfev: 1000
+    cov:
+        replace_cov: False
+        cov_pars:
+            m: 5
+            h: 1.0e-3
+
+ngal: 100000
+
+desired_hours: 0.25
+
+# 0.12 for fitting
+sec_per: 0.07
+
+verbose: False

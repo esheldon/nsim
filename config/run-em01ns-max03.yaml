@@ -1,0 +1,48 @@
+run: "run-em01ns-max03"
+sim: "sim-em01ns"
+
+fitter: "galsim-max"
+fit_model: "exp"
+
+global_seed: 93412
+
+s2n_min: 5.0
+
+priors:
+
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    counts:
+        type: "lognormal"
+        mean: 100.0
+        sigma: 20.0
+
+    r50:
+        type: "lognormal"
+        mean: 3.0
+        sigma: 0.1
+
+
+    g:
+        type: "ba"
+        sigma: 0.2
+
+max_pars:
+    ntry: 5
+    lm_pars:
+        maxfev: 1000
+    cov:
+        replace_cov: False
+        cov_pars:
+            m: 5
+            h: 1.0e-3
+
+ngal: 200000
+
+desired_hours: 0.1
+
+sec_per: 0.30
+
+verbose: False

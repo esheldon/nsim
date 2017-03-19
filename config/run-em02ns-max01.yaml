@@ -18,10 +18,15 @@ priors:
         type: "lognormal"
         mean: 100.0
         sigma: 20.0
+    #r50:
+    #    type: "lognormal"
+    #    mean: 0.3
+    #    sigma: 0.15
     r50:
-        type: "lognormal"
+        type: "normal"
         mean: 0.3
         sigma: 0.15
+
 
     #r50:
     #    type: "flat"

@@ -420,7 +420,11 @@ class SimpleFitterBase(FitterBase):
 
             elif Tp['type']=='normal':
                 Tpars=Tp['pars']
-                T_prior=ngmix.priors.Normal(Tpars[0], Tpars[1], rng=self.rng)
+                T_prior=ngmix.priors.Normal(
+                    Tp['mean'],
+                    Tp['sigma'],
+                    rng=self.rng,
+                )
 
             elif Tp['type']=='lognormal':
 
@@ -454,6 +458,14 @@ class SimpleFitterBase(FitterBase):
 
             if r50p['type']=="gmixnd":
                 r50_prior = load_gmixnd(r50p, rng=self.rng)
+
+            elif r50p['type']=='normal':
+                T_prior=ngmix.priors.Normal(
+                    r50p['mean'],
+                    r50p['sigma'],
+                    rng=self.rng,
+                )
+
 
             elif r50p['type']=='lognormal':
 
@@ -549,8 +561,11 @@ class SimpleFitterBase(FitterBase):
 
 
         elif cp['type']=='normal':
-            cpars=cp['pars']
-            counts_prior=ngmix.priors.Normal(cpars[0], cpars[1], rng=self.rng)
+            counts_prior=ngmix.priors.Normal(
+                cp['mean'],
+                cp['sigma'],
+                rng=self.rng,
+            )
 
         elif cp['type']=="two-sided-erf":
             counts_prior=ngmix.priors.TwoSidedErf(*cp['pars'], rng=self.rng)
@@ -975,6 +990,7 @@ class MaxMetacalFitter(MaxFitter):
 class GalsimFitter(SimpleFitterBase):
 
     def _get_guesser(self, obs):
+        '''
         r50guess_pixels = 2.0
         scale=obs.jacobian.get_scale()
         r50guess = r50guess_pixels*scale
@@ -985,6 +1001,9 @@ class GalsimFitter(SimpleFitterBase):
             flux_guess,
             prior=self.prior,
         )
+        '''
+
+        guesser=ngmix.guessers.PriorGuesser(self.prior)   
 
         return guesser
 

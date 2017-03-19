@@ -31,9 +31,6 @@ obj_model:
         type: ba
         sigma: 0.2
 
-    #flux: 100.0
-    #r50: 3.0
-
     flux:
         type: "lognormal"
         mean: 100.0

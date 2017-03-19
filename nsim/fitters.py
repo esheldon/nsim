@@ -1155,12 +1155,16 @@ class SpergelFitter(GalsimFitter):
         nuguess=numpy.random.uniform(low=0.0,high=1.0)
         #nuguess = self.prior.nu_prior.sample()
 
-        guesser=ngmix.guessers.R50NuFluxGuesser(
-            r50guess,
-            nuguess,
-            flux_guess,
-            prior=self.prior,
-        )
+        if True==self.get('guess_prior',False):
+            #print("using prior guesser")
+            guesser=ngmix.guessers.PriorGuesser(self.prior)
+        else:
+            guesser=ngmix.guessers.R50NuFluxGuesser(
+                r50guess,
+                nuguess,
+                flux_guess,
+                prior=self.prior,
+            )
 
         return guesser
 

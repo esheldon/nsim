@@ -8,6 +8,8 @@ global_seed: 5
 
 s2n_min: 5.0
 
+guess_prior: True
+
 priors:
 
     cen:
@@ -20,8 +22,14 @@ priors:
         sigma: 0.15
 
     counts:
-        type: "flat"
-        pars: [0.001, 4000.0]
+        type: "lognormal"
+        mean: 30.0
+        sigma: 40.0
+
+
+    #counts:
+    #    type: "flat"
+    #    pars: [0.001, 4000.0]
 
     g:
         type: "ba"
@@ -29,9 +37,9 @@ priors:
 
     nu:
         type: "lognormal"
-        mean: 1.0
+        mean: 0.84
         sigma: 0.7
-        shift: -1
+        shift: -0.84
 
 max_pars:
     ntry: 5
@@ -45,9 +53,8 @@ max_pars:
 
 ngal: 100000
 
-desired_hours: 0.25
+desired_hours: 0.1
 
-# 0.12 for fitting
-sec_per: 0.07
+sec_per: 0.30
 
 verbose: False

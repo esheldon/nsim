@@ -593,7 +593,8 @@ class Summer(dict):
 
         Tpsf = self._get_psf_T(data, w)
 
-        Tratio = T_r/Tpsf
+        if Tpsf is not None:
+            Tratio = T_r/Tpsf
 
         if self.namer('flux_s2n') in data.dtype.names:
             flux_s2n = self._get_flux_s2n(data, w, type=type)
@@ -630,7 +631,11 @@ class Summer(dict):
             return None
 
     def _get_psf_T(self, data, w):
-        return data['mcal_psfrec_T'][w]
+        n='mcal_psfrec_T'
+        if n in data.dtype.names:
+            return data['mcal_psfrec_T'][w]
+        else:
+            return None
 
 
     def _get_s2n(self, data, w, type=None):

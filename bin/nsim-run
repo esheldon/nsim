@@ -120,10 +120,11 @@ def run_sim(sim_conf,
         else:
             fitclass=nsim.fitters.GalsimFitter
 
-    #elif ftype=='galsim-metacal':
-    #    fitclass=nsim.fitters.GalsimMetacalFitter
-    #elif ftype=='spergel-metacal':
-    #    fitclass=nsim.fitters.SpergelMetacalFitter
+    elif ftype=='galsim-metacal':
+        if run_conf['fit_model']=='spergel':
+            fitclass=nsim.fitters.SpergelMetacalFitter
+        else:
+            fitclass=nsim.fitters.GalsimMetacalFitter
 
 
     elif ftype=='max-resid':

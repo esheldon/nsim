@@ -215,7 +215,7 @@ class FitterBase(dict):
         self['use_logpars']=self.get('use_logpars',False)
 
         if 'fit_model' in self:
-            if self['fitter'] == 'galsim-max':
+            if 'galsim' in self['fitter']:
                 if self['fit_model']=='spergel':
                     self['npars']=7
                 else:
@@ -1285,7 +1285,6 @@ class SpergelMetacalFitter(SpergelFitter):
 
             dt += [
                 ('mcal_s2n_r%s' % back,'f8'),
-                ('mcal_s2n%s' % back,'f8'),
 
                 ('mcal_r50%s' % back,'f8'),
                 ('mcal_r50_s2n%s' % back,'f8'),
@@ -1318,7 +1317,6 @@ class SpergelMetacalFitter(SpergelFitter):
             d['mcal_g%s' % back][i] = tres['g']
             d['mcal_g_cov%s' % back][i] = tres['g_cov']
 
-            d['mcal_s2n%s' % back][i] = tres['s2n_w']
             d['mcal_s2n_r%s' % back][i] = tres['s2n_r']
 
             r50 = tres['pars'][4]
@@ -1345,9 +1343,8 @@ class SpergelMetacalFitter(SpergelFitter):
 
         subres=res['noshear']
 
-        s2n_rat = subres['s2n_r']/subres['s2n']
-        mess="    mcal s2n: %.1f s2n_r: %.1f rat: %g nfev: %d"
-        print(mess % (subres['s2n'],subres['s2n_r'],s2n_rat,subres['nfev']))
+        mess="    mcal s2n_r: %.1f nfev: %d"
+        print(mess % (subres['s2n_r'],subres['nfev']))
 
 
         print_pars(subres['pars'],      front='        pars: ')

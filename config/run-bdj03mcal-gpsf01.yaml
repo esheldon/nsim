@@ -1,0 +1,27 @@
+# Mike'sgauss psf
+run: "run-bdj03mcal-gpsf01"
+sim: "sim-bdj03"
+
+fitter: "metacal-moments-am"
+
+global_seed: 27302
+
+s2n_min: 5.0
+
+metacal_pars:
+    fixnoise: True
+    psf: "gauss"
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+ngal: 20000000
+
+desired_hours: 1.0
+
+sec_per: 0.4
+
+jobs_per_condor_sub: 5000
+
+verbose: False

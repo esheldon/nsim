@@ -31,6 +31,12 @@ DEFTYPES=[
 
 
 class MetacalMomentsAM(SimpleFitterBase):
+    """
+    TODO:
+
+        - flux no longer from am
+
+    """
     def _setup(self, *args, **kw):
         super(MetacalMomentsAM,self)._setup(*args, **kw)
 
@@ -71,11 +77,16 @@ class MetacalMomentsAM(SimpleFitterBase):
 
         obs=imdict['obs']
 
-        # measuring fluxes
-        if 'fit_model' in self:
-            pass
-
         psfres, fitter = self._measure_moments(obs.psf, doround=False)
+
+        if 'fit_model' in self:
+            # measuring fluxes.  We will use this model for template
+            # flux fitting in the metacal step
+            flux_fitter = self._fit_flux_model(obs)
+            flux_result=flux_fitter.get_result()
+            if flux_result['flags'] != 0:
+                raise TryAgainError("        flux fitting failed")
+            self.model_galsim_obj = flux_fitter.make_model(flux_result['pars'])
 
         obsdict=self._get_metacal(obs)
 
@@ -84,6 +95,9 @@ class MetacalMomentsAM(SimpleFitterBase):
         res['psf'] = {}
         res['psf']['g'] = psfres['g']
         res['psf']['T'] = psfres['T']
+
+        if 'fit_model' in self:
+            res['model_result'] = flux_result
 
         res['flags']=0
         return res
@@ -107,13 +121,14 @@ class MetacalMomentsAM(SimpleFitterBase):
             if doround:
                 if res['flags'] != 0:
                     continue
-                self._set_flux(obs,fitter)
+                #self._set_flux(obs,fitter)
 
             if res['flags'] == 0:
                 break
 
         if res['flags'] != 0:
             raise TryAgainError("        admom failed")
+
 
         self._set_some_pars(res)
         if doround:
@@ -159,9 +174,9 @@ class MetacalMomentsAM(SimpleFitterBase):
             if tres['flags'] != 0:
                 raise TryAgainError("        bad T")
 
+            self._set_template_flux(obs, tres)
 
             if type=='noshear':
-                #pres,fitter=self._measure_moments(obs.psf_nopix)
                 pres,fitter=self._measure_moments(obs.psf, doround=False)
                 tres['psfrec_g'] = pres['g']
                 tres['psfrec_T'] = pres['T']
@@ -170,8 +185,66 @@ class MetacalMomentsAM(SimpleFitterBase):
 
         return res
 
+    def _fit_flux_model(self, obs):
 
-    def _set_flux(self, obs, amfitter):
+        mconf=self['max_pars']
+
+        runner=self._get_runner(obs)
+
+        try:
+
+            runner.go(ntry=mconf['ntry'])
+
+            fitter=runner.get_fitter() 
+            res=fitter.get_result()
+            if res['flags'] != 0:
+                raise TryAgainError("failed to fit galaxy")
+
+        except ngmix.GMixRangeError as err:
+            raise TryAgainError("failed to fit galaxy: %s" % str(err))
+
+        return fitter
+
+
+    def _get_runner(self, obs):
+
+        guesser=ngmix.guessers.PriorGuesser(self.prior)
+
+        mconf=self['max_pars']
+        runner=ngmix.galsimfit.GalsimRunner(
+            obs,
+            self['fit_model'],
+            guesser,
+            lm_pars=mconf['lm_pars'],
+            prior=self.prior,
+        )
+        return runner
+
+    def _set_template_flux(self, obs, res):
+
+        try:
+            # we use simulate_s2n=True since there is correlated
+            # noise in the metacal images
+            ffitter=ngmix.galsimfit.GalsimTemplateFluxFitter(
+                obs,
+                self.model_galsim_obj,
+                obs.psf.galsim_obj,
+                simulate_s2n=True,
+                rng=self.rng,
+            )
+            ffitter.go()
+            fres=ffitter.get_result()
+            if fres['flags'] != 0:
+                raise TryAgainError("        template flux failure")
+
+            res['flux'] = fres['flux']
+            res['flux_err'] = fres['flux_err']
+            res['flux_s2n'] = fres['flux']/fres['flux_err']
+        except ngmix.GMixRangeError as err:
+            raise TryAgainError(str(err))
+
+ 
+    def _set_flux_old(self, obs, amfitter):
         try:
             gmix=amfitter.get_gmix()
 
@@ -235,6 +308,12 @@ class MetacalMomentsAM(SimpleFitterBase):
         d['psfrec_g'][i] = pres['g']
         d['psfrec_T'][i] = pres['T']
 
+        if 'fit_model' in self:
+            n=self._get_namer()
+            model_res=res['model_result']
+            for name in ['pars','pars_cov','g','g_cov','s2n_r']:
+                d[n(name)][i] = model_res[name]
+
 
         for type in self.metacal_types:
 
@@ -269,7 +348,9 @@ class MetacalMomentsAM(SimpleFitterBase):
         """
         get the dtype for the output struct
         """
-        npars=self['npars']
+
+        # always 6 for am
+        npars=6
 
         dt=super(MetacalMomentsAM,self)._get_dtype()
         dt += [
@@ -323,6 +404,13 @@ class MetacalMomentsAM(SimpleFitterBase):
             preres=res['prefit']
             print("    s2n: %g" % preres['s2n'])
 
+        if 'fit_model' in self:
+            mres=res['model_result']
+            pars=mres['pars']
+            perr=mres['pars_err']
+            print_pars(pars,front='    model:')
+            print_pars(perr,front='          ')
+
         s2n=subres['s2n']
         g=subres['g']
 
@@ -330,7 +418,7 @@ class MetacalMomentsAM(SimpleFitterBase):
         gerr=diag(sqrt(cov))
 
         print("    mcal s2n: %g  e:  %g +/- %g  %g +/- %g" % (s2n,g[0],gerr[0],g[1],gerr[1]))
-        #print_pars(subres['pars'],      front='        pars: ')
+        print("        flux: %g +/- %g flux_s2n:  %g" % (subres['flux'],subres['flux_err'],subres['flux_s2n']))
 
 
     def _do_plots(self, obs, gmix=None):

@@ -215,13 +215,13 @@ class FitterBase(dict):
         self['use_logpars']=self.get('use_logpars',False)
 
         if 'fit_model' in self:
-            if 'galsim' in self['fitter']:
-                if self['fit_model']=='spergel':
-                    self['npars']=7
-                else:
-                    self['npars']=6
+            if 'spergel' in self['fit_model']:
+                self['npars']=7
             else:
-                self['npars']=ngmix.gmix.get_model_npars(self['fit_model'])
+                if 'galsim' in self['fitter']:
+                    self['npars']=6
+                else:
+                    self['npars']=ngmix.gmix.get_model_npars(self['fit_model'])
         else:
             # default to 6
             self['npars']=6
@@ -613,6 +613,13 @@ class SimpleFitterBase(FitterBase):
         return prior
 
 
+    def _get_namer(self):
+        if 'fit_model' in self:
+            front=self['fit_model']
+        else:
+            front=None
+
+        return util.Namer(front=front)
 
     def _get_dtype(self):
         """
@@ -620,14 +627,15 @@ class SimpleFitterBase(FitterBase):
         """
         npars=self['npars']
 
+        n=self._get_namer()
 
         dt=super(SimpleFitterBase,self)._get_dtype()
         dt += [
-            ('pars','f8',npars),
-            ('pars_cov','f8',(npars,npars)),
-            ('g','f8',2),
-            ('g_cov','f8',(2,2)),
-            ('s2n','f8'),
+            (n('pars'),     'f8',npars),
+            (n('pars_cov'), 'f8',(npars,npars)),
+            (n('g'),        'f8',2),
+            (n('g_cov'),    'f8',(2,2)),
+            (n('s2n_r'),    'f8'),
         ]
 
         if 'psf_npars' in self:

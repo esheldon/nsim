@@ -355,7 +355,6 @@ class SimGS(dict):
         keys['width']=1000
         keys['height']=1000
         images.compare_images(im1, im2, 
-                              #file='/u/ki/esheldon/public_html/tmp/plots/tmp.png',
                               **keys)
         key=raw_input('hit a key: ')
         if key=='q':
@@ -472,6 +471,9 @@ class SimGS(dict):
             gal = galsim.Exponential(flux=flux, half_light_radius=r50)
         elif pars['model']=='dev':
             gal = galsim.DeVaucouleurs(flux=flux, half_light_radius=r50)
+        elif pars['model']=='spergel':
+            nu=pars['nu']
+            gal = galsim.Spergel(nu=nu, flux=flux, half_light_radius=r50)
         else:
             raise ValueError("bad galaxy model: '%s'" % pars['model'])
 
@@ -549,6 +551,9 @@ class SimGS(dict):
                 's2n':s2n,
                 'r50':r50,
                 'size':r50}
+
+        if self['model']=='spergel':
+            pars['nu'] = self.nu_pdf.sample()
 
         if self.shear_pdf is not None:
             shear,shindex = self.shear_pdf.get_shear(self.rng)
@@ -652,6 +657,9 @@ class SimGS(dict):
         self._set_cen_pdf()
         self._set_shear_pdf()
 
+        if self['model']=='spergel':
+            self._set_nu_pdf()
+
     def _set_shear_pdf(self):
         from . import shearpdf
 
@@ -708,6 +716,39 @@ class SimGS(dict):
                     raise ValueError("bad r50 pdf type: '%s'" % r50spec['type'])
         else:
             self.r50_pdf=None
+
+
+    def _set_nu_pdf(self):
+        nuspec = self['obj_model']['nu']
+
+        if not isinstance(nuspec,dict):
+            self.nu_pdf=DiscreteSampler([nuspec], rng=self.rng)
+        else:
+
+            if nuspec['type']=='uniform':
+                nu_r = nuspec['range']
+                self.nu_pdf=ngmix.priors.FlatPrior(
+                    nu_r[0],
+                    nu_r[1],
+                    rng=self.rng,
+                )
+            elif nuspec['type']=='lognormal':
+                shift=nuspec.get('shift',None)
+                self.nu_pdf=ngmix.priors.LogNormal(
+                    nuspec['mean'],
+                    nuspec['sigma'],
+                    shift=shift,
+                    rng=self.rng,
+                )
+            elif nuspec['type']=='discrete-pdf':
+                fname=os.path.expandvars( nuspec['file'] )
+                print("Reading nu values from file:",fname)
+                vals=fitsio.read(fname)
+                self.nu_pdf=DiscreteSampler(vals, rng=self.rng)
+
+            else:
+                raise ValueError("bad nu pdf type: '%s'" % nuspec['type'])
+
 
     def _set_cen_pdf(self):
 

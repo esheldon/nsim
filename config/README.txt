@@ -1,3 +1,38 @@
+- spergel
+    - run-bdj03mcal-spergel01
+    - run-bdj03mcal-spergel02
+        s/n > 20 0.4
+
+        R: [ 0.68111779  0.682867  ]
+        Rpsf: [ 0.  0.]
+
+        Rsel: [ 0.00894943  0.00755137]
+        Rpsf_sel: [ 0.  0.]
+
+        m: -2.669e-02 +/- 1.043e-02  c: -9.006e-04 +/- 2.079e-04
+
+        with correction
+        errors are 2 sigma
+        m: -3.931e-02 +/- 1.029e-02  c: -8.908e-04 +/- 2.056e-04
+
+    - compare admom+better psf with center correct, leaving drawImage
+    to do its thing
+
+        s/n > 10
+        R: [ 0.56322616  0.56366925]
+        Rpsf: [ 0.  0.]
+
+        Rsel: [ 0.00317299  0.00279726]
+        Rpsf_sel: [ 0.  0.]
+        without correction
+        errors are 2 sigma
+        m: 2.341e-03 +/- 6.969e-03  c: 1.771e-05 +/- 1.393e-04
+
+        with correction
+        errors are 2 sigma
+        m: -3.275e-03 +/- 6.930e-03  c: 1.762e-05 +/- 1.386e-04
+
+
 - neighbor tests
     - sim-bdjnbr04
         star with nbr gal, same flux, somewhere within box

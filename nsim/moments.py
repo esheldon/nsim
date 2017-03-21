@@ -30,6 +30,408 @@ DEFTYPES=[
 
 
 
+class MetacalMomentsAM(SimpleFitterBase):
+    def _setup(self, *args, **kw):
+        super(MetacalMomentsAM,self)._setup(*args, **kw)
+
+        self['metacal_pars'] = self.get('metacal_pars',{})
+
+        mpars=self['metacal_pars']
+
+        if 'types' not in mpars:
+            deftypes=[
+                'noshear',
+                '1p','1m','2p','2m',
+            ]
+            sym=mpars.get('symmetrize_psf',False)
+            if not sym and 'psf' not in mpars:
+                deftypes += [
+                    '1p_psf','1m_psf',
+                    '2p_psf','2m_psf',
+                ]
+
+                if 'shear_pixelized_psf' in mpars:
+                    assert mpars['shear_pixelized_psf']==True
+                elif 'prepix' in mpars:
+                    assert mpars['prepix']==True
+                else:
+                    raise ValueError("if not symmetrizing with am, must "
+                                     "set shear_pixelized_psf "
+                                     "or prepix")
+            mpars['types'] = deftypes
+
+        self.metacal_types=mpars['types']
+        print("doing types:",self.metacal_types)
+
+
+        self['min_s2n'] = self.get('min_s2n',0.0)
+
+
+    def _dofit(self, imdict):
+
+        obs=imdict['obs']
+
+        # measuring fluxes
+        if 'fit_model' in self:
+            pass
+
+        psfres, fitter = self._measure_moments(obs.psf, doround=False)
+
+        obsdict=self._get_metacal(obs)
+
+        res=self._do_metacal(obsdict)
+
+        res['psf'] = {}
+        res['psf']['g'] = psfres['g']
+        res['psf']['T'] = psfres['T']
+
+        res['flags']=0
+        return res
+
+    def _measure_moments(self, obs, doround=True):
+        """
+        measure adaptive moments
+        """
+        ampars=self['admom_pars']
+        ntry=ampars.pop('ntry',4)
+
+        fitter=ngmix.admom.Admom(obs, **ampars)
+
+        for i in xrange(ntry):
+            guess=self._get_guess(obs)
+
+            fitter.go(guess)
+
+            res=fitter.get_result()
+
+            if doround:
+                if res['flags'] != 0:
+                    continue
+                self._set_flux(obs,fitter)
+
+            if res['flags'] == 0:
+                break
+
+        if res['flags'] != 0:
+            raise TryAgainError("        admom failed")
+
+        self._set_some_pars(res)
+        if doround:
+            self._set_round_s2n(obs,fitter)
+        return res, fitter
+
+    def _get_guess(self, obs):
+
+        rng=self.rng
+
+        scale=obs.jacobian.get_scale()
+        Tguess = 10.0*scale**2
+        #Tguess = 4.0*scale**2
+
+        pars=zeros(6)
+        pars[0:0+2] = rng.uniform(low=-0.5*scale, high=0.5*scale, size=2)
+        pars[2:2+2] = rng.uniform(low=-0.3, high=0.3, size=2)
+        pars[4]     = Tguess*(1.0 + rng.uniform(low=-0.1, high=0.1))
+        pars[5]     = 1.0
+
+        guess=ngmix.GMixModel(pars, "gauss")
+        return guess
+
+
+    def _get_metacal(self, obs):
+        mcpars=self['metacal_pars']
+        odict=ngmix.metacal.get_all_metacal(
+            obs,
+            rng=self.rng,
+            **mcpars
+        )
+
+        return odict
+
+    def _do_metacal(self, odict):
+        res={}
+
+        for type in self.metacal_types:
+            #print("    doing metacal:",type)
+            obs=odict[type]
+
+            tres,fitter=self._measure_moments(obs)
+            if tres['flags'] != 0:
+                raise TryAgainError("        bad T")
+
+
+            if type=='noshear':
+                #pres,fitter=self._measure_moments(obs.psf_nopix)
+                pres,fitter=self._measure_moments(obs.psf, doround=False)
+                tres['psfrec_g'] = pres['g']
+                tres['psfrec_T'] = pres['T']
+
+            res[type]=tres
+
+        return res
+
+
+    def _set_flux(self, obs, amfitter):
+        try:
+            gmix=amfitter.get_gmix()
+
+            obs.set_gmix(gmix)
+
+            fitter=ngmix.fitting.TemplateFluxFitter(obs)
+            fitter.go()
+
+            fres=fitter.get_result()
+            if fres['flags'] != 0:
+                res['flags'] = fres
+                raise TryAgainError("could not get flux")
+
+            res=amfitter.get_result()
+            res['flux']=fres['flux']
+            res['flux_err']=fres['flux_err']
+            res['flux_s2n']=fres['flux']/fres['flux_err']
+
+        except ngmix.GMixRangeError as err:
+            raise TryAgainError(str(err))
+
+    def _set_round_s2n(self, obs, fitter):
+
+        try:
+            gm  = fitter.get_gmix()
+            gmr = gm.make_round()
+
+            e1,e2,T=gm.get_e1e2T()
+            e1r,e2r,T_r=gmr.get_e1e2T()
+
+            res=fitter.get_result()
+            flux=res['flux']
+            gmr.set_flux(flux)
+
+            res['s2n_r']=gmr.get_model_s2n(obs)
+            res['T_r'] = T_r
+
+            #print("T ratio:",T_r/T)
+            #print("s2n ratio:",res['s2n_r']/res['s2n'])
+        except ngmix.GMixRangeError as err:
+            raise TryAgainError(str(err))
+
+    def _set_some_pars(self, res):
+        res['g']     = res['e']
+        res['g_cov'] = res['e_cov']
+
+        # not right pars cov
+        res['pars_cov']=res['sums_cov']*0 + 9999.e9
+        #res['flux_s2n'] = res['s2n']
+
+    def _copy_to_output(self, res, i):
+        """
+        copy parameters specific to this class
+        """
+
+        super(SimpleFitterBase,self)._copy_to_output(res, i)
+
+        d=self.data
+
+        pres=res['psf']
+        d['psfrec_g'][i] = pres['g']
+        d['psfrec_T'][i] = pres['T']
+
+
+        for type in self.metacal_types:
+
+            tres=res[type]
+            if type=='noshear':
+                back=''
+            else:
+                back='_%s' % type
+
+            d['mcal_pars%s' % back][i] = tres['pars']
+            d['mcal_g%s' % back][i] = tres['g']
+            d['mcal_g_cov%s' % back][i] = tres['g_cov']
+
+            d['mcal_flux%s' % back][i] = tres['flux']
+            d['mcal_flux_s2n%s' % back][i] = tres['flux_s2n']
+
+            d['mcal_s2n%s' % back][i] = tres['s2n']
+            d['mcal_s2n_r%s' % back][i] = tres['s2n_r']
+            d['mcal_T_r%s' % back][i] = tres['T_r']
+
+            d['mcal_numiter%s' % back][i] = tres['numiter']
+
+            if type=='noshear':
+                for p in ['pars_cov','wsum','psfrec_g','psfrec_T']:
+
+                    if p in tres:
+                        name='mcal_%s' % p
+                        d[name][i] = tres[p]
+
+
+    def _get_dtype(self):
+        """
+        get the dtype for the output struct
+        """
+        npars=self['npars']
+
+        dt=super(MetacalMomentsAM,self)._get_dtype()
+        dt += [
+            ('psfrec_g','f8',2),
+            ('psfrec_T','f8'),
+        ]
+
+        for type in self.metacal_types:
+
+            if type=='noshear':
+                back=''
+            else:
+                back='_%s' % type
+
+            dt += [
+                ('mcal_g%s' % back,'f8',2),
+                ('mcal_g_cov%s' % back,'f8',(2,2)),
+                ('mcal_pars%s' % back,'f8',npars),
+            ]
+
+            if type=='noshear':
+                dt += [
+                    ('mcal_wsum','f8'),
+                    ('mcal_pars_cov','f8',(npars,npars)),
+                    ('mcal_psfrec_g','f8',2),
+                    ('mcal_psfrec_T','f8'),
+                ]
+
+            dt += [
+                ('mcal_s2n%s' % back,'f8'),
+                ('mcal_s2n_r%s' % back,'f8'),
+                ('mcal_T_r%s' % back,'f8'),
+                ('mcal_flux%s' % back,'f8'),
+                ('mcal_flux_s2n%s' % back,'f8'),
+            ]
+
+            dt += [('mcal_numiter%s' % back,'i4')]
+
+        return dt
+
+    def _print_res(self,res):
+        """
+        print some stats
+        """
+
+        subres=res['noshear']
+
+        print()
+
+        if 'prefit' in res:
+            preres=res['prefit']
+            print("    s2n: %g" % preres['s2n'])
+
+        s2n=subres['s2n']
+        g=subres['g']
+
+        cov = subres['g_cov'].clip(min=0, max=None)
+        gerr=diag(sqrt(cov))
+
+        print("    mcal s2n: %g  e:  %g +/- %g  %g +/- %g" % (s2n,g[0],gerr[0],g[1],gerr[1]))
+        #print_pars(subres['pars'],      front='        pars: ')
+
+
+    def _do_plots(self, obs, gmix=None):
+        import images
+
+        if gmix is not None:
+            gm=gmix.copy()
+            gm.set_psum(obs.image.sum())
+
+            model=gm.make_image(obs.image.shape, jacobian=obs.jacobian)
+            images.compare_images(
+                obs.image,
+                model,
+                label1='image',
+                label2='model',
+                file='/u/ki/esheldon/public_html/tmp/plots/tmp.png',
+                dims=[1000,1000],
+            )
+
+        else:
+            images.multiview(
+                obs.image,
+                title='image',
+                file='/u/ki/esheldon/public_html/tmp/plots/tmp.png',
+                dims=[1000,1000],
+            )
+
+        if 'q'==raw_input("hit a key: "):
+            stop
+
+
+class AMFitter(MetacalMomentsAM):
+    def _dofit(self, imdict):
+
+        obs=imdict['obs']
+
+        res,fitter=self._measure_moments(obs)
+        res['flags']=0
+        return res
+
+    def _get_dtype(self):
+        """
+        get the dtype for the output struct
+        """
+        npars=self['npars']
+
+        # super of super
+        dt=super(SimpleFitterBase,self)._get_dtype()
+        dt += [
+            ('pars','f8',npars),
+            ('pars_cov','f8',(npars,npars)),
+            ('flux','f8'),
+            ('flux_s2n','f8'),
+            ('g','f8',2),
+            ('g_cov','f8',(2,2)),
+            ('s2n','f8'),
+            ('numiter','i4'),
+        ]
+
+        return dt
+
+    def _copy_to_output(self, res, i):
+        """
+        copy parameters specific to this class
+        """
+
+        # note copying super of our super, since
+        # we didn't do a regular fit
+        super(SimpleFitterBase,self)._copy_to_output(res, i)
+
+        d=self.data
+
+        ckeys=[
+            'pars','pars_cov',
+            'flux','flux_s2n',
+            'g','g_cov',
+            's2n',
+            'numiter',
+        ]
+
+        for key in ckeys:
+            d[key][i] = res[key]
+
+    def _print_res(self,res):
+        """
+        print some stats
+        """
+
+        print("    flux s2n: %g" % res['flux_s2n'])
+        print("    e1e2:  %g %g" % tuple(res['g']))
+        print("    e_err: %g" % numpy.sqrt(res['g_cov'][0,0]))
+
+        print_pars(res['pars'],      front='        pars: ')
+
+        print('        true: ', res['pars_true'])
+
+
+#
+# failed experiments
+#
+
 class MetacalMomentsFixed(SimpleFitterBase):
     """
     - might be effects not captured by the galsim
@@ -85,16 +487,6 @@ class MetacalMomentsFixed(SimpleFitterBase):
         res['flags']=0
 
         return res
-
-    def _get_metacal(self, obs):
-        mcpars=self['metacal_pars']
-        odict=ngmix.metacal.get_all_metacal(
-            obs,
-            rng=self.rng,
-            **mcpars
-        )
-
-        return odict
 
     def _do_metacal(self, odict):
         res={}
@@ -362,205 +754,6 @@ class MetacalMomentsFixed(SimpleFitterBase):
         guess=ngmix.GMixModel(pars, "gauss")
         return guess
 
-class MetacalMomentsAM(MetacalMomentsFixed):
-    def _dofit(self, imdict):
-
-
-        obs=imdict['obs']
-        if False:
-            self._do_plots(obs)
-
-        psfres, fitter = self._measure_moments(obs.psf, doround=False)
-
-        obsdict=self._get_metacal(obs)
-
-        if False:
-            tobs = obsdict['noshear']
-            noshear_obs = ngmix.Observation(
-                tobs.image_orig,
-                tobs.weight_orig,
-                jacobian=tobs.jacobian.copy(),
-            )
-
-            pre_res,self.pre_fitter=self._measure_moments(noshear_obs)
-        else:
-            #pre_res,self.pre_fitter=self._measure_moments(obs)
-            pass
-
-
-        #pre_res['psfrec_g']= psfres['g']
-        #pre_res['psfrec_T']= psfres['T']
-
-
-        res=self._do_metacal(obsdict)
-
-        res['psf'] = {}
-        res['psf']['g'] = psfres['g']
-        res['psf']['T'] = psfres['T']
-
-        res['flags']=0
-        return res
-
-    def _measure_moments(self, obs, doround=True):
-        """
-        measure adaptive moments
-        """
-        ampars=self['admom_pars']
-        ntry=ampars.pop('ntry',4)
-
-        fitter=ngmix.admom.Admom(obs, **ampars)
-
-        for i in xrange(ntry):
-            guess=self._get_guess(obs)
-
-            fitter.go(guess)
-
-            res=fitter.get_result()
-
-            if doround:
-                if res['flags'] != 0:
-                    continue
-                self._set_flux(obs,fitter)
-
-            if res['flags'] == 0:
-                break
-
-        if res['flags'] != 0:
-            raise TryAgainError("        admom failed")
-
-        self._set_some_pars(res)
-        if doround:
-            self._set_round_s2n(obs,fitter)
-        return res, fitter
-
-    def _set_flux(self, obs, amfitter):
-        try:
-            gmix=amfitter.get_gmix()
-
-            obs.set_gmix(gmix)
-
-            fitter=ngmix.fitting.TemplateFluxFitter(obs)
-            fitter.go()
-
-            fres=fitter.get_result()
-            if fres['flags'] != 0:
-                res['flags'] = fres
-                raise TryAgainError("could not get flux")
-
-            res=amfitter.get_result()
-            res['flux']=fres['flux']
-            res['flux_err']=fres['flux_err']
-            res['flux_s2n']=fres['flux']/fres['flux_err']
-
-        except ngmix.GMixRangeError as err:
-            raise TryAgainError(str(err))
-
-    def _set_round_s2n(self, obs, fitter):
-
-        try:
-            gm  = fitter.get_gmix()
-            gmr = gm.make_round()
-
-            e1,e2,T=gm.get_e1e2T()
-            e1r,e2r,T_r=gmr.get_e1e2T()
-
-            res=fitter.get_result()
-            flux=res['flux']
-            gmr.set_flux(flux)
-
-            res['s2n_r']=gmr.get_model_s2n(obs)
-            res['T_r'] = T_r
-
-            #print("T ratio:",T_r/T)
-            #print("s2n ratio:",res['s2n_r']/res['s2n'])
-        except ngmix.GMixRangeError as err:
-            raise TryAgainError(str(err))
-
-    def _set_some_pars(self, res):
-        res['g']     = res['e']
-        res['g_cov'] = res['e_cov']
-
-        # not right pars cov
-        res['pars_cov']=res['sums_cov']*0 + 9999.e9
-        #res['flux_s2n'] = res['s2n']
-
-
-    def _copy_to_output(self, res, i):
-        """
-        copy parameters specific to this class
-        """
-
-        # note copying super of our super, since
-        # we didn't do a regular fit
-        super(MetacalMomentsAM,self)._copy_to_output(res, i)
-
-        d=self.data
-
-        pres=res['psf']
-        d['psfrec_g'][i] = pres['g']
-        d['psfrec_T'][i] = pres['T']
-
-        for type in self.metacal_types:
-            if type=='noshear':
-                back=''
-            else:
-                back='_%s' % type
-
-            tres=res[type]
-            d['mcal_numiter%s' % back][i] = tres['numiter']
-
-
-
-    def _get_dtype(self):
-        """
-        get the dtype for the output struct
-        """
-        # super of super
-        dt=super(MetacalMomentsAM,self)._get_dtype()
-
-        dt += [
-            ('psfrec_g','f8',2),
-            ('psfrec_T','f8'),
-        ]
-        for type in self.metacal_types:
-            if type=='noshear':
-                back=''
-            else:
-                back='_%s' % type
-
-            dt += [('mcal_numiter%s' % back,'i4')]
-
-        return dt
-
-
-    def _do_plots(self, obs, gmix=None):
-        import images
-
-        if gmix is not None:
-            gm=gmix.copy()
-            gm.set_psum(obs.image.sum())
-
-            model=gm.make_image(obs.image.shape, jacobian=obs.jacobian)
-            images.compare_images(
-                obs.image,
-                model,
-                label1='image',
-                label2='model',
-                file='/u/ki/esheldon/public_html/tmp/plots/tmp.png',
-                dims=[1000,1000],
-            )
-
-        else:
-            images.multiview(
-                obs.image,
-                title='image',
-                file='/u/ki/esheldon/public_html/tmp/plots/tmp.png',
-                dims=[1000,1000],
-            )
-
-        if 'q'==raw_input("hit a key: "):
-            stop
-
 
 class MetacalGaussK(MetacalMomentsAM):
     def _dofit(self, imdict):
@@ -704,6 +897,7 @@ class MetacalGaussK(MetacalMomentsAM):
         return pars
 
 
+
 class MetacalMomentsAMFixed(MetacalMomentsAM):
     def _do_metacal(self, odict):
         res={}
@@ -807,75 +1001,6 @@ class MetacalMomentsAMFixed(MetacalMomentsAM):
             raise TryAgainError("        could not invert moment matrix")
 
         return Minv
-
-class AMFitter(MetacalMomentsAM):
-    def _setup(self, *args, **kw):
-        super(MetacalMomentsFixed,self)._setup(*args, **kw)
-
-    def _dofit(self, imdict):
-
-        obs=imdict['obs']
-
-        res,fitter=self._measure_moments(obs)
-        res['flags']=0
-        return res
-
-    def _get_dtype(self):
-        """
-        get the dtype for the output struct
-        """
-        npars=self['npars']
-
-        # super of super
-        dt=super(SimpleFitterBase,self)._get_dtype()
-        dt += [
-            ('pars','f8',npars),
-            ('pars_cov','f8',(npars,npars)),
-            ('flux','f8'),
-            ('flux_s2n','f8'),
-            ('g','f8',2),
-            ('g_cov','f8',(2,2)),
-            ('s2n','f8'),
-            ('numiter','i4'),
-        ]
-
-        return dt
-
-    def _copy_to_output(self, res, i):
-        """
-        copy parameters specific to this class
-        """
-
-        # note copying super of our super, since
-        # we didn't do a regular fit
-        super(SimpleFitterBase,self)._copy_to_output(res, i)
-
-        d=self.data
-
-        ckeys=[
-            'pars','pars_cov',
-            'flux','flux_s2n',
-            'g','g_cov',
-            's2n',
-            'numiter',
-        ]
-
-        for key in ckeys:
-            d[key][i] = res[key]
-
-    def _print_res(self,res):
-        """
-        print some stats
-        """
-
-        print("    flux s2n: %g" % res['flux_s2n'])
-        print("    e1e2:  %g %g" % tuple(res['g']))
-        print("    e_err: %g" % numpy.sqrt(res['g_cov'][0,0]))
-
-        print_pars(res['pars'],      front='        pars: ')
-
-        print('        true: ', res['pars_true'])
-
 
 
 class MetacalMomentsAMMulti(MetacalMomentsAM):

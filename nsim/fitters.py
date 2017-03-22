@@ -1130,20 +1130,21 @@ class GalsimFitter(SimpleFitterBase):
 
         d=self.data
 
-        d['pars'][i,:] = res['pars']
-        d['pars_cov'][i,:,:] = res['pars_cov']
+        n=self._get_namer()
+        d[n('pars')][i,:] = res['pars']
+        d[n('pars_cov')][i,:,:] = res['pars_cov']
 
         if 'psf_pars' in res:
             d['psf_pars'][i,:] = res['psf_pars']
 
-        d['g'][i,:] = res['g']
-        d['g_cov'][i,:,:] = res['g_cov']
+        d[n('g')][i,:] = res['g']
+        d[n('g_cov')][i,:,:] = res['g_cov']
 
         if 'psf_T' in res:
             d['psf_T'][i] = res['psf_T']
 
         if 's2n_r' in res:
-            d['s2n_r'][i] = res['s2n_r']
+            d[n('s2n_r')][i] = res['s2n_r']
 
         if 'nfev' in res:
             d['nfev'][i] = res['nfev']

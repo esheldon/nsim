@@ -121,7 +121,7 @@ class MetacalMomentsAM(SimpleFitterBase):
             if doround:
                 if res['flags'] != 0:
                     continue
-                #self._set_flux(obs,fitter)
+                self._set_am_flux(obs,fitter)
 
             if res['flags'] == 0:
                 break
@@ -223,13 +223,13 @@ class MetacalMomentsAM(SimpleFitterBase):
     def _set_template_flux(self, obs, res):
 
         try:
-            # we use simulate_s2n=True since there is correlated
+            # we use simulate_err=True since there is correlated
             # noise in the metacal images
             ffitter=ngmix.galsimfit.GalsimTemplateFluxFitter(
                 obs,
                 self.model_galsim_obj,
                 obs.psf.galsim_obj,
-                simulate_s2n=True,
+                simulate_err=True,
                 rng=self.rng,
             )
             ffitter.go()
@@ -244,13 +244,15 @@ class MetacalMomentsAM(SimpleFitterBase):
             raise TryAgainError(str(err))
 
  
-    def _set_flux_old(self, obs, amfitter):
+    def _set_am_flux(self, obs, amfitter):
         try:
             gmix=amfitter.get_gmix()
 
             obs.set_gmix(gmix)
 
-            fitter=ngmix.fitting.TemplateFluxFitter(obs)
+            # we use simulate_err=True since there is correlated
+            # noise in the metacal images
+            fitter=ngmix.fitting.TemplateFluxFitter(obs, simulate_err=True)
             fitter.go()
 
             fres=fitter.get_result()
@@ -259,9 +261,9 @@ class MetacalMomentsAM(SimpleFitterBase):
                 raise TryAgainError("could not get flux")
 
             res=amfitter.get_result()
-            res['flux']=fres['flux']
-            res['flux_err']=fres['flux_err']
-            res['flux_s2n']=fres['flux']/fres['flux_err']
+            res['am_flux']=fres['flux']
+            res['am_flux_err']=fres['flux_err']
+            res['am_flux_s2n']=fres['flux']/fres['flux_err']
 
         except ngmix.GMixRangeError as err:
             raise TryAgainError(str(err))
@@ -272,18 +274,15 @@ class MetacalMomentsAM(SimpleFitterBase):
             gm  = fitter.get_gmix()
             gmr = gm.make_round()
 
-            e1,e2,T=gm.get_e1e2T()
             e1r,e2r,T_r=gmr.get_e1e2T()
 
             res=fitter.get_result()
-            flux=res['flux']
+            flux=res['am_flux']
             gmr.set_flux(flux)
 
             res['s2n_r']=gmr.get_model_s2n(obs)
             res['T_r'] = T_r
 
-            #print("T ratio:",T_r/T)
-            #print("s2n ratio:",res['s2n_r']/res['s2n'])
         except ngmix.GMixRangeError as err:
             raise TryAgainError(str(err))
 
@@ -293,7 +292,6 @@ class MetacalMomentsAM(SimpleFitterBase):
 
         # not right pars cov
         res['pars_cov']=res['sums_cov']*0 + 9999.e9
-        #res['flux_s2n'] = res['s2n']
 
     def _copy_to_output(self, res, i):
         """
@@ -419,6 +417,7 @@ class MetacalMomentsAM(SimpleFitterBase):
 
         print("    mcal s2n: %g  e:  %g +/- %g  %g +/- %g" % (s2n,g[0],gerr[0],g[1],gerr[1]))
         print("        flux: %g +/- %g flux_s2n:  %g" % (subres['flux'],subres['flux_err'],subres['flux_s2n']))
+        print("     am flux: %g +/- %g flux_s2n:  %g" % (subres['am_flux'],subres['am_flux_err'],subres['am_flux_s2n']))
 
 
     def _do_plots(self, obs, gmix=None):

@@ -121,7 +121,7 @@ class MetacalMomentsAM(SimpleFitterBase):
             if doround:
                 if res['flags'] != 0:
                     continue
-                self._set_am_flux(obs,fitter)
+                #self._set_am_flux(obs,fitter)
 
             if res['flags'] == 0:
                 break

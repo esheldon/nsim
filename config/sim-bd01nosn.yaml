@@ -1,0 +1,47 @@
+name: "sim-bd01nosn"
+
+simulator: "galsim"
+
+noise: 1.0
+
+stamp_size: [48,48]
+
+psf:
+
+    s2n: 10000.0
+
+    model: "moffat"
+    beta: 3.5
+
+    # approximate for DES y1, 
+    r50: 2.07
+
+    shape: [0.0, 0.007]
+
+cen_shift:
+    radius: 0.5
+
+obj_model:
+
+    model: "bd"
+
+    flux:
+        type: "lognormal"
+        mean: 1000.0
+        sigma: 1333.0
+
+    r50:
+        type: "lognormal"
+        mean: 1.54
+        sigma: 1.0
+
+    fracdev:
+        type: "uniform"
+        range: [0.0, 1.0]
+
+
+label: "$bulge-disk$"
+
+shear:
+    type: 'const'
+    shears: [0.02, 0.00]

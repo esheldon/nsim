@@ -837,7 +837,7 @@ class SimGS(dict):
                 raise ValueError("bad s2n pdf type: '%s'" % s2nspec['type'])
 
     def _set_dev_offset_pdf(self):
-        ds_spec=self['obj_model']['dev_shift']
+        ds_spec=self['obj_model'].get('dev_shift',None)
         if ds_spec is not None:
             # radius in units of r50
             self.dev_offset_pdf = ngmix.priors.ZDisk2D(ds_spec['radius'],

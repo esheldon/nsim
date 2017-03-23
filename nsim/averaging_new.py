@@ -20,6 +20,8 @@ import ngmix
 import nsim
 from . import files
 from . import shearpdf
+
+from . import util
 from .util import Namer
 
 import argparse
@@ -40,13 +42,16 @@ class Summer(dict):
         conf = nsim.files.read_config(self.runs[0])
         conf['simc'] = nsim.files.read_config(conf['sim'])
 
+        conf['simc']['do_ring'] = conf['simc'].get('do_ring',False)
+        print("do_ring:",conf['simc']['do_ring'])
+
+
         self.update(conf)
         self.args=args
         self.chunksize=args.chunksize
 
         self._set_select()
 
-        self.namer=Namer(front='mcal')
         self.gpsf_name='mcal_psfrec_g'
         self.gpsf_orig_name='psfrec_g'
 
@@ -62,6 +67,13 @@ class Summer(dict):
             self.Rinput = array([float(R) for R in args.R.split(',')])
         if args.Rselect is not None:
             self.Rselect_input = array([float(R) for R in args.Rselect.split(',')])
+
+    def get_namer(self, type):
+        return Namer(front='mcal', back=type)
+
+    def get_name(self, name, type):
+        n=self.get_namer(type)
+        return n(name)
 
     def go(self):
 
@@ -164,7 +176,6 @@ class Summer(dict):
 
         args=self.args
         chunksize=self.chunksize
-        n=self.namer
 
         sums=None
         ntot=0
@@ -249,57 +260,11 @@ class Summer(dict):
 
     def _get_weights(self, data, w, type):
 
-        n=self.namer
         if self.args.weighted:
 
-            if self.args.weight_type=='noise':
-                if type=='noshear':
-                    name=n('g_cov')
-                else:
-                    name=n('g_cov_%s' % type)
-
-                g_cov=data[name][w]
-
-                wts=get_noise_weights(g_cov, self.args)
-            elif self.args.weight_type=='R':
-
-                print("using R weight")
-                R1 = (data['mcal_g_1p'][w,0] - data['mcal_g_1m'][w,0])/(2*0.01)
-                R2 = (data['mcal_g_2p'][w,1] - data['mcal_g_2m'][w,1])/(2*0.01)
-
-                R = 0.5*(R1 + R2)
-
-                bs=eu.stat.Binner(R)
-                bs.dohist(min=-2, max=3, nbin=100)
-                bs.calc_stats()
-                y = bs['hist']/float(bs['hist'].sum())
-
-                if False:
-                    import biggles
-                    plt=biggles.plot(
-                        bs['center'],
-                        y,
-                        type='diamond',
-                        size=1,
-                        xlabel='R',
-                        visible=False,
-                    )
-                    plt=biggles.plot(
-                        bs['center'],
-                        y,
-                        type='solid',
-                        color='blue',
-                        plt=plt,
-                        file='/u/ki/esheldon/public_html/tmp/plots/tmp.png',
-                    )
-
-                    if 'q'==raw_input('hit a key: '):
-                        stop
-
-                wts = numpy.interp(R, bs['center'], y, left=0, right=0)
-
-            else:
-                raise ValueError("bad weight type: '%s'" % self.args.weight_type)
+            g_cov_name=self.get_name('g_cov',type)
+            g_cov=data[g_cov_name][w]
+            wts=get_noise_weights(g_cov, self.args)
 
         else:
             wts=numpy.ones(w.size)
@@ -307,17 +272,8 @@ class Summer(dict):
         wa = wts[:,numpy.newaxis]
         return wts, wa
 
-    def _get_g_name(self, data, type):
-        n=self.namer
-        if type=='noshear':
-            name=n('g')
-        else:
-            name=n('g_%s' % type)
-
-        return name
-
     def _get_g(self, data, w, type):
-        name=self._get_g_name(data, type)
+        name = self.get_name('g', type)
 
         if name not in data.dtype.names:
             g = None
@@ -426,7 +382,7 @@ class Summer(dict):
                         if type=='noshear':
                             continue
 
-                        g_name=self._get_g_name(data, type)
+                        g_name=self.get_name('g', type)
 
                         if g_name in data.dtype.names:
 
@@ -585,27 +541,31 @@ class Summer(dict):
         currently only s/n
         """
 
-        s2n=self._get_s2n(data, w, type=type)
-        size=self._get_size(data, w, type=type)
-        flux=self._get_flux(data, w, type=type)
+        n=self.get_namer(type)
 
-        T_r = self._get_T_r(data, w, type=type)
+        s2n=self._get_s2n(n, data, w)
+        size=self._get_size(n, data, w)
+        flux=self._get_flux(n, data, w)
+        flux_true=self._get_flux_true(data, w)
+
+        T_r = self._get_T_r(n, data, w)
 
         Tpsf = self._get_psf_T(data, w)
 
         if Tpsf is not None:
             Tratio = T_r/Tpsf
 
-        if self.namer('flux_s2n') in data.dtype.names:
-            flux_s2n = self._get_flux_s2n(data, w, type=type)
+        if n('flux_s2n') in data.dtype.names:
+            flux_s2n = self._get_flux_s2n(n, data, w)
 
         logic=eval(self.select)
-        w,=numpy.where(logic)
+        if self['simc']['do_ring']:
+            w=util.ring_select(logic)
+        else:
+            w,=numpy.where(logic)
         return w
 
-    def _get_s2n_name(self, data, type=None):
-
-        n=self.namer
+    def _get_s2n_name(self, n, data):
 
         if n('s2n_r') in data.dtype.names:
             name=n('s2n_r')
@@ -615,19 +575,13 @@ class Summer(dict):
             print("Using s2n_w for selections")
             name=n('s2n_w')
         else:
-            return None
-
-        if type is not None and type != 'noshear':
-            name='%s_%s' % (name, type)
+            name=None
 
         return name
 
-    def _get_T_r(self, data, w, type=None):
-        n=self.namer
-
+    def _get_T_r(self, n, data, w):
         Tname=n('T_r')
         if Tname in data.dtype.names:
-            #print("getting T_r")
             return data[Tname][w]
         else:
             return None
@@ -640,15 +594,15 @@ class Summer(dict):
             return None
 
 
-    def _get_s2n(self, data, w, type=None):
-        name=self._get_s2n_name(data, type=type)
+    def _get_s2n(self, n, data, w):
+        name=self._get_s2n_name(n, data)
         if name is None:
             return None
 
         return data[name][w]
 
-    def _get_size(self, data, w, type=None):
-        name=self._get_pars_name(data, type=type)
+    def _get_size(self, n, data, w):
+        name=n('pars')
 
         size=None
         if name in data.dtype.names:
@@ -657,57 +611,28 @@ class Summer(dict):
 
         return size
 
-    def _get_flux(self, data, w, type=None):
-        name=self._get_flux_name(type=type)
-        if name not in data.dtype.names:
-            ispars=True
-            name=self._get_pars_name(data, type=type)
-        else:
-            ispars=False
+    def _get_flux(self, n, data, w):
+        name=n('flux')
 
-        flux=None
         if name in data.dtype.names:
-            if ispars:
-                if data[name].shape[1] >= 6:
-                    #print("flux name:",name)
-                    flux = data[name][w,5]
-            else:
-                #print("flux is:",name)
-                flux = data[name][w]
+            flux = data[name][w]
+        else:
+            flux=None
+
+        return flux
+
+    def _get_flux_true(self, data, w):
+        name='pars_true'
+
+        if name in data.dtype.names:
+            flux = data[name][w,1]
 
         return flux
 
 
-    def _get_pars_name(self, data, type=None):
-        n=self.namer
-        name=n('pars')
-        if type is not None and type != 'noshear':
-            name='%s_%s' % (name, type)
-
-        return name
-
-    def _get_flux_name(self, type=None):
-        n=self.namer
-        name=n('flux')
-        if type is not None and type != 'noshear':
-            name='%s_%s' % (name, type)
-
-        return name
-
-
-    def _get_flux_s2n(self, data, w, type=None):
-        name=self._get_flux_s2n_name(data, type=type)
-        return data[name][w]
-
-
-    def _get_flux_s2n_name(self, data, type=None):
-        n=self.namer
+    def _get_flux_s2n(self, n, data, w):
         name=n('flux_s2n')
-        if type is not None and type != 'noshear':
-            name='%s_%s' % (name, type)
-
-        return name
-
+        return data[name][w]
 
     def _read_means(self):
         fname=self._get_means_file()

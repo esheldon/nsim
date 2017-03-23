@@ -31,7 +31,7 @@ class Namer(object):
     def __init__(self, front=None, back=None):
         if front=='':
             front=None
-        if back=='':
+        if back=='' or back=='noshear':
             back=None
 
         self.front=front
@@ -45,15 +45,14 @@ class Namer(object):
 
 
     def __call__(self, name):
-        if self.nomod:
-            return name
-        else:
-            n=name
+        n = name
+        if not self.nomod:
             if self.front is not None:
                 n = '%s_%s' % (self.front, n)
             if self.back is not None:
                 n = '%s_%s' % (n, self.back)
-            return n
+        
+        return n
 
 def ring_select(logic):
 

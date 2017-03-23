@@ -507,23 +507,10 @@ class SimGS(dict):
         which are zero
         """
 
-        if self['do_ring'] and (self.counter % 2) != 0:
-            print("doing ring")
-            gold=self.old_pars['g']
-            shape=ngmix.Shape(gold[0],gold[1])
-            shape=shape.get_rotated(numpy.pi/2.0)
-            g1,g2=shape.g1,shape.g2
-
-            pars=self.old_pars
-            pars['g'] = (g1,g2)
-
-            return pars
-
+        if self.g_pdf is not None:
+            g1,g2 = self.g_pdf.sample2d()
         else:
-            if self.g_pdf is not None:
-                g1,g2 = self.g_pdf.sample2d()
-            else:
-                g1,g2=None,None
+            g1,g2=None,None
 
         if self.flux_pdf is not None:
             flux = self.flux_pdf.sample()
@@ -587,6 +574,7 @@ class SimGS(dict):
     def _setup(self):
 
         self['do_ring'] = self.get('do_ring',False)
+        assert self['do_ring']==False
 
         self['ivar'] = 1.0/self['noise']**2
         self['model'] = self['obj_model']['model']

@@ -87,12 +87,13 @@ class SimGS(dict):
 
         cen_shift=self._get_cen_shift()
 
-        psf_obs, pflux = self._make_obs(psf, psf_nrows, psf_ncols, wcs, cen_shift,
+        psf_obs, pflux = self._make_obs(psf, psf_nrows, psf_ncols, wcs,
                                         s2n=self['psf']['s2n'], isgal=False)
 
         # this will be none for sims where we generate a flux pdf
         s2n=gal_pars['s2n']
-        gal_obs, gflux = self._make_obs(gal, nrows, ncols, wcs, cen_shift,
+        gal_obs, gflux = self._make_obs(gal, nrows, ncols, wcs,
+                                        cen_shift=cen_shift,
                                         s2n=s2n, isgal=True)
 
         if gflux is not None:
@@ -147,7 +148,7 @@ class SimGS(dict):
 
         return cen_shift
 
-    def _make_obs(self, gs_obj, nrows, ncols, wcs, cen_shift, s2n=None, isgal=True):
+    def _make_obs(self, gs_obj, nrows, ncols, wcs, cen_shift=None, s2n=None, isgal=True):
         """
         get an ngmix Observation
 

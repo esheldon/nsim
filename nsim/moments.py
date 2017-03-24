@@ -86,7 +86,10 @@ class MetacalMomentsAM(SimpleFitterBase):
             flux_result=flux_fitter.get_result()
             if flux_result['flags'] != 0:
                 raise TryAgainError("        flux fitting failed")
-            self.model_galsim_obj = flux_fitter.make_model(flux_result['pars'])
+
+            gpars = flux_result['pars'].copy()
+            gpars[0:0+2] = 0.0
+            self.model_galsim_obj = flux_fitter.make_model(gpars)
 
         obsdict=self._get_metacal(obs)
 
@@ -225,9 +228,31 @@ class MetacalMomentsAM(SimpleFitterBase):
         try:
             # we use simulate_err=True since there is correlated
             # noise in the metacal images
+
+            # How would we do this for multi-epoch?
+
+            j=obs.jacobian
+            scale = j.get_scale()
+            jrow, jcol = j.get_cen()
+            drow, dcol = res['pars'][0:2]
+
+            row, col = jrow+drow/scale, jcol+dcol/scale
+
+            # for the galsim object, we need to understand what this shift
+            # means relative to the canonical galsim center
+
+            # galsim true center in pixels
+            gcen = (numpy.array(obs.image.shape)-1.0)/2.0
+
+            offset_pixels = row-gcen[0], col-gcen[1]
+
+            drowsky = offset_pixels[0]*scale
+            dcolsky = offset_pixels[1]*scale
+
+            model = self.model_galsim_obj.shift(dx=dcolsky, dy=drowsky)
             ffitter=ngmix.galsimfit.GalsimTemplateFluxFitter(
                 obs,
-                self.model_galsim_obj,
+                model,
                 obs.psf.galsim_obj,
                 simulate_err=True,
                 rng=self.rng,

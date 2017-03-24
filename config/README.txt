@@ -3,6 +3,10 @@
     - then demplate fit on mcal images
     - no shape noise looks ok
         - run-bd01nosn-mcal02
+    - with shape noise still fairly low noise
+        - sim-bd02ln
+        - run-bd02ln-mcal01 10 million
+        - run-bd02ln-mcal02 100 million
 
 - spergel
     - run-bdj03mcal-spergel01

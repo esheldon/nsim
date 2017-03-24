@@ -52,6 +52,25 @@ class PowerLaw(object):
     def sample(self, n=None):
         return self.pdf.sample(n)
 
+class SeparableShapeR50FluxPDF(object):
+    """
+    separable
+    """
+    def __init__(self, r50_pdf, flux_pdf, g_pdf=None):
+        self.r50_pdf=r50_pdf
+        self.flux_pdf=flux_pdf
+        self.g_pdf=g_pdf
+
+    def sample(self):
+
+        if self.g_pdf is not None:
+            g1,g2 = self.g_pdf.sample2d()
+        else:
+            g1,g2=0.0,0.0
+        r50=self.r50_pdf.sample()
+        flux=self.flux_pdf.sample()
+
+        return g1, g2, r50, flux
 
 class CosmosR50Flux(object):
     def __init__(self, r50_range, flux_range):
@@ -138,82 +157,4 @@ class CosmosR50Flux(object):
 
 
 
-class RandomWalkGalaxy(object):
-    """
-    place point sources randomly by letting them do
-    a random walk
-    
-    paramters
-    ---------
-    hlr: float
-        Half-light radius for the final distribution
-    flux: float
-        Total flux of the set of points
-    npoints: int, optional
-        Total number of points to use.  Default 100
-    nstep: int, optional
-        Number of steps in random walk.  Default 40
-    """
-    def __init__(self, hlr, flux, npoints=100, nstep=40):
-
-        self.hlr=hlr
-        self.flux=flux
-        self.npoints=npoints
-        self.nstep=nstep
-
-        self.factor = numpy.sqrt(nstep)/2.09
-        self.scale = hlr/self.factor
-
-        self._set_points()
-        self._set_gsobj()
-
-    def get_gsobj(self):
-        """
-        get the galsim object
-        """
-        return self.g
-
-    def _set_gsobj(self):
-
-        fluxper=self.flux/self.npoints
-        gaussians=[]
-
-        points=self.points
-        for i in xrange(points.shape[0]):
-            dx,dy = points[i]
-
-            g=galsim.Gaussian(sigma=1.0e-3, flux=fluxper)
-            g = g.shift(dx=dx, dy=dy)
-
-            gaussians.append(g)
-
-        self.g = galsim.Add(gaussians)
-
-    def _set_points(self):
-
-        scale=self.scale
-        npoints=self.npoints
-        nstep=self.nstep
-
-        pts=numpy.zeros( (npoints, 2) )
-
-        for i in xrange(npoints):
-            x=0.0
-            y=0.0
-
-            for istep in xrange(nstep):
-
-                r = scale*numpy.random.random()
-                angle = 2*numpy.pi*numpy.random.random()
-
-                dx = r*numpy.cos(angle)
-                dy = r*numpy.sin(angle)
-
-                x += dx
-                y += dy
-
-            pts[i,0] = x
-            pts[i,1] = y
-
-        self.points=pts
 

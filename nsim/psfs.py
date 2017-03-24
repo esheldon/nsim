@@ -3,6 +3,14 @@ import galsim
 import ngmix
 from . import pdfs
 
+def get_psf_maker(config, rng):
+    if config]['model'] == 'multi-component':
+        maker=psfs.MultiComponentPSF(config, rng)
+    else:
+        maker=psfs.PSFSampler(config, rng)
+
+    return maker
+
 class PSFSampler(object):
     """
     Basic sampler

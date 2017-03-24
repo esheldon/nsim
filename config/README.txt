@@ -6,7 +6,14 @@
     - with shape noise still fairly low noise
         - sim-bd02ln
         - run-bd02ln-mcal01 10 million
-        - run-bd02ln-mcal02 100 million
+        - run-bd02ln-mcal02 10 million
+            - fixed bug with centering in galsim template flux
+            - still shows bia
+        - run-bd02ln-mcal03 10 million
+            - keep am flux to compare
+            - hmm... now the spergel flux cut looks ok.  confused
+        - run-bd02ln-mcal04 100 million
+            - exploring further
 
 - spergel
     - run-bdj03mcal-spergel01

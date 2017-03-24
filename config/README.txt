@@ -1,3 +1,9 @@
+- spergel for flux
+    - do fit on regular image
+    - then demplate fit on mcal images
+    - no shape noise looks ok
+        - run-bd01nosn-mcal02
+
 - spergel
     - run-bdj03mcal-spergel01
     - run-bdj03mcal-spergel02

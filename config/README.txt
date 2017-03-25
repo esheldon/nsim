@@ -14,6 +14,9 @@
             - hmm... now the spergel flux cut looks ok.  confused
         - run-bd02ln-mcal04 100 million
             - exploring further
+            - still crap
+        - run-bd02ln-mcal05 100 million
+            - exp for flux
 
 - spergel
     - run-bdj03mcal-spergel01

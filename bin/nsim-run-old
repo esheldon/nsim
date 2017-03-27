@@ -1,0 +1,322 @@
+#!/usr/bin/env python
+"""
+    %prog run npairs output_file
+
+for some sims npair might just be ngal
+"""
+
+from __future__ import print_function
+
+import sys
+import os
+from sys import stderr
+import numpy
+import nsim
+import fitsio
+
+from argparse import ArgumentParser
+parser=ArgumentParser(__doc__)
+
+parser.add_argument('run',help="run")
+parser.add_argument('ngal',type=int,help="number to simulate")
+parser.add_argument('output_file',help="output file to write")
+parser.add_argument('--seed',type=int,help="seed to use")
+parser.add_argument('--make-plots',action='store_true',
+                  help="make some plots of the trials")
+
+parser.add_argument("--profile", action='store_true',
+                  help=("Profile the code using cProfile"))
+
+parser.add_argument("--profile-image", default=None,
+                  help=("Profile the code and create the specified "
+                        "image using pycallgraph"))
+
+def profile_sim(sim_conf,run_conf,npairs,output_file,args):
+    # don't want to see the JIT
+    import cProfile
+    import pstats
+
+    import ngmix
+
+    cProfile.runctx('run_sim(sim_conf,run_conf,npairs,output_file,args)',
+                    globals(),locals(),
+                    'profile_stats')
+    
+    p = pstats.Stats('profile_stats')
+    p.sort_stats('time').print_stats()
+
+
+def profile_sim_pycallgraph(sim_conf,run_conf,npairs,output_file,args):
+    # pycallgraph doesn't like it when the JIT starts up
+    import ngmix
+
+    import pycallgraph
+    from pycallgraph import PyCallGraph
+    from pycallgraph.output import GraphvizOutput
+
+    img_name=args.profile_image
+    graphviz = GraphvizOutput()
+    print('profile image:',img_name)
+    graphviz.output_file = img_name
+    config=pycallgraph.Config(groups=False)
+
+    with PyCallGraph(config=config, output=graphviz):
+        run_sim(sim_conf,run_conf,npairs,output_file,args)
+
+
+def run_sim(sim_conf,
+            run_conf,
+            npairs,
+            output_file,
+            args):
+
+
+    simtype=sim_conf.get('simulator','ngmix')
+
+    if simtype=='ngmix':
+        raise RuntimeError("convert to new system")
+        sim=nsim.sim.NGMixSim(sim_conf, s2n_or_noise)
+    else:
+        
+        if args.seed is not None:
+            #import numpy
+            sim_conf['seed'] = args.seed
+            #numpy.random.seed(sim_conf['seed'])
+
+        model=sim_conf['obj_model']['model']
+        if model =='bd':
+            sim=nsim.simgs.SimBD(sim_conf)
+        elif 'bdjoint-diffshape' in model:
+
+            if 'nbrs' in sim_conf['obj_model']:
+                sim=nsim.simgs.SimBDJointDiffshapeNbr(sim_conf)
+            else:
+                sim=nsim.simgs.SimBDJointDiffshape(sim_conf)
+
+        elif model=='bd-diffe':
+            sim=nsim.simgs.SimBDD(sim_conf)
+        elif model=='gmix':
+            sim=nsim.simgs.SimGMix(sim_conf)
+
+        elif model=='cosmos':
+            sim=nsim.simgs.SimCosmos(sim_conf)
+
+        else:
+            # stars e.g.
+            sim=nsim.simgs.SimGS(sim_conf)
+
+    plot_base=output_file.replace('.fits','')
+
+    kw=dict(make_plots=args.make_plots,
+            plot_base=plot_base)
+
+    ftype=run_conf['fitter']
+    if ftype=='max':
+        fitclass=nsim.fitters.MaxFitter
+
+    elif ftype=='galsim-max':
+        if run_conf['fit_model']=='spergel':
+            fitclass=nsim.fitters.SpergelFitter
+        else:
+            fitclass=nsim.fitters.GalsimFitter
+
+    elif ftype=='galsim-metacal':
+        if run_conf['fit_model']=='spergel':
+            fitclass=nsim.fitters.SpergelMetacalFitter
+        else:
+            fitclass=nsim.fitters.GalsimMetacalFitter
+
+
+    elif ftype=='max-resid':
+        fitclass=nsim.fitters.MaxResid
+        resid_file=output_file.replace('.fits','-resid-sum.fits')
+
+    elif ftype=='isample-gaussmom':
+        fitclass=nsim.fitters.ISampleGaussMom
+
+    elif ftype=='psample-gaussmom':
+        fitclass=nsim.fitters.PSampleGaussMom
+
+
+    elif ftype=='isample-gaussmom-metacal':
+        fitclass=nsim.fitters.ISampleGaussMomMetacal
+
+
+    elif ftype in ['metacal-max','metacal-new']:
+        fitclass=nsim.fitters.MaxMetacalFitter
+
+    elif ftype == 'metacal-metamom':
+        fitclass=nsim.fitters.MetacalMetaMomFitter
+
+    elif ftype=='metacal-old':
+        fitclass=nsim.fitters.MaxMetacalFitterOld
+
+    elif ftype=='metacal-round-analytic-psf':
+        fitclass=nsim.fitters.MaxMetacalRoundAnalyticPSFFitter
+
+
+    elif ftype=='nuller-gauss2d':
+        fitclass=nsim.fitters.NullGauss2Fitter
+
+    elif ftype=='deconv':
+        fitclass=nsim.fitters.Deconvolver
+
+    elif ftype=='metacal-deconv':
+        fitclass=nsim.fitters.DeconvMetacalFitter
+
+    elif ftype=='metacal-moments':
+        fitclass=nsim.fitters.MetacalMomentsOld
+
+
+    elif ftype=='metacal-momnull-gauss':
+        fitclass=nsim.moments.MetacalNullGaussFitter
+
+
+    elif ftype=='metacal-moments-fixed':
+        fitclass=nsim.moments.MetacalMomentsFixed
+
+    elif ftype=='am':
+        fitclass=nsim.moments.AMFitter
+
+    elif ftype=='metacal-moments-am':
+        # different am fitter
+        fitclass=nsim.moments.MetacalMomentsAM
+
+    elif ftype=='metacal-moments-am-fixed':
+        # different am fitter
+        fitclass=nsim.moments.MetacalMomentsAMFixed
+
+    elif ftype=='metacal-gaussk':
+        # gauss fitter in k space
+        fitclass=nsim.moments.MetacalGaussK
+
+
+
+    elif ftype=='metacal-moments-am-multi':
+        fitclass=nsim.moments.MetacalMomentsAMMulti
+
+
+    elif ftype=='metacal-moments-deweight':
+        # different am fitter
+        fitclass=nsim.moments.MetacalMomentsDeweight
+
+
+
+    elif ftype=='metacal-max-simn':
+        fitclass=nsim.fitters.MaxMetacalSimnFitter
+    elif ftype=='metacal-max-subn':
+        fitclass=nsim.fitters.MaxMetacalSubnFitter
+
+    elif ftype=='metacal-max-fixR':
+        fitclass=nsim.fitters.MaxMetacalFixRFitter
+
+    elif ftype=='metacal-max-detrend':
+        fitclass=nsim.fitters.MaxMetacalDetrendFitter
+
+
+    elif ftype=='metacal-max-degrade':
+        if simtype=='galsim':
+            fitclass=nsim.fitters.MaxMetacalFitterDegradeGS
+        else:
+            fitclass=nsim.fitters.MaxMetacalFitterDegrade
+
+    elif ftype=='ncal':
+        fitclass=nsim.fitters.NCalFitter
+
+    elif ftype=='pcal':
+        fitclass=nsim.fitters.PostcalFitter
+    elif ftype=='pcal-simn':
+        fitclass=nsim.fitters.PostcalSimnFitter
+    elif ftype=='pcal-simp':
+        fitclass=nsim.fitters.PostcalSimpFitter
+
+    elif ftype=='pcal-sim-shearp':
+        fitclass=nsim.fitters.PostcalSimShearpFitter
+
+
+    elif ftype=='ppmcal':
+        fitclass=nsim.fitters.PPMetacalFitter
+
+    elif ftype=='metanoise-max':
+        if simtype=='galsim':
+            fitclass=nsim.fitters.MaxMetanoiseFitter
+        else:
+            raise RuntimeError("don't have metanoise for ngmix sim yet")
+
+    elif ftype=='metacal-metanoise-mom':
+        if simtype=='galsim':
+            fitclass=nsim.fitters.MomMetacalMetanoiseFitter
+        else:
+            raise RuntimeError("don't have metanoise for ngmix sim yet")
+
+
+
+    elif ftype=='metacal-mom':
+        if simtype=='galsim':
+            fitclass=nsim.fitters.MomMetacalFitter
+        else:
+            raise RuntimeError("don't have mom metacal for ngmix sim yet")
+
+    elif ftype=='metacal-admom':
+        fitclass=nsim.fitters.AMMetacalFitter
+
+
+    elif ftype=='metacal-isample':
+        fitclass=nsim.fitters.ISampleMetacalFitter
+
+    elif ftype=='metacal-isample-nearest':
+        fitclass=nsim.fitters.ISampleMetacalFitterNearest
+
+    elif ftype=='metacal-psamp':
+        fitclass=nsim.fitters.PSampleMetacalFitter
+
+
+    elif ftype=='metacal-em':
+        fitclass=nsim.fitters.EMMetacalFitter
+
+
+    elif ftype=='shear-null-postpsf':
+        fitclass=nsim.fitters.ShearNullFitterPostpsf
+    elif ftype=='shear-null-prepsf':
+        fitclass=nsim.fitters.ShearNullFitterPrepsf
+
+    elif ftype=='kmom-metacal':
+        fitclass=nsim.fitters.KMomMetacalFitterPost
+    elif ftype=='kmom-metacal-pre':
+        fitclass=nsim.fitters.KMomMetacalFitter
+    else:
+        raise RuntimeError("bad fitter: '%s'" % ftype)
+
+    fitter=fitclass(sim, run_conf, npairs, **kw)
+    fitter.go()
+
+    data=fitter.get_data()
+
+    success=nsim.util.write_fits(output_file, data)
+
+    if success and ftype=='max-resid':
+        model_sum = fitter.model_sum
+        imdiff_sum = fitter.im_diff_sum
+
+        imdiff_sum = imdiff_sum/model_sum.sum()
+        success=nsim.util.write_fits(resid_file, imdiff_sum)
+
+def main():
+    args=parser.parse_args()
+
+    print('reading config files')
+    run_conf = nsim.files.read_config(args.run)
+    sim_conf = nsim.files.read_config(run_conf['sim'])
+    sim_conf['make_plots'] = args.make_plots
+
+    if args.profile_image is not None:
+        print('profiling sim with pycallgraph')
+        profile_sim_pycallgraph(sim_conf,run_conf,args.ngal,args.output_file,args)
+    elif args.profile:
+        print('profiling sim with cProfile')
+        profile_sim(sim_conf,run_conf,args.ngal,args.output_file,args)
+    else:
+        print('running sim')
+        run_sim(sim_conf,run_conf,args.ngal,args.output_file,args)
+
+main()

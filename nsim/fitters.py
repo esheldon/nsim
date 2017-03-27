@@ -85,32 +85,27 @@ class FitterBase(dict):
             self.igal=igal
             print('%s/%s' % (igal+1,self['ngal']) )
 
-            if self.data['processed'][igal]:
-                continue
-
             while True:
                 n_sim += 1
                 try:
 
                     tm0=time.time()
-                    imdict = self.sim.get_image()
+                    obslist = self.sim()
                     self.tm_sim += time.time()-tm0
 
-                    if imdict['s2n'] > self['s2n_min']:
+                    meta = obslist.meta
+                    if meta['s2n'] > self['s2n_min']:
                         n_proc += 1
 
                         # only objects that successfully get fit
                         # contribute to this
                         tm0=time.time()
-                        res=self.process_one(imdict)
+                        res=self.process_one(obslist)
                         self.tm_fit += time.time()-tm0
 
-
-                        if 'shear' in imdict['gal_info']:
-                            res['shear_true'] = \
-                                imdict['gal_info']['shear']
-                            res['shear_index'] = \
-                                imdict['gal_info']['shear_index']
+                        if 'shear' in meta:
+                            res['shear_true'] = meta['shear']
+                            res['shear_index'] = meta['shear_index']
 
                         self._copy_to_output(res, igal)
 
@@ -119,7 +114,7 @@ class FitterBase(dict):
 
                         break
                     else:
-                        tup = imdict['s2n'],self['s2n_min']
+                        tup = meta['s2n'],self['s2n_min']
                         print("        skipping low s2n: %g < %g" % tup)
 
                 except TryAgainError as err:
@@ -133,12 +128,12 @@ class FitterBase(dict):
         print('time to simulate:',self.tm_sim/n_sim)
         print('time to fit:',self.tm_fit/n_proc)
 
-    def process_one(self, imdict):
+    def process_one(self, obslist):
         """
         perform the fit
         """
 
-        fitter=self._dofit(imdict)
+        fitter=self._dofit(obslist)
 
         if isinstance(fitter, dict):
             res=fitter
@@ -148,10 +143,10 @@ class FitterBase(dict):
         if res['flags'] != 0:
             raise TryAgainError("failed with flags %s" % res['flags'])
 
-        res['pars_true'] = imdict['pars']
-        res['psf_pars_true'] = imdict['psf_pars']
-        res['model_true'] = imdict['model']
-        res['s2n_true'] = imdict['s2n']
+        meta=obslist.meta
+        res['r50_true'] = meta['r50']
+        res['flux_true'] = meta['flux']
+        res['s2n_true'] = meta['s2n']
 
         self._print_res(res)
 
@@ -182,17 +177,12 @@ class FitterBase(dict):
     def _copy_to_output(self, res, i):
         d=self.data
 
-        d['processed'][i] = 1
-        d['model_true'][i] = res['model_true']
         d['s2n_true'][i] = res['s2n_true']
-
-        if res['pars_true'][0] is not None:
-            d['pars_true'][i,:] = res['pars_true']
-
-        d['psf_pars_true'][i] = res['psf_pars_true']
+        d['r50_true'][i] = res['r50_true']
+        d['flux_true'][i] = res['flux_true']
 
         if 'shear_true' in res:
-            d['shear_true'][i] = res['shear_true'].g1,res['shear_true'].g2
+            d['shear_true'][i] = res['shear_true']
             d['shear_index'][i] = res['shear_index']
 
     def _setup(self, run_conf, **keys):
@@ -205,10 +195,6 @@ class FitterBase(dict):
         self['nrand'] = self.get('nrand',1)
         if self['nrand'] is None:
             self['nrand']=1
-
-        if self.sim['name'] != run_conf['sim']:
-            err="sim name in run config '%s' doesn't match sim name '%s'"
-            raise ValueError(err % (run_conf['sim'],self.sim['name']))
 
         self.update(run_conf)
 
@@ -230,13 +216,6 @@ class FitterBase(dict):
         if 'psf_pars' in self:
             self['psf_npars']=\
                 6*ngmix.gmix._gmix_ngauss_dict[self['psf_pars']['model']]
-
-        if isinstance(self.sim['obj_model'], dict):
-            npars=2
-        else:
-            npars = ngmix.gmix.get_model_npars(self.sim['obj_model'])
-
-        self['npars_true']=npars
 
         self['make_plots']=keys.get('make_plots',False)
         self['plot_base']=keys.get('plot_base',None)
@@ -340,14 +319,13 @@ class FitterBase(dict):
         Set generic dtype
         """
 
-        dt=[('processed','i2'),
-            ('model_true','S6'),
+        dt=[
             ('s2n_true','f8'),
-            ('pars_true','f8',self['npars_true']),
-            ('psf_pars_true','f8'),
+            ('r50_true','f8'),
+            ('flux_true','f8'),
             ('shear_true','f8',2),
             ('shear_index','i4'),
-           ]
+        ]
 
         return dt
 
@@ -717,8 +695,7 @@ class MaxFitter(SimpleFitterBase):
         print_pars(res['pars'],      front='        pars: ')
         print_pars(res['pars_err'],  front='        perr: ')
 
-        if res['pars_true'][0] is not None:
-            print_pars(res['pars_true'], front='        true: ')
+        print('        true r50: %(r50_true)g flux: %(flux_true)g s2n: %(s2n_true)g' % res)
 
     def _make_plots(self, fitter, key):
         """

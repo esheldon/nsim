@@ -1,4 +1,9 @@
 from __future__ import print_function
+try:
+    xrange
+except:
+    xrange=range
+
 import numpy
 import galsim
 import ngmix
@@ -23,7 +28,6 @@ class ObservationMaker(dict):
         stamp_size: [48,48] # optional
 
     object:
-        nband: 2
         nepoch: 10
 
         stamp_size: [48,48] # optional
@@ -38,32 +42,26 @@ class ObservationMaker(dict):
         self.object_maker=object_maker
         self.rng=rng
 
-        if isinstance(object_maker,list):
-            self.object_is_multiband=True
-        else:
-            self.object_is_multiband=False
-
         self._set_pdfs()
 
     def __call__(self):
-        mbobs = ngmix.observation.MultiBandObsList()
 
         objconf=self['object']
-        for band in xrange(objconf['nband']):
 
-            obslist = ngmix.observation.ObsList()
+        object, meta = self._get_object()
 
-            object = self._get_object(band)
-            for epoch in xrange(objconf['nepoch']):
-                psf = self._get_psf()
+        obslist = ngmix.observation.ObsList()
+        for epoch in xrange(objconf['nepoch']):
+            psf, psf_meta = self._get_psf()
 
-                obs = self._get_obs(psf, object)
+            obs = self._get_obs(psf, object)
 
-                obslist.append( obs )
+            obslist.append( obs )
 
-        meta={}
-        meta['s2n'] = get_s2n_expected(mbobs)
-        return mbobs
+        meta['s2n']  = get_expected_s2n(obslist)
+
+        obslist.update_meta_data(meta)
+        return obslist
 
 
     def _get_obs(self, psf, object):
@@ -76,7 +74,7 @@ class ObservationMaker(dict):
         )
 
         convolved_object = galsim.Convolve(object, psf)
-        obj_im, obj_im_orig, jacobian = self._get_object_image(
+        obj_im, obj_im_orig, obj_jacob = self._get_object_image(
             convolved_object,
             wcs,
         )
@@ -140,7 +138,7 @@ class ObservationMaker(dict):
 
         image_orig = gsimage.array.copy()
 
-        self._add_object_noise(image)
+        self._add_object_noise(gsimage)
         image=gsimage.array
 
         row, col = find_centroid(image, self.rng)
@@ -167,13 +165,18 @@ class ObservationMaker(dict):
         """
         jacob = ngmix.Jacobian(
             wcs=wcs,
-            row=cen[0],
-            col=cen[1],
+            row=row,
+            col=col,
         )
 
-        return gsimage.array, jacob
+        return jacob
 
-    def _make_gsimage(self, obj, wcs, nrows=None, ncols=None, offset=None):
+    def _make_gsimage(self,
+                      gs_obj,
+                      wcs,
+                      nrows=None,
+                      ncols=None,
+                      offset=None):
         """
         if nrows,ncols None, dims are chosen by galsim
         """
@@ -211,25 +214,20 @@ class ObservationMaker(dict):
             dvdx=0.0
             dvdy=1.0
 
-        self.wcs=galsim.JacobianWCS(
+        return galsim.JacobianWCS(
             dudx,
             dudy,
             dvdx,
             dvdy,
         )
 
-    def _get_object(self, band):
+    def _get_object(self):
         """
         get the galsim representation of the object
         """
-        if self.object_is_multiband:
-            maker = self.object_maker[band]
-        else:
-            maker = self.object_maker
+        return self.object_maker()
 
-        return maker()
-
-    def _get_psf(self, band):
+    def _get_psf(self):
         """
         get the galsim representation of the psf
         """
@@ -313,7 +311,7 @@ def find_centroid(image, rng, maxiter=200, ntry=4):
 
     guess_T = 4.0
     for i in xrange(ntry):
-        fitter = ngmix.admom.run_admom(obs, guess)
+        fitter = ngmix.admom.run_admom(obs, guess_T)
 
         res=fitter.get_result()
         if res['flags']==0:
@@ -328,20 +326,19 @@ def find_centroid(image, rng, maxiter=200, ntry=4):
 
     row = row0 + row
     col = col0 + col
-    print("center:",row,col)
+    print("    center:",row,col)
 
     return row,col
 
-def get_expected_s2n(mbobs):
+def get_expected_s2n(obslist):
     """
     maximal s2n
     """
 
     sum = 0.0
 
-    for obslist in mbobs:
-        for obs in obslist:
-            sum += (obs.image_orig**2 *obs.weight).sum()
+    for obs in obslist:
+        sum += (obs.image_orig**2 *obs.weight).sum()
 
     s2n = numpy.sqrt(sum)
     return s2n

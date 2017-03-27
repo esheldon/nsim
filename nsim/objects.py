@@ -11,6 +11,8 @@ def get_object_maker(config, rng):
     else:
         raise ValueError("bad model: '%s'" % model)
 
+    return maker
+
 class SimpleObjectMaker(dict):
     """
     object section of config
@@ -46,24 +48,30 @@ class SimpleObjectMaker(dict):
     def __call__(self):
         g1,g2,r50,flux = self.pdf.sample()
 
-        if pars['model']=='gauss':
+        model=self['model']
+        if model=='gauss':
             gal = galsim.Gaussian(flux=flux, half_light_radius=r50)
-        elif pars['model']=='exp':
+        elif model=='exp':
             gal = galsim.Exponential(flux=flux, half_light_radius=r50)
-        elif pars['model']=='dev':
+        elif model=='dev':
             gal = galsim.DeVaucouleurs(flux=flux, half_light_radius=r50)
         else:
             raise ValueError("bad galaxy model: '%s'" % pars['model'])
 
         gal = gal.shear(g1=g1, g2=g2)
 
+        meta={
+            'r50':r50,
+            'flux':flux,
+        }
         if self.shear_pdf is not None:
             shear, shindex = self.shear_pdf.get_shear(self.rng)
             gal = gal.shear(g1=shear.g1, g2=shear.g2)
-        else:
-            shindex=0
 
-        return gal, {'r50':r50,'flux':flux,'g1':g1,'g2':g2,'shear_index':shindex}
+            meta['shear'] = (shear.g1, shear.g2)
+            meta['shear_index'] = shindex
+
+        return gal, meta
 
 
     def _set_pdf(self):

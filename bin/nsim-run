@@ -71,6 +71,9 @@ def go(sim_conf,
        args):
 
 
+    if args.seed is None:
+        raise ValueError("send a seed")
+
     sim_conf['seed'] = args.seed
     sim = nsim.sime.get_sim(sim_conf)
 

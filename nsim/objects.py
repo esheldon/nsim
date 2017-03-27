@@ -65,7 +65,7 @@ class SimpleObjectMaker(dict):
             'flux':flux,
         }
         if self.shear_pdf is not None:
-            shear, shindex = self.shear_pdf.get_shear(self.rng)
+            shear, shindex = self.shear_pdf.get_shear()
             gal = gal.shear(g1=shear.g1, g2=shear.g2)
 
             meta['shear'] = (shear.g1, shear.g2)
@@ -84,7 +84,7 @@ class SimpleObjectMaker(dict):
 
         
         if 'shear' in self:
-            self.shear_pdf = get_shear_pdf(self['shear'])
+            self.shear_pdf = get_shear_pdf(self['shear'], self.rng)
         else:
             self.shear_pdf = None
 

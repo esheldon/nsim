@@ -34,7 +34,7 @@ class Sim(dict):
         self.update(sim_conf)
 
         seed=self['seed']
-        print("    using seed:",self['seed'])
+        print("using seed:",self['seed'])
 
         # seeding both the global and the local rng.  With the
         # local, we produce the same sim independent of the fitting

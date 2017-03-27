@@ -131,7 +131,11 @@ class MetacalMomentsAM(SimpleFitterBase):
         ampars=self['admom_pars']
         ntry=ampars.pop('ntry',4)
 
-        fitter=ngmix.admom.Admom(obslist, **ampars)
+        fitter=ngmix.admom.Admom(
+            obslist,
+            rng=self.rng,
+            **ampars
+        )
 
         for i in xrange(ntry):
             Tguess=self._get_guess(obslist)
@@ -306,7 +310,11 @@ class MetacalMomentsAM(SimpleFitterBase):
 
             # we use simulate_err=True since there is correlated
             # noise in the metacal images
-            fitter=ngmix.fitting.TemplateFluxFitter(obslist, simulate_err=True)
+            fitter=ngmix.fitting.TemplateFluxFitter(
+                obslist,
+                rng=self.rng,
+                simulate_err=True,
+            )
             fitter.go()
 
             fres=fitter.get_result()

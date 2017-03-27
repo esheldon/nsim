@@ -311,7 +311,7 @@ def find_centroid(image, rng, maxiter=200, ntry=4):
 
     guess_T = 4.0
     for i in xrange(ntry):
-        fitter = ngmix.admom.run_admom(obs, guess_T)
+        fitter = ngmix.admom.run_admom(obs, guess_T, rng=rng)
 
         res=fitter.get_result()
         if res['flags']==0:

@@ -2,7 +2,7 @@ import numpy
 from ngmix import Shape
 from esutil.stat import print_stats
 
-def get_shear_pdf(shconf):
+def get_shear_pdf(shconf, rng):
 
     if isinstance(shconf, dict):
 
@@ -18,7 +18,7 @@ def get_shear_pdf(shconf):
             raise ValueError("only shear 'const-dist' for now")
 
     else:
-        pdf = ConstShearSelector(shconf)
+        pdf = ConstShearSelector(shconf, rng)
 
 
     return pdf
@@ -28,7 +28,9 @@ class ShearGeneratorBase(object):
         raise NotImplementedError("implement get_shear()")
 
 class ConstShearSelector(ShearGeneratorBase):
-    def __init__(self, shears):
+    def __init__(self, shears, rng):
+
+        self.rng=rng
 
         if not isinstance(shears[0], list):
             shears = [shears]
@@ -38,11 +40,11 @@ class ConstShearSelector(ShearGeneratorBase):
         self.nshear=len(shears)
         self.shears=shears
 
-    def get_shear(self, rng):
+    def get_shear(self):
         """
         return a random shear from the input list, plus an index
         """
-        ri = rng.randint(0, self.nshear)
+        ri = self.rng.randint(0, self.nshear)
         return self.shears[ri], ri
 
 class ConstShearGenerator(ShearGeneratorBase):
@@ -56,13 +58,13 @@ class ConstShearGenerator(ShearGeneratorBase):
         self.gen_shear()
 
     def gen_shear(self):
-        rng=numpy.random.RandomState(seed=self.seed)
-        g = rng.uniform(
+        self.rng=numpy.random.RandomState(seed=self.seed)
+        g = self.rng.uniform(
             low=self.min_shear,
             high=self.max_shear,
             size=self.nshear,
         )
-        theta = rng.uniform(
+        theta = self.rng.uniform(
             low=0.0,
             high=numpy.pi*2,
             size=self.nshear,
@@ -81,11 +83,11 @@ class ConstShearGenerator(ShearGeneratorBase):
 
         self.shears=shears
 
-    def get_shear(self, rng):
+    def get_shear(self):
         """
         return a random shear from the input list, plus an index
         """
-        ri = rng.randint(0, self.nshear)
+        ri = self.rng.randint(0, self.nshear)
         return self.shears[ri], ri
 
 

@@ -156,8 +156,8 @@ class MetacalMomentsAM(SimpleFitterBase):
             raise TryAgainError("        admom failed")
 
         self._set_some_pars(res)
-        if doround:
-            self._set_round_s2n(obslist,fitter)
+        #if doround:
+        #    self._set_round_s2n(obslist,fitter)
         return res, fitter
 
     def _get_guess(self, obslist):
@@ -215,6 +215,12 @@ class MetacalMomentsAM(SimpleFitterBase):
                 pres = self._measure_psfs(obslist)
                 tres['psfrec_g'] = pres['g']
                 tres['psfrec_T'] = pres['T']
+
+                if False:
+                    import images
+                    images.multiview(obslist[0].image)
+                    if 'q'==raw_input('hit a key: '):
+                        stop
 
             res[type]=tres
 
@@ -330,6 +336,7 @@ class MetacalMomentsAM(SimpleFitterBase):
         except ngmix.GMixRangeError as err:
             raise TryAgainError(str(err))
 
+    '''
     def _set_round_s2n(self, obslist, fitter):
 
         try:
@@ -354,6 +361,7 @@ class MetacalMomentsAM(SimpleFitterBase):
 
         except ngmix.GMixRangeError as err:
             raise TryAgainError(str(err))
+    '''
 
     def _set_some_pars(self, res):
         res['g']     = res['e']
@@ -406,8 +414,10 @@ class MetacalMomentsAM(SimpleFitterBase):
             d['mcal_am_flux_s2n%s' % back][i] = tres['am_flux_s2n']
 
             d['mcal_s2n%s' % back][i] = tres['s2n']
-            d['mcal_s2n_r%s' % back][i] = tres['s2n_r']
-            d['mcal_T_r%s' % back][i] = tres['T_r']
+
+            if 'T_r' in tres:
+                d['mcal_s2n_r%s' % back][i] = tres['s2n_r']
+                d['mcal_T_r%s' % back][i] = tres['T_r']
 
             d['mcal_numiter%s' % back][i] = tres['numiter']
 
@@ -456,8 +466,8 @@ class MetacalMomentsAM(SimpleFitterBase):
 
             dt += [
                 ('mcal_s2n%s' % back,'f8'),
-                ('mcal_s2n_r%s' % back,'f8'),
-                ('mcal_T_r%s' % back,'f8'),
+                #('mcal_s2n_r%s' % back,'f8'),
+                #('mcal_T_r%s' % back,'f8'),
 
                 ('mcal_am_flux%s' % back,'f8'),
                 ('mcal_am_flux_s2n%s' % back,'f8'),

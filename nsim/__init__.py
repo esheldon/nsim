@@ -7,6 +7,7 @@ from . import simgs
 from . import sime
 from . import psfs
 from . import objects
+from . import observations
 
 from . import fitters
 from . import moments

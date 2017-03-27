@@ -1,24 +1,29 @@
-run: "run-em05ln-mcal-t01"
 sim: "sim-em05ln"
 
 fitter: "metacal-moments-am"
+global_seed: 30367
 
-global_seed: 28
+s2n_min: 5.0
+
+#
+# metacal
+#
 
 metacal_pars:
-    fixnoise: True
-    symmetrize_psf: True
-    symmetrize_dilation: 1.05
+    psf: 'gauss'
 
 admom_pars:
     ntry: 4
     maxiter: 200
 
-ngal: 10000000
+#
+# run details
+#
 
-desired_hours: 0.5
+ngal: 1000000
 
-# takes longer since we have many failures
+desired_hours: 0.1
+
 sec_per: 0.25
 
 jobs_per_condor_sub: 5000

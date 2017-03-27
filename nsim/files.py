@@ -39,21 +39,20 @@ def get_config_file(run):
     name='%s.yaml' % run
     return path_join(d, name)
 
-def read_config(run):
+def read_config(identifier):
     """
     run could be 'name' in sim
     """
     import yaml
-    f=get_config_file(run)
+    f=get_config_file(identifier)
+
     with open(f) as fobj:
         c=yaml.load(fobj)
-    if 'run' in c:
-        n='run'
-    else:
-        n='name'
-    if c[n] != run:
-        raise ValueError("%s in config does not match "
-                         "itself: '%s' instead of '%s'" % (n,c[n],run))
+
+    if 'sim' in c:
+        # this is a run configuration
+        c['run'] = identifier
+
     return c
 
 def get_simdir():

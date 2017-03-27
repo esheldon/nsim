@@ -4,171 +4,136 @@ import ngmix
 from . import pdfs
 
 def get_psf_maker(config, rng):
-    if config]['model'] == 'multi-component':
-        maker=psfs.MultiComponentPSF(config, rng)
+    if config['model'] == 'multi-component':
+        maker=MultiComponentPSF(config, rng)
     else:
-        maker=psfs.PSFSampler(config, rng)
+        maker=PSFSampler(config, rng)
 
     return maker
 
-class PSFSampler(object):
+class PSFSampler(dict):
     """
-    Basic sampler
+    This basic sampler does gauss and Moffat
+
+    psf subset of the config.
+
+    # Gaussian with fixed properties
+    model: 'gauss'
+    r50:
+        1.5
+    shape:
+        [0.0, 0.025]
+
+
+    # Moffat with variable properties
+    model: 'moffat'
+    beta: 3.5
+    r50:
+        type: "lognormal"
+        mean: 2.0
+        sigma: 0.2
+    shape:
+        type: "normal2d"
+        cen: [0.0, 0.025]
+        sigma: [0.01, 0.01]
     """
     def __init__(self, config, rng):
+        self.update(config)
         self.rng=rng
-        self.set_pdfs(config)
+        self._set_pdfs()
 
     def __call__(self):
-        config = self.config
 
-        model=config['model']
+        model=self['model']
 
-        flux = config.get('flux',1.0)
-
-        r50, fwhm = self.get_size()
+        r50 = self._get_size()
 
         if model=='moffat':
             psf = galsim.Moffat(
-                beta=config['beta'],
+                beta=self['beta'],
                 half_light_radius=r50,
-                fwhm=fwhm,
-                flux=flux,
             )
         elif model=='gauss':
             psf = galsim.Gaussian(
                 half_light_radius=r50,
-                fwhm=fwhm,
-                flux=flux,
             )
         else:
             raise ValueError("bad psf model: '%s'" % model)
 
 
-        psf_g1, psf_g2 = self.get_shape()
+        psf_g1, psf_g2 = self._get_shape()
         psf = psf.shear(g1=psf_g1, g2=psf_g2)
 
-        return psf, {'fwhm':fwhm, 'r50':r50}
+        return psf, {'r50':r50}
 
-    def get_shape(self):
-        config = self.config
-
-        if self.psf_ellip_pdf is not None:
+    def _get_shape(self):
+        if self.shape_pdf is not None:
             try:
-                psf_g1, psf_g2 = self.psf_ellip_pdf.sample()
+                psf_g1, psf_g2 = self.shape_pdf.sample()
             except:
-                psf_g1, psf_g2 = self.psf_ellip_pdf.sample2d()
+                psf_g1, psf_g2 = self.shape_pdf.sample2d()
 
             print("    psf (pdf) shape: %g %g" % (psf_g1, psf_g2))
 
-        elif 'randomized_orientation' in config:
-            ro=config['randomized_orientation']
-            if ro["dist"]=="uniform":
-                #angle = numpy.random.random()*2*numpy.pi
-                angle = self.rng.uniform()*2*numpy.pi
-                psf_shape = ngmix.Shape(ro['magnitude'], 0.0)
-                psf_shape.rotate(angle)
-                psf_g1 = psf_shape.g1
-                psf_g2 = psf_shape.g2
-                print("    psf rand orient. shape: %g %g" % (psf_g1, psf_g2))
-            else:
-                raise ValueError("only uniform randomized psf orientation for now")
         else:
-            psf_g1=config['shape'][0]
-            psf_g2=config['shape'][1]
+            psf_g1=self['shape'][0]
+            psf_g2=self['shape'][1]
 
         return psf_g1, psf_g2
 
-    def get_size(self):
-        config=self.config
+    def _get_size(self):
 
-        r50=None
-        fwhm=None
-
-        if self.psf_r50_pdf is not None:
+        if self.r50_pdf is not None:
             r50 = self.psf_r50_pdf.sample()
             print("    psf r50: %g" % r50)
 
-        elif self.psf_fwhm_pdf is not None:
-            fwhm = self.psf_fwhm_pdf.sample()
-            print("    psf fwhm: %g" % fwhm)
+        elif 'r50' in self:
+            r50 = self['r50']
 
-        elif 'r50' in config:
-            r50 = config['r50']
-
-        elif 'fwhm' in config:
-            fwhm = config['fwhm']
-
-        return r50, fwhm
-
-
-    def set_pdfs(self, config):
-
-        self.config=config
-
-        self.psf_r50_pdf=None
-        self.psf_fwhm_pdf=None
-
-        if 'fwhm' in config:
-            if isinstance(config['fwhm'], dict):
-                type=config['fwhm']['type']
-                if type=='discrete-pdf':
-
-                    fname=os.path.expandvars( config['fwhm']['file'] )
-                    print("Reading fwhm values from file:",fname)
-                    vals=numpy.fromfile(fname, sep='\n')
-                    psf_fwhm_pdf=psfs.DiscreteSampler(
-                        vals,
-                        rng=self.rng,
-                    )
-
-                elif type=='lognormal':
-                    psf_fwhm_pdf=ngmix.priors.LogNormal(
-                        config['fwhm']['mean'],
-                        config['fwhm']['sigma'],
-                        rng=self.rng,
-                    )
-                else:
-                    raise ValueError("bad fwhm type: '%s'" % type)
-
-                if 'range' in config['fwhm']:
-                    bounds=config['fwhm']['range']
-                    print("   bounding psf fwhm to:",bounds)
-                    psf_fwhm_pdf = ngmix.priors.Bounded1D(psf_fwhm_pdf,bounds)
-
-                self.psf_fwhm_pdf  = psf_fwhm_pdf 
         else:
-            if isinstance(config['r50'], dict):
-                r50pdf = config['r50']
-                assert r50pdf['type']=="lognormal","r50 pdf log normal for now"
+            raise ValueError("r50 value or distribution must be set")
 
-                self.psf_r50_pdf = ngmix.priors.LogNormal(
-                    r50pdf['mean'],
-                    r50pdf['sigma'],
+        return r50
+
+
+    def _set_pdfs(self):
+
+        self.r50_pdf=None
+        self.shape_pdf=None
+
+        r50conf = self['r50']
+        shapeconf = self['shape']
+
+        if isinstance(r50conf, dict):
+
+            if r50conf['type'] == 'lognormal':
+                self.r50_pdf = ngmix.priors.LogNormal(
+                    r50conf['mean'],
+                    r50conf['sigma'],
                     rng=self.rng,
                 )
+            else:
+                raise ValueError("bad psf r50 pdf type: '%s'" % r50conf['type'])
 
-        if 'shapenoise' in config:
-            self.psf_ellip_pdf = ngmix.priors.GPriorBA(config['shapenoise'])
+        if isinstance(shapeconf,dict):
+            assert shapeconf['type']=="normal2d"
 
-        elif isinstance(config['shape'],dict):
-            ppdf=config['shape']
-            assert ppdf['type']=="normal2d"
-            self.psf_ellip_pdf=ngmix.priors.SimpleGauss2D(
-                ppdf['cen'][0],
-                ppdf['cen'][1],
-                ppdf['sigma'][0],
-                ppdf['sigma'][1],
-                rng=self.rng,
-            )
+            if shapeconf['type']=='normal2d':
+                self.shape_pdf=ngmix.priors.SimpleGauss2D(
+                    shapeconf['cen'][0],
+                    shapeconf['cen'][1],
+                    shapeconf['sigma'][0],
+                    shapeconf['sigma'][1],
+                    rng=self.rng,
+                )
         else:
-            self.psf_ellip_pdf=None
-
+            if len(shapeconf) != 2:
+                raise ValueError("for constant psf shapes, length must be 2")
 
 class MultiComponentPSF(object):
     def __init__(self, config, rng):
         self.rng=rng
-        self.set_components(config)
+        self._set_components(config)
 
     def __call__(self):
 
@@ -180,11 +145,10 @@ class MultiComponentPSF(object):
         obj = galsim.Add(parts)
 
         r50=obj.calculateHLR()
-        fwhm=obj.calculateFWHM()
-        meta = {'r50':r50, 'fwhm':fwhm}
+        meta = {'r50':r50}
         return obj, meta 
 
-    def set_components(self, config):
+    def _set_components(self, config):
         self.config=config
 
         pieces=[]

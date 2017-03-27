@@ -38,7 +38,7 @@ def profile_sim(sim_conf,run_conf,npairs,output_file,args):
 
     import ngmix
 
-    cProfile.runctx('run_sim(sim_conf,run_conf,npairs,output_file,args)',
+    cProfile.runctx('go(sim_conf,run_conf,npairs,output_file,args)',
                     globals(),locals(),
                     'profile_stats')
     
@@ -61,49 +61,18 @@ def profile_sim_pycallgraph(sim_conf,run_conf,npairs,output_file,args):
     config=pycallgraph.Config(groups=False)
 
     with PyCallGraph(config=config, output=graphviz):
-        run_sim(sim_conf,run_conf,npairs,output_file,args)
+        go(sim_conf,run_conf,npairs,output_file,args)
 
 
-def run_sim(sim_conf,
-            run_conf,
-            npairs,
-            output_file,
-            args):
+def go(sim_conf,
+       run_conf,
+       npairs,
+       output_file,
+       args):
 
 
-    simtype=sim_conf.get('simulator','ngmix')
-
-    if simtype=='ngmix':
-        raise RuntimeError("convert to new system")
-        sim=nsim.sim.NGMixSim(sim_conf, s2n_or_noise)
-    else:
-        
-        if args.seed is not None:
-            #import numpy
-            sim_conf['seed'] = args.seed
-            #numpy.random.seed(sim_conf['seed'])
-
-        model=sim_conf['obj_model']['model']
-        if model =='bd':
-            sim=nsim.simgs.SimBD(sim_conf)
-        elif 'bdjoint-diffshape' in model:
-
-            if 'nbrs' in sim_conf['obj_model']:
-                sim=nsim.simgs.SimBDJointDiffshapeNbr(sim_conf)
-            else:
-                sim=nsim.simgs.SimBDJointDiffshape(sim_conf)
-
-        elif model=='bd-diffe':
-            sim=nsim.simgs.SimBDD(sim_conf)
-        elif model=='gmix':
-            sim=nsim.simgs.SimGMix(sim_conf)
-
-        elif model=='cosmos':
-            sim=nsim.simgs.SimCosmos(sim_conf)
-
-        else:
-            # stars e.g.
-            sim=nsim.simgs.SimGS(sim_conf)
+    sim_conf['seed'] = args.seed
+    sim = nsim.sime.get_sim(sim_conf)
 
     plot_base=output_file.replace('.fits','')
 
@@ -317,6 +286,6 @@ def main():
         profile_sim(sim_conf,run_conf,args.ngal,args.output_file,args)
     else:
         print('running sim')
-        run_sim(sim_conf,run_conf,args.ngal,args.output_file,args)
+        go(sim_conf,run_conf,args.ngal,args.output_file,args)
 
 main()

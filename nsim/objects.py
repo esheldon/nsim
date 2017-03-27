@@ -2,6 +2,7 @@ from __future__ import print_function
 import galsim
 import ngmix
 from . import pdfs
+from .shearpdf import get_shear_pdf
 
 def get_object_maker(config, rng):
     model=config['model']
@@ -12,14 +13,29 @@ def get_object_maker(config, rng):
 
 class SimpleObjectMaker(dict):
     """
-    simple models such as exp.  The settable parameters are only
-
-        - size
-        - flux
-        - g1,g2
+    object section of config
 
     Things like shift within the stamp are done in the image maker,
     shear is also done elsewhere 
+
+    model: 'exp'
+    flux:
+        type: "lognormal"
+        mean: 100.0
+        sigma: 30.0
+
+    r50:
+        type: "lognormal"
+        mean: 2.0
+        sigma: 1.0
+
+    g:
+        type: "ba"
+        sigma: 0.2
+
+    shear:
+        shears: [0.02, 0.00]
+
     """
     def __init__(self, config, rng):
         self.update(config)
@@ -40,7 +56,14 @@ class SimpleObjectMaker(dict):
             raise ValueError("bad galaxy model: '%s'" % pars['model'])
 
         gal = gal.shear(g1=g1, g2=g2)
-        return gal, {'r50':r50,'flux':flux,'g1':g1,'g2':g2}
+
+        if self.shear_pdf is not None:
+            shear, shindex = self.shear_pdf.get_shear(self.rng)
+            gal = gal.shear(g1=shear.g1, g2=shear.g2)
+        else:
+            shindex=0
+
+        return gal, {'r50':r50,'flux':flux,'g1':g1,'g2':g2,'shear_index':shindex}
 
 
     def _set_pdf(self):
@@ -50,6 +73,12 @@ class SimpleObjectMaker(dict):
         We use joint distributions for flux and size, though these could
         be separable in practice
         """
+
+        
+        if 'shear' in self:
+            self.shear_pdf = get_shear_pdf(self['shear'])
+        else:
+            self.shear_pdf = None
 
         if 'flux' in self and 'r50' in self:
             # the pdfs are separate
@@ -64,21 +93,29 @@ class SimpleObjectMaker(dict):
                 g_pdf=g_pdf,
             )
         else:
-            raise ValueError("only separable pdfs currently supported")
+            raise ValueError("only separable flux/size/shape pdfs currently supported")
 
 
     def _get_g_pdf(self):
-        if 'g' in self['obj_model']:
-            g_spec=self['obj_model']['g']
-            self.g_pdf=ngmix.priors.GPriorBA(
-                g_spec['sigma'],
-                rng=self.rng,
-            )
-        else:
-            self.g_pdf=None
+        g_spec=self.get('g',None)
+        g_pdf=None
+
+        if g_spec is not None:
+
+            if g_spec['type']=="ba":
+                g_pdf=ngmix.priors.GPriorBA(
+                    g_spec['sigma'],
+                    rng=self.rng,
+                )
+            else:
+                raise ValueError("bad g type: '%s'" % g_spec['type'])
+
+        return g_pdf
 
     def _get_r50_pdf(self):
-        r50spec = self['obj_model']['r50']
+
+        r50spec = self['r50']
+
         if not isinstance(r50spec,dict):
             r50_pdf=DiscreteSampler([r50spec], rng=self.rng)
         else:
@@ -109,7 +146,7 @@ class SimpleObjectMaker(dict):
 
     def _get_flux_pdf(self):
 
-        fluxspec = self['obj_model']['flux']
+        fluxspec = self['flux']
         if not isinstance(fluxspec,dict):
             flux_pdf=DiscreteSampler([fluxspec], rng=self.rng)
         else:

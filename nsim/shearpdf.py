@@ -2,15 +2,11 @@ import numpy
 from ngmix import Shape
 from esutil.stat import print_stats
 
-def get_shear_pdf(conf):
-    from .shearpdf import ConstShearSelector, ConstShearGenerator
+def get_shear_pdf(shconf):
 
-    if 'shear' in conf:
-        shconf = conf['shear']
-        # shears are imbedded in the config
-        if shconf['type'] == 'const':
-            pdf = ConstShearSelector(shconf['shears'])
-        elif shconf['type'] == 'const-dist':
+    if isinstance(shconf, dict):
+
+        if shconf['type'] == 'const-dist':
             # a seed is specified and we generate them
             pdf = ConstShearGenerator(
                 shconf['seed'],
@@ -19,10 +15,11 @@ def get_shear_pdf(conf):
                 max_shear=shconf['max_shear'],
             )
         else:
-            raise ValueError("only shear 'const' for now")
+            raise ValueError("only shear 'const-dist' for now")
 
     else:
-        pdf=None
+        pdf = ConstShearSelector(shconf)
+
 
     return pdf
 

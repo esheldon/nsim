@@ -1,5 +1,5 @@
 images:
-    noise: 0.001
+    noise: 0.1
 
     wcs:                    # optional
         dudx: 0.0

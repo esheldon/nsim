@@ -88,7 +88,7 @@ class SimpleObjectMaker(dict):
         else:
             self.shear_pdf = None
 
-        if 'flux' in self and 'r50' in self:
+        if 'flux' in self and 'r50' in self and 'g' in self:
             # the pdfs are separate
 
             g_pdf = self._get_g_pdf()
@@ -105,27 +105,30 @@ class SimpleObjectMaker(dict):
 
 
     def _get_g_pdf(self):
-        g_spec=self.get('g',None)
-        g_pdf=None
+        if 'g' not in self:
+            raise ValueError("no g spec found in config")
 
-        if g_spec is not None:
+        g_spec=self['g']
 
-            if g_spec['type']=="ba":
-                g_pdf=ngmix.priors.GPriorBA(
-                    g_spec['sigma'],
-                    rng=self.rng,
-                )
-            else:
-                raise ValueError("bad g type: '%s'" % g_spec['type'])
+        if g_spec['type']=="ba":
+            g_pdf=ngmix.priors.GPriorBA(
+                g_spec['sigma'],
+                rng=self.rng,
+            )
+        else:
+            raise ValueError("bad g type: '%s'" % g_spec['type'])
 
         return g_pdf
 
     def _get_r50_pdf(self):
 
+        if 'r50' not in self:
+            raise ValueError("no r50 spec found in config")
+
         r50spec = self['r50']
 
         if not isinstance(r50spec,dict):
-            r50_pdf=DiscreteSampler([r50spec], rng=self.rng)
+            r50_pdf=pdfs.DiscreteSampler([r50spec], rng=self.rng)
         else:
 
             if r50spec['type']=='uniform':
@@ -145,7 +148,7 @@ class SimpleObjectMaker(dict):
                 fname=os.path.expandvars( r50spec['file'] )
                 print("Reading r50 values from file:",fname)
                 vals=fitsio.read(fname)
-                r50_pdf=DiscreteSampler(vals, rng=self.rng)
+                r50_pdf=pdfs.DiscreteSampler(vals, rng=self.rng)
 
             else:
                 raise ValueError("bad r50 pdf type: '%s'" % r50spec['type'])
@@ -154,9 +157,12 @@ class SimpleObjectMaker(dict):
 
     def _get_flux_pdf(self):
 
+        if 'flux' not in self:
+            raise ValueError("no flux spec found in config")
+
         fluxspec = self['flux']
         if not isinstance(fluxspec,dict):
-            flux_pdf=DiscreteSampler([fluxspec], rng=self.rng)
+            flux_pdf=pdfs.DiscreteSampler([fluxspec], rng=self.rng)
         else:
 
             if fluxspec['type']=='uniform':

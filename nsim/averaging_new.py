@@ -59,7 +59,7 @@ class Summer(dict):
 
         self.step = self['metacal_pars'].get('step',0.01)
 
-        shear_pdf = shearpdf.get_shear_pdf(conf['simc'])
+        shear_pdf = shearpdf.get_shear_pdf(conf['simc']['object']['shear'],None)
         self.shears=shear_pdf.shears
         self['nshear']=len(self.shears)
 
@@ -549,12 +549,12 @@ class Summer(dict):
         am_flux=self._get_am_flux(n, data, w)
         flux_true=self._get_flux_true(data, w)
 
-        T_r = self._get_T_r(n, data, w)
+        T = self._get_T(n, data, w)
 
         Tpsf = self._get_psf_T(data, w)
 
         if Tpsf is not None:
-            Tratio = T_r/Tpsf
+            Tratio = T/Tpsf
 
         if n('flux_s2n') in data.dtype.names:
             flux_s2n = self._get_flux_s2n(n, data, w)
@@ -580,12 +580,20 @@ class Summer(dict):
 
         return name
 
-    def _get_T_r(self, n, data, w):
-        Tname=n('T_r')
-        if Tname in data.dtype.names:
-            return data[Tname][w]
-        else:
-            return None
+    def _get_T(self, n, data, w):
+
+        d = None
+        for ntry in ['T_r','T','pars']:
+            name = n(ntry)
+            if name in data.dtype.names:
+
+                if ntry=='pars':
+                    d = data[name][w,4]
+                else:
+                    d = data[name][w]
+                break
+
+        return d
 
     def _get_psf_T(self, data, w):
         n='mcal_psfrec_T'
@@ -634,12 +642,7 @@ class Summer(dict):
 
 
     def _get_flux_true(self, data, w):
-        name='pars_true'
-
-        if name in data.dtype.names:
-            flux = data[name][w,1]
-
-        return flux
+        return data['flux_true'][w]
 
 
     def _get_flux_s2n(self, n, data, w):

@@ -1,0 +1,74 @@
+run: "run-bd02ln-mcal04"
+sim: "sim-bd02ln"
+
+fitter: "metacal-moments-am"
+global_seed: 15413
+
+s2n_min: 5.0
+
+#
+# metacal part
+#
+
+metacal_pars:
+    psf: 'gauss'
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+#
+# flux fitting
+#
+
+fit_model: "spergel"
+
+priors:
+
+    cen:
+        type: "normal2d"
+        sigma: 1.0
+
+    r50:
+        type: "lognormal"
+        mean: 1.54
+        sigma: 1.0
+
+    counts:
+        type: "lognormal"
+        mean: 1000.0
+        sigma: 1333.0
+
+    g:
+        type: "ba"
+        sigma: 0.2
+
+    nu:
+        type: "lognormal"
+        mean: 0.84
+        sigma: 0.7
+        shift: -0.84
+
+max_pars:
+    ntry: 5
+    lm_pars:
+        maxfev: 4000
+    cov:
+        replace_cov: False
+        cov_pars:
+            m: 5
+            h: 1.0e-3
+
+#
+# run details
+#
+
+ngal: 100000000
+
+desired_hours: 2.0
+
+sec_per: 0.25
+
+jobs_per_condor_sub: 5000
+
+verbose: False

@@ -394,6 +394,9 @@ class MetacalMomentsAM(SimpleFitterBase):
             d['mcal_am_flux_s2n%s' % back][i] = tres['am_flux_s2n']
 
 
+            d['mcal_am_flux%s' % back][i] = tres['am_flux']
+            d['mcal_am_flux_s2n%s' % back][i] = tres['am_flux_s2n']
+
             d['mcal_s2n%s' % back][i] = tres['s2n']
             d['mcal_s2n_r%s' % back][i] = tres['s2n_r']
             d['mcal_T_r%s' % back][i] = tres['T_r']
@@ -447,6 +450,7 @@ class MetacalMomentsAM(SimpleFitterBase):
                 ('mcal_s2n%s' % back,'f8'),
                 ('mcal_s2n_r%s' % back,'f8'),
                 ('mcal_T_r%s' % back,'f8'),
+
                 ('mcal_am_flux%s' % back,'f8'),
                 ('mcal_am_flux_s2n%s' % back,'f8'),
             ]

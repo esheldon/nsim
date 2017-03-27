@@ -1,0 +1,50 @@
+images:
+    noise: 0.1
+
+    wcs:                    # optional
+        dudx: 0.0
+        dudy: 0.263
+        dvdx: 0.263
+        dvdy: 0.0
+
+    psf:
+        s2n: 10000
+
+        stamp_size: [48,48] # optional
+
+    object:
+        nepoch: 1
+
+        stamp_size: [48,48] # optional
+
+        cen_shift:
+            type: "uniform"
+            radius: 0.5 # pixels
+
+psf:
+    model: "moffat"
+
+    # fwhm=0.9''
+    r50: 0.54
+    beta: 3.5
+    shape: [0.0, 0.0]
+
+object:
+    model: "exp"
+
+    g:
+        type: "ba"
+        sigma: 0.01
+
+    flux:
+        type: "lognormal"
+        mean: 1000.0
+        sigma: 1333.0
+
+    r50:
+        type: "lognormal"
+        mean: 1.54
+        sigma: 1.0
+
+
+    shear: [0.02, 0.00]

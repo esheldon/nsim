@@ -61,30 +61,30 @@ class PSFSampler(dict):
             raise ValueError("bad psf model: '%s'" % model)
 
 
-        psf_g1, psf_g2 = self._get_shape()
-        psf = psf.shear(g1=psf_g1, g2=psf_g2)
+        g1, g2 = self._get_shape()
+        psf = psf.shear(g1=g1, g2=g2)
 
         return psf, {'r50':r50}
 
     def _get_shape(self):
         if self.shape_pdf is not None:
             try:
-                psf_g1, psf_g2 = self.shape_pdf.sample()
+                g1, g2 = self.shape_pdf.sample()
             except:
-                psf_g1, psf_g2 = self.shape_pdf.sample2d()
+                g1, g2 = self.shape_pdf.sample2d()
 
-            print("    psf (pdf) shape: %g %g" % (psf_g1, psf_g2))
+            print("    psf (pdf) shape: %g %g" % (g1, g2))
 
         else:
-            psf_g1=self['shape'][0]
-            psf_g2=self['shape'][1]
+            g1=self['shape'][0]
+            g2=self['shape'][1]
 
-        return psf_g1, psf_g2
+        return g1, g2
 
     def _get_size(self):
 
         if self.r50_pdf is not None:
-            r50 = self.psf_r50_pdf.sample()
+            r50 = self.r50_pdf.sample()
             print("    psf r50: %g" % r50)
 
         elif 'r50' in self:

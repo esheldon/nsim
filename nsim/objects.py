@@ -45,8 +45,13 @@ class SimpleObjectMaker(dict):
 
         self._set_pdf()
 
-    def __call__(self):
+    def __call__(self, **kw):
         g1,g2,r50,flux = self.pdf.sample()
+
+        if 'flux' in kw:
+            flux=kw['flux']
+        if 'r50' in kw:
+            r50=kw['r50']
 
         model=self['model']
         if model=='gauss':

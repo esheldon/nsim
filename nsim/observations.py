@@ -50,9 +50,23 @@ class ObservationMaker(dict):
 
         object, meta = self._get_object()
 
+
+        if 'randomize_morphology' in objconf:
+            flux = object.getFlux()
+            try:
+                r50  = object.getHalfLightRadius()
+            except:
+                r50  = object.calculateHLR()
+
         obslist = ngmix.observation.ObsList()
         for epoch in xrange(objconf['nepoch']):
+
             psf, psf_meta = self._get_psf()
+
+            if 'randomize_morphology' in objconf and epoch > 0:
+                # random ellipticity but same flux and size
+                r_flux, r_r50 = self._randomize_morphology(flux, r50)
+                object, meta = self._get_object(flux=r_flux, r50=r_r50)
 
             obs = self._get_obs(psf, object)
 
@@ -63,6 +77,21 @@ class ObservationMaker(dict):
         obslist.update_meta_data(meta)
         return obslist
 
+    def _randomize_morphology(self, flux, r50):
+
+        rng=self.rng
+
+        rspec = self['object']['randomize_morphology']
+
+        if rspec['type']=='uniform':
+            low,high=rspec['range']
+            r_flux = flux *(1.0 + rng.uniform(low=low, high=high))
+            r_r50  = r50  *(1.0 + rng.uniform(low=low, high=high))
+        else:
+            raise ValueError("randomize_morphology must be of "
+                             "type uniform, got '%s'" % rspec['type'])
+
+        return r_flux, r_r50
 
     def _get_obs(self, psf, object):
 
@@ -221,11 +250,18 @@ class ObservationMaker(dict):
             dvdy,
         )
 
-    def _get_object(self):
+    def _get_object(self, **kw):
         """
         get the galsim representation of the object
+
+        parameters
+        ----------
+        flux: float, optional
+            Force the given flux
+        r50: float, optional
+            Force the given r50
         """
-        return self.object_maker()
+        return self.object_maker(**kw)
 
     def _get_psf(self):
         """

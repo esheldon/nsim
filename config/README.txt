@@ -9,7 +9,10 @@
         m: 1.093e-03 +/- 2.523e-03  c: 2.087e-05 +/- 5.019e-05
 
     - run-em12ln-mcal01
+    - run-em12ln-mcal02
+    - run-em12ln-mcal03
         - randomized morphology
+        - looks great
 
 - spergel for flux
     - do fit on regular image

@@ -1,0 +1,31 @@
+sim: "sim-em12ln"
+
+fitter: "metacal-moments-am"
+global_seed: 23206
+
+s2n_min: 5.0
+
+#
+# metacal
+#
+
+metacal_pars:
+    psf: 'gauss'
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+#
+# run details
+#
+
+ngal: 20000000
+
+desired_hours: 2.0
+
+sec_per: 2.1
+
+jobs_per_condor_sub: 5000
+
+verbose: False

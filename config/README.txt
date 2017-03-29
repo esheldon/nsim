@@ -1,3 +1,16 @@
+- testing multi-epoch
+    - sim-em11ln
+        - same morphology each epoch
+    - run-em11ln-mcal01
+    - run-em11ln-mcal02
+
+        R: [ 0.65369483  0.6542755 ]
+        errors are 2 sigma
+        m: 1.093e-03 +/- 2.523e-03  c: 2.087e-05 +/- 5.019e-05
+
+    - run-em12ln-mcal01
+        - randomized morphology
+
 - spergel for flux
     - do fit on regular image
     - then demplate fit on mcal images

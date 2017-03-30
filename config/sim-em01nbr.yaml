@@ -58,4 +58,4 @@ object:
     #    sigma: 0.26
 
 
-    shear: [0.00, 0.00]
+    shear: [0.02, 0.00]

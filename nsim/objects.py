@@ -139,7 +139,7 @@ class SimpleMaker(dict):
         if spec['type']=='cosmos':
             pdf = pdfs.CosmosR50Flux(
                 spec['r50_range'],
-                spec'flux_range'],
+                spec['flux_range'],
             )
         else:
             raise ValueError("bad r50_flux joint "
@@ -246,6 +246,10 @@ class BDKMaker(SimpleMaker):
     def _set_pdf(self):
         super(BDKMaker,self)._set_pdf()
 
+        self.fracdev_pdf = self._get_fracdev_pdf()
+        self.fracknots_pdf = self._get_fracknots_pdf()
+
+
     def _make_object(self, **kw):
         g1disk,g2disk,r50,flux = self.pdf.sample()
         g1bulge,g2bulge,junk,junk = self.pdf.sample()
@@ -304,7 +308,7 @@ class BDKMaker(SimpleMaker):
                                       rng=self.rng)
 
     def _get_fracknots_pdf(self):
-        bdr = self['knots']['frac']['range']
+        bdr = self['knots']['flux_frac']['range']
         return ngmix.priors.FlatPrior(bdr[0], bdr[1],
                                       rng=self.rng)
 

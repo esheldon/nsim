@@ -22,6 +22,7 @@ def get_sim(sim_conf):
 
 class Sim(dict):
     def __init__(self, sim_conf):
+        import galsim
         self.update(sim_conf)
 
         seed=self['seed']

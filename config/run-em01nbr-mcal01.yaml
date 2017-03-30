@@ -24,11 +24,11 @@ admom_pars:
 # run details
 #
 
-ngal: 10000000
+ngal: 20000000
 
 desired_hours: 1.0
 
-sec_per: 2.1
+sec_per: 0.25
 
 jobs_per_condor_sub: 5000
 

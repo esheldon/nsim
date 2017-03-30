@@ -32,17 +32,9 @@ psf:
     model: "moffat"
 
     # fwhm=0.9''
-    r50:
-        type: "lognormal"
-        mean: 0.54
-        sigma: 0.012
-
+    r50: 0.54
     beta: 3.5
-
-    shape:
-        type: "normal2d"
-        cen: [0.0, 0.01]
-        sigma: [0.01, 0.01]
+    shape: [0.0, 0.01]
 
 
 object:
@@ -50,7 +42,8 @@ object:
 
     g:
         type: "ba"
-        sigma: 0.1
+        #sigma: 0.1
+        sigma: 0.01
 
     flux: 1000.0
     #flux:

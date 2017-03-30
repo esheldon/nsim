@@ -45,12 +45,13 @@ class ObservationMaker(dict):
             type: "uniform"
             radius: 0.5 # pixels
     """
-    def __init__(self, config, psf_maker, object_maker, rng):
+    def __init__(self, config, psf_maker, object_maker, rng, galsim_rng):
         self.update(config)
 
         self.psf_maker=psf_maker
         self.object_maker=object_maker
         self.rng=rng
+        self.galsim_rng=galsim_rng
 
         self._set_pdfs()
 
@@ -311,7 +312,6 @@ class ObservationMaker(dict):
             raise ValueError("set psf s2n in the ['images']['psf'] "
                              "section of the config")
 
-        self.galsim_rng = galsim.BaseDeviate(self.rng.randint(0,2**30))
         self.gaussian_image_noise=galsim.GaussianNoise(
             self.galsim_rng,
             self['noise'],

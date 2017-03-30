@@ -4,10 +4,12 @@ import ngmix
 from . import pdfs
 from .shearpdf import get_shear_pdf
 
-def get_object_maker(config, rng):
+def get_object_maker(config, rng, galsim_rng):
     model=config['model']
     if model in ['gauss','exp','dev']:
         maker=SimpleMaker(config, rng)
+    elif model =='bdk':
+        maker=BDKMaker(config, rng, galsim_rng)
     else:
         raise ValueError("bad model: '%s'" % model)
 

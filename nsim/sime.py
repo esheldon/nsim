@@ -32,6 +32,7 @@ class Sim(dict):
         # code which may use the global.
         numpy.random.seed(seed)
         self.rng=numpy.random.RandomState(seed=numpy.random.randint(0,2**30))
+        self.galsim_rng = galsim.BaseDeviate(self.rng.randint(0,2**30))
 
         pprint(self)
 
@@ -44,11 +45,16 @@ class Sim(dict):
         psf_maker    = psfs.get_psf_maker(self['psf'], self.rng)
 
         # for multi-band, we will make multiple of these
-        object_maker = objects.get_object_maker(self['object'], self.rng)
+        object_maker = objects.get_object_maker(
+            self['object'],
+            self.rng,
+            self.galsim_rng,
+        )
 
         self._image_maker  = observations.get_observation_maker(
             self['images'],
             psf_maker,
             object_maker,
             self.rng,
+            self.galsim_rng,
         )

@@ -4,12 +4,21 @@ try:
 except:
     xrange=range
 
+from copy import deepcopy
 import numpy
 import galsim
 import ngmix
 from . import pdfs
 
 from .util import TryAgainError
+
+def get_observation_maker(*args):
+    conf = args[0]['object']
+    if 'nnbr' in conf and conf['nnbr'] > 0:
+        return NbrObservationMaker(*args)
+    else:
+        return ObservationMaker(*args)
+        
 
 class ObservationMaker(dict):
     """
@@ -50,8 +59,8 @@ class ObservationMaker(dict):
 
         object, meta = self._get_object()
 
-
         if 'randomize_morphology' in objconf:
+            # for multi-epoch sims
             flux = object.getFlux()
             try:
                 r50  = object.getHalfLightRadius()
@@ -170,7 +179,7 @@ class ObservationMaker(dict):
         self._add_object_noise(gsimage)
         image=gsimage.array
 
-        row, col = find_centroid(image, self.rng)
+        row, col = find_centroid(image, self.rng, offset=offset)
         jacob = self._get_jacobian(wcs, row, col)
 
         return image, image_orig, jacob
@@ -260,6 +269,11 @@ class ObservationMaker(dict):
             Force the given flux
         r50: float, optional
             Force the given r50
+
+        returns
+        -------
+        (gsobj, meta)
+           The galsim objects and metadata in a dictionary
         """
         return self.object_maker(**kw)
 
@@ -303,9 +317,13 @@ class ObservationMaker(dict):
         )
 
     def _get_offset(self):
-        if self.cen_pdf is not None:
-            coff1 = self.cen_pdf.sample()
-            coff2 = self.cen_pdf.sample()
+        cen_pdf = self.cen_pdf
+        if cen_pdf is not None:
+            if hasattr(cen_pdf,'sample2d'):
+                coff1,coff2 = cen_pdf.sample2d()
+            else:
+                coff1 = cen_pdf.sample()
+                coff2 = cen_pdf.sample()
 
             offset=(coff1,coff2)
         else:
@@ -329,17 +347,217 @@ class ObservationMaker(dict):
                     -cr['radius'], cr['radius'],
                     rng=self.rng,
                 )
+            elif type=='disk':
+                self.cen_pdf=ngmix.priors.ZDisk2D(
+                    cr['radius'],
+                    rng=self.rng,
+                )
+
+            elif type=='annulus':
+                self.cen_pdf=ngmix.priors.ZAnnulus(
+                    cr['rmin'],
+                    cr['rmax'],
+                    rng=self.rng,
+                )
+
+
             else:
                 raise ValueError("cen shift type should be 'uniform'")
 
+class NbrObservationMaker(ObservationMaker):
+    """
+    Get an obs with neighbors
 
-def find_centroid(image, rng, maxiter=200, ntry=4):
+    returns
+    -------
+    ngmix.Observation:
+
+    notes
+    ------
+        - the noise gets increased since the images are added
+        - you should fix the stamp size so the images can be added
+        - the cen_shift does not apply to the first object drawn
+          only subsequent ones
+
+        - this requires the additional config parameter
+            object:
+                nnbr:   2 # number of neighbors
+                nepoch: 1 # only one epoch for now
+        - number of epochs must be 1 for now
+    """
+    def __call__(self):
+
+
+        objconf=self['object']
+        assert objconf['nepoch']==1
+
+        nobject = 1 + objconf['nnbr']
+        for i in xrange(nobject):
+            print("    object",i+1,"of",nobject)
+            if i==0:
+                self._save_cen_pdf()
+
+            obslist = super(NbrObservationMaker,self).__call__()
+            obs=obslist[0]
+
+            if i==0:
+                self._restore_cen_pdf()
+
+                new_obslist = deepcopy(obslist)
+
+
+                image  = obs.image
+                weight = obs.weight
+                var    = 1.0/weight
+            else:
+                image += obs.image
+                var   += 1.0/obs.weight
+
+        weight = 1.0/var
+        obs = new_obslist[0]
+
+        obs.image_orig = obs.image
+        obs.weight_orig = obs.weight
+
+        obs.image = image.copy()
+        obs.weight = weight.copy()
+
+        if False:
+            import images
+            #images.view(obs.image, width=800,height=800)
+            images.multiview(obs.image, width=800,height=800)
+            if 'q'==raw_input('hit a key: '):
+                stop
+            # just to keep things going
+            #raise TryAgainError("for testing")
+
+        print()
+        return new_obslist
+
+    def _restore_cen_pdf(self):
+        self.cen_pdf = self.cen_pdf_saved
+
+    def _save_cen_pdf(self):
+        self.cen_pdf_saved = self.cen_pdf
+        self.cen_pdf = None
+
+
+class NbrObservationMakerMulti(ObservationMaker):
+    """
+    get multple obs and combine them, getting a list
+    of new observations for use with MOF
+
+    returns
+    -------
+    list of ngmix.Observation:
+        Each obs has the same image and weight map, but different jacobians are
+        set with the nominal center for each object.  Also the metadata is the
+        metadata for that object.
+
+
+    notes
+    ------
+        - the noise gets increased since the images are added
+        - you should fix the stamp size so the images can be added
+        - you should make the stamp size large enough to hold all
+          the objects with their offsets
+        - the cen_shift does not apply to the first object drawn
+          only subsequent ones
+
+        - this requires the additional config parameter
+            object:
+                nnbr:   2 # number of neighbors
+                nepoch: 1 # only one epoch for now
+        - number of epochs must be 1 for now
+    """
+    def __call__(self):
+
+
+        objconf=self['object']
+        assert objconf['nepoch']==1
+
+        observations = [] 
+
+        nobject = 1 + objconf['nnbr']
+        for i in xrange(nobject):
+            print("object",i+1,"of",nobject)
+            if i==0:
+                self._save_cen_pdf()
+
+            obslist = super(NbrObservationMaker,self).__call__()
+
+            # keep orig for testing or bootstrapping
+            obslist_orig = deepcopy(obslist)
+            obslist.obslist_orig = obslist_orig
+
+            observations.append( obslist )
+            obs=obslist[0]
+
+            if False:
+                import images
+                images.view(obs.image, width=800,height=800)
+                if 'q'==raw_input('hit a key: '):
+                    stop
+
+            if i==0:
+                self._restore_cen_pdf()
+
+                image  = obs.image
+                weight = obs.weight
+                var    = 1.0/weight
+            else:
+                image += obs.image
+                var   += 1.0/obs.weight
+
+        weight = 1.0/var
+        for obslist in observations:
+            obs=obslist[0]
+            obs.image_orig = obs.image
+            obs.weight_orig = obs.weight
+
+            obs.image = image.copy()
+            obs.weight = weight.copy()
+
+        if True:
+            import images
+            #images.view(obs.image, width=800,height=800)
+            images.multiview(obs.image, width=800,height=800)
+            if 'q'==raw_input('hit a key: '):
+                stop
+            # just to keep things going
+            raise TryAgainError("for testing")
+        return observations
+
+    def _restore_cen_pdf(self):
+        self.cen_pdf = self.cen_pdf_saved
+
+    def _save_cen_pdf(self):
+        self.cen_pdf_saved = self.cen_pdf
+        self.cen_pdf = None
+
+def find_centroid(image, rng, offset=None, maxiter=200, ntry=4):
     """
     use AM to fit a single gaussian
     """
 
+
     dims = numpy.array(image.shape)
     row0, col0 = (dims-1)/2.0
+
+    if offset is not None:
+        # note galsim uses (col,row)
+        col0 += offset[0]
+        row0 += offset[1]
+
+    print("    rowcol guess:",row0,col0)
+
+    if False:
+        import images
+        images.view(image, width=800,height=800)
+        if 'q'==raw_input('hit a key: '):
+            stop
+
+
 
     j=ngmix.UnitJacobian(row=row0, col=col0)
 
@@ -362,7 +580,7 @@ def find_centroid(image, rng, maxiter=200, ntry=4):
 
     row = row0 + row
     col = col0 + col
-    print("    center:",row,col)
+    print("    center:",row,col,"numiter:",res['numiter'])
 
     return row,col
 

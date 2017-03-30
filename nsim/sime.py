@@ -1,13 +1,4 @@
 from __future__ import print_function
-try:
-    xrange
-except:
-    xrange=range
-try:
-    raw_input
-except:
-    raw_input=input
-
 
 import os, sys
 from pprint import pprint
@@ -55,7 +46,7 @@ class Sim(dict):
         # for multi-band, we will make multiple of these
         object_maker = objects.get_object_maker(self['object'], self.rng)
 
-        self._image_maker  = observations.ObservationMaker(
+        self._image_maker  = observations.get_observation_maker(
             self['images'],
             psf_maker,
             object_maker,

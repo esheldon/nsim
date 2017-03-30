@@ -1,3 +1,9 @@
+- testing neighbors
+    - sim-em01nbr
+        - galaxies with same flux in annulus 9-10 pixels
+        - run-em01nbr-mcal01
+        20 million
+
 - testing multi-epoch
     - sim-em11ln
         - same morphology each epoch

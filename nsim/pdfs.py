@@ -72,6 +72,21 @@ class SeparableShapeR50FluxPDF(object):
 
         return g1, g2, r50, flux
 
+class ShapeJointR50FluxPDF(object):
+    def __init__(self, r50_flux_pdf, g_pdf=None):
+        self.r50_flux_pdf=r50_flux_pdf
+        self.g_pdf=g_pdf
+
+    def sample(self):
+
+        if self.g_pdf is not None:
+            g1,g2 = self.g_pdf.sample2d()
+        else:
+            g1,g2=0.0,0.0
+        r50,flux=self.r50_flux_pdf.sample()
+        return g1, g2, r50, flux
+
+
 class CosmosR50Flux(object):
     def __init__(self, r50_range, flux_range):
         self.r50_range=r50_range

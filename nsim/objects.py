@@ -7,13 +7,13 @@ from .shearpdf import get_shear_pdf
 def get_object_maker(config, rng):
     model=config['model']
     if model in ['gauss','exp','dev']:
-        maker=SimpleObjectMaker(config, rng)
+        maker=SimpleMaker(config, rng)
     else:
         raise ValueError("bad model: '%s'" % model)
 
     return maker
 
-class SimpleObjectMaker(dict):
+class SimpleMaker(dict):
     """
     object section of config
 
@@ -46,6 +46,19 @@ class SimpleObjectMaker(dict):
         self._set_pdf()
 
     def __call__(self, **kw):
+
+        gal, meta = self._make_object(**kw)
+
+        if self.shear_pdf is not None:
+            shear, shindex = self.shear_pdf.get_shear()
+            gal = gal.shear(g1=shear.g1, g2=shear.g2)
+
+            meta['shear'] = (shear.g1, shear.g2)
+            meta['shear_index'] = shindex
+
+        return gal, meta
+
+    def _make_object(self, **kw):
         g1,g2,r50,flux = self.pdf.sample()
 
         if 'flux' in kw:
@@ -64,19 +77,13 @@ class SimpleObjectMaker(dict):
             raise ValueError("bad galaxy model: '%s'" % pars['model'])
 
         gal = gal.shear(g1=g1, g2=g2)
-
         meta={
             'r50':r50,
             'flux':flux,
         }
-        if self.shear_pdf is not None:
-            shear, shindex = self.shear_pdf.get_shear()
-            gal = gal.shear(g1=shear.g1, g2=shear.g2)
-
-            meta['shear'] = (shear.g1, shear.g2)
-            meta['shear_index'] = shindex
 
         return gal, meta
+
 
 
     def _set_pdf(self):
@@ -105,8 +112,38 @@ class SimpleObjectMaker(dict):
                 flux_pdf,
                 g_pdf=g_pdf,
             )
+        elif 'r50_flux' in self:
+            # joint in r50 and flux
+
+            g_pdf = self._get_g_pdf()
+            r50_flux_pdf = self._get_joint_r50_flux_pdf()
+
+            self.pdf = pdfs.ShapeJointR50FluxPDF(
+                r50_pdf,
+                flux_pdf,
+                g_pdf=g_pdf,
+            )
+
         else:
-            raise ValueError("only separable flux/size/shape pdfs currently supported")
+            raise ValueError("only separable flux/size/shape "
+                             "pdfs currently supported")
+
+    def _get_joint_r50_flux_pdf(self):
+        """
+        joint size-flux from the cosmos catalog
+        """
+
+        spec=self['r50_flux']
+        if spec['type']=='cosmos':
+            pdf = pdfs.CosmosR50Flux(
+                spec['r50_range'],
+                spec'flux_range'],
+            )
+        else:
+            raise ValueError("bad r50_flux joint "
+                             "pdf: '%s'" % spec['type'])
+
+        return pdf
 
 
     def _get_g_pdf(self):
@@ -197,3 +234,76 @@ class SimpleObjectMaker(dict):
                 raise ValueError("bad flux pdf type: '%s'" % fluxspec['type'])
 
         return flux_pdf
+
+class BDKMaker(SimpleMaker):
+    def __init__(self, config, rng, galsim_rng):
+        super(BDKMaker,self).__init__(config, rng)
+
+        self.galsim_rng=galsim_rng
+
+    def _set_pdf(self):
+        super(BDKMaker,self)._set_pdf()
+
+    def _make_object(self, **kw):
+        g1disk,g2disk,r50,flux = self.pdf.sample()
+        g1bulge,g2bulge,junk,junk = self.pdf.sample()
+
+        if 'flux' in kw:
+            flux=kw['flux']
+        if 'r50' in kw:
+            r50=kw['r50']
+
+
+        fracdev = self.fracdev_pdf.sample()
+        fracknots = self.fracknots_pdf.sample()
+
+        bulge_flux = flux*fracdev
+
+        disk_flux_total = flux*(1.0 - fracdev)
+        disk_flux = (1.0 - fracknots)*disk_flux_total
+        knot_flux = fracknots*disk_flux_total
+
+        disk_raw = galsim.Exponential(
+            flux=disk_flux,
+            half_light_radius=r50,
+        )
+
+        knots = galsim.RandomWalk(
+            npoints=self['knots']['num'],
+            half_light_radius=r50,
+            flux=knot_flux,
+            rng=self.galsim_rng,
+        )
+
+        disk = galsim.Add([disk_raw, knots])
+
+        # the bulge is always smooth
+        bulge = galsim.DeVaucouleurs(flux=bulge_flux, half_light_radius=r50)
+
+        # disk and bulge get independent shapes
+        disk  = disk.shear(g1=g1disk, g2=g2disk)
+        bulge = bulge.shear(g1=g1bulge, g2=g2bulge)
+
+        # combine them and shear that
+        gal = galsim.Add([disk, bulge])
+
+        meta={
+            'r50':r50,
+            'flux':flux,
+            'fracdev':fracdev,
+            'fracknots':fracknots,
+        }
+
+        return gal, meta
+
+    def _get_fracdev_pdf(self):
+        bdr = self['fracdev']['range']
+        return ngmix.priors.FlatPrior(bdr[0], bdr[1],
+                                      rng=self.rng)
+
+    def _get_fracknots_pdf(self):
+        bdr = self['knots']['frac']['range']
+        return ngmix.priors.FlatPrior(bdr[0], bdr[1],
+                                      rng=self.rng)
+
+

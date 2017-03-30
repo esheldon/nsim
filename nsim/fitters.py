@@ -93,10 +93,7 @@ class FitterBase(dict):
                     obslist = self.sim()
                     self.tm_sim += time.time()-tm0
 
-                    if hasattr(obslist,'meta'):
-                        meta=obslist.meta
-                    else:
-                        meta=obslist[0].meta
+                    meta = self._extract_meta(obslist)
 
                     if meta['s2n'] > self['s2n_min']:
                         n_proc += 1
@@ -132,6 +129,14 @@ class FitterBase(dict):
         print('time to simulate:',self.tm_sim/n_sim)
         print('time to fit:',self.tm_fit/n_proc)
 
+    def _extract_meta(self, obslist):
+        if hasattr(obslist,'meta'):
+            meta=obslist.meta
+        else:
+            meta=obslist[0].meta
+
+        return meta
+
     def process_one(self, obslist):
         """
         perform the fit
@@ -147,7 +152,7 @@ class FitterBase(dict):
         if res['flags'] != 0:
             raise TryAgainError("failed with flags %s" % res['flags'])
 
-        meta=obslist.meta
+        meta = self._extract_meta(obslist)
         res['r50_true'] = meta['r50']
         res['flux_true'] = meta['flux']
         res['s2n_true'] = meta['s2n']

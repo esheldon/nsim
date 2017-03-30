@@ -1,0 +1,60 @@
+# in this one we are not correcting for nbrs, so
+# we can use smaller stamps
+#
+# also using smaller galaxies
+images:
+    noise: 0.1
+
+    wcs:                    # optional
+        dudx: 0.0
+        dudy: 0.263
+        dvdx: 0.263
+        dvdy: 0.0
+
+    psf:
+        s2n: 10000
+
+        stamp_size: [48,48] # optional
+
+    object:
+        nnbr: 1
+        nepoch: 1
+
+        #stamp_size: [96,96]
+        stamp_size: [48,48]
+
+        cen_shift:
+            type: "annulus"
+            rmin: 9.0   # pixels
+            rmax: 10.0
+
+psf:
+    model: "gauss"
+
+    # fwhm=0.9''
+    r50: 0.54
+    shape: [0.0, 0.0]
+
+
+object:
+    model: "exp"
+
+    g:
+        type: "ba"
+        #sigma: 0.1
+        sigma: 0.01
+
+    flux: 1000.0
+    #flux:
+    #    type: "lognormal"
+    #    mean: 1000.0
+    #    sigma: 1333.0
+
+    r50: 0.4
+    #r50:
+    #    type: "lognormal"
+    #    mean: 0.4
+    #    sigma: 0.26
+
+
+    shear: [0.02, 0.00]

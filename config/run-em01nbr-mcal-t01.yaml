@@ -1,0 +1,35 @@
+sim: "sim-em01nbr"
+
+fitter: "metacal-moments-am"
+global_seed: 101
+
+s2n_min: 5.0
+
+#
+# metacal
+#
+
+metacal_pars:
+    psf: 'gauss'
+
+#
+# adaptive moments
+#
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+#
+# run details
+#
+
+ngal: 1000000
+
+desired_hours: 0.1
+
+sec_per: 0.25
+
+jobs_per_condor_sub: 5000
+
+verbose: False

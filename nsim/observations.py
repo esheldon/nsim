@@ -15,7 +15,8 @@ from .util import TryAgainError
 def get_observation_maker(*args):
     conf = args[0]['object']
     if 'nnbr' in conf and conf['nnbr'] > 0:
-        return NbrObservationMaker(*args)
+        #return NbrObservationMaker(*args)
+        return NbrObservationMakerMulti(*args)
     else:
         return ObservationMaker(*args)
         
@@ -483,7 +484,7 @@ class NbrObservationMakerMulti(ObservationMaker):
         objconf=self['object']
         assert objconf['nepoch']==1
 
-        observations = [] 
+        allobs = [] 
 
         nobject = 1 + objconf['nnbr']
         for i in xrange(nobject):
@@ -491,13 +492,14 @@ class NbrObservationMakerMulti(ObservationMaker):
             if i==0:
                 self._save_cen_pdf()
 
-            obslist = super(NbrObservationMaker,self).__call__()
+            obslist = super(NbrObservationMakerMulti,self).__call__()
+            #return [obslist]
 
             # keep orig for testing or bootstrapping
             obslist_orig = deepcopy(obslist)
             obslist.obslist_orig = obslist_orig
 
-            observations.append( obslist )
+            allobs.append( obslist )
             obs=obslist[0]
 
             if False:
@@ -517,7 +519,7 @@ class NbrObservationMakerMulti(ObservationMaker):
                 var   += 1.0/obs.weight
 
         weight = 1.0/var
-        for obslist in observations:
+        for obslist in allobs:
             obs=obslist[0]
             obs.image_orig = obs.image
             obs.weight_orig = obs.weight
@@ -525,15 +527,15 @@ class NbrObservationMakerMulti(ObservationMaker):
             obs.image = image.copy()
             obs.weight = weight.copy()
 
-        if True:
+        if False:
             import images
             #images.view(obs.image, width=800,height=800)
             images.multiview(obs.image, width=800,height=800)
             if 'q'==raw_input('hit a key: '):
                 stop
             # just to keep things going
-            raise TryAgainError("for testing")
-        return observations
+            #raise TryAgainError("for testing")
+        return allobs
 
     def _restore_cen_pdf(self):
         self.cen_pdf = self.cen_pdf_saved

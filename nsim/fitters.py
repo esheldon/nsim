@@ -93,7 +93,11 @@ class FitterBase(dict):
                     obslist = self.sim()
                     self.tm_sim += time.time()-tm0
 
-                    meta = obslist.meta
+                    if hasattr(obslist,'meta'):
+                        meta=obslist.meta
+                    else:
+                        meta=obslist[0].meta
+
                     if meta['s2n'] > self['s2n_min']:
                         n_proc += 1
 
@@ -345,17 +349,19 @@ class SimpleFitterBase(FitterBase):
 
         super(SimpleFitterBase,self)._copy_to_output(res, i)
 
+        n=self._get_namer()
+
         d=self.data
 
-        d['pars'][i,:] = res['pars']
-        d['pars_cov'][i,:,:] = res['pars_cov']
+        d[n('pars')][i,:] = res['pars']
+        d[n('pars_cov')][i,:,:] = res['pars_cov']
 
         d['psf_pars'][i,:] = res['psf_pars']
 
-        d['g'][i,:] = res['g']
-        d['g_cov'][i,:,:] = res['g_cov']
+        d[n('g')][i,:] = res['g']
+        d[n('g_cov')][i,:,:] = res['g_cov']
 
-        d['s2n'][i] = res['s2n']
+        d[n('s2n_r')][i] = res['s2n_r']
         d['psf_T'][i] = res['psf_T']
 
     def _get_prior(self, prior_info=None):
@@ -763,14 +769,13 @@ class MaxMetacalFitter(MaxFitter):
 
         self['min_s2n'] = self.get('min_s2n',0.0)
 
-    def _dofit(self, imdict):
+    def _dofit(self, obslist):
         """
         Fit according to the requested method
         """
 
-        self.imdict=imdict
-
-        obs=imdict['obs']
+        assert len(obslist) == 1
+        obs=obslist[0]
 
         mdict = self._do_fits(obs)
         res=mdict['res']
@@ -933,7 +938,7 @@ class MaxMetacalFitter(MaxFitter):
 
             # sometimes we don't calculate all
             if type not in res:
-                print("type not found:",type)
+                #print("type not found:",type)
                 continue
 
             tres=res[type]

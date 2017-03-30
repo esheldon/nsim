@@ -545,6 +545,25 @@ class MetacalMomentsAM(SimpleFitterBase):
             stop
 
 
+class MetacalMomentsAMMOFSub(MetacalMomentsAM):
+    def _dofit(self, allobs):
+        import minimof
+        mm=minimof.MiniMOF(
+            self['mof'],
+            allobs,
+            rng=self.rng,
+        )
+        mm.go()
+        mm_res = mm.get_result()
+        if not mm_res['converged']:
+            raise TryAgainError("MOF did not converge")
+
+        # assume first is the central
+        corr_obslist = mm.get_corrected_obs(0)
+
+        return super(MetacalMomentsAMMOFSub,self)._dofit(corr_obslist)
+
+
 class AMFitter(MetacalMomentsAM):
     def _dofit(self, obslist):
 

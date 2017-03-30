@@ -164,8 +164,8 @@ def go(sim_conf,
 
 
 
-    elif ftype=='metacal-moments-am-multi':
-        fitclass=nsim.moments.MetacalMomentsAMMulti
+    elif ftype=='metacal-moments-am-mofsub':
+        fitclass=nsim.moments.MetacalMomentsAMMOFSub
 
 
     elif ftype=='metacal-moments-deweight':

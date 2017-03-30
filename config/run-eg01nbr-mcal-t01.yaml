@@ -61,9 +61,9 @@ mof:
 
 ngal: 1000000
 
-desired_hours: 0.1
+desired_hours: 0.2
 
-sec_per: 0.25
+sec_per: 1.0
 
 jobs_per_condor_sub: 5000
 

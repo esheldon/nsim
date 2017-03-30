@@ -366,6 +366,11 @@ class ObservationMaker(dict):
 
 class NbrObservationMaker(ObservationMaker):
     """
+
+    In this version we generate different objects totally separately and then
+    just add the images. I think this might not be right because then the whole
+    thing might not be sheared in a self-consistent way
+
     Get an obs with neighbors
 
     returns
@@ -398,6 +403,8 @@ class NbrObservationMaker(ObservationMaker):
                 self._save_cen_pdf()
 
             obslist = super(NbrObservationMaker,self).__call__()
+            #print("just returning first one")
+            #return obslist
             obs=obslist[0]
 
             if i==0:

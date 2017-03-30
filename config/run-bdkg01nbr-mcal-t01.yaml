@@ -1,0 +1,72 @@
+sim: "sim-bdkg01nbr"
+
+fitter: "metacal-moments-am-mofsub"
+
+global_seed: 4375
+
+s2n_min: 5.0
+
+#
+# metacal
+#
+
+metacal_pars:
+    psf: 'gauss'
+    types: ['noshear','1p','1m','2p','2m']
+
+#
+# adaptive moments
+#
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+
+mof:
+    # not ideal! need to wind up the swindle
+
+    model: "exp"
+    priors:
+        cen:
+            type: "normal2d"
+            sigma: 0.1
+
+        T:
+            type: "lognormal"
+            mean: 10.0
+            sigma: 10.0
+
+        counts:
+            type: "flat"
+            pars: [10.0, 500.0]
+
+        g:
+            type: "ba"
+            sigma: 0.3
+
+    psf_pars:
+        model: "gauss"
+        ntry: 2
+
+    max_pars:
+        ntry: 5
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+
+        cov:
+            replace_cov: False
+#
+# run details
+#
+
+ngal: 1000000
+
+desired_hours: 0.2
+
+sec_per: 1.0
+
+jobs_per_condor_sub: 5000
+
+verbose: False

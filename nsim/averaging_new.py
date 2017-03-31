@@ -59,7 +59,8 @@ class Summer(dict):
 
         self.step = self['metacal_pars'].get('step',0.01)
 
-        shear_pdf = shearpdf.get_shear_pdf(conf['simc']['object']['shear'],None)
+        #shear_pdf = shearpdf.get_shear_pdf(conf['simc']['object']['shear'],None)
+        shear_pdf = shearpdf.get_shear_pdf(conf['simc']['shear'],None)
         self.shears=shear_pdf.shears
         self['nshear']=len(self.shears)
 

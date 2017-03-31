@@ -16,6 +16,7 @@ from . import observations
 
 from .util import TryAgainError
 
+from .shearpdf import get_shear_pdf
 
 def get_sim(sim_conf):
     return Sim(sim_conf)
@@ -52,10 +53,18 @@ class Sim(dict):
             self.galsim_rng,
         )
 
+        if 'shear' in self:
+            shear_pdf = get_shear_pdf(self['shear'], self.rng)
+        else:
+            shear_pdf = None
+
         self._image_maker  = observations.get_observation_maker(
             self['images'],
             psf_maker,
             object_maker,
             self.rng,
             self.galsim_rng,
+            shear_pdf=shear_pdf,
         )
+
+

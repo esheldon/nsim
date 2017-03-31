@@ -3,6 +3,7 @@ try:
     xrange
 except:
     xrange=range
+    raw_input=input
 
 from copy import deepcopy
 import numpy
@@ -12,13 +13,13 @@ from . import pdfs
 
 from .util import TryAgainError
 
-def get_observation_maker(*args):
-    conf = args[0]['object']
+def get_observation_maker(*args, **kw):
+    conf = args[0]
     if 'nnbr' in conf and conf['nnbr'] > 0:
         #return NbrObservationMaker(*args)
-        return NbrObservationMakerMulti(*args)
+        return NbrObservationMakerMulti(*args, **kw)
     else:
-        return ObservationMaker(*args)
+        return ObservationMaker(*args, **kw)
         
 
 class ObservationMaker(dict):
@@ -45,11 +46,14 @@ class ObservationMaker(dict):
             type: "uniform"
             radius: 0.5 # pixels
     """
-    def __init__(self, config, psf_maker, object_maker, rng, galsim_rng):
+    def __init__(self, config, psf_maker, object_maker, rng, galsim_rng, shear_pdf=None):
         self.update(config)
+
+        self['use_canonical_center'] = self.get('use_canonical_center',False)
 
         self.psf_maker=psf_maker
         self.object_maker=object_maker
+        self.shear_pdf=shear_pdf
         self.rng=rng
         self.galsim_rng=galsim_rng
 
@@ -181,7 +185,13 @@ class ObservationMaker(dict):
         self._add_object_noise(gsimage)
         image=gsimage.array
 
-        row, col = find_centroid(image, self.rng, offset=offset)
+        if self['use_canonical_center']:
+            dims = numpy.array(image.shape)
+            row, col = (dims-1)/2.0
+            print("using canonical center",row,col)
+        else:
+            row, col = find_centroid(image, self.rng, offset=offset)
+
         jacob = self._get_jacobian(wcs, row, col)
 
         return image, image_orig, jacob
@@ -277,7 +287,17 @@ class ObservationMaker(dict):
         (gsobj, meta)
            The galsim objects and metadata in a dictionary
         """
-        return self.object_maker(**kw)
+
+        obj, meta  = self.object_maker(**kw)
+
+        if self.shear_pdf is not None:
+            shear, shindex = self.shear_pdf.get_shear()
+            obj = obj.shear(g1=shear.g1, g2=shear.g2)
+
+            meta['shear'] = (shear.g1, shear.g2)
+            meta['shear_index'] = shindex
+
+        return obj, meta
 
     def _get_psf(self):
         """
@@ -451,6 +471,188 @@ class NbrObservationMaker(ObservationMaker):
 
 
 class NbrObservationMakerMulti(ObservationMaker):
+    def __init__(self, *args, **kw):
+        super(NbrObservationMakerMulti,self).__init__(*args, **kw)
+
+        self._set_nbr_sky_shift()
+
+    def __call__(self):
+        
+        obslist=super(NbrObservationMakerMulti,self).__call__()
+        
+        obs = obslist[0]
+        jac = obs.jacobian
+        meta=obslist.meta
+
+        shiftlist=meta['shiftlist']
+        nobj = len(shiftlist)
+        print("nobj:",nobj)
+
+        allobs = [] 
+
+        for i in xrange(nobj):
+
+
+            if i==0:
+                allobs.append( obslist )
+            else:
+                # this works because we demand trivial wcs
+                dskyrow, dskycol = shiftlist[i]
+
+                tjac = jac.copy()
+                scale = jac.get_scale()
+                row,col = jac.get_cen()
+                drow,dcol = dskyrow/scale, dskycol/scale
+
+                row0 = row + drow
+                col0 = col + dcol
+                print("new cen:",row0,col0)
+                tjac.set_cen(row=row0, col=col0)
+
+                tobs = ngmix.Observation(
+                    obs.image.copy(),
+                    obs.weight.copy(),
+                    jacobian=tjac,
+                    meta=obs.meta,
+                    psf=obs.psf,
+                )
+
+                tlist = ngmix.ObsList()
+                tlist.append(tobs)
+                tlist.update_meta_data(obslist.meta)
+
+                allobs.append(tlist)
+
+
+        if False:
+            import images
+            #images.view(obs.image, width=800,height=800)
+            obs = allobs[0][0]
+            images.multiview(obs.image, width=800,height=800)
+            if 'q'==raw_input('hit a key: '):
+                stop
+            # just to keep things going
+            #raise TryAgainError("for testing")
+        return allobs
+
+
+
+    def _get_object(self, **kw):
+        """
+        get the galsim representation of the object
+
+        parameters
+        ----------
+        flux: float, optional
+            Force the given flux
+        r50: float, optional
+            Force the given r50
+
+        returns
+        -------
+        (gsobj, meta)
+           The galsim objects and metadata in a dictionary
+        """
+
+        nnbr = self['nnbr']
+
+        objlist=[]
+        shiftlist = []
+
+        nobj = 1 + nnbr
+        for i in xrange(nobj):
+            tobj, tmeta  = self.object_maker(**kw)
+
+            if i > 0:
+                shift = self._get_nbr_sky_shift()
+                tobj = tobj.shift(dx=shift[1], dy=shift[0])
+            else:
+                shift=None
+                meta=tmeta
+
+            objlist.append(tobj)
+            shiftlist.append(shift)
+
+        obj = galsim.Add(objlist)
+
+        meta['shiftlist'] = shiftlist
+
+        if self.shear_pdf is not None:
+            shear, shindex = self.shear_pdf.get_shear()
+            obj = obj.shear(g1=shear.g1, g2=shear.g2)
+
+            meta['shear'] = (shear.g1, shear.g2)
+            meta['shear_index'] = shindex
+
+        return obj, meta
+
+    def _get_nbr_sky_shift(self):
+        sky_shift_pdf = self.nbr_sky_shift_pdf
+        if hasattr(sky_shift_pdf,'sample2d'):
+            coff1,coff2 = sky_shift_pdf.sample2d()
+        else:
+            coff1 = sky_shift_pdf.sample()
+            coff2 = sky_shift_pdf.sample()
+
+        offset=(coff1,coff2)
+
+        print("sky shift: %g,%g" % offset)
+
+        return offset
+
+    def _get_galsim_wcs(self):
+        """
+        set basic wcs info
+
+        The actual ngmix jacobian will be created from this later
+        """
+        if 'wcs' in self:
+            raise ValueError("only trivial wcs for nbrs")
+
+        dudx=1.0
+        dudy=0.0
+        dvdx=0.0
+        dvdy=1.0
+
+        return galsim.JacobianWCS(
+            dudx,
+            dudy,
+            dvdx,
+            dvdy,
+        )
+
+    def _set_nbr_sky_shift(self):
+        cr=self['nbr_sky_shift']
+
+        if cr is None:
+            self.nbr_sky_shift_pdf=None
+        else:
+            type=cr.get('type','uniform')
+            if type=='uniform':
+                self.nbr_sky_shift_pdf=ngmix.priors.FlatPrior(
+                    -cr['radius'], cr['radius'],
+                    rng=self.rng,
+                )
+            elif type=='disk':
+                self.nbr_sky_shift_pdf=ngmix.priors.ZDisk2D(
+                    cr['radius'],
+                    rng=self.rng,
+                )
+
+            elif type=='annulus':
+                self.nbr_sky_shift_pdf=ngmix.priors.ZAnnulus(
+                    cr['rmin'],
+                    cr['rmax'],
+                    rng=self.rng,
+                )
+
+
+            else:
+                raise ValueError("cen shift type should be 'uniform'")
+
+
+
+class NbrObservationMakerMultiOld(ObservationMaker):
     """
     get multple obs and combine them, getting a list
     of new observations for use with MOF
@@ -543,6 +745,7 @@ class NbrObservationMakerMulti(ObservationMaker):
     def _save_cen_pdf(self):
         self.cen_pdf_saved = self.cen_pdf
         self.cen_pdf = None
+
 
 def find_centroid(image, rng, offset=None, maxiter=200, ntry=4):
     """

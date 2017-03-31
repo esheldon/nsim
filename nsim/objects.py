@@ -2,7 +2,6 @@ from __future__ import print_function
 import galsim
 import ngmix
 from . import pdfs
-from .shearpdf import get_shear_pdf
 
 def get_object_maker(config, rng, galsim_rng):
     model=config['model']
@@ -36,10 +35,6 @@ class SimpleMaker(dict):
     g:
         type: "ba"
         sigma: 0.2
-
-    shear:
-        shears: [0.02, 0.00]
-
     """
     def __init__(self, config, rng):
         self.update(config)
@@ -50,13 +45,6 @@ class SimpleMaker(dict):
     def __call__(self, **kw):
 
         gal, meta = self._make_object(**kw)
-
-        if self.shear_pdf is not None:
-            shear, shindex = self.shear_pdf.get_shear()
-            gal = gal.shear(g1=shear.g1, g2=shear.g2)
-
-            meta['shear'] = (shear.g1, shear.g2)
-            meta['shear_index'] = shindex
 
         return gal, meta
 
@@ -97,10 +85,6 @@ class SimpleMaker(dict):
         """
 
         
-        if 'shear' in self:
-            self.shear_pdf = get_shear_pdf(self['shear'], self.rng)
-        else:
-            self.shear_pdf = None
 
         if 'flux' in self and 'r50' in self and 'g' in self:
             # the pdfs are separate

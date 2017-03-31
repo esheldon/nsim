@@ -79,11 +79,11 @@ mof:
 # run details
 #
 
-ngal: 20000000
+ngal: 10000000
 
 desired_hours: 2.0
 
-sec_per: 1.0
+sec_per: 2.0
 
 jobs_per_condor_sub: 5000
 

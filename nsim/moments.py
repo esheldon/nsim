@@ -14,6 +14,7 @@ from numpy import where, isfinite
 import ngmix
 from ngmix.fitting import print_pars
 from ngmix.shape import Shape
+from ngmix.gexceptions import BootPSFFailure, BootGalFailure
 
 from . import util
 from .util import TryAgainError
@@ -548,15 +549,21 @@ class MetacalMomentsAM(SimpleFitterBase):
 class MetacalMomentsAMMOFSub(MetacalMomentsAM):
     def _dofit(self, allobs):
         import minimof
-        mm=minimof.MiniMOF(
-            self['mof'],
-            allobs,
-            rng=self.rng,
-        )
-        mm.go()
-        mm_res = mm.get_result()
-        if not mm_res['converged']:
-            raise TryAgainError("MOF did not converge")
+
+        try:
+            mm=minimof.MiniMOF(
+                self['mof'],
+                allobs,
+                rng=self.rng,
+            )
+            mm.go()
+            mm_res = mm.get_result()
+            if not mm_res['converged']:
+                raise TryAgainError("MOF did not converge")
+        except BootPSFFailure as err:
+            raise TryAgainError("MOF psf failure: '%s'" % str(err))
+        except BootGalFailure as err:
+            raise TryAgainError("MOF gal failure: '%s'" % str(err))
 
         # assume first is the central
         corr_obslist = mm.get_corrected_obs(0)

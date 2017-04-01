@@ -475,6 +475,7 @@ class NbrObservationMakerMulti(ObservationMaker):
         super(NbrObservationMakerMulti,self).__init__(*args, **kw)
 
         self._set_nbr_sky_shift()
+        self._set_nbr_size_dilation()
 
     def __call__(self):
         
@@ -564,6 +565,13 @@ class NbrObservationMakerMulti(ObservationMaker):
             tobj, tmeta  = self.object_maker(**kw)
 
             if i > 0:
+
+                # always dilate first
+                dilation = self._get_nbr_dilation()
+                if dilation is not None:
+                    tobj = tobj.dilate(dilation)
+                    print("dilation:",dilation,"flux:",tobj.getFlux())
+
                 shift = self._get_nbr_sky_shift()
                 tobj = tobj.shift(dx=shift[1], dy=shift[0])
             else:
@@ -620,6 +628,17 @@ class NbrObservationMakerMulti(ObservationMaker):
             dvdx,
             dvdy,
         )
+
+    def _get_nbr_dilation(self):
+        return self._dilation
+
+    def _set_nbr_size_dilation(self):
+        spec = self.get('nbr_size_ratio',None)
+        if spec is not None:
+            self._dilation = spec
+        else:
+            raise  ValueError("currently only support "
+                              "constant for size ratio")
 
     def _set_nbr_sky_shift(self):
         cr=self['nbr_sky_shift']

@@ -39,7 +39,7 @@ class ObservationMaker(dict):
         stamp_size: [48,48] # optional
 
     object:
-        nepoch: 10
+        nepoch: 10 # optional
 
         stamp_size: [48,48] # optional
         cen_shift:
@@ -74,7 +74,9 @@ class ObservationMaker(dict):
                 r50  = object.calculateHLR()
 
         obslist = ngmix.observation.ObsList()
-        for epoch in xrange(objconf['nepoch']):
+
+        nepoch = objconf.get('nepoch',1)
+        for epoch in xrange(nepoch):
 
             psf, psf_meta = self._get_psf()
 

@@ -1,0 +1,47 @@
+# low noise
+images:
+
+    noise: 0.001
+
+    psf:
+        s2n: 10000
+        stamp_size: [48,48] # optional
+
+    object:
+        stamp_size: [48,48]
+        cen_shift: 
+            type: "uniform"
+            radius: 0.5 # pixels
+
+psf:
+    model: "gauss"
+
+    # fwhm=0.9''
+    r50: 1.71
+    shape: [0.0, 0.0]
+
+
+object:
+    model: "bdk"
+
+    g:
+        type: "ba"
+        sigma: 0.2
+
+    flux: 140.0
+    r50: 1.71
+
+    # fraction of flux in the bulge
+    fracdev:
+        type: "uniform"
+        range: [0.0, 1.0]
+
+    # use random-walk to place knots, with fraction
+    # of disk flux [0,1.0]
+    knots:
+        num: 100
+        flux_frac:
+            type: "uniform"
+            range: [0.0, 1.0]
+
+shear: [0.02, 0.00]

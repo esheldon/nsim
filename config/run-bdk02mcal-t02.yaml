@@ -1,0 +1,42 @@
+sim: "sim-bdk02"
+
+fitter: "metacal-moments-am"
+
+# intentionally same seed as bdk01mcal-t02
+global_seed: 2439
+
+s2n_min: 5.0
+
+#
+# metacal
+#
+
+metacal_pars:
+    fixnoise: False
+    cheatnoise: 0.999
+
+    psf: 'gauss'
+    types: ['noshear','1p','1m','2p','2m']
+
+#
+# adaptive moments
+#
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+
+#
+# run details
+#
+
+ngal: 50000000
+
+desired_hours: 1.0
+
+sec_per: 0.2
+
+jobs_per_condor_sub: 5000
+
+verbose: False

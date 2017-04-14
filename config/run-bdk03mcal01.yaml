@@ -1,0 +1,33 @@
+# joint r50-flux from cosmos
+sim: "sim-bdk03"
+
+fitter: "metacal-moments-am"
+
+global_seed: 31954
+
+s2n_min: 0.0
+
+#
+# metacal
+#
+
+metacal_pars:
+    psf: 'gauss'
+    types: ['noshear','1p','1m','2p','2m']
+
+#
+# adaptive moments
+#
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+
+#
+# run details
+#
+
+ngal: 100000000
+desired_hours: 2.0
+sec_per: 0.4

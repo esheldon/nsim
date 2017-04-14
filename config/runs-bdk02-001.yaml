@@ -1,0 +1,4 @@
+runs: [
+    'run-bdk02mcal-t01',
+    'run-bdk02mcal-t02',
+]

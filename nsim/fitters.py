@@ -117,6 +117,7 @@ class FitterBase(dict):
                     else:
                         tup = meta['s2n'],self['s2n_min']
                         print("        skipping low s2n: %g < %g" % tup)
+                        print()
 
                 except TryAgainError as err:
                     print(str(err))

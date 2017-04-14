@@ -113,7 +113,8 @@ class PSFSampler(dict):
                     rng=self.rng,
                 )
             else:
-                raise ValueError("bad psf r50 pdf type: '%s'" % r50conf['type'])
+                raise ValueError("bad psf r50 pdf "
+                                 "type: '%s'" % r50conf['type'])
 
         if isinstance(shapeconf,dict):
             assert shapeconf['type']=="normal2d"
@@ -128,7 +129,8 @@ class PSFSampler(dict):
                 )
         else:
             if len(shapeconf) != 2:
-                raise ValueError("for constant psf shapes, length must be 2")
+                raise ValueError("for constant psf "
+                                 "shapes, length must be 2")
 
 class MultiComponentPSF(object):
     def __init__(self, config, rng):

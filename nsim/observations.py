@@ -182,19 +182,25 @@ class ObservationMaker(dict):
             offset=offset,
         )
 
+
+        # find centroid and get the jacobian
+        # for centroid finding, use original image before
+        # noise
+
         image_orig = gsimage.array.copy()
 
-        self._add_object_noise(gsimage)
-        image=gsimage.array
-
         if self['use_canonical_center']:
-            dims = numpy.array(image.shape)
+            dims = numpy.array(image_orig.shape)
             row, col = (dims-1)/2.0
             print("using canonical center",row,col)
         else:
-            row, col = find_centroid(image, self.rng, offset=offset)
+            row, col = find_centroid(image_orig, self.rng, offset=offset)
 
         jacob = self._get_jacobian(wcs, row, col)
+
+        # add noise
+        self._add_object_noise(gsimage)
+        image = gsimage.array
 
         return image, image_orig, jacob
 

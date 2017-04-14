@@ -105,8 +105,7 @@ class SimpleMaker(dict):
             r50_flux_pdf = self._get_joint_r50_flux_pdf()
 
             self.pdf = pdfs.ShapeJointR50FluxPDF(
-                r50_pdf,
-                flux_pdf,
+                r50_flux_pdf,
                 g_pdf=g_pdf,
             )
 
@@ -121,10 +120,15 @@ class SimpleMaker(dict):
 
         spec=self['r50_flux']
         if spec['type']=='cosmos':
+            flux_range = spec.get('flux_range', [2.5, 100.0])
+            r50_range = spec.get('r50_range', [0.15, 1.0])
+
+
             pdf = pdfs.CosmosR50Flux(
-                spec['r50_range'],
-                spec['flux_range'],
+                r50_range,
+                flux_range,
             )
+
         else:
             raise ValueError("bad r50_flux joint "
                              "pdf: '%s'" % spec['type'])

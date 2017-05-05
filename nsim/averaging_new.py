@@ -17,7 +17,6 @@ import yaml
 import fitsio
 
 import ngmix
-import nsim
 from . import files
 from . import shearpdf
 
@@ -31,6 +30,24 @@ from esutil.numpy_util import between
 class Summer(dict):
     def __init__(self, args):
 
+        self.args=args
+        self._load_config()
+        self._load_shear_pdf()
+
+        self.chunksize=args.chunksize
+
+        self._set_select()
+
+        self.gpsf_name='mcal_psfrec_g'
+        self.gpsf_orig_name='psfrec_g'
+
+        if args.R is not None:
+            self.Rinput = array([float(R) for R in args.R.split(',')])
+        if args.Rselect is not None:
+            self.Rselect_input = array([float(R) for R in args.Rselect.split(',')])
+
+    def _load_config(self):
+        args=self.args
         if 'runs' in args.runs:
             # this is a runs config file
             data=files.read_config(args.runs)
@@ -39,35 +56,24 @@ class Summer(dict):
         else:
             self.runs=[args.runs]
 
-        conf = nsim.files.read_config(self.runs[0])
-        conf['simc'] = nsim.files.read_config(conf['sim'])
+        conf = files.read_config(self.runs[0])
+        conf['simc'] = files.read_config(conf['sim'])
 
         conf['simc']['do_ring'] = conf['simc'].get('do_ring',False)
         print("do_ring:",conf['simc']['do_ring'])
 
 
         self.update(conf)
-        self.args=args
-        self.chunksize=args.chunksize
-
-        self._set_select()
-
-        self.gpsf_name='mcal_psfrec_g'
-        self.gpsf_orig_name='psfrec_g'
-
-        #self.gpsf_name='mcal_gpsf'
 
         self.step = self['metacal_pars'].get('step',0.01)
 
-        #shear_pdf = shearpdf.get_shear_pdf(conf['simc']['object']['shear'],None)
-        shear_pdf = shearpdf.get_shear_pdf(conf['simc']['shear'],None)
+    def _load_shear_pdf(self):
+        shear_pdf = shearpdf.get_shear_pdf(
+            self['simc']['shear'],
+            None,
+        )
         self.shears=shear_pdf.shears
         self['nshear']=len(self.shears)
-
-        if args.R is not None:
-            self.Rinput = array([float(R) for R in args.R.split(',')])
-        if args.Rselect is not None:
-            self.Rselect_input = array([float(R) for R in args.Rselect.split(',')])
 
     def get_namer(self, type):
         return Namer(front='mcal', back=type)
@@ -161,7 +167,7 @@ class Summer(dict):
         collated file
         """
 
-        fname = nsim.files.get_output_url(run)
+        fname = files.get_output_url(run)
         if self.args.cache:
             origname=fname
             bname = os.path.basename(origname)
@@ -212,6 +218,8 @@ class Summer(dict):
                         end=beg+chunksize
 
                         data = hdu[beg:end]
+                        if 'shear_index' not in data.dtype.names:
+                            data=self._add_shear_index(data)
 
                         data=self._preselect(data)
 
@@ -232,6 +240,19 @@ class Summer(dict):
                 sums=add_sums(sums, run_sums)
 
         return sums
+
+    def _add_shear_index(self, data):
+        if self['nshear'] != 1:
+            raise ValueError("need nshear==1 to fake "
+                             "the shear index")
+
+        add_dt=[('shear_index','i2')]
+        new_data = eu.numpy_util.add_fields(
+            data,
+            add_dt,
+        )
+        new_data['shear_index'] = 0
+        return new_data
 
     def _try_read_sums(self, run):
         sums_file=self._get_sums_file(run)
@@ -655,7 +676,10 @@ class Summer(dict):
 
 
     def _get_flux_true(self, data, w):
-        return data['flux_true'][w]
+        if 'flux_true' in data.dtype.names:
+            return data['flux_true'][w]
+        else:
+            return None
 
 
     def _get_flux_s2n(self, n, data, w):

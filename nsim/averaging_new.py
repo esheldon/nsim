@@ -68,12 +68,17 @@ class Summer(dict):
         self.step = self['metacal_pars'].get('step',0.01)
 
     def _load_shear_pdf(self):
-        shear_pdf = shearpdf.get_shear_pdf(
-            self['simc']['shear'],
-            None,
-        )
-        self.shears=shear_pdf.shears
-        self['nshear']=len(self.shears)
+        if 'shear' in self['simc']:
+            shear_pdf = shearpdf.get_shear_pdf(
+                self['simc']['shear'],
+                None,
+            )
+            self.shears=shear_pdf.shears
+            self['nshear']=len(self.shears)
+        else:
+            self.shears=None
+            # one shear, since we will take the average
+            self['nshear'] = 1
 
     def get_namer(self, type):
         return Namer(front='mcal', back=type)
@@ -105,7 +110,7 @@ class Summer(dict):
                 if self.shears is not None:
                     shear_true = self.shears[i]
                 else:
-                    shear_true = sums['shear_true'][i]
+                    shear_true = sums['shear_true'][i]/sums['wsum'][i]
 
                 gmean = g[i]
                 gmean_err = gerr[i]
@@ -364,6 +369,8 @@ class Summer(dict):
                     # the first one.  We will end up copying over this
                     # each time, but that's ok
                     sums['shear_true'][i] += data['shear_true'][w[0]]
+                elif 'shear' in data.dtype.names:
+                    sums['shear_true'][i] += data['shear'][w[0]]
 
                 g = self._get_g(data, w, 'noshear')
                 wts, wa = self._get_weights(data, w, 'noshear')

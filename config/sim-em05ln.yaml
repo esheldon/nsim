@@ -29,22 +29,12 @@ psf:
 
     beta: 3.5
 
-    shape:
-        type: "normal2d"
-        cen: [0.0, 0.025]
-        sigma: [0.01, 0.01]
+    shape: [0.0, 0.025]
 
 object:
     model: "exp"
 
-    flux:
-        type: "lognormal"
-        mean: 1000.0
-        sigma: 1333.0
+    flux: 1000.0
+    r50: 2.0
 
-    r50:
-        type: "lognormal"
-        mean: 1.54
-        sigma: 1.0
-
-    shear: [0.02, 0.00]
+shear: [0.02, 0.00]

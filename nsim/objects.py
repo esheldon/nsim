@@ -86,7 +86,7 @@ class SimpleMaker(dict):
 
         
 
-        if 'flux' in self and 'r50' in self and 'g' in self:
+        if 'flux' in self and 'r50' in self:
             # the pdfs are separate
 
             g_pdf = self._get_g_pdf()
@@ -138,7 +138,7 @@ class SimpleMaker(dict):
 
     def _get_g_pdf(self):
         if 'g' not in self:
-            raise ValueError("no g spec found in config")
+            return None
 
         g_spec=self['g']
 

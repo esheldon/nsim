@@ -769,3 +769,61 @@ class KMetacal(ngmix.metacal.Metacal):
         )
 
         return kobs
+
+class MetacalMomentsFixed(MetacalMomentsAM):
+    def _setup(self, *args, **kw):
+        super(MetacalMomentsFixed,self)._setup(*args, **kw)
+        self.weight=ngmix.GMixModel(
+            [0.0, 0.0, 0.0, 0.0, 8.0, 1.0],
+            "gauss",
+        )
+
+    def _measure_moments(self, obslist, doround=True):
+        """
+        measure adaptive moments
+        """
+
+        if isinstance(obslist,ngmix.ObsList):
+            obs=obslist[0]
+        else:
+            obs=obslist
+            
+        res = self.weight.get_weighted_moments(
+            obs,
+        )
+
+        if res['flags'] != 0:
+            raise TryAgainError("        moments failed")
+
+        res['e'] = res['pars'][2:2+2]
+        res['e_cov'] = res['pars_cov'][2:2+2, 2:2+2]
+
+        pars_cov=res['pars_cov']
+        flux_sum=res['pars'][5]
+        fvar_sum=pars_cov[5,5]
+
+        if fvar_sum > 0.0:
+
+            flux_err = numpy.sqrt(fvar_sum)
+            res['s2n'] = flux_sum/flux_err
+
+            # error on each shape component from BJ02 for gaussians
+            # assumes round
+
+            res['e_err_r'] = 2.0/res['s2n']
+        else:
+            res['flags'] = 0x40
+            flux_err = 9999.0
+
+        res['g']     = res['e']
+        res['g_cov'] = res['e_cov']
+        res['T'] = res['pars'][4]
+        res['am_flux'] = flux_sum
+        res['am_flux_err'] = flux_err
+        res['am_flux_s2n'] = res['s2n']
+        res['numiter']=1
+
+        fitter=None
+        return res, fitter
+
+

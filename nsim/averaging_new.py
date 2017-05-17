@@ -62,10 +62,12 @@ class Summer(dict):
         conf['simc']['do_ring'] = conf['simc'].get('do_ring',False)
         print("do_ring:",conf['simc']['do_ring'])
 
-
         self.update(conf)
+        self._set_step()
 
+    def _set_step(self):
         self.step = self['metacal_pars'].get('step',0.01)
+        self.stepfac=1.0/(2*self.step)
 
     def _load_shear_pdf(self):
         if 'shear' in self['simc']:
@@ -110,7 +112,10 @@ class Summer(dict):
                 if self.shears is not None:
                     shear_true = self.shears[i]
                 else:
-                    shear_true = sums['shear_true'][i]/sums['wsum'][i]
+                    shear_true=zeros(2)
+                    shear_true[0] = sums['shear_sum'][i,0]/sums['R11_sum'][i]
+                    shear_true[1] = sums['shear_sum'][i,1]/sums['R22_sum'][i]
+                    print("shear_true:",shear_true)
 
                 gmean = g[i]
                 gmean_err = gerr[i]
@@ -130,6 +135,7 @@ class Summer(dict):
                 shear_err = gmean_err/(R+Rsel)
                 shear_err_nocorr = gmean_err/R
 
+                print("shear_meas:",shear)
                 means['shear'][i] = shear
                 means['shear_err'][i] = shear_err
                 if isinstance(shear_true,ngmix.Shape):
@@ -329,6 +335,17 @@ class Summer(dict):
         just a binner and summer, no logic here
         """
 
+        names=data.dtype.names
+
+        if 'shear_true' in names or 'shear' in names:
+            sumshear=True
+            if 'shear_true' in names:
+                nm = 'shear_true'
+            elif 'shear' in names:
+                nm = 'shear'
+        else:
+            sumshear=False
+
 
         nshear=self['nshear']
         args=self.args
@@ -364,13 +381,16 @@ class Summer(dict):
                 ntot  += wfield.size
                 nkeep += w.size
 
-                if 'shear_true' in data.dtype.names:
-                    # should all be the same, so just copy
-                    # the first one.  We will end up copying over this
-                    # each time, but that's ok
-                    sums['shear_true'][i] += data['shear_true'][w[0]]
-                elif 'shear' in data.dtype.names:
-                    sums['shear_true'][i] += data['shear'][w[0]]
+                if sumshear:
+                    R11 = (data['mcal_g_1p'][w,0] - 
+                           data['mcal_g_1m'][w,0])*self.stepfac
+                    R22 = (data['mcal_g_2p'][w,1] - 
+                           data['mcal_g_2m'][w,1])*self.stepfac
+
+                    sums['shear_sum'][i,0] += (R11*data[nm][w,0]).sum()
+                    sums['shear_sum'][i,1] += (R22*data[nm][w,1]).sum()
+                    sums['R11_sum'][i] += R11.sum()
+                    sums['R22_sum'][i] += R22.sum()
 
                 g = self._get_g(data, w, 'noshear')
                 wts, wa = self._get_weights(data, w, 'noshear')
@@ -817,7 +837,9 @@ class Summer(dict):
             ('s_g_2p_psf','f8',2),
             ('s_g_2m_psf','f8',2),
 
-            ('shear_true','f8',2),
+            ('shear_sum','f8',2),
+            ('R11_sum','f8'),
+            ('R22_sum','f8'),
         ]
         return dt
 

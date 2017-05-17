@@ -1,5 +1,5 @@
 images:
-    noise: 3.0
+    noise: 0.7
 
     wcs:                    # optional
         dudx: 0.0
@@ -15,7 +15,7 @@ images:
     object:
         nepoch: 1
 
-        stamp_size: [48,48] # optional
+        #stamp_size: [48,48] # optional
 
         cen_shift:
             type: "uniform"
@@ -34,7 +34,7 @@ psf:
 object:
     model: "exp"
 
-    flux: 1000.0
-    r50: 2.0
+    flux: 100.0
+    r50: 0.7
 
 shear: [0.02, 0.00]

@@ -1,0 +1,76 @@
+sim: "sim-emnosn08"
+
+fitter: "metacal-max"
+fit_model: "gauss"
+
+global_seed: 30920
+
+s2n_min: 5.0
+
+#
+# metacal
+#
+
+metacal_pars:
+    fixnoise: False
+    symmetrize_psf: True
+
+#
+# psf fitting
+#
+
+psf_pars:
+    model: "gauss"
+    ntry: 2
+
+#
+# object fitting
+#
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov:
+        replace_cov: False
+        cov_pars:
+            m: 5
+            h: 1.0e-3
+
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 0.263
+    T:
+        #type: "two-sided-erf"
+        #pars: [-10.0, 0.03, 1.0e+06, 1.0e+05]
+        type: "flat"
+        pars: [-1,100]
+
+    counts:
+        #type: "two-sided-erf"
+        #pars: [-1.0e+04, 1.0, 1.0e+09, 0.25e+08]
+        type: "flat"
+        pars: [0, 500]
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+#
+# run details
+#
+
+ngal: 1000000
+
+desired_hours: 0.5
+
+# slower on laptop with multiple running 0.24
+sec_per: 0.5
+
+jobs_per_condor_sub: 5000
+
+verbose: False

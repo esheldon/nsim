@@ -1,0 +1,28 @@
+sim: "sim-em05ln"
+
+fitter: "metacal-moments-fixed"
+global_seed: 1933
+
+s2n_min: 5.0
+
+#
+# metacal
+#
+
+metacal_pars:
+    fixnoise: False
+    psf: 'gauss'
+
+#
+# run details
+#
+
+ngal: 1000000
+
+desired_hours: 0.1
+
+sec_per: 0.25
+
+jobs_per_condor_sub: 5000
+
+verbose: False

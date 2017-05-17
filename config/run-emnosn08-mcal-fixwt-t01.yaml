@@ -22,7 +22,7 @@ ngal: 1000000
 desired_hours: 0.10
 
 # slower on laptop with multiple running 0.24
-sec_per: 0.20
+sec_per: 0.10
 
 jobs_per_condor_sub: 5000
 

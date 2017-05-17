@@ -1,0 +1,4 @@
+runs: [
+    "run-emnosn08-mcal-fixwt-t02",
+    "run-emnosn08-mcal-fixwt-t03",
+]

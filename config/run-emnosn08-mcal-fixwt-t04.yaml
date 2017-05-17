@@ -1,0 +1,30 @@
+# this one forcing canonical center
+sim: "sim-emnosn08"
+
+fitter: "metacal-moments-fixed"
+global_seed: 9713
+
+s2n_min: 5.0
+
+#
+# metacal
+#
+
+metacal_pars:
+    fixnoise: False
+    psf: "gauss"
+
+#
+# run details
+#
+
+ngal: 10000000
+
+desired_hours: 1.0
+
+# slower on laptop with multiple running 0.24
+sec_per: 0.10
+
+jobs_per_condor_sub: 5000
+
+verbose: False

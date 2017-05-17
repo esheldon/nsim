@@ -788,9 +788,21 @@ class MetacalMomentsFixed(MetacalMomentsAM):
         else:
             obs=obslist
             
+        ccen=(numpy.array(obs.image.shape)-1.0)/2.0
+        jold=obs.jacobian
+        obs.jacobian = ngmix.Jacobian(
+            row=ccen[0],
+            col=ccen[1],
+            dvdrow=jold.dvdrow,
+            dudrow=jold.dudrow,
+            dvdcol=jold.dvdcol,
+            dudcol=jold.dudcol,
+
+        )
         res = self.weight.get_weighted_moments(
             obs,
         )
+        obs.jacobian=jold
 
         if res['flags'] != 0:
             raise TryAgainError("        moments failed")

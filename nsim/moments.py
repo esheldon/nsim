@@ -771,6 +771,9 @@ class KMetacal(ngmix.metacal.Metacal):
         return kobs
 
 class MetacalMomentsFixed(MetacalMomentsAM):
+    """
+    fixed weight function
+    """
     def _setup(self, *args, **kw):
         super(MetacalMomentsFixed,self)._setup(*args, **kw)
         self.weight=ngmix.GMixModel(

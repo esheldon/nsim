@@ -73,6 +73,10 @@ class MetacalMomentsAM(SimpleFitterBase):
 
         self['min_s2n'] = self.get('min_s2n',0.0)
 
+        self.ampars = self['admom_pars']
+        self.psf_ampars = {}
+        self.psf_ampars.update(self.ampars)
+        self.psf_ampars['fixcen']=False
 
     def _dofit(self, obslist):
 
@@ -89,11 +93,13 @@ class MetacalMomentsAM(SimpleFitterBase):
             gpars[0:0+2] = 0.0
             self.model_galsim_obj = flux_fitter.make_model(gpars)
 
+        psfres = self._measure_psfs(obslist)
+
         obsdict=self._get_metacal(obslist)
 
         res=self._do_metacal(obsdict)
+        res['psf'] = psfres
 
-        res['psf'] = self._measure_psfs(obslist)
 
         if 'fit_model' in self:
             res['model_result'] = flux_result
@@ -112,11 +118,16 @@ class MetacalMomentsAM(SimpleFitterBase):
         for obs in obslist:
             psfres, fitter = self._measure_moments(
                 obs.psf,
+                self.psf_ampars,
                 doround=False,
             )
             Tsum  += psfres['T']
             g1sum += psfres['g'][0]
             g2sum += psfres['g'][1]
+
+            if fitter is not None:
+                gmix=fitter.get_gmix()
+                obs.psf.set_gmix(gmix)
 
         n=len(obslist)
         return {
@@ -125,11 +136,11 @@ class MetacalMomentsAM(SimpleFitterBase):
         }
 
 
-    def _measure_moments(self, obslist, doround=True):
+    def _measure_moments(self, obslist, ampars ,doround=True):
         """
         measure adaptive moments
         """
-        ampars=self['admom_pars']
+        #ampars=self['admom_pars']
         ntry=ampars.pop('ntry',4)
 
         fitter=ngmix.admom.Admom(
@@ -205,7 +216,7 @@ class MetacalMomentsAM(SimpleFitterBase):
         for type in self.metacal_types:
             obslist=odict[type]
 
-            tres,fitter=self._measure_moments(obslist)
+            tres,fitter=self._measure_moments(obslist, self.ampars)
             if tres['flags'] != 0:
                 raise TryAgainError("        bad T")
 
@@ -781,7 +792,7 @@ class MetacalMomentsFixed(MetacalMomentsAM):
             "gauss",
         )
 
-    def _measure_moments(self, obslist, doround=True):
+    def _measure_moments(self, obslist, junk, doround=True):
         """
         measure adaptive moments
         """

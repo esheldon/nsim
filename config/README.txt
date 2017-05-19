@@ -1,3 +1,28 @@
+- sim-emnosn11
+    - no shapenoise sim, s/n ~ 12-14
+
+    - run-emnosn11-mcal-t01 4M
+    - run-emnosn11-mcal-t04 6M
+        - regular admom run with fixnoise
+            errors are 2 sigma
+            m: 4.413e-03 +/- 4.962e-03  c: 1.570e-05 +/- 9.923e-05
+
+    - run-emnosn11-mcal-t02 1M
+        - admom run with fixnoise turned of
+        m: 3.377e-02 +/- 1.106e-02  c: -8.704e-04 +/- 2.211e-04
+
+    - run-emnosn11-mcal-fixwt 1M
+        - fixed round weight size and center
+        m: -2.997e-02 +/- 2.530e-02  c: -3.969e-04 +/- 5.144e-04
+
+    - run-emnosn11-mcal-amround-fixcen-t01
+        - fixed center (on the one found in the sim), round admom
+        1M m: 1.108e-02 +/- 1.081e-02  c: -5.772e-05 +/- 2.159e-04
+        4M m: 8.742e-03 +/- 5.370e-03  c: -5.627e-05 +/- 1.073e-04
+
+    - run-emnosn11-mcal-amround-fixcen-ccen-t01 10M
+        m: -1.382e-02 +/- 3.376e-03  c: -1.502e-04 +/- 6.763e-05
+
 - testing neighbors
     - sim-em01nbr
         - galaxies with same flux in annulus 9-10 pixels

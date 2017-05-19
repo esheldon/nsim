@@ -79,6 +79,8 @@ class MetacalMomentsAM(SimpleFitterBase):
         self.psf_ampars = {}
         self.psf_ampars.update(self.ampars)
         self.psf_ampars['fixcen']=False
+        self.psf_ampars['round']=False
+        self.psf_ampars['use_canonical_center']=False
 
     def _dofit(self, obslist):
 
@@ -153,6 +155,27 @@ class MetacalMomentsAM(SimpleFitterBase):
         #ampars=self['admom_pars']
         ntry=ampars.pop('ntry',4)
 
+        use_ccen=ampars.get('use_canonical_center',False)
+        if use_ccen:
+
+            if isinstance(obslist,ngmix.ObsList):
+                obs=obslist[0]
+            else:
+                obs=obslist
+     
+            ccen=(numpy.array(obs.image.shape)-1.0)/2.0
+            jold=obs.jacobian
+            obs.jacobian = ngmix.Jacobian(
+                row=ccen[0],
+                col=ccen[1],
+                dvdrow=jold.dvdrow,
+                dudrow=jold.dudrow,
+                dvdcol=jold.dvdcol,
+                dudcol=jold.dudcol,
+
+            )
+
+
         fitter=ngmix.admom.Admom(
             obslist,
             rng=self.rng,
@@ -173,6 +196,10 @@ class MetacalMomentsAM(SimpleFitterBase):
 
             if res['flags'] == 0:
                 break
+
+        if use_ccen:
+            obs.jacobian=jold
+
 
         if res['flags'] != 0:
             raise TryAgainError("        admom failed")
@@ -535,7 +562,7 @@ class MetacalMomentsAM(SimpleFitterBase):
         print("    mcal s2n: %g  e:  %g +/- %g  %g +/- %g" % (s2n,g[0],gerr[0],g[1],gerr[1]))
         if 'flux' in subres:
             print("        flux: %g +/- %g flux_s2n:  %g" % (subres['flux'],subres['flux_err'],subres['flux_s2n']))
-        print("     am flux: %g +/- %g flux_s2n:  %g" % (subres['am_flux'],subres['am_flux_err'],subres['am_flux_s2n']))
+        print("     am numiter: %d flux: %g +/- %g flux_s2n:  %g" % (subres['numiter'], subres['am_flux'],subres['am_flux_err'],subres['am_flux_s2n']))
 
 
     def _do_plots(self, obs, gmix=None):

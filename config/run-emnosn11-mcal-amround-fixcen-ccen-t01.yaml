@@ -1,0 +1,40 @@
+sim: "sim-emnosn11"
+
+fitter: "metacal-moments-am"
+global_seed: 12
+
+s2n_min: 0.0
+
+#
+# metacal
+#
+
+metacal_pars:
+    fixnoise: False
+    symmetrize_psf: True
+
+#
+# adaptive moments
+#
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+    fixcen: True
+    round: True
+    use_canonical_center: True
+
+#
+# run details
+#
+
+ngal: 10000000
+
+desired_hours: 0.50
+
+# slower on laptop with multiple running 0.24
+sec_per: 0.15
+
+jobs_per_condor_sub: 5000
+
+verbose: False

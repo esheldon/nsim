@@ -70,10 +70,12 @@ class MetacalMomentsAM(SimpleFitterBase):
         self.metacal_types=mpars['types']
         print("doing types:",self.metacal_types)
 
+        self._set_mompars()
 
         self['min_s2n'] = self.get('min_s2n',0.0)
 
-        self.ampars = self['admom_pars']
+    def _set_mompars(self):
+        self.ampars = self.get('admom_pars',{})
         self.psf_ampars = {}
         self.psf_ampars.update(self.ampars)
         self.psf_ampars['fixcen']=False
@@ -116,11 +118,7 @@ class MetacalMomentsAM(SimpleFitterBase):
         g2sum=0.0
 
         for obs in obslist:
-            psfres, fitter = self._measure_moments(
-                obs.psf,
-                self.psf_ampars,
-                doround=False,
-            )
+            psfres, fitter = self._measure_psf_moments(obs.psf)
             Tsum  += psfres['T']
             g1sum += psfres['g'][0]
             g2sum += psfres['g'][1]
@@ -135,6 +133,18 @@ class MetacalMomentsAM(SimpleFitterBase):
             'g': [g1sum/n, g2sum/n],
         }
 
+    def _measure_psf_moments(self, psf_obs):
+        return self._measure_moments(
+            psf_obs,
+            self.psf_ampars,
+            doround=False,
+        )
+
+    def _measure_obj_moments(self, obs):
+        return self._measure_moments(
+            obs,
+            self.ampars,
+        )
 
     def _measure_moments(self, obslist, ampars ,doround=True):
         """
@@ -216,7 +226,7 @@ class MetacalMomentsAM(SimpleFitterBase):
         for type in self.metacal_types:
             obslist=odict[type]
 
-            tres,fitter=self._measure_moments(obslist, self.ampars)
+            tres,fitter=self._measure_obj_moments(obslist)
             if tres['flags'] != 0:
                 raise TryAgainError("        bad T")
 
@@ -785,12 +795,26 @@ class MetacalMomentsFixed(MetacalMomentsAM):
     """
     fixed weight function
     """
-    def _setup(self, *args, **kw):
-        super(MetacalMomentsFixed,self)._setup(*args, **kw)
+
+    def _set_mompars(self):
+        super(MetacalMomentsFixed,self)._set_mompars()
+        wpars=self['weight']
+
         self.weight=ngmix.GMixModel(
-            [0.0, 0.0, 0.0, 0.0, 8.0, 1.0],
-            "gauss",
+            [0.0, 0.0, 0.0, 0.0, wpars['T'], 1.0],
+            wpars['model'],
         )
+
+    def _measure_psf_moments(self, psf_obs):
+        """
+        want to run admom for psf
+        """
+        return super(MetacalMomentsFixed,self)._measure_moments(
+            psf_obs,
+            self.psf_ampars,
+            doround=False,
+        )
+
 
     def _measure_moments(self, obslist, junk, doround=True):
         """
@@ -802,21 +826,27 @@ class MetacalMomentsFixed(MetacalMomentsAM):
         else:
             obs=obslist
             
-        ccen=(numpy.array(obs.image.shape)-1.0)/2.0
-        jold=obs.jacobian
-        obs.jacobian = ngmix.Jacobian(
-            row=ccen[0],
-            col=ccen[1],
-            dvdrow=jold.dvdrow,
-            dudrow=jold.dudrow,
-            dvdcol=jold.dvdcol,
-            dudcol=jold.dudcol,
+        wpars=self['weight']
+        if wpars['use_canonical_center']:
+        
+            ccen=(numpy.array(obs.image.shape)-1.0)/2.0
+            jold=obs.jacobian
+            obs.jacobian = ngmix.Jacobian(
+                row=ccen[0],
+                col=ccen[1],
+                dvdrow=jold.dvdrow,
+                dudrow=jold.dudrow,
+                dvdcol=jold.dvdcol,
+                dudcol=jold.dudcol,
 
-        )
+            )
+
         res = self.weight.get_weighted_moments(
             obs,
         )
-        obs.jacobian=jold
+
+        if wpars['use_canonical_center']:
+            obs.jacobian=jold
 
         if res['flags'] != 0:
             raise TryAgainError("        moments failed")

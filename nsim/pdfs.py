@@ -136,6 +136,7 @@ class CosmosR50Flux(object):
 
     def _load_data(self):
         fname='real_galaxy_catalog_25.2_fits.fits'
+        """
         fname=os.path.join(
             sys.exec_prefix,
             'share',
@@ -143,6 +144,13 @@ class CosmosR50Flux(object):
             'COSMOS_25.2_training_sample',
             fname,
         )
+        """
+        fname=os.path.join(
+            galsim.meta_data.share_dir,
+            'COSMOS_25.2_training_sample',
+            fname,
+        )
+
 
         r50min,r50max=self.r50_sanity_range
         fmin,fmax=self.flux_sanity_range

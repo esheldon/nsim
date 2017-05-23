@@ -1,0 +1,47 @@
+sim: "sim-emnosn11"
+
+fitter: "metacal-moments-fixed"
+global_seed: 17287
+
+s2n_min: 0.0
+
+#
+# metacal
+#
+
+metacal_pars:
+    fixnoise: False
+    symmetrize_psf: True
+
+#
+# run details
+#
+
+#
+# adaptive moments for psf
+#
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+    fixcen: True
+
+#
+# fixed weight function
+#
+
+weight:
+    model: "gauss"
+    use_canonical_center: True
+    T: 8.0
+
+ngal: 10000000
+
+desired_hours: 0.5
+
+# slower on laptop with multiple running 0.24
+sec_per: 0.15
+
+jobs_per_condor_sub: 5000
+
+verbose: False

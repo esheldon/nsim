@@ -1,4 +1,6 @@
 runs: [
     "run-emnosn11-mcal-t01",
     "run-emnosn11-mcal-t04",
+    "run-emnosn11-mcal-t05",
+    "run-emnosn11-mcal-t06",
 ]

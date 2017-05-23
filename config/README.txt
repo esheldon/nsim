@@ -3,9 +3,11 @@
 
     - run-emnosn11-mcal-t01 4M
     - run-emnosn11-mcal-t04 6M
+    - run-emnosn11-mcal-t05 10M
+    - run-emnosn11-mcal-t06 20M
         - regular admom run with fixnoise
             errors are 2 sigma
-            m: 4.413e-03 +/- 4.962e-03  c: 1.570e-05 +/- 9.923e-05
+            m: 1.444e-03 +/- 2.482e-03  c: -4.096e-06 +/- 4.961e-05
 
     - run-emnosn11-mcal-t02 1M
         - admom run with fixnoise turned of

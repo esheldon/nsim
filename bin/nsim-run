@@ -74,8 +74,7 @@ def go(sim_conf,
     if args.seed is None:
         raise ValueError("send a seed")
 
-    sim_conf['seed'] = args.seed
-    sim = nsim.sime.get_sim(sim_conf)
+    sim = nsim.sime.Sim(sim_conf, args.seed)
 
     plot_base=output_file.replace('.fits','')
 

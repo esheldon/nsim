@@ -1,16 +1,19 @@
+# multi-epoch
 # joint r50-flux from cosmos
+# designed so min s/n is about 10
+# 6 epochs like recent HSC release
 
 images:
 
     #noise: 0.175
-    noise: 0.44
+    noise: 0.35
 
     psf:
         s2n: 10000
         stamp_size: [48,48] # optional
 
     object:
-        nepoch: 10
+        nepoch: 6
 
         stamp_size: [48,48]
 

@@ -120,7 +120,7 @@ class ObservationMaker(dict):
         )
 
         convolved_object = galsim.Convolve(object, psf)
-        obj_im, obj_im_orig, obj_jacob = self._get_object_image(
+        obj_im, obj_im_orig, obj_jacob, offset_pixels = self._get_object_image(
             convolved_object,
             wcs,
         )
@@ -142,6 +142,7 @@ class ObservationMaker(dict):
             psf=psf_obs,
         )
         obs.image_orig = obj_im_orig
+        obs.update_meta_data({'offset_pixels':offset_pixels})
 
         return obs
 
@@ -202,7 +203,7 @@ class ObservationMaker(dict):
         self._add_object_noise(gsimage)
         image = gsimage.array
 
-        return image, image_orig, jacob
+        return image, image_orig, jacob, offset
 
 
     def _add_psf_noise(self,image):

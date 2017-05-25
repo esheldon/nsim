@@ -249,7 +249,8 @@ class BDKMaker(SimpleMaker):
 
 
         fracdev = self.fracdev_pdf.sample()
-        fracknots = self.fracknots_pdf.sample()
+
+        fracknots, nknots = self._get_knot_info()
 
         bulge_flux = flux*fracdev
 
@@ -262,14 +263,17 @@ class BDKMaker(SimpleMaker):
             half_light_radius=r50,
         )
 
-        knots = galsim.RandomWalk(
-            npoints=self['knots']['num'],
-            half_light_radius=r50,
-            flux=knot_flux,
-            rng=self.galsim_rng,
-        )
+        if nknots > 0:
+            knots = galsim.RandomWalk(
+                npoints=nknots,
+                half_light_radius=r50,
+                flux=knot_flux,
+                rng=self.galsim_rng,
+            )
 
-        disk = galsim.Add([disk_raw, knots])
+            disk = galsim.Add([disk_raw, knots])
+        else:
+            disk = disk_raw
 
         # the bulge is always smooth
         bulge = galsim.DeVaucouleurs(flux=bulge_flux, half_light_radius=r50)
@@ -290,14 +294,35 @@ class BDKMaker(SimpleMaker):
 
         return gal, meta
 
+    def _get_knot_info(self):
+        if self.fracknots_pdf is None:
+            fracknots=0.0
+            num=0
+        else:
+            fracknots = self.fracknots_pdf.sample()
+            num = self['knots']['num']
+
+        return fracknots, num
+
     def _get_fracdev_pdf(self):
         bdr = self['fracdev']['range']
         return ngmix.priors.FlatPrior(bdr[0], bdr[1],
                                       rng=self.rng)
 
     def _get_fracknots_pdf(self):
-        bdr = self['knots']['flux_frac']['range']
-        return ngmix.priors.FlatPrior(bdr[0], bdr[1],
-                                      rng=self.rng)
+        if 'knots' not in self:
+            kconf=None
+        else:
+            kconf = self['knots']
 
+        if kconf is None:
+            pdf = None
+        else:
+            bdr = self['knots']['flux_frac']['range']
+            pdf = ngmix.priors.FlatPrior(
+                bdr[0],
+                bdr[1],
+                rng=self.rng,
+            )
 
+        return pdf

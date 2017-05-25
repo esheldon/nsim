@@ -178,7 +178,7 @@ class Summer(dict):
         collated file
         """
 
-        fname = files.get_output_url(run)
+        fname = files.get_output_url(run, itrial=self.args.index)
         if self.args.cache:
             origname=fname
             bname = os.path.basename(origname)
@@ -229,6 +229,10 @@ class Summer(dict):
                         end=beg+chunksize
 
                         data = hdu[beg:end]
+
+                        if args.index is not None:
+                            data = self._add_true_shear(data)
+
                         if 'shear_index' not in data.dtype.names:
                             data=self._add_shear_index(data)
 
@@ -268,14 +272,14 @@ class Summer(dict):
     def _try_read_sums(self, run):
         sums_file=self._get_sums_file(run)
 
-        if os.path.exists(sums_file):
-            # we can use the sums cache
-            print("reading cached sums file:",sums_file)
-            sums = fitsio.read(sums_file)
-        else:
-            print("sums file not found:",sums_file)
-            sums=None
+        if not os.path.exists(sums_file):
+            sums_file=self._get_sums_file(run, use_select_string=True)
+            if not os.path.exists(sums_file):
+                print("sums file not found:",sums_file)
+                return None
 
+        print("reading cached sums file:",sums_file)
+        sums = fitsio.read(sums_file)
         return sums
 
     def _preselect(self, data):
@@ -426,7 +430,8 @@ class Summer(dict):
                         sums[sumname][i] += (g*wa).sum(axis=0)
 
                 # now the selection terms
-                if self.do_selection is not None:
+                if self.do_selection:
+
                     for type in ngmix.metacal.METACAL_TYPES:
                         if type=='noshear':
                             continue
@@ -732,7 +737,7 @@ class Summer(dict):
         fitsio.write(fname, sums, clobber=True)
 
 
-    def _get_fname_extra(self, last=None, run=None):
+    def _get_fname_extra(self, last=None, run=None, use_select_string=False):
 
         # name will be singular if we use args.runs
         if run is None:
@@ -752,14 +757,20 @@ class Summer(dict):
             extra += ['preselect']
 
         if self.args.select is not None:
-            s=self.select.replace(' ','-').replace('(','').replace(')','').replace('[','').replace(']','').replace('"','').replace("'",'')
-            extra += ['select',s]
+            if use_select_string:
+                s=self.select.replace(' ','-').replace('(','').replace(')','').replace('[','').replace(']','').replace('"','').replace("'",'')
+                extra += ['select',s]
+            else:
+                extra += [self.args.select]
 
         if self.args.ntest is not None:
             extra += ['test%d' % self.args.ntest]
 
         if last is not None:
             extra += [last]
+
+        if self.args.index is not None:
+            extra += ['%06d' % self.args.index]
 
         if len(extra) > 0:
             extra = '-'.join(extra)
@@ -777,9 +788,12 @@ class Summer(dict):
         fname=files.get_means_url(self.args.runs, extra=extra)
         return fname
 
-    def _get_sums_file(self, run):
+    def _get_sums_file(self, run, use_select_string=False):
 
-        extra=self._get_fname_extra(run=run)
+        extra=self._get_fname_extra(
+            run=run,
+            use_select_string=use_select_string,
+        )
         fname=files.get_sums_url(run, extra=extra)
         return fname
 
@@ -848,14 +862,11 @@ class Summer(dict):
         self.do_selection=False
 
         if self.args.select is not None:
-            self.select = self.args.select
-            self.do_selection=True
-        elif self.args.select_from is not None:
-            with open(self.args.select_from) as fobj:
-                d=yaml.load(fobj)
             self.do_selection=True
 
+            d = files.read_config(self.args.select)
             self.select = d['select'].strip()
+
         elif self.args.weighted:
             self.do_selection=True
 

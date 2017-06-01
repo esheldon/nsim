@@ -157,10 +157,10 @@ class Summer(dict):
         if means.size == 1:
             if self.do_selection:
                 print("without correction")
-                junk=get_m_c_oneshear(self.means_nocorr)
+                junk=get_m_c_oneshear(self.means_nocorr,nsig=args.nsigma)
                 print("\nwith correction")
 
-            self.fits=get_m_c_oneshear(self.means)
+            self.fits=get_m_c_oneshear(self.means,nsig=args.nsigma)
 
         else:
             if self.do_selection:
@@ -169,8 +169,8 @@ class Summer(dict):
                 junk=fit_m_c(self.means_nocorr,onem=True)
                 print("\nwith correction")
 
-            self.fits=fit_m_c(self.means)
-            self.fitsone=fit_m_c(self.means,onem=True)
+            self.fits=fit_m_c(self.means,nsig=args.nsigma)
+            self.fitsone=fit_m_c(self.means,onem=True,nsig=args.nsigma)
 
 
     def get_run_output(self, run):
@@ -651,11 +651,13 @@ class Summer(dict):
         return d
 
     def _get_psf_T(self, data, w):
-        n='mcal_psfrec_T'
-        if n in data.dtype.names:
-            return data['mcal_psfrec_T'][w]
-        else:
-            return None
+        ns=['mcal_psfrec_T','mcal_Tpsf']
+
+        for n in ns:
+            if n in data.dtype.names:
+                return data[n][w]
+
+        return None
 
 
     def _get_s2n(self, n, data, w):

@@ -2,7 +2,6 @@ from __future__ import print_function
 import os, sys
 from os.path import join as path_join
 
-import yaml
 import numpy
 from numpy import array, sqrt, log10
 
@@ -39,21 +38,28 @@ def get_config_file(run):
     name='%s.yaml' % run
     return path_join(d, name)
 
+def read_yaml(fname):
+    import yaml
+
+    with open(fname) as fobj:
+        data=yaml.load(fobj)
+
+    return data
+
 def read_config(identifier):
     """
     run could be 'name' in sim
     """
     import yaml
-    f=get_config_file(identifier)
+    fname=get_config_file(identifier)
 
-    with open(f) as fobj:
-        c=yaml.load(fobj)
+    conf = read_yaml(fname)
 
-    if 'sim' in c:
+    if 'sim' in conf:
         # this is a run configuration
-        c['run'] = identifier
+        conf['run'] = identifier
 
-    return c
+    return conf
 
 def get_simdir():
     """

@@ -1,0 +1,6 @@
+runs: [
+    "run-emnosn11-mcal-amround-fixcen-t01",
+    "run-emnosn11-mcal-amround-fixcen-t02",
+    "run-emnosn11-mcal-amround-fixcen-t03",
+    "run-emnosn11-mcal-amround-fixcen-t04",
+]

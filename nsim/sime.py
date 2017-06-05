@@ -1,33 +1,23 @@
 from __future__ import print_function
 
-import os, sys
 from pprint import pprint
-
 import numpy
-import fitsio
 
-import ngmix
-import esutil as eu
-from esutil.numpy_util import between
-
+from . import files
 from . import psfs
 from . import objects
 from . import observations
 
-from .util import TryAgainError
-
 from .shearpdf import get_shear_pdf
 
-def get_sim(sim_conf):
-    return Sim(sim_conf)
 
 class Sim(dict):
-    def __init__(self, sim_conf):
+    def __init__(self, sim_conf, seed):
         import galsim
-        self.update(sim_conf)
 
-        seed=self['seed']
-        print("using seed:",self['seed'])
+        self._load_config(sim_conf)
+
+        print("using seed:",seed)
 
         # seeding both the global and the local rng.  With the
         # local, we produce the same sim independent of the fitting
@@ -68,3 +58,20 @@ class Sim(dict):
         )
 
 
+    def _load_config(self, confin):
+
+        if isinstance(confin,dict):
+            # full config dictionary was input
+            conf=confin
+        else:
+            if '.yaml' in confin:
+                # full path given
+                conf=files.read_yaml(confin)
+            else:
+                # identifier given, assumed to be
+                # in the "usual" place
+                conf=files.read_config(confin)
+            # in this case, we offer to set the seed
+            # if it is not in the file
+
+        self.update(conf)

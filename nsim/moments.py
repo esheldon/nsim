@@ -70,9 +70,17 @@ class MetacalMomentsAM(SimpleFitterBase):
         self.metacal_types=mpars['types']
         print("doing types:",self.metacal_types)
 
+        self._set_mompars()
 
         self['min_s2n'] = self.get('min_s2n',0.0)
 
+    def _set_mompars(self):
+        self.ampars = self.get('admom_pars',{})
+        self.psf_ampars = {}
+        self.psf_ampars.update(self.ampars)
+        self.psf_ampars['fixcen']=False
+        self.psf_ampars['round']=False
+        self.psf_ampars['use_canonical_center']=False
 
     def _dofit(self, obslist):
 
@@ -89,11 +97,13 @@ class MetacalMomentsAM(SimpleFitterBase):
             gpars[0:0+2] = 0.0
             self.model_galsim_obj = flux_fitter.make_model(gpars)
 
+        psfres = self._measure_psfs(obslist)
+
         obsdict=self._get_metacal(obslist)
 
         res=self._do_metacal(obsdict)
+        res['psf'] = psfres
 
-        res['psf'] = self._measure_psfs(obslist)
 
         if 'fit_model' in self:
             res['model_result'] = flux_result
@@ -110,13 +120,14 @@ class MetacalMomentsAM(SimpleFitterBase):
         g2sum=0.0
 
         for obs in obslist:
-            psfres, fitter = self._measure_moments(
-                obs.psf,
-                doround=False,
-            )
+            psfres, fitter = self._measure_psf_moments(obs.psf)
             Tsum  += psfres['T']
             g1sum += psfres['g'][0]
             g2sum += psfres['g'][1]
+
+            if fitter is not None:
+                gmix=fitter.get_gmix()
+                obs.psf.set_gmix(gmix)
 
         n=len(obslist)
         return {
@@ -124,13 +135,46 @@ class MetacalMomentsAM(SimpleFitterBase):
             'g': [g1sum/n, g2sum/n],
         }
 
+    def _measure_psf_moments(self, psf_obs):
+        return self._measure_moments(
+            psf_obs,
+            self.psf_ampars,
+            doround=False,
+        )
 
-    def _measure_moments(self, obslist, doround=True):
+    def _measure_obj_moments(self, obs):
+        return self._measure_moments(
+            obs,
+            self.ampars,
+        )
+
+    def _measure_moments(self, obslist, ampars ,doround=True):
         """
         measure adaptive moments
         """
-        ampars=self['admom_pars']
+        #ampars=self['admom_pars']
         ntry=ampars.pop('ntry',4)
+
+        use_ccen=ampars.get('use_canonical_center',False)
+        if use_ccen:
+
+            if isinstance(obslist,ngmix.ObsList):
+                obs=obslist[0]
+            else:
+                obs=obslist
+     
+            ccen=(numpy.array(obs.image.shape)-1.0)/2.0
+            jold=obs.jacobian
+            obs.jacobian = ngmix.Jacobian(
+                row=ccen[0],
+                col=ccen[1],
+                dvdrow=jold.dvdrow,
+                dudrow=jold.dudrow,
+                dvdcol=jold.dvdcol,
+                dudcol=jold.dudcol,
+
+            )
+
 
         fitter=ngmix.admom.Admom(
             obslist,
@@ -152,6 +196,10 @@ class MetacalMomentsAM(SimpleFitterBase):
 
             if res['flags'] == 0:
                 break
+
+        if use_ccen:
+            obs.jacobian=jold
+
 
         if res['flags'] != 0:
             raise TryAgainError("        admom failed")
@@ -205,7 +253,7 @@ class MetacalMomentsAM(SimpleFitterBase):
         for type in self.metacal_types:
             obslist=odict[type]
 
-            tres,fitter=self._measure_moments(obslist)
+            tres,fitter=self._measure_obj_moments(obslist)
             if tres['flags'] != 0:
                 raise TryAgainError("        bad T")
 
@@ -514,7 +562,7 @@ class MetacalMomentsAM(SimpleFitterBase):
         print("    mcal s2n: %g  e:  %g +/- %g  %g +/- %g" % (s2n,g[0],gerr[0],g[1],gerr[1]))
         if 'flux' in subres:
             print("        flux: %g +/- %g flux_s2n:  %g" % (subres['flux'],subres['flux_err'],subres['flux_s2n']))
-        print("     am flux: %g +/- %g flux_s2n:  %g" % (subres['am_flux'],subres['am_flux_err'],subres['am_flux_s2n']))
+        print("     am numiter: %d flux: %g +/- %g flux_s2n:  %g" % (subres['numiter'], subres['am_flux'],subres['am_flux_err'],subres['am_flux_s2n']))
 
 
     def _do_plots(self, obs, gmix=None):
@@ -774,14 +822,28 @@ class MetacalMomentsFixed(MetacalMomentsAM):
     """
     fixed weight function
     """
-    def _setup(self, *args, **kw):
-        super(MetacalMomentsFixed,self)._setup(*args, **kw)
+
+    def _set_mompars(self):
+        super(MetacalMomentsFixed,self)._set_mompars()
+        wpars=self['weight']
+
         self.weight=ngmix.GMixModel(
-            [0.0, 0.0, 0.0, 0.0, 8.0, 1.0],
-            "gauss",
+            [0.0, 0.0, 0.0, 0.0, wpars['T'], 1.0],
+            wpars['model'],
         )
 
-    def _measure_moments(self, obslist, doround=True):
+    def _measure_psf_moments(self, psf_obs):
+        """
+        want to run admom for psf
+        """
+        return super(MetacalMomentsFixed,self)._measure_moments(
+            psf_obs,
+            self.psf_ampars,
+            doround=False,
+        )
+
+
+    def _measure_moments(self, obslist, junk, doround=True):
         """
         measure adaptive moments
         """
@@ -791,21 +853,27 @@ class MetacalMomentsFixed(MetacalMomentsAM):
         else:
             obs=obslist
             
-        ccen=(numpy.array(obs.image.shape)-1.0)/2.0
-        jold=obs.jacobian
-        obs.jacobian = ngmix.Jacobian(
-            row=ccen[0],
-            col=ccen[1],
-            dvdrow=jold.dvdrow,
-            dudrow=jold.dudrow,
-            dvdcol=jold.dvdcol,
-            dudcol=jold.dudcol,
+        wpars=self['weight']
+        if wpars['use_canonical_center']:
+        
+            ccen=(numpy.array(obs.image.shape)-1.0)/2.0
+            jold=obs.jacobian
+            obs.jacobian = ngmix.Jacobian(
+                row=ccen[0],
+                col=ccen[1],
+                dvdrow=jold.dvdrow,
+                dudrow=jold.dudrow,
+                dvdcol=jold.dvdcol,
+                dudcol=jold.dudcol,
 
-        )
+            )
+
         res = self.weight.get_weighted_moments(
             obs,
         )
-        obs.jacobian=jold
+
+        if wpars['use_canonical_center']:
+            obs.jacobian=jold
 
         if res['flags'] != 0:
             raise TryAgainError("        moments failed")

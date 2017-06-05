@@ -26,16 +26,19 @@ fclass=argparse.ArgumentDefaultsHelpFormatter
 parser=argparse.ArgumentParser(formatter_class=fclass)
 
 parser.add_argument('runs', help='run or name of runs config for multiple runs')
+parser.add_argument('--index',default=None,type=int,
+                    help='just do sums on one output file')
 
 parser.add_argument('--select',default=None,
-                    help='string for selection, refer to data[field] etc.')
-parser.add_argument('--select-from',default=None,
-                    help='read the selection from the given yaml file')
+            help='read the selection from the indicated selection config')
 
 parser.add_argument('-d',default=None,help='file is in a local dir')
 
 parser.add_argument('--ntest',default=None,type=int,
                     help='work on a small subset for quick tests')
+
+parser.add_argument('--nsigma',default=2.0,type=float,
+                    help='number sigma error bars to print')
 
 parser.add_argument(
     '--weighted',

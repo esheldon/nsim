@@ -654,7 +654,7 @@ class NbrObservationMakerMulti(ObservationMaker):
                               "constant for size ratio")
 
     def _set_nbr_sky_shift(self):
-        cr=self['object'].get('nbr_sky_shift',None)
+        cr=self.get('nbr_sky_shift',None)
 
         if cr is None:
             self.nbr_sky_shift_pdf=None

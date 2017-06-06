@@ -24,6 +24,7 @@ images:
         nepoch: 1
         stamp_size: [47,47]
 
+    # the nbr object will be off-center and the fit would fail
     use_canonical_center: True
 
 psf:

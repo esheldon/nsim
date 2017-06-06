@@ -480,6 +480,10 @@ class NbrObservationMaker(ObservationMaker):
 
 
 class NbrObservationMakerMulti(ObservationMaker):
+    """
+    multi means an observation is returned with center
+    on each of the objects
+    """
     def __init__(self, *args, **kw):
         super(NbrObservationMakerMulti,self).__init__(*args, **kw)
 
@@ -642,7 +646,7 @@ class NbrObservationMakerMulti(ObservationMaker):
         return self._dilation
 
     def _set_nbr_size_dilation(self):
-        spec = self.get('nbr_size_ratio',None)
+        spec = self['nbr_size_ratio']
         if spec is not None:
             self._dilation = spec
         else:
@@ -650,7 +654,7 @@ class NbrObservationMakerMulti(ObservationMaker):
                               "constant for size ratio")
 
     def _set_nbr_sky_shift(self):
-        cr=self['nbr_sky_shift']
+        cr=self['object'].get('nbr_sky_shift',None)
 
         if cr is None:
             self.nbr_sky_shift_pdf=None

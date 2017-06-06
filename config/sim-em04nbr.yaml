@@ -18,11 +18,11 @@ images:
     psf:
         s2n: 10000
 
-        stamp_size: [48,48] # optional
+        stamp_size: [47,47] # optional
 
     object:
         nepoch: 1
-        stamp_size: [48,48]
+        stamp_size: [47,47]
 
     use_canonical_center: True
 

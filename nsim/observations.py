@@ -572,6 +572,7 @@ class NbrObservationMakerMulti(ObservationMaker):
 
         objlist=[]
         shiftlist = []
+        parlist=[]
 
         nobj = 1 + nnbr
         for i in xrange(nobj):
@@ -593,10 +594,12 @@ class NbrObservationMakerMulti(ObservationMaker):
 
             objlist.append(tobj)
             shiftlist.append(shift)
+            parlist.append(tmeta)
 
         obj = galsim.Add(objlist)
 
         meta['shiftlist'] = shiftlist
+        meta['parlist'] = parlist
 
         if self.shear_pdf is not None:
             shear, shindex = self.shear_pdf.get_shear()

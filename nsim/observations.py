@@ -594,7 +594,10 @@ class NbrObservationMakerMulti(ObservationMaker):
 
             objlist.append(tobj)
             shiftlist.append(shift)
-            parlist.append(tmeta)
+
+            pars={}
+            pars.update(tmeta)
+            parlist.append(pars)
 
         obj = galsim.Add(objlist)
 

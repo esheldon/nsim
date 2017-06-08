@@ -193,6 +193,8 @@ class ObservationMaker(dict):
         if self['use_canonical_center']:
             dims = numpy.array(image_orig.shape)
             row, col = (dims-1)/2.0
+            row += offset[0]
+            col += offset[1]
             print("using canonical center",row,col)
         else:
             row, col = find_centroid(image_orig, self.rng, offset=offset)

@@ -580,6 +580,7 @@ class NbrObservationMakerMulti(ObservationMaker):
         for i in xrange(nobj):
             tobj, tmeta  = self.object_maker(**kw)
 
+            shift=None
             if i > 0:
 
                 # always dilate first
@@ -588,10 +589,10 @@ class NbrObservationMakerMulti(ObservationMaker):
                     tobj = tobj.dilate(dilation)
                     print("dilation:",dilation,"flux:",tobj.getFlux())
 
-                shift = self._get_nbr_sky_shift()
-                tobj = tobj.shift(dx=shift[1], dy=shift[0])
+                if  self.nbr_sky_shift_pdf is not None
+                    shift = self._get_nbr_sky_shift()
+                    tobj = tobj.shift(dx=shift[1], dy=shift[0])
             else:
-                shift=None
                 meta=tmeta
 
             objlist.append(tobj)

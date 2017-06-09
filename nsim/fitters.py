@@ -6,6 +6,7 @@ try:
     xrange
 except:
     xrange=range
+    raw_input=input
 
 import os
 import time
@@ -97,7 +98,7 @@ class FitterBase(dict):
 
                     if self['deblend']:
                         print("    deblending")
-                        obslist = deblending.deblend(obslist)
+                        obslist = self._do_deblend(obslist)
 
                     meta = self._extract_meta(obslist)
 
@@ -135,6 +136,24 @@ class FitterBase(dict):
         print('time per (total):',self.tm/self['ngal'])
         print('time to simulate:',self.tm_sim/n_sim)
         print('time to fit:',self.tm_fit/n_proc)
+
+    def _do_deblend(self, obslist):
+        try:
+            new_obslist = deblending.deblend(obslist)
+        except numpy.linalg.linalg.LinAlgError:
+            raise TryAgainError("lingalg error in deblender")
+
+        if False:
+            import images
+            images.view_mosaic(
+                [new_obslist[0].image_orig,
+                 new_obslist[0].image],
+            )
+            if 'q'==raw_input('hit a key: '):
+                stop
+
+
+        return new_obslist
 
     def _extract_meta(self, obslist):
         if hasattr(obslist,'meta'):

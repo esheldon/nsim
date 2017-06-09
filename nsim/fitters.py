@@ -35,6 +35,8 @@ from copy import deepcopy
 
 import esutil as eu
 
+from . import deblending
+
 try:
     import galsim
 except ImportError:
@@ -92,6 +94,10 @@ class FitterBase(dict):
                     tm0=time.time()
                     obslist = self.sim()
                     self.tm_sim += time.time()-tm0
+
+                    if self['deblend']:
+                        print("    deblending")
+                        obslist = deblending.deblend(obslist)
 
                     meta = self._extract_meta(obslist)
 
@@ -201,6 +207,7 @@ class FitterBase(dict):
         """
 
         self['s2n_min'] = self.get('s2n_min',-9999.0)
+        self['deblend'] = self.get('deblend',False)
 
         self['nrand'] = self.get('nrand',1)
         if self['nrand'] is None:

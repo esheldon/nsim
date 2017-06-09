@@ -6,6 +6,7 @@ try:
     xrange
 except:
     xrange=range
+    raw_input=input
 
 import numpy
 from numpy import array, zeros, ones, log, log10, exp, sqrt, diag
@@ -143,6 +144,13 @@ class MetacalMomentsAM(SimpleFitterBase):
         )
 
     def _measure_obj_moments(self, obs):
+        if False:
+            import images
+            images.multiview(obs[0].image)
+            if 'q'==raw_input('hit a key: '):
+                stop
+
+
         return self._measure_moments(
             obs,
             self.ampars,

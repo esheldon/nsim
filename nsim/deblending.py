@@ -42,7 +42,7 @@ def deblend(mb_obslist):
 
     deblended_image = image.copy()
     
-    for k in xrange(nobj):
+    for k in range(1,nobj):
         res = deblender.nmf.get_peak_model(
             A[:,k],
             S[k].flatten(),

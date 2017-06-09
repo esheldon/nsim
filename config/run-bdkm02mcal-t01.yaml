@@ -4,9 +4,6 @@
 
 sim: "sim-bdkm02"
 
-coadd:
-    type: "mean"
-
 fitter: "metacal-moments-am"
 
 global_seed: 32128
@@ -36,7 +33,7 @@ admom_pars:
 
 ngal: 1000000
 
-desired_hours: 0.2
+desired_hours: 0.4
 
 # at SLAC
 sec_per: 0.4

@@ -46,7 +46,14 @@ class ObservationMaker(dict):
             type: "uniform"
             radius: 0.5 # pixels
     """
-    def __init__(self, config, psf_maker, object_maker, rng, galsim_rng, shear_pdf=None):
+    def __init__(self,
+                 config,
+                 psf_maker,
+                 object_maker,
+                 rng,
+                 galsim_rng,
+                 shear_pdf=None):
+
         self.update(config)
 
         self['use_canonical_center'] = self.get('use_canonical_center',False)
@@ -92,7 +99,30 @@ class ObservationMaker(dict):
         meta['s2n']  = get_expected_s2n(obslist)
 
         obslist.update_meta_data(meta)
+
+        if 'coadd' in self:
+            obslist = self._do_coadd(obslist)
+
         return obslist
+
+    def _do_coadd(self, obslist):
+        import coaddsim
+
+        coadd_conf=self['coadd']
+
+        # assuming all same psf
+        coadder = coaddsim.CoaddImages(obslist)
+
+        if coadd_conf['type']=='mean':
+            print("    doing mean coadd")
+            coadd_obs = coadder.get_mean_coadd()
+        else:
+            raise ValueError("bad coadd type: '%s'" % coadd_conf['type'])
+
+        coadd_obslist=ngmix.ObsList()
+        coadd_obslist.append(coadd_obs)
+        coadd_obslist.update_meta_data(obslist.meta)
+        return coadd_obslist
 
     def _randomize_morphology(self, flux, r50):
 
@@ -361,8 +391,8 @@ class ObservationMaker(dict):
         else:
             offset=None
 
-        if offset is not None:
-            print("    offset: %g,%g" % offset)
+        #if offset is not None:
+        #    print("    offset: %g,%g" % offset)
 
         return offset
 
@@ -589,7 +619,7 @@ class NbrObservationMakerMulti(ObservationMaker):
                     tobj = tobj.dilate(dilation)
                     print("dilation:",dilation,"flux:",tobj.getFlux())
 
-                if  self.nbr_sky_shift_pdf is not None
+                if self.nbr_sky_shift_pdf is not None:
                     shift = self._get_nbr_sky_shift()
                     tobj = tobj.shift(dx=shift[1], dy=shift[0])
             else:
@@ -802,7 +832,7 @@ def find_centroid(image, rng, offset=None, maxiter=200, ntry=4):
         col0 += offset[0]
         row0 += offset[1]
 
-    print("    rowcol guess:",row0,col0)
+    #print("    rowcol guess:",row0,col0)
 
     if False:
         import images
@@ -833,7 +863,7 @@ def find_centroid(image, rng, offset=None, maxiter=200, ntry=4):
 
     row = row0 + row
     col = col0 + col
-    print("    center:",row,col,"numiter:",res['numiter'])
+    #print("    center:",row,col,"numiter:",res['numiter'])
 
     return row,col
 

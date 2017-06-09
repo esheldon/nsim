@@ -38,7 +38,8 @@ ngal: 1000000
 
 desired_hours: 0.2
 
-sec_per: 0.2
+# at SLAC
+sec_per: 0.4
 
 jobs_per_condor_sub: 5000
 

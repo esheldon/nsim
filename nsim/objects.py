@@ -218,7 +218,7 @@ class SimpleMaker(dict):
                 xmin=fluxspec['min']
                 xmax=fluxspec['max']
 
-                flux_pdf=PowerLaw(index, xmin, xmax)
+                flux_pdf=pdfs.PowerLaw(index, xmin, xmax)
 
             else:
                 raise ValueError("bad flux pdf type: '%s'" % fluxspec['type'])

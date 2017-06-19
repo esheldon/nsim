@@ -19,8 +19,9 @@ from nsim import files
 from argparse import ArgumentParser
 parser=ArgumentParser(__doc__)
 
-parser.add_argument('system',help='batch system')
 parser.add_argument('run',help='sim run')
+
+parser.add_argument('--system',default="lsf",help='batch system')
 
 parser.add_argument('--missing',action='store_true',
                     help='write wq job files for the missing files')

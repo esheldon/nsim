@@ -628,11 +628,31 @@ class MetacalMomentsAMMOFSub(MetacalMomentsAM):
 
 
 class AMFitter(MetacalMomentsAM):
+    def _setup(self, *args, **kw):
+        super(MetacalMomentsAM,self)._setup(*args, **kw)
+        self._set_mompars()
+
+        self['min_s2n'] = self.get('min_s2n',0.0)
+
+
     def _dofit(self, obslist):
 
-        res,fitter=self._measure_moments(obslist)
+        res,fitter=self._measure_moments(obslist, self.ampars)
         res['flags']=0
         return res
+
+    def _dofit(self, obslist):
+
+        psfres = self._measure_psfs(obslist)
+
+        res,fitter=self._measure_moments(obslist, self.ampars)
+        self._set_am_flux(obslist,fitter)
+        res['flags']=0
+
+        res['psf'] = psfres
+
+        return res
+
 
     def _get_dtype(self):
         """
@@ -645,8 +665,10 @@ class AMFitter(MetacalMomentsAM):
         dt += [
             ('pars','f8',npars),
             ('pars_cov','f8',(npars,npars)),
+            ('T','f8'),
+            ('T_err','f8'),
             ('flux','f8'),
-            ('flux_s2n','f8'),
+            ('flux_err','f8'),
             ('g','f8',2),
             ('g_cov','f8',(2,2)),
             ('s2n','f8'),
@@ -668,21 +690,26 @@ class AMFitter(MetacalMomentsAM):
 
         ckeys=[
             'pars','pars_cov',
-            'flux','flux_s2n',
             'g','g_cov',
             's2n',
             'numiter',
         ]
 
+        d['flux'][i] = res['am_flux']
+        d['flux_err'][i] = res['am_flux_err']
+        d['T'][i] = res['T']
+        d['T_err'][i] = numpy.sqrt(res['pars_cov'][4,4])
         for key in ckeys:
-            d[key][i] = res[key]
+            if key in res:
+                d[key][i] = res[key]
 
     def _print_res(self,res):
         """
         print some stats
         """
 
-        print("    flux s2n: %g" % res['flux_s2n'])
+        if 'flux_s2n' in res:
+            print("    flux s2n: %g" % res['flux_s2n'])
         print("    e1e2:  %g %g" % tuple(res['g']))
         print("    e_err: %g" % numpy.sqrt(res['g_cov'][0,0]))
 

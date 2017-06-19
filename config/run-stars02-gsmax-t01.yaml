@@ -1,0 +1,55 @@
+run: "run-stars02-gsmax-t01"
+sim: "sim-stars02"
+
+fitter: "galsim-max"
+fit_model: "exp"
+
+global_seed: 101
+
+s2n_min: 5.0
+
+priors:
+
+    # for k space fitting, this is really a combined offset from the
+    # centers for the PSF and galaxy
+
+    cen:
+        type: "normal2d"
+        sigma: 0.27
+
+    r50:
+        type: "two-sided-erf"
+        #pars: [-1.0, 0.1, 100.0, 1.0]
+        pars: [0.001, 0.0001, 20.0, 1.0]
+        #pars: [0.001, 1000.0]
+
+    counts:
+        type: "two-sided-erf"
+        pars: [0.0, 0.1, 1000.0, 1.0]
+
+    g:
+        type: "ba"
+        sigma: 0.2
+
+max_pars:
+    ntry: 2
+    lm_pars:
+        maxfev: 2000
+        xtol: 5.0e-5
+        ftol: 5.0e-5
+
+
+    cov:
+        replace_cov: False
+        cov_pars:
+            m: 5
+            h: 1.0e-3
+
+ngal: 100000
+
+desired_hours: 0.0
+
+# 0.12 for fitting
+sec_per: 0.02
+
+verbose: False

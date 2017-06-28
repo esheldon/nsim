@@ -424,9 +424,6 @@ class MetacalMomentsAM(SimpleFitterBase):
         res['g']     = res['e']
         res['g_cov'] = res['e_cov']
 
-        # not right pars cov
-        res['pars_cov']=res['sums_cov']*0 + 9999.e9
-
     def _copy_to_output(self, res, i):
         """
         copy parameters specific to this class
@@ -443,7 +440,7 @@ class MetacalMomentsAM(SimpleFitterBase):
         if 'fit_model' in self:
             n=self._get_namer()
             model_res=res['model_result']
-            for name in ['pars','pars_cov','g','g_cov','s2n_r']:
+            for name in ['pars','sums_cov','g','g_cov','s2n_r']:
                 d[n(name)][i] = model_res[name]
 
 
@@ -479,7 +476,7 @@ class MetacalMomentsAM(SimpleFitterBase):
             d['mcal_numiter%s' % back][i] = tres['numiter']
 
             if type=='noshear':
-                for p in ['pars_cov','wsum','psfrec_g','psfrec_T']:
+                for p in ['sums_cov','wsum','psfrec_g','psfrec_T']:
 
                     if p in tres:
                         name='mcal_%s' % p
@@ -516,7 +513,7 @@ class MetacalMomentsAM(SimpleFitterBase):
             if type=='noshear':
                 dt += [
                     ('mcal_wsum','f8'),
-                    ('mcal_pars_cov','f8',(npars,npars)),
+                    ('mcal_sums_cov','f8',(npars,npars)),
                     ('mcal_psfrec_g','f8',2),
                     ('mcal_psfrec_T','f8'),
                 ]
@@ -664,7 +661,7 @@ class AMFitter(MetacalMomentsAM):
         dt=super(SimpleFitterBase,self)._get_dtype()
         dt += [
             ('pars','f8',npars),
-            ('pars_cov','f8',(npars,npars)),
+            ('sums_cov','f8',(npars,npars)),
             ('T','f8'),
             ('T_err','f8'),
             ('flux','f8'),
@@ -689,7 +686,7 @@ class AMFitter(MetacalMomentsAM):
         d=self.data
 
         ckeys=[
-            'pars','pars_cov',
+            'pars','sums_cov',
             'g','g_cov',
             's2n',
             'numiter',
@@ -698,7 +695,7 @@ class AMFitter(MetacalMomentsAM):
         d['flux'][i] = res['am_flux']
         d['flux_err'][i] = res['am_flux_err']
         d['T'][i] = res['T']
-        d['T_err'][i] = numpy.sqrt(res['pars_cov'][4,4])
+        d['T_err'][i] = res['T_err']
         for key in ckeys:
             if key in res:
                 d[key][i] = res[key]

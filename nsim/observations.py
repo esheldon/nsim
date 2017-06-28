@@ -838,7 +838,7 @@ def find_centroid(image, rng, offset=None, maxiter=200, ntry=4):
 
     if False:
         import images
-        images.view(image, width=800,height=800)
+        images.multiview(image, width=800,height=800)
         if 'q'==raw_input('hit a key: '):
             stop
 
@@ -857,7 +857,13 @@ def find_centroid(image, rng, offset=None, maxiter=200, ntry=4):
             break
 
     if res['flags'] != 0:
-        raise TryAgainError("could not fit 1 gauss")
+        if False:
+            import images
+            images.view(image, width=800,height=800)
+            if 'q'==raw_input('hit a key: '):
+                stop
+
+        raise TryAgainError("could not fit 1 gauss to get centroid")
 
     pars=res['pars']
     row=pars[0]

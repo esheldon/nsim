@@ -39,7 +39,7 @@ class DiscreteHLRFluxSampler(object):
 
 
 class PowerLaw(object):
-    def __init__(self, index, xmin, xmax, npts=10000):
+    def __init__(self, index, xmin, xmax, npts=100000):
 
         func = lambda x:  x**index
 

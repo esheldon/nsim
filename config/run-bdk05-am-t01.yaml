@@ -1,9 +1,9 @@
-run: "run-stars02-am-01"
-sim: "sim-stars02"
+run: "run-bdk05-am-t01"
+sim: "sim-bdk05"
 
 fitter: "am"
 
-global_seed: 26661
+global_seed: 21585
 
 s2n_min: 5.0
 
@@ -11,10 +11,10 @@ admom_pars:
     ntry: 4
     maxiter: 200
 
-ngal: 24000
+ngal: 120000
 
 desired_hours: 0.02
 
-sec_per: 0.03
+sec_per: 0.15
 
 verbose: False

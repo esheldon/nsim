@@ -1,0 +1,8 @@
+# coadding
+
+name: runs-bdkm02-01
+
+runs: [
+    run-bdkm02mcal-t02,
+    run-bdkm02mcal-t03,
+]

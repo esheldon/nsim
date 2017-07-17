@@ -6,6 +6,7 @@ try:
     xrange
 except:
     xrange=range
+    raw_input=input
 
 import os
 import time
@@ -97,7 +98,7 @@ class FitterBase(dict):
 
                     if self['deblend']:
                         print("    deblending")
-                        obslist = deblending.deblend(obslist)
+                        obslist = self._do_deblend(obslist)
 
                     meta = self._extract_meta(obslist)
 
@@ -135,6 +136,24 @@ class FitterBase(dict):
         print('time per (total):',self.tm/self['ngal'])
         print('time to simulate:',self.tm_sim/n_sim)
         print('time to fit:',self.tm_fit/n_proc)
+
+    def _do_deblend(self, obslist):
+        try:
+            new_obslist = deblending.deblend(obslist)
+        except numpy.linalg.linalg.LinAlgError:
+            raise TryAgainError("lingalg error in deblender")
+
+        if False:
+            import images
+            images.view_mosaic(
+                [new_obslist[0].image_orig,
+                 new_obslist[0].image],
+            )
+            if 'q'==raw_input('hit a key: '):
+                stop
+
+
+        return new_obslist
 
     def _extract_meta(self, obslist):
         if hasattr(obslist,'meta'):
@@ -646,20 +665,22 @@ class SimpleFitterBase(FitterBase):
 
 class MaxFitter(SimpleFitterBase):
 
-    def _dofit(self, imdict):
+    def _dofit(self, obslist):
         """
         Fit according to the requested method
         """
 
         use_round_T=self['use_round_T']
-        boot=ngmix.Bootstrapper(imdict['obs'],
+        boot=ngmix.Bootstrapper(obslist,
                                 use_logpars=self['use_logpars'],
                                 use_round_T=use_round_T,
                                 verbose=False)
 
-        Tguess=self.sim.get('psf_T',4.0)
+        #Tguess = 4.0*obslist[0].jacobian.get_scale()
+        # guess FWHM=1'' which is 
+        sigma_guess = ngmix.moments.fwhm_to_sigma(1.0)
+        Tguess = 2*sigma_guess**2
         ppars=self['psf_pars']
-        #psf_fit_pars = ppars.get('fit_pars',None)
         try:
             boot.fit_psfs(ppars['model'], Tguess, ntry=ppars['ntry'])
         except BootPSFFailure:
@@ -684,7 +705,7 @@ class MaxFitter(SimpleFitterBase):
             res['s2n_r'] = rres['s2n_r']
             res['T_r'] = rres['T_r']
 
-            res['psf_T'] = imdict['obs'].psf.gmix.get_T()
+            res['psf_T'] = obslist[0].psf.gmix.get_T()
             res['psf_T_r'] = rres['psf_T_r']
 
 
@@ -993,10 +1014,7 @@ class MaxMetacalFitter(MaxFitter):
 class GalsimFitter(SimpleFitterBase):
 
     def _get_guesser(self, obs):
-        '''
-        r50guess_pixels = 2.0
-        scale=obs.jacobian.get_scale()
-        r50guess = r50guess_pixels*scale
+        r50guess = 1.0
         flux_guess = obs.image.sum()
 
         guesser=ngmix.guessers.R50FluxGuesser(
@@ -1004,9 +1022,8 @@ class GalsimFitter(SimpleFitterBase):
             flux_guess,
             prior=self.prior,
         )
-        '''
 
-        guesser=ngmix.guessers.PriorGuesser(self.prior)   
+        #guesser=ngmix.guessers.PriorGuesser(self.prior)   
 
         return guesser
 
@@ -1058,12 +1075,13 @@ class GalsimFitter(SimpleFitterBase):
 
         return g1,g2,T
 
-    def _dofit(self, imdict):
+    def _dofit(self, obslist):
         """
         Fit according to the requested method
         """
 
-        obs=imdict['obs']
+        assert len(obslist)==1
+        obs = obslist[0]
 
         mconf=self['max_pars']
 
@@ -1099,8 +1117,8 @@ class GalsimFitter(SimpleFitterBase):
         print_pars(res['pars'],      front='        pars: ')
         print_pars(res['pars_err'],  front='        perr: ')
 
-        if res['pars_true'][0] is not None:
-            print_pars(res['pars_true'], front='        true: ')
+        #if res['pars_true'][0] is not None:
+        #    print_pars(res['pars_true'], front='        true: ')
 
 
     def _get_dtype(self):

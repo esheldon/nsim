@@ -1,0 +1,20 @@
+run: "run-stars02-am-t01train"
+sim: "sim-stars02"
+
+fitter: "am"
+
+global_seed: 22999
+
+s2n_min: 5.0
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+ngal: 500000
+
+desired_hours: 0.02
+
+sec_per: 0.03
+
+verbose: False

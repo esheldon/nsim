@@ -1,0 +1,70 @@
+run: "run-bdk05-max-t01"
+sim: "sim-bdk05"
+
+fitter: "max"
+fit_model: "exp"
+
+global_seed: 6030
+
+s2n_min: 5.0
+
+priors:
+
+    cen:
+        type: "normal2d"
+        sigma: 0.27
+
+    T:
+        # cut off low end were exp fit is getting stuck
+        type: "flat"
+        pars: [-0.2, 100.0]
+
+    counts:
+        type: "two-sided-erf"
+        pars: [-1.0, 0.1, 100.0, 1.0]
+
+    g:
+        type: "ba"
+        sigma: 0.2
+
+max_pars:
+    method: 'lm'
+    ntry: 2
+
+    lm_pars:
+        maxfev: 2000
+        xtol: 5.0e-5
+        ftol: 5.0e-5
+
+    #use_fracdev_grid: False
+    #fracdev_range: [0.0,1.0]
+    #TdByTe_range: [0.0,1.0e+12]
+ 
+    cov:
+        #replace_cov: True
+        replace_cov: False
+        cov_pars:
+            m: 5
+            h: 1.0e-3
+
+#psf_pars:
+#    model: 'em3'
+#    ntry: 2
+#    fit_pars:
+#      maxiter: 2000
+#      tol: 5.0e-6
+
+psf_pars:
+    model: "gauss"
+    ntry: 5
+    fit_pars:
+        maxfev: 2000
+
+
+ngal: 25000
+
+desired_hours: 0.02
+
+sec_per: 0.03
+
+verbose: False

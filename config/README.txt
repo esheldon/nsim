@@ -1,3 +1,65 @@
+- testing s/g sep
+    - sim-stars03 gauss psf, more realistic s/n distribution for
+      stars and N(flux) ~ flux^{-1.4}
+    - sim-bdk06 - go to higher flux
+
+    # fitting gaussian
+    - run-bdk06-max-01 - galaxies
+    - run-stars03-max-01 - real run to be combined with run-bdk06-max-01
+    - run-stars03-max-01train - training run with more stars
+
+
+    # am
+    - run-bdk06-am-01 - galaxies
+    - run-stars03-am-01 - real run to be combined with run-bdk06-max-01
+    - run-stars03-am-01train - training run with more stars
+
+
+    - sim-stars04, sim-bdk07
+        moffat psf otherwise same as stars03 and bdk06
+
+    - run-bdk07-max-01 - galaxies
+    - run-stars04-max-01 - real run to be combined with run-bdk06-max-01
+    - run-stars04-max-01train - training run with more stars
+
+
+    - sim-stars02 gauss psf
+    - noticed that with flat or erf prior and fitting exp there is a locus at
+      -0.25 that shows up.  Not there when fitting a gauss
+
+    - for now putting a flat prior cutting off at -0.2 prevents most of it
+
+    - alternative is using log pars or fitting r50 with gs (slower) with log
+      pars, there would not be a crunch at zero size in that metric, might
+      work just fine
+
+    - run-bdk05-max-t01 - same noise as star runs
+    - run-stars02-max-t04 - real run to be combined with run-bdk05-max-t01
+    - run-stars02-max-t05 - training run with more stars
+
+    # larger runs
+
+    # fitting exp
+    - run-bdk05-max-t02 - same noise as star runs
+    - run-stars02-max-t06 - real run to be combined with run-bdk05-max-t01
+    - run-stars02-max-t07 - training run with more stars
+
+    # fitting gaussian
+    - run-bdk05-max-t03 - same noise as star runs
+    - run-stars02-max-t08 - real run to be combined with run-bdk05-max-t01
+    - run-stars02-max-t08train - training run with more stars
+
+    # fitting gaussian
+    - run-bdk05-max-t04 - same noise as star runs
+    - run-stars02-max-t09 - real run to be combined with run-bdk05-max-t01
+    - run-stars02-max-t09train - training run with more stars
+
+
+    # AM runs
+    run-stars02-am-t01
+    run-stars02-am-t01train
+    run-bdk05-am-t01
+
 - sim-emnosn11
     - no shapenoise sim, s/n ~ 12-14
 

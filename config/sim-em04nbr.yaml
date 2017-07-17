@@ -5,7 +5,7 @@
 images:
     nnbr: 1
 
-    nbr_size_ratio: 4.0
+    nbr_size_ratio: 1.0
 
     # will only apply to neighbors
     nbr_sky_shift:
@@ -40,7 +40,7 @@ object:
 
     g:
         type: "ba"
-        sigma: 0.2
+        sigma: 0.01
 
     flux:
         type: "lognormal"
@@ -49,7 +49,7 @@ object:
 
     r50:
         type: "lognormal"
-        mean: 0.4
+        mean: 3.0
         sigma: 0.26
 
 shear: [0.02, 0.00]

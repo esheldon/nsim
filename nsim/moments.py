@@ -6,6 +6,7 @@ try:
     xrange
 except:
     xrange=range
+    raw_input=input
 
 import numpy
 from numpy import array, zeros, ones, log, log10, exp, sqrt, diag
@@ -143,6 +144,13 @@ class MetacalMomentsAM(SimpleFitterBase):
         )
 
     def _measure_obj_moments(self, obs):
+        if False:
+            import images
+            images.multiview(obs[0].image)
+            if 'q'==raw_input('hit a key: '):
+                stop
+
+
         return self._measure_moments(
             obs,
             self.ampars,
@@ -416,9 +424,6 @@ class MetacalMomentsAM(SimpleFitterBase):
         res['g']     = res['e']
         res['g_cov'] = res['e_cov']
 
-        # not right pars cov
-        res['pars_cov']=res['sums_cov']*0 + 9999.e9
-
     def _copy_to_output(self, res, i):
         """
         copy parameters specific to this class
@@ -435,7 +440,7 @@ class MetacalMomentsAM(SimpleFitterBase):
         if 'fit_model' in self:
             n=self._get_namer()
             model_res=res['model_result']
-            for name in ['pars','pars_cov','g','g_cov','s2n_r']:
+            for name in ['pars','sums_cov','g','g_cov','s2n_r']:
                 d[n(name)][i] = model_res[name]
 
 
@@ -471,7 +476,7 @@ class MetacalMomentsAM(SimpleFitterBase):
             d['mcal_numiter%s' % back][i] = tres['numiter']
 
             if type=='noshear':
-                for p in ['pars_cov','wsum','psfrec_g','psfrec_T']:
+                for p in ['sums_cov','wsum','psfrec_g','psfrec_T']:
 
                     if p in tres:
                         name='mcal_%s' % p
@@ -508,7 +513,7 @@ class MetacalMomentsAM(SimpleFitterBase):
             if type=='noshear':
                 dt += [
                     ('mcal_wsum','f8'),
-                    ('mcal_pars_cov','f8',(npars,npars)),
+                    ('mcal_sums_cov','f8',(npars,npars)),
                     ('mcal_psfrec_g','f8',2),
                     ('mcal_psfrec_T','f8'),
                 ]
@@ -620,11 +625,31 @@ class MetacalMomentsAMMOFSub(MetacalMomentsAM):
 
 
 class AMFitter(MetacalMomentsAM):
+    def _setup(self, *args, **kw):
+        super(MetacalMomentsAM,self)._setup(*args, **kw)
+        self._set_mompars()
+
+        self['min_s2n'] = self.get('min_s2n',0.0)
+
+
     def _dofit(self, obslist):
 
-        res,fitter=self._measure_moments(obslist)
+        res,fitter=self._measure_moments(obslist, self.ampars)
         res['flags']=0
         return res
+
+    def _dofit(self, obslist):
+
+        psfres = self._measure_psfs(obslist)
+
+        res,fitter=self._measure_moments(obslist, self.ampars)
+        self._set_am_flux(obslist,fitter)
+        res['flags']=0
+
+        res['psf'] = psfres
+
+        return res
+
 
     def _get_dtype(self):
         """
@@ -636,9 +661,11 @@ class AMFitter(MetacalMomentsAM):
         dt=super(SimpleFitterBase,self)._get_dtype()
         dt += [
             ('pars','f8',npars),
-            ('pars_cov','f8',(npars,npars)),
+            ('sums_cov','f8',(npars,npars)),
+            ('T','f8'),
+            ('T_err','f8'),
             ('flux','f8'),
-            ('flux_s2n','f8'),
+            ('flux_err','f8'),
             ('g','f8',2),
             ('g_cov','f8',(2,2)),
             ('s2n','f8'),
@@ -659,22 +686,27 @@ class AMFitter(MetacalMomentsAM):
         d=self.data
 
         ckeys=[
-            'pars','pars_cov',
-            'flux','flux_s2n',
+            'pars','sums_cov',
             'g','g_cov',
             's2n',
             'numiter',
         ]
 
+        d['flux'][i] = res['am_flux']
+        d['flux_err'][i] = res['am_flux_err']
+        d['T'][i] = res['T']
+        d['T_err'][i] = res['T_err']
         for key in ckeys:
-            d[key][i] = res[key]
+            if key in res:
+                d[key][i] = res[key]
 
     def _print_res(self,res):
         """
         print some stats
         """
 
-        print("    flux s2n: %g" % res['flux_s2n'])
+        if 'flux_s2n' in res:
+            print("    flux s2n: %g" % res['flux_s2n'])
         print("    e1e2:  %g %g" % tuple(res['g']))
         print("    e_err: %g" % numpy.sqrt(res['g_cov'][0,0]))
 

@@ -17,7 +17,6 @@ s2n_min: 5.0
 
 metacal_pars:
     # assume the observation will have a .noise attribute
-    use_noise_image: True
     symmetrize_psf: True
     types: ['noshear','1p','1m','2p','2m']
 
@@ -34,12 +33,12 @@ admom_pars:
 # run details
 #
 
-ngal: 1000000
+ngal: 10000000
 
-desired_hours: 0.5
+desired_hours: 0.25
 
 # at SLAC
-sec_per: 0.5
+sec_per: 0.20
 
 jobs_per_condor_sub: 5000
 

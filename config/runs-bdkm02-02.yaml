@@ -6,4 +6,5 @@ name: runs-bdkm02-02
 runs: [
     run-bdkm02mcal-t04,
     run-bdkm02mcal-t05,
+    run-bdkm02mcal-01,
 ]

@@ -1,4 +1,5 @@
-- coaddsim
+- coaddsim  using the coaddsim code base to make coadds from 
+    multi-epoch nsim simulated data
 
     - sim-bdkm05
         - no actual knots
@@ -14,6 +15,16 @@
 
     - sim-bdkm07
         - same as bdkm05 but no offsets
+        errors are 2 sigma
+        m: -3.894e-03 +/- 5.151e-03  c: -1.942e-08 +/- 1.028e-04
+
+    - sim-bdkm08
+        - same as bdkm05 but single epoch, still "coadding"
+
+    - sim-bd60 - similar to bdkm05 but not multi-epoch coadded
+        - no bias found
+        errors are 2 sigma
+        m: 7.953e-04 +/- 4.357e-03  c: 2.328e-06 +/- 8.697e-05
 
 - testing s/g sep
     - sim-stars03 gauss psf, more realistic s/n distribution for

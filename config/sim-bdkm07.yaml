@@ -1,0 +1,56 @@
+# no offsets
+# no knots actually...
+images:
+
+    # coadd the epochs
+    coadd:
+        type: "mean"
+
+    noise: 0.001
+
+    psf:
+        s2n: 10000
+        stamp_size: [48,48] # optional
+
+    object:
+        nepoch: 10
+
+        stamp_size: [48,48]
+
+        cen_shift: null
+
+    wcs:
+      dudx: 0.0
+      dudy: 0.263
+      dvdx: 0.263
+      dvdy: 0.0
+
+psf:
+    model: "moffat"
+
+    beta: 3.5
+    # same as fwhm = 0.9
+    r50: 0.54
+        #type: "uniform"
+        #range: [0.41,0.6]
+
+    shape: [0.0, 0.0]
+
+
+object:
+    model: "bdk"
+
+    g:
+        type: "ba"
+        sigma: 0.2
+
+    r50_flux:
+        type: "cosmos"
+
+
+    # fraction of flux in the bulge
+    fracdev:
+        type: "uniform"
+        range: [0.0, 1.0]
+
+shear: [0.02, 0.00]

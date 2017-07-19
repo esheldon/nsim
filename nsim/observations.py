@@ -110,9 +110,7 @@ class ObservationMaker(dict):
 
         coadd_conf=self['coadd']
 
-        use_first_psf = coadd_conf.get('use_first_psf',False)
-
-        coadder = coaddsim.CoaddImages(obslist, use_first_psf=use_first_psf)
+        coadder = coaddsim.CoaddImages(obslist)
 
         if coadd_conf['type']=='mean':
             print("    doing mean coadd")

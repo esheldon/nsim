@@ -1,4 +1,3 @@
-# no offsets
 # propagate the coadded noise image from coaddsim
 # bdkm02 has multiple epochs
 # coadding the images

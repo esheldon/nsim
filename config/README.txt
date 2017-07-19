@@ -20,8 +20,16 @@
 
     - sim-bdkm08
         - same as bdkm05 but single epoch, still "coadding"
+
+        - run-bdkm08mcal-01
         errors are 2 sigma
         m: 1.530e-02 +/- 5.244e-03  c: -3.108e-05 +/- 1.042e-04
+
+    - sim-bdkm09
+        - same as bdkm08 but now with interp: "lanczos15"
+        - run-bdkm09mcal-01
+        errors are 2 sigma
+        m: -2.080e-03 +/- 5.160e-03  c: -9.780e-05 +/- 1.030e-04
 
     - sim-bd60 - similar to bdkm05 but not multi-epoch coadded
         - no bias found

@@ -4,4 +4,5 @@ name: runs-bd60
 runs: [
     run-bd60mcal-t01,
     run-bd60mcal-t02,
+    run-bd60mcal-01,
 ]

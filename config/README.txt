@@ -20,6 +20,8 @@
 
     - sim-bdkm08
         - same as bdkm05 but single epoch, still "coadding"
+        errors are 2 sigma
+        m: 1.530e-02 +/- 5.244e-03  c: -3.108e-05 +/- 1.042e-04
 
     - sim-bd60 - similar to bdkm05 but not multi-epoch coadded
         - no bias found

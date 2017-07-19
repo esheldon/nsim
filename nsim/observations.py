@@ -110,7 +110,8 @@ class ObservationMaker(dict):
 
         coadd_conf=self['coadd']
 
-        coadder = coaddsim.CoaddImages(obslist)
+        interp=coadd_conf['interp']
+        coadder = coaddsim.CoaddImages(obslist, interp=interp)
 
         if coadd_conf['type']=='mean':
             print("    doing mean coadd")

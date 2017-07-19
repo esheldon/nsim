@@ -1,3 +1,20 @@
+- coaddsim
+
+    - sim-bdkm05
+        - no actual knots
+        - low noise
+        - offsets, with actually too large radius of 1 pixels, so
+          [-1,1] instead of [-0.5, 0.5]
+
+        - run-bdkm05mcal-02
+            - using the right center this time
+            - see bias even with low noise
+            errors are 2 sigma
+            m: 1.897e-02 +/- 3.698e-03  c: 4.720e-05 +/- 7.353e-05
+
+    - sim-bdkm07
+        - same as bdkm05 but no offsets
+
 - testing s/g sep
     - sim-stars03 gauss psf, more realistic s/n distribution for
       stars and N(flux) ~ flux^{-1.4}

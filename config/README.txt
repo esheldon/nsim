@@ -1,6 +1,10 @@
 - coaddsim  using the coaddsim code base to make coadds from 
     multi-epoch nsim simulated data
 
+    - sim-bdkm02 (no actual knots)
+        - run-bdkm02mcal-02
+        - now with better interpolant in coaddsim
+
     - sim-bdkm05
         - no actual knots
         - low noise

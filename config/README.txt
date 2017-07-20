@@ -3,7 +3,17 @@
 
     - sim-bdkm02 (no actual knots)
         - run-bdkm02mcal-02
+        - run-bdkm02mcal-03
+        (runs-bdkm02-01)
         - now with better interpolant in coaddsim
+
+        - select-s2n10Trat1.2
+        errors are 2 sigma
+        m: 2.907e-03 +/- 4.708e-03  c: 2.810e-05 +/- 9.398e-05
+
+        - select-s2n15Trat1.2
+        errors are 2 sigma
+        m: 1.395e-03 +/- 4.348e-03  c: 7.705e-06 +/- 8.683e-05
 
     - sim-bdkm05
         - no actual knots
@@ -34,6 +44,12 @@
         - run-bdkm09mcal-01
         errors are 2 sigma
         m: -2.080e-03 +/- 5.160e-03  c: -9.780e-05 +/- 1.030e-04
+
+    - sim-bdkm10
+        - same as bdkm08 but now with interp: "lanczos7"
+        - run-bdkm10mcal-01
+        errors are 2 sigma
+
 
     - sim-bd60 - similar to bdkm05 but not multi-epoch coadded
         - no bias found

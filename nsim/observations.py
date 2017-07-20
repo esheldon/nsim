@@ -110,10 +110,14 @@ class ObservationMaker(dict):
 
         coadd_conf=self['coadd']
 
-        coadder = coaddsim.CoaddImages(obslist)
+        kw={}
+
+        if 'interp' in coadd_conf:
+            kw['interp'] = coadd_conf['interp']
+
+        coadder = coaddsim.CoaddImages(obslist, **kw)
 
         if coadd_conf['type']=='mean':
-            print("    doing mean coadd")
             coadd_obs = coadder.get_mean_coadd()
         else:
             raise ValueError("bad coadd type: '%s'" % coadd_conf['type'])

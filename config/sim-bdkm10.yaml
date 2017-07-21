@@ -7,7 +7,7 @@ images:
         type: "mean"
         interp: "lanczos7"
 
-    noise: 0.001
+    noise: 0.10
 
     psf:
         s2n: 10000

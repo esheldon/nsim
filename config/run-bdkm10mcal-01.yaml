@@ -34,12 +34,12 @@ admom_pars:
 # run details
 #
 
-ngal: 20000000
+ngal: 40000000
 
-desired_hours: 1.0
+desired_hours: 2.0
 
 # at SLAC
-sec_per: 0.27
+sec_per: 0.33
 
 jobs_per_condor_sub: 5000
 

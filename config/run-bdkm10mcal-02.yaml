@@ -34,7 +34,7 @@ admom_pars:
 # run details
 #
 
-ngal: 40000000
+ngal: 10000000
 
 desired_hours: 2.0
 

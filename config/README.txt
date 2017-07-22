@@ -48,7 +48,12 @@
     - sim-bdkm10
         - same as bdkm08 but now with interp: "lanczos7"
         - run-bdkm10mcal-01
+        - run-bdkm10mcal-02
+        - run-bdkm10mcal-03 (still running but did partial)
+        - run-bdkm10mcal-04
         errors are 2 sigma
+        m: -1.797e-03 +/- 4.085e-03  c: -6.403e-06 +/- 8.190e-05
+
 
 
     - sim-bd60 - similar to bdkm05 but not multi-epoch coadded

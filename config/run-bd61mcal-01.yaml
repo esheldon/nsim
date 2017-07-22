@@ -29,9 +29,9 @@ admom_pars:
 # run details
 #
 
-ngal: 80000000
+ngal: 100000000
 
-desired_hours: 2.0
+desired_hours: 4.0
 
 # at SLAC
 sec_per: 0.70

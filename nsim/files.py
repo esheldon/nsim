@@ -5,6 +5,8 @@ from os.path import join as path_join
 import numpy
 from numpy import array, sqrt, log10
 
+import esutil as eu
+
 
 def get_s2n_nrepeat(s2n, fac=0.4):
     """
@@ -325,9 +327,16 @@ def read_output(run, itrial=None, ext='fits', **kw):
     Read the collated file with all trials
     """
     import fitsio
-    fname=get_output_url(run, itrial=itrial, ext=ext)
-    print("reading collated file:",fname)
-    return fitsio.read(fname, **kw)
+
+    if isinstance(run,list):
+        fnames=[get_output_url(r, itrial=itrial, ext=ext) for r in run]
+        data=eu.io.read(fnames, combine=True, verbose=True, **kw)
+    else:
+        fname=get_output_url(run, itrial=itrial, ext=ext)
+        print("reading collated file:",fname)
+        data = fitsio.read(fname, **kw)
+
+    return data
 
 def get_fitprior_url(run, itrial=None, extra=None, ext='fits'):
     """

@@ -61,6 +61,12 @@
         errors are 2 sigma
         m: 7.953e-04 +/- 4.357e-03  c: 2.328e-06 +/- 8.697e-05
 
+    - sim-bd61  variable psf, 10 epochs
+        - huge bias, 1 percent
+    - sim-bd62  variable psf, 1 epochs
+        - huge bias, -1 percent
+        - rerunning without coadd step
+
 - testing s/g sep
     - sim-stars03 gauss psf, more realistic s/n distribution for
       stars and N(flux) ~ flux^{-1.4}

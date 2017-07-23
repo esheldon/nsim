@@ -1,0 +1,7 @@
+
+name: runs-bd62
+
+runs: [
+    run-bd62mcal-01,
+    run-bd62mcal-02,
+]

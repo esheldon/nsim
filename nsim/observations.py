@@ -69,6 +69,94 @@ class ObservationMaker(dict):
     def __call__(self):
 
         objconf=self['object']
+        nepoch = objconf.get('nepoch',1)
+
+        cobjlist, psflist, wcslist, meta = self._get_convolved_object_info(
+            objconf,
+        )
+
+        dims = self._get_dims(cobjlist, wcslist)
+
+        obslist = ngmix.observation.ObsList()
+
+        for i in xrange(nepoch):
+
+            obs = self._get_obs(psflist[i], cobjlist[i], dims)
+
+            obslist.append( obs )
+
+        meta['s2n']  = get_expected_s2n(obslist)
+
+        obslist.update_meta_data(meta)
+
+        if 'coadd' in self:
+            obslist = self._do_coadd(obslist)
+
+        return obslist
+
+    def _get_dims(self, cobjlist, wcslist):
+        """
+        get maximum size from all listed convolved objects
+        """
+
+        if self.nrows is not None:
+            return [self.nrows, self.ncols]
+
+        n=len(cobjlist)
+        size=-1
+        for i in xrange(n):
+
+            scale, shear, theta, flip = wcslist[i].getDecomposition()
+            tsize=cobjlist[i].getGoodImageSize(scale)
+
+            size = max(tsize, size)
+
+        dims=[size,size]
+        print("    image dims:",dims)
+
+        return dims
+
+    def _get_convolved_object_info(self, objconf):
+        """
+        get convolved objects and psfs and wcs
+        """
+        psflist=[]
+        cobjlist=[]
+        wcslist=[]
+
+        nepoch = objconf.get('nepoch',1)
+
+        object, meta = self._get_object()
+
+        if 'randomize_morphology' in objconf:
+            raise NotImplementedError("make work with new system "
+                                      "of same sized stamps")
+            # for multi-epoch sims
+            flux = object.getFlux()
+            try:
+                r50  = object.getHalfLightRadius()
+            except:
+                r50  = object.calculateHLR()
+
+        for epoch in xrange(nepoch):
+
+            if 'randomize_morphology' in objconf:
+                r_flux, r_r50 = self._randomize_morphology(flux, r50)
+                object, meta = self._get_object(flux=r_flux, r50=r_r50)
+
+            wcs = self._get_galsim_wcs()
+            psf, psf_meta = self._get_psf()
+            cobj = convolved_object = galsim.Convolve(object, psf)
+
+            wcslist.append(wcs)
+            psflist.append(psf)
+            cobjlist.append(cobj)
+
+        return cobjlist, psflist, wcslist, meta
+
+    def __call__old(self):
+
+        objconf=self['object']
 
         object, meta = self._get_object()
 
@@ -104,6 +192,7 @@ class ObservationMaker(dict):
             obslist = self._do_coadd(obslist)
 
         return obslist
+
 
     def _do_coadd(self, obslist):
         import coaddsim
@@ -143,7 +232,43 @@ class ObservationMaker(dict):
 
         return r_flux, r_r50
 
-    def _get_obs(self, psf, object):
+    def _get_obs(self, psf, cobj, dims):
+
+        wcs=self._get_galsim_wcs()
+
+        psf_im, psf_jacob = self._get_psf_image(
+            psf,
+            wcs,
+        )
+
+        obj_im, obj_im_orig, obj_jacob, offset_pixels = self._get_object_image(
+            cobj,
+            wcs,
+            dims,
+        )
+
+        ivar = 1.0/self['noise']**2
+        psf_weight = numpy.zeros( psf_im.shape ) + ivar
+        obj_weight = numpy.zeros( obj_im.shape ) + ivar
+
+        psf_obs = ngmix.observation.Observation(
+            psf_im,
+            weight=psf_weight,
+            jacobian=psf_jacob,
+        )
+
+        obs = ngmix.observation.Observation(
+            obj_im,
+            weight=obj_weight,
+            jacobian=obj_jacob,
+            psf=psf_obs,
+        )
+        obs.image_orig = obj_im_orig
+        obs.update_meta_data({'offset_pixels':offset_pixels})
+
+        return obs
+
+    def _get_obs_old(self, psf, object):
 
         wcs=self._get_galsim_wcs()
 
@@ -202,7 +327,7 @@ class ObservationMaker(dict):
         return image, jacob
 
 
-    def _get_object_image(self, convolved_object, wcs):
+    def _get_object_image(self, convolved_object, wcs, dims):
         """
         convolve the 
         """
@@ -211,11 +336,10 @@ class ObservationMaker(dict):
         gsimage = self._make_gsimage(
             convolved_object,
             wcs,
-            nrows=self.nrows,
-            ncols=self.ncols,
+            nrows=dims[0],
+            ncols=dims[1],
             offset=offset,
         )
-        print("        ",gsimage.array.shape)
 
 
         # find centroid and get the jacobian
@@ -225,8 +349,8 @@ class ObservationMaker(dict):
         image_orig = gsimage.array.copy()
 
         if self['use_canonical_center']:
-            dims = numpy.array(image_orig.shape)
-            row, col = (dims-1)/2.0
+            tdims = numpy.array(image_orig.shape)
+            row, col = (tdims-1)/2.0
 
             if offset is not None:
                 row += offset[0]

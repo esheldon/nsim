@@ -85,6 +85,11 @@
             - also noticed shift was +/- 1 pixel rather than half, set
               to 0.5
 
+              with correction
+              errors are 2 sigma
+              m: 7.088e-03 +/- 2.994e-03  c: -6.101e-05 +/- 5.996e-05
+
+
 - testing s/g sep
     - sim-stars03 gauss psf, more realistic s/n distribution for
       stars and N(flux) ~ flux^{-1.4}

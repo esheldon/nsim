@@ -67,6 +67,19 @@
         - huge bias, -1 percent
         - rerunning without coadd step
 
+    - sim-bd63
+        - allowing sizes to vary 1 epoch
+        - run-bd63mcal-01
+        - looks ok
+    - sim-bd64
+        - run-bd64mcal-01
+        - same as bd63 but multiple epochs and using smaller
+        of sizes for stack
+        - terrible
+        - run-bd64mcal-02
+        - same as bd63 but multiple epochs and larger smaller
+        of sizes for stack
+
 - testing s/g sep
     - sim-stars03 gauss psf, more realistic s/n distribution for
       stars and N(flux) ~ flux^{-1.4}

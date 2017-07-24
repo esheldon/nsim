@@ -215,6 +215,7 @@ class ObservationMaker(dict):
             ncols=self.ncols,
             offset=offset,
         )
+        print("        ",gsimage.array.shape)
 
 
         # find centroid and get the jacobian

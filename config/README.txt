@@ -73,12 +73,17 @@
         - looks ok
     - sim-bd64
         - run-bd64mcal-01
-        - same as bd63 but multiple epochs and using smaller
-        of sizes for stack
-        - terrible
+            - same as bd63 but multiple epochs and using smaller
+              of sizes for stack
+            - terrible
         - run-bd64mcal-02
-        - same as bd63 but multiple epochs and larger smaller
-        of sizes for stack
+            - same as bd63 but multiple epochs and larger smaller
+              of sizes for stack
+            - equally terrible
+        - run-bd64mcal-03
+            - take largest of dims for all
+            - also noticed shift was +/- 1 pixel rather than half, set
+              to 0.5
 
 - testing s/g sep
     - sim-stars03 gauss psf, more realistic s/n distribution for

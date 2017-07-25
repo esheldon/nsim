@@ -88,6 +88,13 @@
               with correction
               errors are 2 sigma
               m: 7.088e-03 +/- 2.994e-03  c: -6.101e-05 +/- 5.996e-05
+        - run-bd64mcal-04
+        - run-bd64mcal-05 (running)
+            - normalizing psfs. turns out the wrong psf was being
+              normalized
+            - looks promising from 04:
+                errors are 2 sigma
+                m: -2.638e-03 +/- 5.245e-03  c: -1.306e-05 +/- 1.050e-04
 
 
 - testing s/g sep

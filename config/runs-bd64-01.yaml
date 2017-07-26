@@ -1,0 +1,7 @@
+
+name: runs-bd64
+
+runs: [
+    run-bd64mcal-04,
+    run-bd64mcal-05,
+]

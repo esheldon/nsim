@@ -5,6 +5,7 @@ except:
     xrange=range
     raw_input=input
 
+import random
 from copy import deepcopy
 import numpy
 import galsim
@@ -236,54 +237,22 @@ class ObservationMaker(dict):
 
         wcs=self._get_galsim_wcs()
 
+        noise_obj=self._get_noise()
+
         psf_im, psf_jacob = self._get_psf_image(
             psf,
             wcs,
+            noise_obj,
         )
 
         obj_im, obj_im_orig, obj_jacob, offset_pixels = self._get_object_image(
             cobj,
             wcs,
             dims,
+            noise_obj,
         )
 
-        ivar = 1.0/self['noise']**2
-        psf_weight = numpy.zeros( psf_im.shape ) + ivar
-        obj_weight = numpy.zeros( obj_im.shape ) + ivar
-
-        psf_obs = ngmix.observation.Observation(
-            psf_im,
-            weight=psf_weight,
-            jacobian=psf_jacob,
-        )
-
-        obs = ngmix.observation.Observation(
-            obj_im,
-            weight=obj_weight,
-            jacobian=obj_jacob,
-            psf=psf_obs,
-        )
-        obs.image_orig = obj_im_orig
-        obs.update_meta_data({'offset_pixels':offset_pixels})
-
-        return obs
-
-    def _get_obs_old(self, psf, object):
-
-        wcs=self._get_galsim_wcs()
-
-        psf_im, psf_jacob = self._get_psf_image(
-            psf,
-            wcs,
-        )
-
-        convolved_object = galsim.Convolve(object, psf)
-        obj_im, obj_im_orig, obj_jacob, offset_pixels = self._get_object_image(
-            convolved_object,
-            wcs,
-        )
-
-        ivar = 1.0/self['noise']**2
+        ivar = 1.0/noise_obj.sigma**2
         psf_weight = numpy.zeros( psf_im.shape ) + ivar
         obj_weight = numpy.zeros( obj_im.shape ) + ivar
 
@@ -305,7 +274,7 @@ class ObservationMaker(dict):
         return obs
 
 
-    def _get_psf_image(self, psf, wcs):
+    def _get_psf_image(self, psf, wcs, noise_obj):
         """
         """
         gsimage = self._make_gsimage(
@@ -315,7 +284,12 @@ class ObservationMaker(dict):
             ncols=self.psf_ncols,
         )
 
-        self._add_psf_noise(gsimage)
+        gsimage.addNoiseSNR(
+            noise_obj,
+            self['psf']['s2n'],
+        )
+
+
         image = gsimage.array
 
         # no offset, jacobian is straightforward
@@ -327,7 +301,7 @@ class ObservationMaker(dict):
         return image, jacob
 
 
-    def _get_object_image(self, convolved_object, wcs, dims):
+    def _get_object_image(self, convolved_object, wcs, dims, noise_obj):
         """
         convolve the 
         """
@@ -362,23 +336,11 @@ class ObservationMaker(dict):
         jacob = self._get_jacobian(wcs, row, col)
 
         # add noise
-        self._add_object_noise(gsimage)
+        gsimage.addNoise(noise_obj)
+
         image = gsimage.array
 
         return image, image_orig, jacob, offset
-
-
-    def _add_psf_noise(self,image):
-        image.addNoiseSNR(
-            self.gaussian_image_noise,
-            self['psf']['s2n'],
-        )
-
-    def _add_object_noise(self,image):
-        image.addNoise(
-            self.gaussian_image_noise,
-        )
-
 
     def _get_jacobian(self, wcs, row, col):
         """
@@ -493,6 +455,11 @@ class ObservationMaker(dict):
         else:
             self.psf_nrows,self.psf_ncols=None,None
 
+    def _get_noise(self):
+        """
+        choose one of the noises at random
+        """
+        return random.choice(self.noise_objects)
 
     def _set_noise(self):
         if 'noise' not in self:
@@ -503,10 +470,29 @@ class ObservationMaker(dict):
             raise ValueError("set psf s2n in the ['images']['psf'] "
                              "section of the config")
 
-        self.gaussian_image_noise=galsim.GaussianNoise(
+        if isinstance(self['noise'], dict):
+            assert self['noise']['type']=='uniform'
+            nrand = self['noise']['num']
+            sigma_min,sigma_max = self['noise']['sigma_range']
+
+            sigmas=numpy.random.uniform(
+                low=sigma_min,
+                high=sigma_max,
+                size=nrand,
+            )
+
+
+        else:
+            sigmas = [self['noise']]
+
+        self.noise_objects = [self._make_one_noise(s) for s in sigmas]
+
+    def _make_one_noise(self, sigma):
+        return galsim.GaussianNoise(
             self.galsim_rng,
-            self['noise'],
+            sigma,
         )
+
 
     def _get_offset(self):
         cen_pdf = self.cen_pdf

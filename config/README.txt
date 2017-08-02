@@ -96,7 +96,9 @@
             - looks promising from 04:
                 errors are 2 sigma
                 m: -2.087e-03 +/- 2.584e-03  c: -4.439e-05 +/- 5.175e-05
-
+    - sim-e03
+        - variable psf and noise, 10 epochs, high noise
+        - run-e03mcal-01
 
 - testing s/g sep
     - sim-stars03 gauss psf, more realistic s/n distribution for

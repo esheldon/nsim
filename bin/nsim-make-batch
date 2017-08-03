@@ -10,7 +10,6 @@ except:
 
 import sys
 import os
-from math import ceil
 import numpy
 
 import nsim
@@ -27,6 +26,25 @@ parser.add_argument('--missing',action='store_true',
                     help='write wq job files for the missing files')
 
 MAXTIME_HOURS=3.0
+
+_slr_template="""#!/bin/bash -l
+#SBATCH -p  shared  
+#SBATCH -n  1        # number of logical cores   
+#SBATCH -t  02:00:00     
+#SBATCH -J  %(job_name)s
+#SBATCH -o  %(job_name)s.log
+#SBATCH -e  %(job_name)s.err
+#SBATCH -L  SCRATCH
+#SBATCH -C  haswell
+#SBATCH -A  des
+
+nsim-run                  \\
+        --seed=%(seed)s   \\
+        %(run)s           \\
+        %(ngal_per)d      \\
+        %(output)s
+"""
+
 
 _lsf_template="""#!/bin/bash
 #BSUB -J %(job_name)s
@@ -265,51 +283,6 @@ exit $status
 """
 
 
-_slr_template="""#!/bin/bash
-#SBATCH --array=0-%(last_id)s
-#SBATCH -p shared
-#SBATCH -J %(job_name)s
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node=1
-#SBATCH --mem=400M
-#SBATCH -o %(slr_log)s
-#SBATCH -t %(walltime)s
-#SBATCH --export=ALL
-#SBATCH -A bnl100
-
-echo "working on host: $(hostname)"
-
-slr_pad_id=$(printf '%%06d' $SLURM_ARRAY_TASK_ID)
-
-run=%(run)s
-ngal=%(ngal_per)s
-output=%(output)s
-seed=%(seed)d
-
-export TMPDIR=/scratch/$USER/$SLURM_JOB_ID
-echo "cd $TMPDIR"
-cd $TMPDIR
-
-echo "will write to file: $output"
-
-nsim-run           \\
-        --seed $seed \\
-        $run       \\
-        $ngal      \\
-        $output
-status=$?
-
-if [[ $status != "0" ]]; then
-    echo "error running sim: $status"
-fi
-
-cd $HOME
-
-exit $status
-"""
-
-
-
 def get_command():
     dir=files.get_nsim_dir()
     cmd = os.path.join(dir,'bin','nsim-run')
@@ -398,12 +371,8 @@ class MakerBase(dict):
     def make_some_dirs(self):
 
         d=self.get_batch_dir()
+        print("dir:",d)
         outd = files.get_output_dir(self['run'], sub='bytrial')
-
-        master_url=self.get_master_url()
-
-        md=os.path.dirname(master_url)
-        print("dir:",md)
 
 
         if not os.path.exists(d):
@@ -411,9 +380,6 @@ class MakerBase(dict):
 
         if not os.path.exists(outd):
             os.makedirs(outd)
-
-        if not os.path.exists(md):
-            os.makedirs(d)
 
         tmpdir=self.get_tmpdir()
         if tmpdir is not None:
@@ -470,6 +436,35 @@ class LSFMaker(MakerBase):
                                            filenum,
                                            missing=self['missing'])
         return job_url
+
+
+class SLRMaker(MakerBase):
+    def write_master(self):
+        pass
+
+    def get_tmpdir(self):
+        return None
+
+    def get_batch_dir(self):
+        return files.get_slr_dir(self['run'])
+
+    def get_master_url(self):
+        return None
+
+    def get_master_text(self):
+        return None
+
+    def get_job_text(self):
+        return _slr_template % self
+
+    def get_job_url(self, filenum):
+        job_url=files.get_slr_job_url(
+            self['run'],
+            filenum,
+            missing=self['missing'],
+        )
+        return job_url
+
 
 class CondorMaker(MakerBase):
     def _remove_sub_files(self):
@@ -571,7 +566,7 @@ class CondorMaker(MakerBase):
         return text
 
 
-class SLRMaker(MakerBase):
+class SLRMakerOld(MakerBase):
     def get_tmpdir(self):
         return None
 
@@ -611,7 +606,7 @@ class SLRMaker(MakerBase):
     def write_script(self):
         job_url=self.get_job_url()
         
-        print("writing slurm script:",job_url)
+        print("writing slr script:",job_url)
         with open(job_url,'w') as fobj:
             text = self.get_job_text()
             fobj.write(text)

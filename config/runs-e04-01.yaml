@@ -1,0 +1,7 @@
+
+name: run-e04-01
+
+runs: [
+    run-e04mcal-01,
+    run-e04mcal-02,
+]

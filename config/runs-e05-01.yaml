@@ -4,4 +4,5 @@ name: run-e05-01
 runs: [
     run-e05mcal-01,
     run-e05mcal-02,
+    run-e05mcal-04,
 ]

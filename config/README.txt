@@ -99,6 +99,18 @@
     - sim-e03
         - variable psf and noise, 10 epochs, high noise
         - run-e03mcal-01
+        - run-e03mcal-02
+        - s/n > 10 T/Tpsf > 1.2
+        errors are 2 sigma
+        m: 3.820e-03 +/- 1.683e-03  c: -4.405e-05 +/- 3.370e-05
+
+        - s/n > 15 T/Tpsf > 1.2
+        m: 4.575e-04 +/- 1.262e-03  c: -2.518e-05 +/- 2.523e-05
+
+        - s/n > 10
+        m: 9.596e-03 +/- 1.727e-03  c: -9.241e-05 +/- 3.459e-05
+        - s/n > 15
+        m: 2.919e-03 +/- 1.287e-03  c: -4.398e-05 +/- 2.574e-05
 
 - testing s/g sep
     - sim-stars03 gauss psf, more realistic s/n distribution for

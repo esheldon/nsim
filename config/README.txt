@@ -112,6 +112,14 @@
         - s/n > 15
         m: 2.919e-03 +/- 1.287e-03  c: -4.398e-05 +/- 2.574e-05
 
+    # tests with variable noise and one epoch no coadd
+    - sim-e05
+    looks fine
+
+    # tests with variable noise 10 epochs no coadd
+    - sim-e06
+    looks fine
+
 - testing s/g sep
     - sim-stars03 gauss psf, more realistic s/n distribution for
       stars and N(flux) ~ flux^{-1.4}

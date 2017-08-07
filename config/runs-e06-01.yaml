@@ -1,0 +1,11 @@
+
+name: run-e06-01
+
+runs: [
+    run-e06mcal-01,
+    run-e06mcal-02,
+    #run-e06mcal-03,
+    #run-e06mcal-04,
+    #run-e06mcal-05,
+    #run-e06mcal-06,
+]

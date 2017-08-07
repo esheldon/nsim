@@ -58,7 +58,7 @@ _slr_template_minions="""#!/bin/bash -l
 
 # -n is ntasks, should equal 32*number of nodes
 # -c is number of cpus per task, should be 1
-srun -n %(njobs)d -c 1 minions < "%(command_list)s"
+srun -n %(ncores)d -c 1 minions < "%(command_list)s"
 """
 
 
@@ -482,6 +482,17 @@ class SLRMaker(MakerBase):
         )
         return job_url
 
+def get_walltime(hours):
+    hours_int =int(hours)
+
+    minutes = (hours - hours_int)*60
+    minutes_int = int(minutes)
+
+    seconds = (minutes - minutes_int)*60
+    seconds_int = int(seconds)
+
+    return '%02d:%02d:%02d' % (hours_int, minutes_int, seconds_int)
+
 class SLRMakerMinions(MakerBase):
     def go(self):
         self.make_some_dirs()
@@ -499,13 +510,20 @@ class SLRMakerMinions(MakerBase):
 
         # break up jobs evenly
         # note one of the cores is used as the master, so subtract one
-        workers_per_node = 32-1
+
+        cores_per_node = 32
+        workers_per_node = cores_per_node-1
         njobs = self['nodes']*workers_per_node
+        ncores = self['nodes']*cores_per_node
 
         gals_per_job = int(round(float(self['ngal'])/njobs))
 
-        hours = gals_per_job*self['sec_per']/3600.0
-        hours *= self['time_padding']
+        hours_nopad = gals_per_job*self['sec_per']/3600.0
+        hours = hours_nopad*self['time_padding']
+
+        self['walltime'] = get_walltime(hours)
+        walltime_nopad = get_walltime(hours_nopad)
+
         hours_int =int(hours)
 
         minutes = (hours - hours_int)*60
@@ -515,12 +533,16 @@ class SLRMakerMinions(MakerBase):
         seconds_int = int(seconds)
 
         self['walltime'] = '%02d:%02d:%02d' % (hours_int, minutes_int, seconds_int)
+        self['ncores']   = ncores
         self['njobs']    = njobs
         self['ngal_per'] = gals_per_job
         self['job_name'] = self['run']
 
         self['command_list'] = self.get_command_list()
+
+        print("total cpu hours:",round(hours*ncores))
         print("walltime:",self['walltime'])
+        print("walltime_nopad:",walltime_nopad)
 
     def write_minions_commands(self):
         """

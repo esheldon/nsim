@@ -120,6 +120,10 @@
     - sim-e06
     looks fine
 
+    # same as e03 but not varying psf
+    - sim-e07
+
+
 - testing s/g sep
     - sim-stars03 gauss psf, more realistic s/n distribution for
       stars and N(flux) ~ flux^{-1.4}

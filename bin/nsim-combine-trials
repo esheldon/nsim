@@ -6,6 +6,7 @@ except:
     xrange=range
 
 import os
+from glob import glob
 import sys
 import nsim
 import fitsio
@@ -34,24 +35,32 @@ def get_tmp_file(fname):
 
 def combine_trials(args):
 
+    outfile=nsim.files.get_output_url(args.run, ext='fits')
+
     c = nsim.files.read_config(args.run)
     c['simc'] = nsim.files.read_config(c['sim'])
 
-    ngal_per,nsplit,hrs = nsim.files.get_gal_nsplit(c)
+    dir=nsim.files.get_output_dir(args.run, sub='bytrial')
+    pattern=os.path.join(dir, '*.fits')
+    flist=glob(pattern)
 
-    outfile=nsim.files.get_output_url(args.run, ext='fits')
+    nf=len(flist)
+    print(nf,"files found")
+    if len(flist)==0:
+        return
+
+    flist.sort()
+
     tmpfile=get_tmp_file(outfile)
     print('writing to temp file:',tmpfile)
 
-    nmissing=0
     with fitsio.FITS(tmpfile,mode="rw",clobber=True) as output:
 
         first=True
-        for isplit in xrange(nsplit):
+        for isplit,f in enumerate(flist):
             f=nsim.files.get_output_url(args.run, itrial=isplit)
             if not os.path.exists(f):
                 print("   missing file:",f)
-                nmissing += 1
                 continue
 
             print(f)
@@ -62,18 +71,19 @@ def combine_trials(args):
                 print("caught IOError: %s" % str(err))
                 continue
 
-            if t.size != ngal_per:
-                raise ValueError("%s expected %d, got %d" % (f,ngal_per,t.size))
-
             if first:
                 output.write(t)
                 first=False
             else:
                 output[-1].append(t)
 
-    print(nmissing,"were missing")
 
     if not args.local:
+
+        if os.path.exists(outfile):
+            print("removing existing:",outfile)
+            os.remove(outfile)
+
         print('moving to:',outfile)
         exit_code=os.system('mv -fv %s %s' % (tmpfile, outfile))
         if exit_code != 0:

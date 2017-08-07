@@ -221,6 +221,27 @@ def get_slr_job_url(run, filenum, missing=False):
     fname='{run}{end}.slr'.format(run=run,end=end)
     return path_join(d,fname)
 
+def get_slr_minions_command_list(run, missing=False):
+    d=get_slr_dir(run)
+
+    fname=run
+    if missing:
+        fname='%s-missing' % fname
+
+    fname = '%s.dat' % fname
+    return path_join(d,fname)
+
+
+def get_slr_minions_job_url(run, missing=False):
+    d=get_slr_dir(run)
+
+    fname=run
+    if missing:
+        fname='%s-missing' % fname
+
+    fname = '%s.slr' % fname
+    return path_join(d,fname)
+
 
 def get_output_dir(run, sub=None):
     dir=get_run_dir(run)

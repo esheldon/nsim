@@ -45,6 +45,23 @@ nsim-run                  \\
         %(output)s
 """
 
+_slr_template_minions="""#!/bin/bash -l
+#SBATCH --partition=%(queue)s
+#SBATCH --nodes=%(nodes)d
+#SBATCH --time=%(walltime)s
+#SBATCH --job-name=%(job_name)s
+#SBATCH --output=%(job_name)s.log
+#SBATCH --error=%(job_name)s.err
+#SBATCH --license=SCRATCH
+#SBATCH --constraint=%(machine)s
+#SBATCH --account=des
+
+# -n is ntasks, should equal 32*number of nodes
+# -c is number of cpus per task, should be 1
+srun -n %(njobs)d -c 1 minions < "%(command_list)s"
+"""
+
+
 
 _lsf_template="""#!/bin/bash
 #BSUB -J %(job_name)s
@@ -465,6 +482,111 @@ class SLRMaker(MakerBase):
         )
         return job_url
 
+class SLRMakerMinions(MakerBase):
+    def go(self):
+        self.make_some_dirs()
+
+        self.set_stats()
+
+        self.write_minions_commands()
+        self.write_batch_file()
+
+    def set_stats(self):
+        """
+        for minions, we have a single job file representing
+        an MPI job
+        """
+
+        # break up jobs evenly
+        # note one of the cores is used as the master, so subtract one
+        workers_per_node = 32-1
+        njobs = self['nodes']*workers_per_node
+
+        gals_per_job = int(round(float(self['ngal'])/njobs))
+
+        hours = gals_per_job*self['sec_per']/3600.0
+        hours *= self['time_padding']
+        hours_int =int(hours)
+
+        minutes = (hours - hours_int)*60
+        minutes_int = int(minutes)
+
+        seconds = (minutes - minutes_int)*60
+        seconds_int = int(seconds)
+
+        self['walltime'] = '%02d:%02d:%02d' % (hours_int, minutes_int, seconds_int)
+        self['njobs']    = njobs
+        self['ngal_per'] = gals_per_job
+        self['job_name'] = self['run']
+
+        self['command_list'] = self.get_command_list()
+        print("walltime:",self['walltime'])
+
+    def write_minions_commands(self):
+        """
+        write out the command list for minions
+        """
+
+        cmdt='nsim-run --seed=%(seed)d %(run)s %(ngal_per)d %(output)s &> %(logfile)s'
+
+        fname=self['command_list']
+
+        print("writing",self['njobs'],"jobs to list:",fname)
+        with open(fname, 'w') as fobj:
+
+            for isplit in xrange(self['njobs']):
+                self['output'] = files.get_output_url(self['run'], itrial=isplit)
+                self['logfile'] = self['output'].replace('.fits','.log')
+
+                self['seed'] = numpy.random.randint(0,2**31-1)
+
+                cmd = cmdt % self
+
+                fobj.write('%s\n' % cmd)
+
+
+    def write_batch_file(self):
+        """
+        the main job file
+        """
+        fname=self.get_job_url()
+        print("writing job submission script:",fname)
+        with open(fname,'w') as fobj:
+            text = _slr_template_minions % self
+            fobj.write(text)
+
+
+    def get_command_list(self):
+        """
+        the command list file
+        """
+        return files.get_slr_minions_command_list(
+            self['run'],
+            missing=self['missing'],
+        )
+
+    def get_tmpdir(self):
+        return None
+
+    def get_batch_dir(self):
+        return files.get_slr_dir(self['run'])
+
+    def get_master_url(self):
+        return None
+
+    def get_master_text(self):
+        return None
+
+    def get_job_text(self):
+        return _slr_template % self
+
+    def get_job_url(self):
+        job_url=files.get_slr_minions_job_url(
+            self['run'],
+            missing=self['missing'],
+        )
+        return job_url
+
 
 class CondorMaker(MakerBase):
     def _remove_sub_files(self):
@@ -660,8 +782,8 @@ def main():
         maker=WQMaker(c)
     elif system=='lsf':
         maker=LSFMaker(c)
-    elif system=='slr':
-        maker=SLRMaker(c)
+    elif system=='nersc':
+        maker=SLRMakerMinions(c)
     elif system=='condor':
         maker=CondorMaker(c)
     else:

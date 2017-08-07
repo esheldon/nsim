@@ -874,107 +874,109 @@ class Summer(dict):
 
 
     def plot_fits(self):
-        import biggles
-        biggles.configure('default','fontsize_min',1.5)
 
         means=self.means
         if means.size == 1:
             return
-
-        fits=self.fits
-        args=self.args
-        #Q=calc_q(fits)
-
-        if args.yrange is not None:
-            yrange=[float(r) for r in args.yrange.split(',')]
         else:
-            yrange=[-0.01,0.01]
+            import biggles
+            biggles.configure('default','fontsize_min',1.5)
 
-        xrng=args.xrange
-        if xrng is not None:
-            xrng=[float(r) for r in args.xrange.split(',')]
+            fits=self.fits
+            args=self.args
+            #Q=calc_q(fits)
 
-        tab=biggles.Table(1,2)
-        tab.aspect_ratio=0.5
+            if args.yrange is not None:
+                yrange=[float(r) for r in args.yrange.split(',')]
+            else:
+                yrange=[-0.01,0.01]
 
-        diff = means['shear'] - means['shear_true']
+            xrng=args.xrange
+            if xrng is not None:
+                xrng=[float(r) for r in args.xrange.split(',')]
 
-        plts=[]
-        for i in [0,1]:
+            tab=biggles.Table(1,2)
+            tab.aspect_ratio=0.5
 
-            x = means['shear_true'][:,i]
-            plt =biggles.plot(
-                x,
-                diff[:,i],
-                xlabel=r'$\gamma_{%d}$ true' % (i+1,),
-                ylabel=r'$\Delta \gamma_{%d}$' % (i+1,),
-                yrange=yrange,
-                xrange=xrng,
-                visible=False,
-            )
-            yfit=fits['m'][0,i]*x + fits['c'][0,i]
+            diff = means['shear'] - means['shear_true']
 
-            z=biggles.Curve(x, x*0, color='black')
-            c=biggles.Curve(x, yfit, color='red')
-            plt.add(z,c)
+            plts=[]
+            for i in [0,1]:
 
-            '''
-            mstr='m%d: %.2g +/- %.2g' % (i+1,fits['m'][0,i],fits['merr'][0,i])
-            cstr='c%d: %.2g +/- %.2g' % (i+1,fits['c'][0,i],fits['cerr'][0,i])
-            mlab=biggles.PlotLabel(0.1,0.9,
-                                   mstr,
-                                   halign='left')
-            clab=biggles.PlotLabel(0.1,0.85,
-                                   cstr,
-                                   halign='left')
-            plt.add(mlab,clab)
-            '''
-            if False and i==0:
-                Qstr='Q: %d' % (int(Q),)
-                Qlab=biggles.PlotLabel(0.1,0.8,
-                                       Qstr,
+                x = means['shear_true'][:,i]
+                plt =biggles.plot(
+                    x,
+                    diff[:,i],
+                    xlabel=r'$\gamma_{%d}$ true' % (i+1,),
+                    ylabel=r'$\Delta \gamma_{%d}$' % (i+1,),
+                    yrange=yrange,
+                    xrange=xrng,
+                    visible=False,
+                )
+                yfit=fits['m'][0,i]*x + fits['c'][0,i]
+
+                z=biggles.Curve(x, x*0, color='black')
+                c=biggles.Curve(x, yfit, color='red')
+                plt.add(z,c)
+
+                '''
+                mstr='m%d: %.2g +/- %.2g' % (i+1,fits['m'][0,i],fits['merr'][0,i])
+                cstr='c%d: %.2g +/- %.2g' % (i+1,fits['c'][0,i],fits['cerr'][0,i])
+                mlab=biggles.PlotLabel(0.1,0.9,
+                                       mstr,
                                        halign='left')
-                plt.add(Qlab)
+                clab=biggles.PlotLabel(0.1,0.85,
+                                       cstr,
+                                       halign='left')
+                plt.add(mlab,clab)
+                '''
+                if False and i==0:
+                    Qstr='Q: %d' % (int(Q),)
+                    Qlab=biggles.PlotLabel(0.1,0.8,
+                                           Qstr,
+                                           halign='left')
+                    plt.add(Qlab)
 
 
-            tab[0,i] = plt
+                tab[0,i] = plt
 
-        fname=self._get_fit_plot_file()
-        eu.ostools.makedirs_fromfile(fname)
-        print("writing:",fname)
-        tab.write_eps(fname)
+            fname=self._get_fit_plot_file()
+            eu.ostools.makedirs_fromfile(fname)
+            print("writing:",fname)
+            tab.write_eps(fname)
 
-        if args.show:
-            tab.show(width=1000, height=1000)
+            if args.show:
+                tab.show(width=1000, height=1000)
 
 
     def plot_resid_hist(self):
-        import biggles
 
         means=self.means
 
         if means.size == 1:
             return
+        else:
+            import biggles
 
-        fits=self.fits
-        args=self.args
-        #Q=calc_q(fits)
+            fits=self.fits
+            args=self.args
+            #Q=calc_q(fits)
 
-        diff = means['shear'] - means['shear_true']
+            diff = means['shear'] - means['shear_true']
 
-        plt = biggles.plot_hist(diff, nbin=20, visible=False,
-                               xlabel=r'$\gamma - \gamma_{True}$')
+            plt = biggles.plot_hist(diff, nbin=20, visible=False,
+                                   xlabel=r'$\gamma - \gamma_{True}$')
 
-        dmax=numpy.abs(diff).max() 
-        plt.xrange=[-1.3*dmax, 1.3*dmax]
+            dmax=numpy.abs(diff).max() 
+            plt.xrange=[-1.3*dmax, 1.3*dmax]
 
-        fname=self._get_resid_hist_file()
-        eu.ostools.makedirs_fromfile(fname)
-        print("writing:",fname)
-        plt.write_eps(fname)
+            fname=self._get_resid_hist_file()
+            eu.ostools.makedirs_fromfile(fname)
+            print("writing:",fname)
+            plt.write_eps(fname)
 
-        if args.show:
-            plt.show(width=1000, height=1000)
+            if args.show:
+                plt.show(width=1000, height=1000)
 
 
 # quick line fit pulled from great3-public code

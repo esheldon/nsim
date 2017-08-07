@@ -36,7 +36,7 @@ ngal: 100000000
 
 # time for the entire MPI job at nersc
 queue: "regular"
-nodes: 100
+nodes: 200
 machine: "haswell"
 # pad out the time by this factor
 time_padding: 1.2

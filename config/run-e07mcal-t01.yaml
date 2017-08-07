@@ -1,0 +1,48 @@
+sim: "sim-e07"
+
+fitter: "metacal-moments-am"
+
+global_seed: 940
+
+s2n_min: 0.0
+
+#
+# metacal
+#
+
+metacal_pars:
+    # assume the observation will have a .noise attribute
+    #use_noise_image: True
+    symmetrize_psf: True
+    types: ['noshear','1p','1m','2p','2m']
+
+#
+# adaptive moments
+#
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+
+#
+# run details
+#
+
+ngal: 80000
+
+# time *per job*
+#desired_hours: 0.25
+
+# time for the entire MPI job at nersc
+queue: "debug"
+nodes: 1
+machine: "haswell"
+# pad out the time by this factor
+time_padding: 1.2
+
+sec_per: 0.50
+
+jobs_per_condor_sub: 2000
+
+verbose: False

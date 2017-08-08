@@ -512,8 +512,7 @@ class SLRMakerMinions(MakerBase):
         # note one of the cores is used as the master, so subtract one
 
         cores_per_node = 32
-        workers_per_node = cores_per_node-1
-        njobs = self['nodes']*workers_per_node
+        njobs = self['nodes']*cores_per_node - 1
         ncores = self['nodes']*cores_per_node
 
         gals_per_job = int(round(float(self['ngal'])/njobs))

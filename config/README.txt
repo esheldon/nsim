@@ -100,18 +100,17 @@
         - variable psf and noise, 10 epochs, high noise
         - run-e03mcal-01
         - run-e03mcal-02
+        - run-e03mcal-03
+
+        *errors are 2 sigma*
 
         - s/n > 10 T/Tpsf > 1.2
-        errors are 2 sigma
-        m: -9.728e-04 +/- 1.639e-03  c: -1.876e-05 +/- 3.283e-05
-
+        m: 1.476e-04 +/- 1.159e-03  c: 1.096e-05 +/- 2.321e-05
         - s/n > 15 T/Tpsf > 1.2
-        m: -5.107e-04 +/- 1.230e-03  c: 1.952e-06 +/- 2.460e-05
-
+        m: 8.583e-05 +/- 8.696e-04  c: 1.279e-05 +/- 1.739e-05
         - s/n > 10
-        m: -8.915e-04 +/- 1.672e-03  c: -2.048e-05 +/- 3.350e-05
+        m: 1.417e-04 +/- 1.182e-03  c: 1.069e-05 +/- 2.369e-05
         - s/n > 15
-        m: -3.473e-04 +/- 1.252e-03  c: 6.199e-06 +/- 2.504e-05
 
     # tests with variable noise and one epoch no coadd
     - sim-e05

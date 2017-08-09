@@ -46,25 +46,22 @@ class PSFSampler(dict):
 
         model=self['model']
 
-        r50 = self._get_size()
+        kw = self._get_keywords()
 
         if model=='moffat':
-            psf = galsim.Moffat(
-                beta=self['beta'],
-                half_light_radius=r50,
-            )
+            kw['beta'] = self['beta']
+            cls = galsim.Moffat
         elif model=='gauss':
-            psf = galsim.Gaussian(
-                half_light_radius=r50,
-            )
+            cls = galsim.Gaussian
         else:
             raise ValueError("bad psf model: '%s'" % model)
 
+        psf = cls(**kw)
 
         g1, g2 = self._get_shape()
         psf = psf.shear(g1=g1, g2=g2)
 
-        return psf, {'r50':r50}
+        return psf, kw
 
     def _get_shape(self):
         if self.shape_pdf is not None:
@@ -81,40 +78,48 @@ class PSFSampler(dict):
 
         return g1, g2
 
-    def _get_size(self):
+    def _get_keywords(self):
 
-        if self.r50_pdf is not None:
-            r50 = self.r50_pdf.sample()
-            print("    psf r50: %g" % r50)
+        kw={}
 
-        elif 'r50' in self:
-            r50 = self['r50']
+        if 'r50' in self:
+            if self.r50_pdf is not None:
+                r50 = self.r50_pdf.sample()
+                print("    psf r50: %g" % r50)
 
-        else:
-            raise ValueError("r50 value or distribution must be set")
+            elif 'r50' in self:
+                r50 = self['r50']
 
-        return r50
+            else:
+                raise ValueError("r50 value or distribution must be set")
+
+            kw['half_light_radius'] = r50
+
+        elif 'fwhm' in self:
+            if self.fwhm_pdf is not None:
+                fwhm = self.fwhm_pdf.sample()
+                print("    psf fwhm: %g" % fwhm)
+
+            elif 'fwhm' in self:
+                fwhm = self['fwhm']
+
+            else:
+                raise ValueError("fwhm value or distribution must be set")
+
+            kw['fwhm'] = fwhm
+
+        return kw
 
 
     def _set_pdfs(self):
 
-        self.r50_pdf=None
+        self._set_shape_pdf()
+        self._set_size_pdf()
+
+    def _set_shape_pdf(self):
         self.shape_pdf=None
 
-        r50conf = self['r50']
         shapeconf = self['shape']
-
-        if isinstance(r50conf, dict):
-
-            if r50conf['type'] == 'lognormal':
-                self.r50_pdf = ngmix.priors.LogNormal(
-                    r50conf['mean'],
-                    r50conf['sigma'],
-                    rng=self.rng,
-                )
-            else:
-                raise ValueError("bad psf r50 pdf "
-                                 "type: '%s'" % r50conf['type'])
 
         if isinstance(shapeconf,dict):
             assert shapeconf['type']=="normal2d"
@@ -131,6 +136,47 @@ class PSFSampler(dict):
             if len(shapeconf) != 2:
                 raise ValueError("for constant psf "
                                  "shapes, length must be 2")
+
+    def _set_size_pdf(self):
+        if 'r50' in self:
+            self._set_r50_pdf()
+        elif 'fwhm' in self:
+            self._set_fwhm_pdf()
+        else:
+            raise ValueError("need r50 or fwhm in psf config")
+
+    def _set_r50_pdf(self):
+        self.r50_pdf=None
+        r50conf = self['r50']
+
+        if isinstance(r50conf, dict):
+
+            if r50conf['type'] == 'lognormal':
+                self.r50_pdf = ngmix.priors.LogNormal(
+                    r50conf['mean'],
+                    r50conf['sigma'],
+                    rng=self.rng,
+                )
+            else:
+                raise ValueError("bad psf r50 pdf "
+                                 "type: '%s'" % r50conf['type'])
+
+    def _set_fwhm_pdf(self):
+        self.fwhm_pdf=None
+        fwhmconf = self['fwhm']
+
+        if isinstance(fwhmconf, dict):
+
+            if fwhmconf['type'] == 'lognormal':
+                self.fwhm_pdf = ngmix.priors.LogNormal(
+                    fwhmconf['mean'],
+                    fwhmconf['sigma'],
+                    rng=self.rng,
+                )
+            else:
+                raise ValueError("bad psf fwhm pdf "
+                                 "type: '%s'" % fwhmconf['type'])
+
 
 class MultiComponentPSF(object):
     def __init__(self, config, rng):

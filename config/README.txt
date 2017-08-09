@@ -111,6 +111,7 @@
         - s/n > 10
         m: 1.417e-04 +/- 1.182e-03  c: 1.069e-05 +/- 2.369e-05
         - s/n > 15
+        m: 8.772e-05 +/- 8.851e-04  c: 1.491e-05 +/- 1.771e-05
 
     # tests with variable noise and one epoch no coadd
     - sim-e05

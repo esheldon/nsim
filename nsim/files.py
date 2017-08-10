@@ -40,6 +40,14 @@ def get_config_file(run):
     name='%s.yaml' % run
     return path_join(d, name)
 
+def get_cosmos_file():
+    """
+    holds hlr and flux
+    """
+    dir=get_config_dir()
+    return path_join(dir,'cosmos-cat.fits.gz')
+
+
 def read_yaml(fname):
     import yaml
 

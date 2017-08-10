@@ -6,6 +6,8 @@ import esutil as eu
 from esutil.numpy_util import between
 import galsim
 
+from . import files
+
 class DiscreteSampler(object):
     def __init__(self, vals, rng=None):
         self.vals=vals
@@ -135,6 +137,23 @@ class CosmosR50Flux(object):
         return data
 
     def _load_data(self):
+        fname=files.get_cosmos_file()
+
+        r50min,r50max=self.r50_sanity_range
+        fmin,fmax=self.flux_sanity_range
+
+        print("reading cosmos file:",fname)
+        alldata=fitsio.read(fname)
+        w,=numpy.where(
+            between(alldata['hlr'][:,0], r50min, r50max) &
+            between(alldata['flux'][:,0], fmin, fmax)
+        )
+        print("kept %d/%d" % (w.size, alldata.size))
+
+        self.alldata=alldata[w]
+
+
+    def _load_data_old(self):
         fname='real_galaxy_catalog_25.2_fits.fits'
         """
         fname=os.path.join(

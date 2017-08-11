@@ -283,6 +283,7 @@ class ObservationMaker(dict):
             nrows=self.psf_nrows,
             ncols=self.psf_ncols,
         )
+        #print("    psf dims:",gsimage.array.shape)
 
         gsimage.addNoiseSNR(
             noise_obj,

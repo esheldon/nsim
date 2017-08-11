@@ -157,6 +157,12 @@ class PSFSampler(dict):
                     r50conf['sigma'],
                     rng=self.rng,
                 )
+
+                if 'limits' in r50conf:
+                    self.r50_pdf = ngmix.priors.LimitPDF(
+                        self.r50_pdf,
+                        r50conf['limits'],
+                    )
             else:
                 raise ValueError("bad psf r50 pdf "
                                  "type: '%s'" % r50conf['type'])
@@ -173,6 +179,13 @@ class PSFSampler(dict):
                     fwhmconf['sigma'],
                     rng=self.rng,
                 )
+                if 'limits' in fwhmconf:
+                    print("imposing limits on PSF fwhm:",fwhmconf['limits'])
+                    self.fwhm_pdf = ngmix.priors.LimitPDF(
+                        self.fwhm_pdf,
+                        fwhmconf['limits'],
+                    )
+
             else:
                 raise ValueError("bad psf fwhm pdf "
                                  "type: '%s'" % fwhmconf['type'])

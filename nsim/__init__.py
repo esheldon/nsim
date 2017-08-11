@@ -2,6 +2,7 @@ from . import files
 from . import sim
 from . import simgs
 
+from . import run
 
 # new refactored stuff
 from . import sime

@@ -32,10 +32,11 @@ scripts=['nsim-average-outputs',
 
 scripts=[os.path.join('bin',s) for s in scripts]
 
-conf_files=glob.glob('config/*.yaml')
+files=glob.glob('config/*.yaml')
+files += ['config/cosmos-cat.fits.gz']
 
 data_files=[]
-for f in conf_files:
+for f in files:
     data_files.append( ('share/nsim_config',[f]) )
 
 

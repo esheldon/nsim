@@ -69,6 +69,16 @@ def read_config(identifier):
         # this is a run configuration
         conf['run'] = identifier
 
+        bname=os.path.basename(fname)
+        simid=conf['sim'][4:]
+        n=len(simid)
+        simid_from_run=conf['run'][4:4+n]
+
+        if simid_from_run != simid:
+            raise RuntimeError(
+                "sim %s does not match run %s" % (conf['sim'],conf['run'])
+            )
+
     return conf
 
 def get_simdir():

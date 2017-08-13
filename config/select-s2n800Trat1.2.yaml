@@ -1,0 +1,1 @@
+select: "(s2n > 800) & (Tratio > 1.2)"

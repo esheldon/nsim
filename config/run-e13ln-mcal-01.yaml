@@ -1,0 +1,39 @@
+sim: "sim-e13ln"
+
+fitter: "metacal-moments-am"
+
+s2n_min: 0.0
+
+#
+# metacal
+#
+
+metacal_pars:
+    # assume the observation will have a .noise attribute
+    use_noise_image: True
+    symmetrize_psf: True
+    types: ['noshear','1p','1m','2p','2m']
+
+#
+# adaptive moments
+#
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+
+#
+# run details
+#
+
+ngal: 20000000
+
+desired_hours: 0.5
+
+# at SLAC
+sec_per: 0.50
+
+jobs_per_condor_sub: 2000
+
+verbose: False

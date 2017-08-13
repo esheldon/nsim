@@ -125,6 +125,15 @@
     # bugged, not using noise image
     - sim-e07
 
+    # sim-e08 fwhm similar to DES
+    turned out error was dominated by 7 order interpolation,
+    rerunning
+
+    # sim-e14ln
+    # fwhm dist similar to DES but low noise
+    # now using higher interpolation
+    run-e14ln-mcal-01 running
+
 
 - testing s/g sep
     - sim-stars03 gauss psf, more realistic s/n distribution for

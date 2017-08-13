@@ -797,3 +797,18 @@ def fit_line(y, x):
     a,b = coeff
     return a,b
 
+
+def convert_run_to_seed(run):
+    """
+    convert the input config file name to an integer for use
+    as a seed
+    """
+    import hashlib
+
+    h = hashlib.sha256(run.encode('utf-8')).hexdigest()
+    seed = int(h, base=16) % 2**30 
+
+    print("got seed",seed,"from run",run)
+
+    return seed
+

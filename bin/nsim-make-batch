@@ -309,7 +309,8 @@ class MakerBase(dict):
     def __init__(self, conf):
         self.update(conf)
 
-        numpy.random.seed(self['global_seed'])
+        seed=nsim.util.convert_run_to_seed(conf['run'])
+        numpy.random.seed(seed)
 
     def go(self):
         self.make_some_dirs()

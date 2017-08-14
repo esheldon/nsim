@@ -143,6 +143,9 @@
         errors are 2 sigma
         m: 3.837e-04 +/- 8.295e-04  c: 5.267e-06 +/- 1.655e-05
 
+    # sim-e09
+    # same as sim-e08 but not coadding, to compare noise
+
 
     # sim-e14ln
     # fwhm dist similar to DES but low noise

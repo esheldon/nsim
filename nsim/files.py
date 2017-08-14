@@ -49,6 +49,9 @@ def get_cosmos_file():
 
 
 def read_yaml(fname):
+    """
+    read any yaml file
+    """
     import yaml
 
     with open(fname) as fobj:
@@ -60,24 +63,18 @@ def read_config(identifier):
     """
     run could be 'name' in sim
     """
-    import yaml
     fname=get_config_file(identifier)
 
+    print("reading:",fname)
     conf = read_yaml(fname)
 
-    if 'sim' in conf:
+    if os.path.basename(fname)[0:4] == 'run-':
         # this is a run configuration
         conf['run'] = identifier
 
-        bname=os.path.basename(fname)
-        simid=conf['sim'][4:]
-        n=len(simid)
-        simid_from_run=conf['run'][4:4+n]
-
-        if simid_from_run != simid:
-            raise RuntimeError(
-                "sim %s does not match run %s" % (conf['sim'],conf['run'])
-            )
+        rs=conf['run'].split('-')
+        simid = rs[1]
+        conf['sim'] = 'sim-%s' % simid 
 
     return conf
 

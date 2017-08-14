@@ -1,0 +1,65 @@
+#!/usr/bin/env python
+"""
+mpirun -n 8 nsim-run-mpi run-
+
+for some sims npair might just be ngal
+"""
+
+from __future__ import print_function
+try:
+    xrange
+except:
+    xrange=range
+
+import numpy
+import nsim
+from nsim import files
+
+from argparse import ArgumentParser
+parser=ArgumentParser(__doc__)
+
+parser.add_argument('run',help="run")
+
+import navy
+
+def main():
+    args=parser.parse_args()
+
+    run_conf = files.read_config(args.run)
+    sim_conf = files.read_config(run_conf['sim'])
+
+    def dorun(data):
+        itrial, seed, ngal = data
+        output_file=files.get_output_url(
+            args.run,
+            itrial=itrial,
+        )
+        nsim.run.go(
+            seed,
+            sim_conf,
+            run_conf,
+            ngal,
+            output_file,
+        )
+
+    if navy.rank == navy.ADMIRAL:
+        ngal_per, njobs, time_hours = files.get_gal_nsplit(run_conf)
+
+        global_seed=nsim.util.convert_run_to_seed(run_conf['run'])
+        numpy.random.seed(global_seed)
+
+        tasks=[]
+        for itrial in xrange(njobs):
+            seed = numpy.random.randint(0,2**31-1)
+            task = (itrial, seed, ngal_per)
+            tasks.append(task)
+
+        admiral = navy.Admiral(tasks)
+        admiral.orchestrate()
+    else:
+        ship = navy.Ship(dorun)
+        ship.go()
+
+
+
+main()

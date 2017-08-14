@@ -27,6 +27,7 @@ scripts=['nsim-average-outputs',
          'nsim-plot',
          'nsim-make-bafit-paper-plots',
          'nsim-run',
+         'nsim-run-mpi',
          'extract-meds-bmasks']
 
 

@@ -4,7 +4,7 @@ images:
     # coadd the epochs
     coadd:
         type: "mean"
-        interp: "lanczos7"
+        interp: "lanczos15"
 
     noise:
         type: "uniform"
@@ -13,7 +13,6 @@ images:
 
     psf:
         s2n: 10000
-        stamp_size: [48,48] # optional
 
     object:
         nepoch: 10
@@ -31,16 +30,14 @@ images:
 psf:
     model: "moffat"
 
-    g:
-        type: "ba"
-        sigma: 0.01
-
     beta: 3.5
 
     fwhm:
         type: "lognormal"
         mean: 0.95
         sigma: 0.10
+
+        limits: [0.8, 1.15]
 
     shape:
         type: "normal2d"
@@ -50,6 +47,10 @@ psf:
 
 object:
     model: "exp"
+
+    g:
+        type: "ba"
+        sigma: 0.02
 
     r50_flux:
         type: "cosmos"

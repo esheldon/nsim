@@ -1,8 +1,4 @@
-sim: "sim-e08"
-
 fitter: "metacal-moments-am"
-
-global_seed: 21062
 
 s2n_min: 0.0
 
@@ -33,8 +29,8 @@ ngal: 100000000
 
 desired_hours: 1.0
 
-# at SLAC
-sec_per: 0.50
+# this is max we saw on all systems at BNL
+sec_per: 1.0
 
 jobs_per_condor_sub: 2000
 

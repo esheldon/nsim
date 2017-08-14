@@ -159,6 +159,7 @@ class PSFSampler(dict):
                 )
 
                 if 'limits' in r50conf:
+                    print("imposing limits on PSF r50:",fwhmconf['limits'])
                     self.r50_pdf = ngmix.priors.LimitPDF(
                         self.r50_pdf,
                         r50conf['limits'],

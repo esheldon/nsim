@@ -134,6 +134,11 @@
     # now using higher interpolation
     run-e14ln-mcal-01 running
 
+    # sim-e14ln
+    # fwhm dist similar to DES but low noise
+    # now using higher interpolation
+    # limiting to fwhm [0.85,1.1]
+
 
 - testing s/g sep
     - sim-stars03 gauss psf, more realistic s/n distribution for

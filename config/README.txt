@@ -126,8 +126,23 @@
     - sim-e07
 
     # sim-e08 fwhm similar to DES
-    turned out error was dominated by 7 order interpolation,
-    rerunning
+    S/N > 10 T/Tpsf > 0.5
+        errors are 2 sigma
+        without correction
+        m: 1.563e-02 +/- 1.114e-03  c: -3.473e-06 +/- 2.225e-05
+
+        with correction
+        m: 2.199e-04 +/- 1.097e-03  c: -3.419e-06 +/- 2.191e-05
+
+	S/N > 15 T/Tpsf > 0.5
+        without correction
+        errors are 2 sigma
+        m: 7.089e-03 +/- 8.351e-04  c: 5.304e-06 +/- 1.666e-05
+
+        with correction
+        errors are 2 sigma
+        m: 3.837e-04 +/- 8.295e-04  c: 5.267e-06 +/- 1.655e-05
+
 
     # sim-e14ln
     # fwhm dist similar to DES but low noise

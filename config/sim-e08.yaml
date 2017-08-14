@@ -1,4 +1,6 @@
-# DES-like spread in seeing
+# DES-like spread in seeing, with
+# limits [0.8, 1.15]
+
 images:
 
     # coadd the epochs

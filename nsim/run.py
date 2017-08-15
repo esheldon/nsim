@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+import os
 import fitsio
 from . import sime
 from . import fitters
@@ -216,6 +217,18 @@ def go(seed,
     fitter.go()
 
     data=fitter.get_data()
+
+    write_output(output_file, data, write_local=write_local)
+
+def write_output(output_file, data, write_local=False):
+
+    odir=os.path.dirname(output_file)
+    if not os.path.exists(odir):
+        try:
+            os.makedirs(odir)
+        except:
+            # probably a race condition
+            pass
 
     if write_local:
         success=util.write_fits(output_file, data)

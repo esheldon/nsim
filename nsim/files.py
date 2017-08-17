@@ -750,6 +750,9 @@ def get_npair_nsplit(c, is2n, npair_min=None):
     return npair_per, nsplit
 '''
 
+def get_gals_per_job_mpi(njobs, ngal):
+    return int(round(float(ngal)/njobs))
+
 def get_gal_nsplit(c):
     """
     new non ring where we request a specific number of gals
@@ -757,12 +760,10 @@ def get_gal_nsplit(c):
     from math import ceil
 
     ngal = c['ngal']
-    nrand = c.get('nrand',1)
 
-    # multiply by nrand to get total time per galaxy
     tmsec = c['desired_hours']*3600.0
 
-    sec_per = c['sec_per']*nrand
+    sec_per = c['sec_per']
 
     ngal_per = int(round( tmsec/sec_per ) )
 
@@ -770,7 +771,7 @@ def get_gal_nsplit(c):
 
     time_hours = ngal_per*sec_per/3600.0
 
-    logger.info("ngal requested: %s nrand: %s" % (ngal,nrand))
+    logger.info("ngal requested: %s" % (ngal))
     logger.info('seconds per image: %s sec per with rand: %s' % (c['sec_per'],sec_per))
     logger.info('nsplit: %d ngal per: %d time (hours): %s' % (nsplit,ngal_per,time_hours))
 

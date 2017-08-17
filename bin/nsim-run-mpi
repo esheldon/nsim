@@ -50,7 +50,11 @@ def main():
         )
 
     if navy.rank == navy.ADMIRAL:
-        ngal_per, njobs, time_hours = files.get_gal_nsplit(run_conf)
+        # we always have one job per ship
+        njobs = navy.thenavy.nships
+        gals_per_job = files.get_gals_per_job_mpi(
+            njobs, run_conf['ngal'],
+        )
 
         global_seed=nsim.util.convert_run_to_seed(run_conf['run'])
         numpy.random.seed(global_seed)
@@ -58,7 +62,7 @@ def main():
         tasks=[]
         for itrial in xrange(njobs):
             seed = numpy.random.randint(0,2**31-1)
-            task = (itrial, seed, ngal_per)
+            task = (itrial, seed, gals_per_job)
             tasks.append(task)
 
         admiral = navy.Admiral(tasks)

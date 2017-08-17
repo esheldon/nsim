@@ -538,10 +538,16 @@ class SLRMakerShifter(MakerBase):
         # note one of the cores is used as the master, so subtract one
 
         cores_per_node = self.get_ncores_per_node()
+
+        # one job for each ship in the fleet
         njobs = self['nodes']*cores_per_node - 1
+
+        # ncores includes the admiral
         ncores = self['nodes']*cores_per_node
 
-        gals_per_job = int(round(float(self['ngal'])/njobs))
+        gals_per_job = files.get_gals_per_job_mpi(
+            njobs, self['ngal'],
+        )
 
         hours = gals_per_job*self['sec_per']/3600.0
 

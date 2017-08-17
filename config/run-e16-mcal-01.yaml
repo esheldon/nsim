@@ -12,12 +12,12 @@ ngal: 20000000
 
 # time for the entire MPI job at nersc
 queue: "regular"
-nodes: 50
+nodes: 100
 constraint: "haswell"
 
 desired_hours: 1.0
 
 # on the nersc haswells about 0.19 but will bad a bit
-sec_per: 0.22
+sec_per: 0.49
 
 verbose: False

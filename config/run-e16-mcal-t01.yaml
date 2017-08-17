@@ -1,0 +1,22 @@
+fitter: "metacal-moments-am"
+
+metacal_pars:
+    symmetrize_psf: True
+    types: ['noshear','1p','1m','2p','2m']
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+ngal: 100000
+
+# time for the entire MPI job at nersc
+queue: "debug"
+nodes: 1
+constraint: "haswell"
+walltime: "00:30:00" # for debug
+
+# on the nersc haswells about 0.19 but will bad a bit
+sec_per: 0.22
+
+verbose: False

@@ -11,6 +11,7 @@ try:
 except:
     xrange=range
 
+import logging
 import numpy
 import nsim
 from nsim import files
@@ -19,14 +20,20 @@ from argparse import ArgumentParser
 parser=ArgumentParser(__doc__)
 
 parser.add_argument('run',help="run")
+parser.add_argument("--loglevel", default='info',
+                  help=("logging level"))
+
 
 import navy
 
 def main():
     args=parser.parse_args()
 
+    nsim.util.setup_logging(args.loglevel)
+
     run_conf = files.read_config(args.run)
     sim_conf = files.read_config(run_conf['sim'])
+
 
     def dorun(data):
         itrial, seed, ngal = data

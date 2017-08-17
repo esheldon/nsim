@@ -130,7 +130,7 @@ class FitterBase(dict):
                         logger.debug("")
 
                 except TryAgainError as err:
-                    logger.info(str(err))
+                    logger.debug(str(err))
 
         self._set_elapsed_time()
 

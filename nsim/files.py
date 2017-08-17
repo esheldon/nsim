@@ -1,4 +1,7 @@
 from __future__ import print_function
+
+import logging
+
 import os, sys
 from os.path import join as path_join
 
@@ -7,6 +10,7 @@ from numpy import array, sqrt, log10
 
 import esutil as eu
 
+logger = logging.getLogger(__name__)
 
 def get_s2n_nrepeat(s2n, fac=0.4):
     """
@@ -65,7 +69,7 @@ def read_config(identifier):
     """
     fname=get_config_file(identifier)
 
-    print("reading:",fname)
+    logger.info("reading: %s" % fname)
     conf = read_yaml(fname)
 
     if os.path.basename(fname)[0:4] == 'run-':
@@ -369,7 +373,7 @@ def read_output(run, itrial=None, ext='fits', **kw):
         data=eu.io.read(fnames, combine=True, verbose=True, **kw)
     else:
         fname=get_output_url(run, itrial=itrial, ext=ext)
-        print("reading collated file:",fname)
+        logger.info("reading collated file: %s" % fname)
         data = fitsio.read(fname, **kw)
 
     return data
@@ -766,9 +770,9 @@ def get_gal_nsplit(c):
 
     time_hours = ngal_per*sec_per/3600.0
 
-    print("ngal requested:",ngal,"nrand:",nrand)
-    print('seconds per image:',c['sec_per'],"sec per with rand:",sec_per)
-    print('nsplit:',nsplit,'ngal per:',ngal_per,'time (hours):',time_hours)
+    logger.info("ngal requested: %s nrand: %s" % (ngal,nrand))
+    logger.info('seconds per image: %s sec per with rand: %s' % (c['sec_per'],sec_per))
+    logger.info('nsplit: %d ngal per: %d time (hours): %s' % (nsplit,ngal_per,time_hours))
 
 
     return ngal_per, nsplit, time_hours

@@ -1,10 +1,12 @@
 from __future__ import print_function
+
 try:
     xrange
 except:
     xrange=range
 
 import os, sys
+import logging
 import numpy
 from numpy import exp, log, zeros, ones, sqrt, newaxis
 import ngmix
@@ -15,6 +17,8 @@ from ngmix.gexceptions import GMixRangeError
 
 from . import files
 
+logger = logging.getLogger(__name__)
+
 class TryAgainError(Exception):
     """
     signal to skip this image(s) and try a new one
@@ -23,6 +27,35 @@ class TryAgainError(Exception):
 
         # Call the base class constructor with the parameters it needs
         Exception.__init__(self, message)
+
+def setup_logging(level):
+    if level=='info':
+        l=logging.INFO
+    elif level=='debug':
+        l=logging.DEBUG
+    elif level=='warning':
+        l=logging.WARNING
+    elif level=='error':
+        l=logging.ERROR
+    else:
+        l=logging.CRITICAL
+
+    logging.basicConfig(stream=sys.stdout, level=l)
+
+def log_pars(pars, fmt='%8.3g',front=None):
+    """
+    print the parameters with a uniform width
+    """
+
+    s = []
+    if front is not None:
+        s.append(front)
+    if pars is not None:
+        fmt = ' '.join( [fmt+' ']*len(pars) )
+        s.append( fmt % tuple(pars) )
+    s = ' '.join(s)
+
+    logger.debug(s)
 
 class Namer(object):
     """
@@ -118,7 +151,6 @@ class lnp_fitter2d(object):
         self.scale1=s1vals[1]-s1vals[0]
         self.scale2=s2vals[1]-s2vals[0]
 
-        #print("scale: (%g,%g)" % (self.scale1,self.scale2))
         self.jacobian=ngmix.Jacobian(0.0,
                                      0.0,
                                      self.scale1,
@@ -378,7 +410,7 @@ def write_fits(filename, data, header=None):
     output_file=os.path.abspath(filename)
 
     local_file=os.path.abspath( os.path.basename(output_file) )
-    print("writing local file:",local_file)
+    logger.info("writing local file: %s" % local_file)
 
     fitsio.write(local_file, data, header=header, clobber=True)
 
@@ -392,16 +424,16 @@ def write_fits(filename, data, header=None):
         pass
 
     # try a few times
-    print("moving to:",output_file)
+    logger.info("moving to: %s" % output_file)
     cmd='mv %s %s' % (local_file, output_file)
     for i in xrange(5):
         stat=os.system(cmd)
         if stat==0:
-            print('success')
+            logger.info('success')
             success=True
             break
         else:
-            print('error moving file, trying again')
+            logger.info('error moving file, trying again')
             time.sleep(5)
             success=False
 
@@ -600,7 +632,7 @@ def load_gmixnd(spec, rng=None):
         pdf=ngmix.gmix.GMixND(file=fname, rng=rng)
 
     if 'cov_factor' in spec:
-        print("    using cov factor:",spec['cov_factor'])
+        logger.info("    using cov factor: %s" % spec['cov_factor'])
         pdf.covars *= spec['cov_factor']
 
     return pdf
@@ -752,8 +784,6 @@ def get_kmom_R(data, step=0.01):
     R1 = R1tot - wR1
     R2 = R2tot - wR2
 
-    #print(R1tot.mean(), wR1.mean(), R1.mean())
-
     return R1, R2
 
 def _get_kmom_R(data, front, step=0.01):
@@ -808,7 +838,7 @@ def convert_run_to_seed(run):
     h = hashlib.sha256(run.encode('utf-8')).hexdigest()
     seed = int(h, base=16) % 2**30 
 
-    print("got seed",seed,"from run",run)
+    logger.info("got seed %d from run %s" % (seed,run))
 
     return seed
 

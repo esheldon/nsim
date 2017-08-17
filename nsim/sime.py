@@ -1,6 +1,8 @@
 from __future__ import print_function
 
-from pprint import pprint
+import logging
+
+import pprint
 import numpy
 
 from . import files
@@ -10,6 +12,7 @@ from . import observations
 
 from .shearpdf import get_shear_pdf
 
+logger = logging.getLogger(__name__)
 
 class Sim(dict):
     def __init__(self, sim_conf, seed):
@@ -17,7 +20,7 @@ class Sim(dict):
 
         self._load_config(sim_conf)
 
-        print("using seed:",seed)
+        logger.info("using seed: %d" % seed)
 
         # seeding both the global and the local rng.  With the
         # local, we produce the same sim independent of the fitting
@@ -26,7 +29,7 @@ class Sim(dict):
         self.rng=numpy.random.RandomState(seed=numpy.random.randint(0,2**30))
         self.galsim_rng = galsim.BaseDeviate(self.rng.randint(0,2**30))
 
-        pprint(self)
+        logger.info(pprint.pformat(self))
 
         self._set_makers()
 

@@ -1,4 +1,5 @@
 from __future__ import print_function
+import logging
 import galsim
 import ngmix
 from . import pdfs
@@ -10,6 +11,8 @@ def get_psf_maker(config, rng):
         maker=PSFSampler(config, rng)
 
     return maker
+
+logger = logging.getLogger(__name__)
 
 class PSFSampler(dict):
     """
@@ -70,7 +73,7 @@ class PSFSampler(dict):
             except:
                 g1, g2 = self.shape_pdf.sample2d()
 
-            print("    psf (pdf) shape: %g %g" % (g1, g2))
+            logger.debug("    psf (pdf) shape: %g %g" % (g1, g2))
 
         else:
             g1=self['shape'][0]
@@ -85,7 +88,7 @@ class PSFSampler(dict):
         if 'r50' in self:
             if self.r50_pdf is not None:
                 r50 = self.r50_pdf.sample()
-                print("    psf r50: %g" % r50)
+                logger.debug("    psf r50: %g" % r50)
 
             elif 'r50' in self:
                 r50 = self['r50']
@@ -98,7 +101,7 @@ class PSFSampler(dict):
         elif 'fwhm' in self:
             if self.fwhm_pdf is not None:
                 fwhm = self.fwhm_pdf.sample()
-                print("    psf fwhm: %g" % fwhm)
+                logger.debug("    psf fwhm: %g" % fwhm)
 
             elif 'fwhm' in self:
                 fwhm = self['fwhm']
@@ -159,7 +162,7 @@ class PSFSampler(dict):
                 )
 
                 if 'limits' in r50conf:
-                    print("imposing limits on PSF r50:",fwhmconf['limits'])
+                    logger.debug("imposing limits on PSF r50: %s" % fwhmconf['limits'])
                     self.r50_pdf = ngmix.priors.LimitPDF(
                         self.r50_pdf,
                         r50conf['limits'],
@@ -181,7 +184,7 @@ class PSFSampler(dict):
                     rng=self.rng,
                 )
                 if 'limits' in fwhmconf:
-                    print("imposing limits on PSF fwhm:",fwhmconf['limits'])
+                    logger.debug("imposing limits on PSF fwhm: %s" % fwhmconf['limits'])
                     self.fwhm_pdf = ngmix.priors.LimitPDF(
                         self.fwhm_pdf,
                         fwhmconf['limits'],

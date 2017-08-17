@@ -5,6 +5,7 @@ except:
     xrange=range
     raw_input=input
 
+import logging
 import random
 from copy import deepcopy
 import numpy
@@ -13,6 +14,8 @@ import ngmix
 from . import pdfs
 
 from .util import TryAgainError
+
+logger = logging.getLogger(__name__)
 
 def get_observation_maker(*args, **kw):
     conf = args[0]
@@ -113,7 +116,7 @@ class ObservationMaker(dict):
             size = max(tsize, size)
 
         dims=[size,size]
-        print("    image dims:",dims)
+        logger.debug("    image dims: %s" % dims)
 
         return dims
 
@@ -283,7 +286,6 @@ class ObservationMaker(dict):
             nrows=self.psf_nrows,
             ncols=self.psf_ncols,
         )
-        #print("    psf dims:",gsimage.array.shape)
 
         gsimage.addNoiseSNR(
             noise_obj,
@@ -330,7 +332,7 @@ class ObservationMaker(dict):
             if offset is not None:
                 row += offset[0]
                 col += offset[1]
-            print("using canonical center",row,col)
+            logger.debug("using canonical center %s" % (row,col))
         else:
             row, col = find_centroid(image_orig, self.rng, offset=offset)
 
@@ -508,9 +510,6 @@ class ObservationMaker(dict):
         else:
             offset=None
 
-        #if offset is not None:
-        #    print("    offset: %g,%g" % offset)
-
         return offset
 
 
@@ -577,13 +576,11 @@ class NbrObservationMaker(ObservationMaker):
 
         nobject = 1 + objconf['nnbr']
         for i in xrange(nobject):
-            print("    object",i+1,"of",nobject)
+            logger.debug("    object %d of %d" % (i+1,nobject))
             if i==0:
                 self._save_cen_pdf()
 
             obslist = super(NbrObservationMaker,self).__call__()
-            #print("just returning first one")
-            #return obslist
             obs=obslist[0]
 
             if i==0:
@@ -617,7 +614,6 @@ class NbrObservationMaker(ObservationMaker):
             # just to keep things going
             #raise TryAgainError("for testing")
 
-        print()
         return new_obslist
 
     def _restore_cen_pdf(self):
@@ -649,7 +645,7 @@ class NbrObservationMakerMulti(ObservationMaker):
 
         shiftlist=meta['shiftlist']
         nobj = len(shiftlist)
-        print("nobj:",nobj)
+        logger.debug("nobj: %d" % nobj)
 
         allobs = [] 
 
@@ -669,7 +665,7 @@ class NbrObservationMakerMulti(ObservationMaker):
 
                 row0 = row + drow
                 col0 = col + dcol
-                print("new cen:",row0,col0)
+                logger.debug("new cen:" % (row0,col0))
                 tjac.set_cen(row=row0, col=col0)
 
                 tobs = ngmix.Observation(
@@ -734,7 +730,7 @@ class NbrObservationMakerMulti(ObservationMaker):
                 dilation = self._get_nbr_dilation()
                 if dilation is not None:
                     tobj = tobj.dilate(dilation)
-                    print("dilation:",dilation,"flux:",tobj.getFlux())
+                    logger.debug("dilation: %s flux: %s" % (dilation,tobj.getFlux()))
 
                 if self.nbr_sky_shift_pdf is not None:
                     shift = self._get_nbr_sky_shift()
@@ -773,7 +769,7 @@ class NbrObservationMakerMulti(ObservationMaker):
 
         offset=(coff1,coff2)
 
-        print("sky shift: %g,%g" % offset)
+        logger.debug("sky shift: %g,%g" % offset)
 
         return offset
 
@@ -878,7 +874,7 @@ class NbrObservationMakerMultiOld(ObservationMaker):
 
         nobject = 1 + objconf['nnbr']
         for i in xrange(nobject):
-            print("object",i+1,"of",nobject)
+            logger.debug("object %d of %d" % (i+1,nobject))
             if i==0:
                 self._save_cen_pdf()
 
@@ -949,7 +945,6 @@ def find_centroid(image, rng, offset=None, maxiter=200, ntry=4):
         col0 += offset[0]
         row0 += offset[1]
 
-    #print("    rowcol guess:",row0,col0)
 
     if False:
         import images
@@ -986,7 +981,6 @@ def find_centroid(image, rng, offset=None, maxiter=200, ntry=4):
 
     row = row0 + row
     col = col0 + col
-    #print("    center:",row,col,"numiter:",res['numiter'])
 
     return row,col
 

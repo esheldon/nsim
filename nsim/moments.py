@@ -8,12 +8,13 @@ except:
     xrange=range
     raw_input=input
 
+import logging
 import numpy
 from numpy import array, zeros, ones, log, log10, exp, sqrt, diag
 from numpy import where, isfinite
 
 import ngmix
-from ngmix.fitting import print_pars
+from .util import log_pars
 from ngmix.shape import Shape
 from ngmix.gexceptions import BootPSFFailure, BootGalFailure
 
@@ -24,6 +25,7 @@ from .fitters import SimpleFitterBase
 
 import galsim
 
+logger = logging.getLogger(__name__)
 
 DEFTYPES=[
     'noshear',
@@ -69,7 +71,7 @@ class MetacalMomentsAM(SimpleFitterBase):
             mpars['types'] = deftypes
 
         self.metacal_types=mpars['types']
-        print("doing types:",self.metacal_types)
+        logger.debug("doing types: %s" % self.metacal_types)
 
         self._set_mompars()
 
@@ -544,18 +546,18 @@ class MetacalMomentsAM(SimpleFitterBase):
 
         subres=res['noshear']
 
-        print()
+        logger.debug("")
 
         if 'prefit' in res:
             preres=res['prefit']
-            print("    s2n: %g" % preres['s2n'])
+            logger.debug("    s2n: %g" % preres['s2n'])
 
         if 'fit_model' in self:
             mres=res['model_result']
             pars=mres['pars']
             perr=mres['pars_err']
-            print_pars(pars,front='    model:')
-            print_pars(perr,front='          ')
+            log_pars(pars,front='    model:')
+            log_pars(perr,front='          ')
 
         s2n=subres['s2n']
         g=subres['g']
@@ -563,11 +565,11 @@ class MetacalMomentsAM(SimpleFitterBase):
         cov = subres['g_cov'].clip(min=0, max=None)
         gerr=diag(sqrt(cov))
 
-        print('    true r50: %(r50_true)g flux: %(flux_true)g s2n: %(s2n_true)g' % res)
-        print("    mcal s2n: %g  e:  %g +/- %g  %g +/- %g" % (s2n,g[0],gerr[0],g[1],gerr[1]))
+        logger.debug('    true r50: %(r50_true)g flux: %(flux_true)g s2n: %(s2n_true)g' % res)
+        logger.debug("    mcal s2n: %g  e:  %g +/- %g  %g +/- %g" % (s2n,g[0],gerr[0],g[1],gerr[1]))
         if 'flux' in subres:
-            print("        flux: %g +/- %g flux_s2n:  %g" % (subres['flux'],subres['flux_err'],subres['flux_s2n']))
-        print("     am numiter: %d flux: %g +/- %g flux_s2n:  %g" % (subres['numiter'], subres['am_flux'],subres['am_flux_err'],subres['am_flux_s2n']))
+            logger.debug("        flux: %g +/- %g flux_s2n:  %g" % (subres['flux'],subres['flux_err'],subres['flux_s2n']))
+        logger.debug("     am numiter: %d flux: %g +/- %g flux_s2n:  %g" % (subres['numiter'], subres['am_flux'],subres['am_flux_err'],subres['am_flux_s2n']))
 
 
     def _do_plots(self, obs, gmix=None):
@@ -706,13 +708,13 @@ class AMFitter(MetacalMomentsAM):
         """
 
         if 'flux_s2n' in res:
-            print("    flux s2n: %g" % res['flux_s2n'])
-        print("    e1e2:  %g %g" % tuple(res['g']))
-        print("    e_err: %g" % numpy.sqrt(res['g_cov'][0,0]))
+            logger.debug("    flux s2n: %g" % res['flux_s2n'])
+        logger.debug("    e1e2:  %g %g" % tuple(res['g']))
+        logger.debug("    e_err: %g" % numpy.sqrt(res['g_cov'][0,0]))
 
-        print_pars(res['pars'],      front='        pars: ')
+        log_pars(res['pars'],      front='        pars: ')
 
-        print('        true r50: %(r50_true)g flux: %(flux_true)g s2n: %(s2n_true)g' % res)
+        logger.debug('        true r50: %(r50_true)g flux: %(flux_true)g s2n: %(s2n_true)g' % res)
 
 
 def get_shears(step):

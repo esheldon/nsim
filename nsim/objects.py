@@ -1,7 +1,10 @@
 from __future__ import print_function
+import logging
 import galsim
 import ngmix
 from . import pdfs
+
+logger = logging.getLogger(__name__)
 
 def get_object_maker(config, rng, galsim_rng):
     model=config['model']
@@ -178,7 +181,7 @@ class SimpleMaker(dict):
                 )
             elif r50spec['type']=='discrete-pdf':
                 fname=os.path.expandvars( r50spec['file'] )
-                print("Reading r50 values from file:",fname)
+                logger.debug("Reading r50 values from file: %s" % fname)
                 vals=fitsio.read(fname)
                 r50_pdf=pdfs.DiscreteSampler(vals, rng=self.rng)
 

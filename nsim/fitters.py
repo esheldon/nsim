@@ -8,16 +8,17 @@ except:
     xrange=range
     raw_input=input
 
+import logging
 import os
 import time
-from pprint import pprint
+import pprint
 
 import numpy
 from numpy import array, zeros, ones, log, log10, exp, sqrt, diag
 from numpy import where, isfinite
 
 import ngmix
-from ngmix.fitting import print_pars
+from .util import log_pars
 from ngmix.gexceptions import GMixRangeError
 from ngmix.observation import Observation
 from ngmix.gexceptions import GMixMaxIterEM
@@ -46,6 +47,8 @@ except ImportError:
 # minutes
 DEFAULT_CHECKPOINTS=[30,60,90,110]
 
+logger = logging.getLogger(__name__)
+
 class FitterBase(dict):
     def __init__(self, sim, run_conf, ngal, **keys):
 
@@ -67,7 +70,7 @@ class FitterBase(dict):
         if self.data is None:
             self._make_struct()
 
-        pprint(self)
+        logger.info( pprint.pformat(self) )
 
     def go(self):
         """
@@ -86,7 +89,7 @@ class FitterBase(dict):
 
         for igal in xrange(self['ngal']):
             self.igal=igal
-            print('%s/%s' % (igal+1,self['ngal']) )
+            logger.debug('%s/%s' % (igal+1,self['ngal']) )
 
             while True:
                 n_sim += 1
@@ -97,7 +100,7 @@ class FitterBase(dict):
                     self.tm_sim += time.time()-tm0
 
                     if self['deblend']:
-                        print("    deblending")
+                        logger.debug("    deblending")
                         obslist = self._do_deblend(obslist)
 
                     meta = self._extract_meta(obslist)
@@ -123,19 +126,19 @@ class FitterBase(dict):
                         break
                     else:
                         tup = meta['s2n'],self['s2n_min']
-                        print("        skipping low s2n: %g < %g" % tup)
-                        print()
+                        logger.debug("        skipping low s2n: %g < %g" % tup)
+                        logger.debug("")
 
                 except TryAgainError as err:
-                    print(str(err))
+                    logger.info(str(err))
 
         self._set_elapsed_time()
 
-        print("nprocessed (including failures):",n_proc)
-        print('time minutes:',self.tm_minutes)
-        print('time per (total):',self.tm/self['ngal'])
-        print('time to simulate:',self.tm_sim/n_sim)
-        print('time to fit:',self.tm_fit/n_proc)
+        logger.info("nprocessed (including failures): %s" % n_proc)
+        logger.info('time minutes: %s' % self.tm_minutes)
+        logger.info('time per (total) %s:' % (self.tm/self['ngal']))
+        logger.info('time to simulate: %s' % (self.tm_sim/n_sim))
+        logger.info('time to fit: %s' % (self.tm_fit/n_proc))
 
     def _do_deblend(self, obslist):
         try:
@@ -346,7 +349,7 @@ class FitterBase(dict):
 
         """
 
-        print('checkpointing at',self.tm_minutes,'minutes')
+        logger.debug('checkpointing at %s minutes' % self.tm_minutes)
         success=write_fits(self.checkpoint_file, self.data)
 
 
@@ -422,7 +425,7 @@ class SimpleFitterBase(FitterBase):
         else:
             raise ValueError("implement other g prior")
 
-        print("using input search prior")
+        logger.debug("using input search prior")
 
         T_prior = None
         if 'T' in ppars:
@@ -445,7 +448,7 @@ class SimpleFitterBase(FitterBase):
             elif Tp['type']=='lognormal':
 
                 if self['use_logpars']:
-                    print("    converting T prior to log")
+                    logger.debug("    converting T prior to log")
                     logT_mean, logT_sigma=ngmix.priors.lognorm_convert(Tp['mean'],
                                                                        Tp['sigma'])
                     T_prior = ngmix.priors.Normal(logT_mean, logT_sigma, rng=self.rng)
@@ -529,11 +532,11 @@ class SimpleFitterBase(FitterBase):
 
         cp=ppars['counts']
         if cp['type']=="truth":
-            print("using true counts pdf for prior")
+            logger.debug("using true counts pdf for prior")
 
             if self['use_logpars']:
 
-                print("    converting to log")
+                logger.debug("    converting to log")
                 if self.sim['simulator']=="galsim":
                     fluxspec=self.sim['obj_model']['flux']
                     counts       = fluxspec['mean']
@@ -556,7 +559,7 @@ class SimpleFitterBase(FitterBase):
         elif cp['type']=='lognormal':
 
             if self['use_logpars']:
-                print("    converting counts prior to log")
+                logger.debug("    converting counts prior to log")
                 logcounts_mean, logcounts_sigma=ngmix.priors.lognorm_convert(cp['mean'],
                                                                    cp['sigma'])
                 counts_prior = ngmix.priors.Normal(
@@ -730,12 +733,12 @@ class MaxFitter(SimpleFitterBase):
         if 'nfev' in res:
             mess="    s2n: %.1f  ntry: %d  nfev: %d"
             mess = mess % (res['s2n'],res['ntry'],res['nfev'])
-            print(mess)
+            logger.debug(mess)
 
-        print_pars(res['pars'],      front='        pars: ')
-        print_pars(res['pars_err'],  front='        perr: ')
+        log_pars(res['pars'],      front='        pars: ')
+        log_pars(res['pars_err'],  front='        perr: ')
 
-        print('        true r50: %(r50_true)g flux: %(flux_true)g s2n: %(s2n_true)g' % res)
+        logger.debug('        true r50: %(r50_true)g flux: %(flux_true)g s2n: %(s2n_true)g' % res)
 
     def _make_plots(self, fitter, key):
         """
@@ -750,7 +753,7 @@ class MaxFitter(SimpleFitterBase):
         #pdict=fitter.make_plots(do_residual=True, title=self.fit_model)
 
         resid_pname=self['plot_base']+'-%06d-%s-gal-resid.png' % (self.igal,key)
-        print(resid_pname)
+        logger.debug(resid_pname)
         rplt=fitter.plot_residuals()
         rplt[0][0].write_img(width,height,resid_pname)
 
@@ -972,7 +975,6 @@ class MaxMetacalFitter(MaxFitter):
 
             # sometimes we don't calculate all
             if type not in res:
-                #print("type not found:",type)
                 continue
 
             tres=res[type]
@@ -1005,8 +1007,8 @@ class MaxMetacalFitter(MaxFitter):
         super(MaxMetacalFitter,self)._print_res(resfull)
 
         res=resfull['noshear']
-        print("    mcal s2n_r:",res['s2n_r'])
-        print_pars(res['pars'],       front='    mcal pars: ')
+        logger.debug("    mcal s2n_r:" % res['s2n_r'])
+        log_pars(res['pars'],       front='    mcal pars: ')
 
 
 
@@ -1112,13 +1114,13 @@ class GalsimFitter(SimpleFitterBase):
         if 'nfev' in res:
             mess="    s2n_r: %.1f  ntry: %d  nfev: %d"
             mess = mess % (res['s2n_r'],res['ntry'],res['nfev'])
-            print(mess)
+            logger.debug(mess)
 
-        print_pars(res['pars'],      front='        pars: ')
-        print_pars(res['pars_err'],  front='        perr: ')
+        log_pars(res['pars'],      front='        pars: ')
+        log_pars(res['pars_err'],  front='        perr: ')
 
         #if res['pars_true'][0] is not None:
-        #    print_pars(res['pars_true'], front='        true: ')
+        #    log_pars(res['pars_true'], front='        true: ')
 
 
     def _get_dtype(self):
@@ -1178,7 +1180,6 @@ class SpergelFitter(GalsimFitter):
         #nuguess = self.prior.nu_prior.sample()
 
         if True==self.get('guess_prior',False):
-            #print("using prior guesser")
             guesser=ngmix.guessers.PriorGuesser(self.prior)
         else:
             guesser=ngmix.guessers.R50NuFluxGuesser(
@@ -1256,7 +1257,7 @@ class SpergelMetacalFitter(SpergelFitter):
                     fitter.calc_cov(cov_pars['h'],cov_pars['m'])
 
                     if tres['flags'] != 0:
-                        print("        cov replacement failed")
+                        logger.debug("        cov replacement failed")
                         tres['flags']=0
 
 
@@ -1366,13 +1367,13 @@ class SpergelMetacalFitter(SpergelFitter):
         subres=res['noshear']
 
         mess="    mcal s2n_r: %.1f nfev: %d"
-        print(mess % (subres['s2n_r'],subres['nfev']))
+        logger.debug(mess % (subres['s2n_r'],subres['nfev']))
 
 
-        print_pars(subres['pars'],      front='        pars: ')
-        print_pars(subres['pars_err'],  front='        perr: ')
+        log_pars(subres['pars'],      front='        pars: ')
+        log_pars(subres['pars_err'],  front='        perr: ')
 
-        print_pars(res['pars_true'], front='        true: ')
+        log_pars(res['pars_true'], front='        true: ')
 
 
 class GalsimMetacalFitter(SpergelMetacalFitter):
@@ -1491,10 +1492,6 @@ class KMomMetacalFitterPost(SimpleFitterBase):
         pars[5] = ps.sum()
 
         pars_cov[5,5] = var*ps.size
-        #print("F:",pars[5],sqrt(pars_cov[5,5]))
-        #pars_cov[5,5] = self.ps_var*(wps**2).sum()
-        #pars_cov[5,5] = var*(wps**2).sum()
-        #pars_cov[5,5] = var*ps.size
 
         pars_err=sqrt(diag(pars_cov))
         wsum=wps.sum()
@@ -1749,7 +1746,6 @@ class KMomMetacalFitterPost(SimpleFitterBase):
             if (self.dim % 2) == 0:
                 self.dim += 1
 
-        #print("dk:",self.dk,"dim:",self.dim)
 
         cen=(self.dim-1.0)/2.0
         #cen=(self.dim-1.0)/2.0 + 0.5
@@ -1952,13 +1948,13 @@ class KMomMetacalFitterPost(SimpleFitterBase):
 
         subres=res['noshear']
 
-        print("    flux s2n: %g" % subres['flux_s2n'])
-        print("    g1g2: %g %g" % tuple(subres['g']))
+        logger.debug("    flux s2n: %g" % subres['flux_s2n'])
+        logger.debug("    g1g2: %g %g" % tuple(subres['g']))
 
-        print_pars(subres['pars'],      front='        pars: ')
-        print_pars(subres['pars_err'],  front='        perr: ')
+        log_pars(subres['pars'],      front='        pars: ')
+        log_pars(subres['pars_err'],  front='        perr: ')
 
-        print_pars(res['pars_true'], front='        true: ')
+        log_pars(res['pars_true'], front='        true: ')
 
 
 class KMomMetacalFitter(SimpleFitterBase):
@@ -2053,10 +2049,6 @@ class KMomMetacalFitter(SimpleFitterBase):
         wsum=wps.sum()
 
         pars_cov[5,5] = var*ps.size
-        #print("F:",pars[5],sqrt(pars_cov[5,5]))
-        #pars_cov[5,5] = self.ps_var*(wps**2).sum()
-        #pars_cov[5,5] = var*(wps**2).sum()
-        #pars_cov[5,5] = var*ps.size
 
         pars_err=sqrt(diag(pars_cov))
 
@@ -2213,13 +2205,13 @@ class KMomMetacalFitter(SimpleFitterBase):
 
         subres=res['noshear']
 
-        print("    flux s2n: %g" % subres['flux_s2n'])
-        print("    g1g2: %g %g" % tuple(subres['g']))
+        logger.debug("    flux s2n: %g" % subres['flux_s2n'])
+        logger.debug("    g1g2: %g %g" % tuple(subres['g']))
 
-        print_pars(subres['pars'],      front='        pars: ')
-        print_pars(subres['pars_err'],  front='        perr: ')
+        log_pars(subres['pars'],      front='        pars: ')
+        log_pars(subres['pars_err'],  front='        perr: ')
 
-        print_pars(res['pars_true'], front='        true: ')
+        log_pars(res['pars_true'], front='        true: ')
 
 
 
@@ -2342,7 +2334,6 @@ class KMetacal(dict):
         )
 
         self.ii = self._make_interpolated_image(gsimage)
-        #print("gal dk:",self.ii.stepK())
 
         self.ii_nopsf = galsim.Convolve(self.ii, self.psf_ii_inv)
 
@@ -2356,12 +2347,11 @@ class KMetacal(dict):
         #self.dk=self.ii.stepK()
         self.dk=self.psf_ii.stepK()
 
-        #print("psf dk:",self.dk)
         
 
         dk_factor=self.get('dk_factor',None)
         if dk_factor is not None:
-            print("applying dk factor:",dk_factor)
+            logger.debug("applying dk factor:",dk_factor)
             self.dk *= dk_factor
 
             if self['alter_dims']:
@@ -2418,7 +2408,7 @@ class KMetacal(dict):
 
             # twice, because we will subtract the noise ps
             self.ps_var = 2.0*nps.var()
-            print("ps var:",self.ps_var)
+            logger.debug("ps var:",self.ps_var)
         else:
             #
             # now variance on the power spectrum
@@ -2434,7 +2424,7 @@ class KMetacal(dict):
 
             # we are using a non-unit dk
             self.ps_var *= self.dk**2
-            print("ps var:",self.ps_var)
+            logger.debug("ps var:",self.ps_var)
             #self.ps_var *= (1.0/self.dk**2)
 
     def _make_interpolated_image(self, gsim):
@@ -2585,7 +2575,7 @@ class MaxMetacalDetrendFitter(MaxMetacalFitter):
                 noise_image = noise_image1*extra_noise
                 new_weight = wt*0 + (1.0/target_noise**2)
 
-                print("    doing target_noise: %.3f "
+                logger.debug("    doing target_noise: %.3f "
                       "extra_noise: %.3f" % (target_noise,extra_noise))
 
                 #
@@ -2626,7 +2616,6 @@ class MaxMetacalDetrendFitter(MaxMetacalFitter):
                 Rnoise     = res_before['mcal_R']    - res_after['mcal_R']
                 Rnoise_psf = res_before['mcal_Rpsf'] - res_after['mcal_Rpsf']
 
-                #print("        s2n:",res_before['mcal_s2n_r'])
 
                 new_res={
                     'mcal_Rnoise':Rnoise,
@@ -2685,7 +2674,7 @@ class MaxMetacalSimnFitter(MaxMetacalFitter):
         from ngmix import Bootstrapper
 
         super(MaxMetacalSimnFitter,self)._do_metacal(boot)
-        print("    Calculating Rnoise")
+        logger.debug("    Calculating Rnoise")
 
         mb_obs_list = boot.mb_obs_list
 
@@ -2839,7 +2828,7 @@ class MaxMetacalFixRFitter(MaxMetacalFitter):
         from ngmix import Bootstrapper
 
         super(MaxMetacalFixRFitter,self)._do_metacal(boot)
-        print("    Calculating mean noise term")
+        logger.debug("    Calculating mean noise term")
 
         fixR_mcal_obs = self._make_fixR_mcal_obs(boot)
 
@@ -2874,7 +2863,7 @@ class MaxMetacalFixRFitter(MaxMetacalFitter):
         step=self['metacal_pars']['step']
 
         for i in xrange(nrand_noise):
-            print(i)
+            logger.debug('%d' % i)
             # None means noise only
             tmobs = ngmix.simobs.simulate_obs(None, mobs)
 
@@ -2919,7 +2908,7 @@ class MaxMetacalFitterDegrade(MaxMetacalFitter):
         self['noise_boost'] = self.sim['s2n_for_noise']/s2n_target
         self['extra_noise'] = self.sim['noise']*self['noise_boost']
 
-        print("    boosting noise by",self['noise_boost'])
+        logger.debug("    boosting noise by",self['noise_boost'])
 
 class MaxMetacalFitterDegradeGS(MaxMetacalFitterDegrade):
     """
@@ -2943,7 +2932,7 @@ class MaxMetacalFitterDegradeGS(MaxMetacalFitterDegrade):
 
         extra_noise=self['extra_noise']
         nrand=self['nrand']
-        print("    adding extra noise:",extra_noise, "nrand:",nrand)
+        logger.debug("    adding extra noise:",extra_noise, "nrand:",nrand)
 
         boot.fit_metacal_max_addnoise(
             extra_noise,
@@ -2972,7 +2961,7 @@ class MaxMetanoiseFitter(MaxMetacalFitter):
         rdict=super(MaxMetanoiseFitter,self)._do_fits(obs)
         boot=rdict['boot']
 
-        print("doing metanoise")
+        logger.debug("doing metanoise")
 
         ppars=self['psf_pars']
         mconf=self['max_pars']
@@ -3010,12 +2999,12 @@ class MaxMetanoiseFitter(MaxMetacalFitter):
         """
 
         super(MaxMetanoiseFitter,self)._print_res(res)
-        print("    mnoise s2n_r:",res['mnoise_s2n_r'])
-        print_pars(res['mnoise_pars'],       front='    mnoise pars: ')
-        print_pars(res['mnoise_R'].ravel(),  front='    mnoise R:    ')
-        print_pars(res['mnoise_Rpsf'],       front='    mnoise Rpsf: ')
+        logger.debug("    mnoise s2n_r:",res['mnoise_s2n_r'])
+        log_pars(res['mnoise_pars'],       front='    mnoise pars: ')
+        log_pars(res['mnoise_R'].ravel(),  front='    mnoise R:    ')
+        log_pars(res['mnoise_Rpsf'],       front='    mnoise Rpsf: ')
 
-        print("    mnoise c:",res['mnoise_c'][0], res['mnoise_c'][1])
+        logger.debug("    mnoise c:",res['mnoise_c'][0], res['mnoise_c'][1])
 
 
     def _get_dtype(self):
@@ -3257,7 +3246,7 @@ class PostcalFitter(MaxFitter):
                       + res2m['s2n_r'])/4.0
 
         if self['verbose']:
-            print_pars(pars_mean, front='    parsmean:   ')
+            log_pars(pars_mean, front='    parsmean:   ')
 
         R=numpy.zeros( (2,2) ) 
         Rpsf=numpy.zeros(2)
@@ -3296,8 +3285,8 @@ class PostcalFitter(MaxFitter):
         """
 
         super(PostcalFitter,self)._print_res(res)
-        print_pars(res['pcal_pars'],       front='    pcal pars: ')
-        print_pars(res['pcal_R'].ravel(),  front='    pcal R:    ')
+        log_pars(res['pcal_pars'],       front='    pcal pars: ')
+        log_pars(res['pcal_R'].ravel(),  front='    pcal R:    ')
 
     def _get_dtype(self):
         """
@@ -3337,7 +3326,7 @@ class PostcalSimnFitter(PostcalFitter):
 
         res=super(PostcalSimnFitter,self)._do_postcal(obs)
 
-        print("    Calculating Rnoise")
+        logger.debug("    Calculating Rnoise")
 
         gm = self.fitter.get_gmix()
 
@@ -3385,9 +3374,9 @@ class PostcalSimnFitter(PostcalFitter):
         """
 
         super(PostcalSimnFitter,self)._print_res(res)
-        print_pars(res['pcal_Rnoise'].ravel(),
+        log_pars(res['pcal_Rnoise'].ravel(),
                    front='    pcal Rnoise:    ')
-        print_pars(res['pcal_gnoise'].ravel(),
+        log_pars(res['pcal_gnoise'].ravel(),
                    front='    pcal goise:    ')
 
 
@@ -3529,7 +3518,7 @@ class PostcalSimpFitter(PostcalFitter):
 
         res=super(PostcalSimpFitter,self)._do_postcal(obs)
 
-        print("    Calculating Rp")
+        logger.debug("    Calculating Rp")
 
         gm = self.fitter.get_gmix()
 
@@ -3556,8 +3545,8 @@ class PostcalSimpFitter(PostcalFitter):
         )
 
 
-        #print_pars(pres_full['pcal_R'].ravel(), front="Rfull:")
-        #print_pars(pres_p['pcal_R'].ravel(), front="Rp:")
+        #log_pars(pres_full['pcal_R'].ravel(), front="Rfull:")
+        #log_pars(pres_p['pcal_R'].ravel(), front="Rp:")
         gp = pres_full['pcal_g'] - pres_p['pcal_g']
         Rp = pres_full['pcal_R'] - pres_p['pcal_R']
 
@@ -3572,9 +3561,9 @@ class PostcalSimpFitter(PostcalFitter):
         """
 
         super(PostcalSimpFitter,self)._print_res(res)
-        print_pars(res['pcal_Rp'].ravel(),
+        log_pars(res['pcal_Rp'].ravel(),
                    front='    pcal Rp:    ')
-        print_pars(res['pcal_gp'].ravel(),
+        log_pars(res['pcal_gp'].ravel(),
                    front='    pcal gp:    ')
 
 
@@ -3621,7 +3610,7 @@ class PostcalSimShearpFitter(PostcalSimpFitter):
 
         res=super(PostcalSimpFitter,self)._do_postcal(obs)
 
-        print("    Calculating Rp")
+        logger.debug("    Calculating Rp")
 
         gm = self.fitter.get_gmix()
 
@@ -3793,7 +3782,6 @@ class PSFSymmetrizedImageShearer(object):
         self.sym_gal_int = galsim.Convolve(self.sym_psf_int, image_int_nopsf)
 
     def _get_symmetrized_psf_nopix(self):
-        #print("    Getting symmetrized psf")
         sym_psf_int = ngmix.metacal._make_symmetrized_gsimage_int(
             self.obs.psf.image,
             self.get_psf_wcs(),
@@ -3803,7 +3791,7 @@ class PSFSymmetrizedImageShearer(object):
         psf_int_nopix = galsim.Convolve([sym_psf_int, self.pixel_inv])
 
         dilation=self._get_symmetrize_dilation()
-        print("    dilating by:",dilation)
+        logger.debug("    dilating by:",dilation)
 
         psf_int_nopix = psf_int_nopix.dilate(dilation)
         return psf_int_nopix
@@ -4045,14 +4033,14 @@ class ShearNullFitterPrepsf(SimpleFitterBase):
             if ier > 4:
                 flags = 2**(ier-5)
                 pars,pcov,perr=ngmix.fitting._get_def_stuff(npars)
-                print('    ',errmsg)
+                logger.debug('    %s' % errmsg)
 
             elif pcov is None:
                 # why on earth is this not in the flags?
                 flags += ngmix.fitting.LM_SINGULAR_MATRIX
                 errmsg = "singular covariance"
-                print('    ',errmsg)
-                print_pars(pars,front='    pars at singular:')
+                logger.debug('    %s' % errmsg)
+                log_pars(pars,front='    pars at singular:')
                 junk,pcov,perr=ngmix.fitting._get_def_stuff(npars)
             else:
                 # only if we reach here did everything go well
@@ -4077,7 +4065,7 @@ class ShearNullFitterPrepsf(SimpleFitterBase):
                 res['nfev']=-1
                 res['flags']=LM_FUNC_NOTFINITE
                 res['errmsg']="not finite"
-                print('    not finite')
+                logger.debug('    not finite')
             else:
                 raise e
 
@@ -4090,7 +4078,7 @@ class ShearNullFitterPrepsf(SimpleFitterBase):
 
             res['flags']=DIV_ZERO
             res['errmsg']="zero division"
-            print('    zero division')
+            logger.debug('    zero division')
 
         return res
 
@@ -4103,13 +4091,13 @@ class ShearNullFitterPrepsf(SimpleFitterBase):
         if 'nfev' in res:
             mess="    s2n: %.1f  ntry: %d  nfev: %d"
             mess = mess % (res['s2n_w'],res['ntry'],res['nfev'])
-            print(mess)
+            logger.debug(mess)
 
-        print_pars(res['pars'],      front='        pars: ')
-        print_pars(res['pars_err'],  front='        perr: ')
+        log_pars(res['pars'],      front='        pars: ')
+        log_pars(res['pars_err'],  front='        perr: ')
 
         if res['pars_true'][0] is not None:
-            print_pars(res['pars_true'], front='        true: ')
+            log_pars(res['pars_true'], front='        true: ')
 
     def _get_dtype(self):
         """
@@ -4566,7 +4554,7 @@ class PPMetacalFitter(MaxFitter):
                       + res2m['s2n_r'])/4.0
 
         if self['verbose']:
-            print_pars(pars_mean, front='    parsmean:   ')
+            log_pars(pars_mean, front='    parsmean:   ')
 
         R=numpy.zeros( (2,2) ) 
         Rpsf=numpy.zeros(2)
@@ -4594,8 +4582,8 @@ class PPMetacalFitter(MaxFitter):
         """
 
         super(PPMetacalFitter,self)._print_res(res)
-        print_pars(res['ppmcal_pars'],       front='    ppmcal pars: ')
-        print_pars(res['ppmcal_R'].ravel(),  front='    ppmcal R:    ')
+        log_pars(res['ppmcal_pars'],       front='    ppmcal pars: ')
+        log_pars(res['ppmcal_R'].ravel(),  front='    ppmcal R:    ')
 
     def _get_dtype(self):
         """
@@ -4785,15 +4773,15 @@ class EMMetacalFitter(SimpleFitterBase):
 
         mess="    ntry: %d  numiter: %d"
         mess = mess % (res['ntry'],res['numiter'])
-        print(mess)
+        logger.debug(mess)
 
-        print_pars(res['pars'],            front='    pars: ')
+        log_pars(res['pars'],            front='    pars: ')
 
-        print_pars(res['mcal_pars'],       front='    mcal pars: ')
-        print_pars(res['mcal_R'].ravel(),  front='    mcal R:    ')
-        print_pars(res['mcal_Rpsf'],       front='    mcal Rpsf: ')
+        log_pars(res['mcal_pars'],       front='    mcal pars: ')
+        log_pars(res['mcal_R'].ravel(),  front='    mcal R:    ')
+        log_pars(res['mcal_Rpsf'],       front='    mcal Rpsf: ')
 
-        print("    mcal c:",res['mcal_c'][0], res['mcal_c'][1])
+        logger.debug("    mcal c: %s %" % (res['mcal_c'][0], res['mcal_c'][1]))
 
 
 
@@ -5074,11 +5062,11 @@ class AMMetacalFitter(FitterBase):
 
         mess="    s2n: %(s2n).1f ntry: %(ntry)d numiter: %(numiter)d"
         mess=mess % res
-        print(mess)
+        logger.debug(mess)
 
         e1=res['e1']
         e2=res['e2']
-        print("    mcal s2n:",res['noshear']['s2n'],'e1:',e1,'e2:',e2)
+        logger.debug("    mcal s2n: %s " % (res['noshear']['s2n'],'e1:',e1,'e2:',e2))
 
     def _get_prior(self):
         return None
@@ -5259,7 +5247,7 @@ class NCalFitter(MaxFitter):
         """
 
         super(NCalFitter,self)._print_res(res)
-        print_pars(res['ncal_R'].ravel(),  front='    ncal R:    ')
+        log_pars(res['ncal_R'].ravel(),  front='    ncal R:    ')
 
     def _get_dtype(self):
         """
@@ -5400,13 +5388,13 @@ class Deconvolver(FitterBase):
         wpname=self['plot_base']+'-%06d-kwt.png' % self.igal
         ipname=self['plot_base']+'-%06d-kim.png' % self.igal
 
-        print(pname)
+        logging.debug(pname)
         tab.write_img(width,height,pname)
 
-        print(wpname)
+        logging.debug(wpname)
         wplt.write_img(800,400,wpname)
 
-        print(ipname)
+        logging.debug(ipname)
         itab.write_img(800,800,ipname)
 
 
@@ -5420,7 +5408,7 @@ class Deconvolver(FitterBase):
 
         rat=res['imsum']/res['wflux']
         tup=(res['dk'],res['T'],res['imsum'],res['wflux'],rat,res['e'][0],res['e'][1])
-        print("    dk: %g T: %g imsum: %g wflux: %g rat: %g e1: %g e2: %g" % tup)
+        logger.debug("    dk: %g T: %g imsum: %g wflux: %g rat: %g e1: %g e2: %g" % tup)
 
     def _get_dtype(self):
         """
@@ -5610,7 +5598,7 @@ class MetacalMomentsOLD(SimpleFitterBase):
              res['pars'][4],
              res['pars'][2],
              res['pars'][3])
-        print("    s2n: %g T: %g M1: %g M2: %g" % tup)
+        logger.debug("    s2n: %g T: %g M1: %g M2: %g" % tup)
 
     def _get_dtype(self):
         """
@@ -5836,7 +5824,7 @@ class NullerBase(object):
         if not res.success:
             flags=1
             pars=zeros(self.npars)-9999
-            print(res)
+            logger.debug(res)
         else:
             pars=res.x
 
@@ -5848,12 +5836,12 @@ class NullerBase(object):
                 s2n_w = fres['pars_real'][5]/numpy.sqrt(c5)
             else:
                 flags=1
-                print("bad covariance:",c5)
-                print("nfev:",res.nfev)
-                ngmix.print_pars(pars,front="  pars: ")
-                ngmix.print_pars(fres['pars_real'],front="  momreal: ")
-                ngmix.print_pars(fres['pars_imag'],front="  momimag: ")
-                print(fres)
+                logger.debug("bad covariance: %s" % c5)
+                logger.debug("nfev: %s" % res.nfev)
+                log_pars(pars,front="  pars: ")
+                log_pars(fres['pars_real'],front="  momreal: ")
+                log_pars(fres['pars_imag'],front="  momimag: ")
+                logger.debug(fres)
 
         self._result={
             'flags':flags,
@@ -5923,7 +5911,7 @@ class NullerKSigma(NullerBase):
         pars are [cen1, cen2, shear1, shear2]
         """
 
-        #ngmix.print_pars(pars,      front="pars:  ",fmt='%g')
+        #ngmix.log_pars(pars,      front="pars:  ",fmt='%g')
 
         obs=self.obs
 
@@ -6088,12 +6076,6 @@ class NullerGauss2(NullerBase):
                     colshift,
                 )
 
-            """
-            ngmix.print_pars(pars_real, front="    real: ",fmt='%g')
-            ngmix.print_pars(pars_imag, front="    imag: ",fmt='%g')
-            print("e1:",pars_real[2]/pars_real[4])
-            print("e2:",pars_real[3]/pars_real[4])
-            """
 
             for i in xrange(self.npars):
                 moms[i] = abs(complex(pars_real[i],pars_imag[i]))
@@ -6134,7 +6116,7 @@ class NullerGauss2(NullerBase):
         wt=impsf*imgal
 
         ksigma_sq = 1.0/(self.sigma_gal2 + 4*self.sigma_psf2)
-        print("implied total sigma:",sqrt(1.0/ksigma_sq))
+        logger.debug("implied total sigma: %s " % (sqrt(1.0/ksigma_sq)))
         gwt=ngmix.GMixModel([0.0, 0.0, 0.0, 0.0, 2*ksigma_sq, 1.0],"gauss")
         #gwt=ngmix.GMixModel([0.0, 0.0, 0.0, 0.0, 2*(1.0/3.5)**2, 1.0],"gauss")
 
@@ -6178,7 +6160,7 @@ class NullGauss2Fitter(SimpleFitterBase):
         for i in xrange(4):
 
             guess=self._get_guess(pars)
-            print_pars(guess, front="        guess: ")
+            log_pars(guess, front="        guess: ")
             nuller.go(guess)
 
             res=nuller.get_result()
@@ -6287,19 +6269,13 @@ class NullGauss2Fitter(SimpleFitterBase):
         if 'nfev' in res:
             mess="    s2n: %.1f  ntry: %d  nfev: %d"
             mess = mess % (res['s2n_w'],res['ntry'],res['nfev'])
-            print(mess)
+            logger.debug(mess)
 
-        print_pars(res['pars'],      front='        pars: ')
+        log_pars(res['pars'],      front='        pars: ')
 
         if res['pars_true'][0] is not None:
-            print_pars(res['pars_true'], front='        true: ')
+            log_pars(res['pars_true'], front='        true: ')
 
-            if True:
-                print(
-                    "        gdiff:",
-                    res['pars'][2]-res['pars_true'][2],
-                    res['pars'][3]-res['pars_true'][3],
-                )
 
     def _get_dtype(self):
         """

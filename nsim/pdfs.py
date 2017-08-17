@@ -1,4 +1,7 @@
 from __future__ import print_function
+
+import logging
+
 import os, sys
 import fitsio
 import numpy
@@ -7,6 +10,8 @@ from esutil.numpy_util import between
 import galsim
 
 from . import files
+
+logger = logging.getLogger(__name__)
 
 class DiscreteSampler(object):
     def __init__(self, vals, rng=None):
@@ -142,13 +147,13 @@ class CosmosR50Flux(object):
         r50min,r50max=self.r50_sanity_range
         fmin,fmax=self.flux_sanity_range
 
-        print("reading cosmos file:",fname)
+        logger.info("reading cosmos file: %s" % fname)
         alldata=fitsio.read(fname)
         w,=numpy.where(
             between(alldata['hlr'][:,0], r50min, r50max) &
             between(alldata['flux'][:,0], fmin, fmax)
         )
-        print("kept %d/%d" % (w.size, alldata.size))
+        logger.debug("kept %d/%d" % (w.size, alldata.size))
 
         self.alldata=alldata[w]
 
@@ -174,14 +179,14 @@ class CosmosR50Flux(object):
         r50min,r50max=self.r50_sanity_range
         fmin,fmax=self.flux_sanity_range
 
-        print("reading cosmos file:",fname)
+        logger.info("reading cosmos file: %s" % fname)
         alldata=fitsio.read(fname, lower=True)
         w,=numpy.where(
             (alldata['viable_sersic']==1) &
             between(alldata['hlr'][:,0], r50min, r50max) &
             between(alldata['flux'][:,0], fmin, fmax)
         )
-        print("kept %d/%d" % (w.size, alldata.size))
+        logger.debug("kept %d/%d" % (w.size, alldata.size))
 
         self.alldata=alldata[w]
 

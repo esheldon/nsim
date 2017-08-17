@@ -6,6 +6,8 @@ for some sims npair might just be ngal
 """
 
 from __future__ import print_function
+import sys
+import logging
 
 import nsim
 
@@ -26,17 +28,22 @@ parser.add_argument('--make-plots',action='store_true',
 parser.add_argument("--profile", action='store_true',
                   help=("Profile the code using cProfile"))
 
+parser.add_argument("--loglevel", default='info',
+                  help=("logging level"))
 
 def main():
     args=parser.parse_args()
 
-    print('reading config files')
+    nsim.util.setup_logging(args.loglevel)
+    logger=logging.getLogger(__name__)
+
+    logger.info('reading config files')
     run_conf = nsim.files.read_config(args.run)
     sim_conf = nsim.files.read_config(run_conf['sim'])
     sim_conf['make_plots'] = args.make_plots
 
     if args.profile:
-        print('profiling sim with cProfile')
+        logger.info('profiling sim with cProfile')
         nsim.run.profile_sim(
             args.seed,
             sim_conf,
@@ -45,7 +52,7 @@ def main():
             args.output_file,
         )
     else:
-        print('running sim')
+        logger.info('running sim')
         nsim.run.go(
             args.seed,
             sim_conf,

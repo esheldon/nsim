@@ -1,11 +1,14 @@
 from __future__ import print_function
 
 import os
+import logging
 import fitsio
 from . import sime
 from . import fitters
 from . import moments
 from . import util
+
+logger = logging.getLogger(__name__)
 
 def profile_sim(seed,sim_conf,run_conf,npairs,output_file):
     # don't want to see the JIT
@@ -233,5 +236,5 @@ def write_output(output_file, data, write_local=False):
     if write_local:
         success=util.write_fits(output_file, data)
     else:
-        print("writing:",output_file)
+        logger.info("writing: %s" % output_file)
         fitsio.write(output_file, data, clobber=True)

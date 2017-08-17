@@ -125,7 +125,9 @@
     # bugged, not using noise image
     - sim-e07
 
-    # sim-e08 fwhm similar to DES
+    # sim-e08 fwhm similar to DES but trimmed to
+    # [0.8, 1.15]
+
     S/N > 10 T/Tpsf > 0.5
         errors are 2 sigma
         without correction
@@ -145,6 +147,12 @@
 
     # sim-e09
     # same as sim-e08 but not coadding, to compare noise
+    noise same in e1 where there was no psf anisotropy,
+    but 8% higher in e2 where there was typically 0.01
+
+    # should try two more sims, each with psf anisotropy
+    # in both dimensions
+
 
 
     # sim-e14ln

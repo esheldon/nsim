@@ -136,7 +136,7 @@ class FitterBase(dict):
 
         logger.info("nprocessed (including failures): %s" % n_proc)
         logger.info('time minutes: %s' % self.tm_minutes)
-        logger.info('time per (total) %s:' % (self.tm/self['ngal']))
+        logger.info('time per (total) %s' % (self.tm/self['ngal']))
         logger.info('time to simulate: %s' % (self.tm_sim/n_sim))
         logger.info('time to fit: %s' % (self.tm_fit/n_proc))
 

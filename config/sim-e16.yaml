@@ -43,7 +43,7 @@ psf:
 
     shape:
         type: "normal2d"
-        cen: [0.1, 0.01]
+        cen: [0.01, 0.01]
         sigma: [0.01, 0.01]
 
 

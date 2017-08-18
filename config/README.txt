@@ -154,6 +154,8 @@
     # in both dimensions
 
 
+    sim-e16 same as e08 but net psf anisotropy in both dims
+    sim-e17
 
     # sim-e14ln
     # fwhm dist similar to DES but low noise

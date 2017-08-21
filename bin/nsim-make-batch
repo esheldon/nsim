@@ -50,6 +50,7 @@ _slr_template_shifter="""#!/bin/bash -l
 #SBATCH --nodes=%(nodes)d
 #SBATCH --time=%(walltime)s
 #SBATCH --job-name=%(job_name)s
+#SBATCH --output=%(job_name)s.out
 #SBATCH --license=SCRATCH
 #SBATCH --constraint=%(constraint)s
 #SBATCH --account=des

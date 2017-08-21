@@ -811,10 +811,10 @@ class MaxMetacalFitter(MaxFitter):
         Fit according to the requested method
         """
 
-        assert len(obslist) == 1
-        obs=obslist[0]
+        #assert len(obslist) == 1
+        #obs=obslist[0]
 
-        mdict = self._do_fits(obs)
+        mdict = self._do_fits(obslist)
         res=mdict['res']
         fitter=mdict['fitter']
 
@@ -888,8 +888,9 @@ class MaxMetacalFitter(MaxFitter):
 
             res['T_r'] = rres['T_r']
 
-            res['psf_T'] = obs.psf.gmix.get_T()
+            #res['psf_T'] = obs.psf.gmix.get_T()
             res['psf_T_r'] = rres['psf_T_r']
+            res['psf_T'] = rres['psf_T_r']
 
             if covconf['replace_cov']:
                 boot.try_replace_cov(covconf['cov_pars'])

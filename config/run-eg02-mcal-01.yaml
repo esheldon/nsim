@@ -42,7 +42,7 @@ ngal: 20000000
 
 # time for the entire MPI job at nersc
 queue: "regular"
-nodes: 100
+nodes: 200
 constraint: "haswell"
 
 # boosted by ~1.2

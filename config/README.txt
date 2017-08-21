@@ -157,6 +157,24 @@
     sim-e16 same as e08 but net psf anisotropy in both dims
     sim-e17
 
+    variance looks about the same; I think this is because doing
+    admom, so it is almost like we are coadding anyway
+
+
+    - new one where fitting psf. this time use gauss psf so
+      we are doing a good psf fit.  Will compare with and without
+      good psf fitting, sort of maximal difference in the variance
+
+    - sim-eg01
+        - like sim-e16, coadding
+        - run-eg01-mcal-01 running at nersc
+
+    - sim-eg02
+        - like sim-e17, not coadding
+        - run-eg02-mcal-01 running at nersc
+
+
+
     # sim-e14ln
     # fwhm dist similar to DES but low noise
     # now using higher interpolation

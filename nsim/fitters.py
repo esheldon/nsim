@@ -462,7 +462,7 @@ class SimpleFitterBase(FitterBase):
                         rng=self.rng,
                     )
 
-            elif Tp['type']=="two-sided-erf":
+            elif Tp['type'] in ['TwoSidedErf',"two-sided-erf"]:
                 T_prior_pars = Tp['pars']
                 T_prior=ngmix.priors.TwoSidedErf(*T_prior_pars, rng=self.rng)
             else:
@@ -495,7 +495,7 @@ class SimpleFitterBase(FitterBase):
                     rng=self.rng,
                 )
 
-            elif r50p['type']=="two-sided-erf":
+            elif r50p['type'] in ['TwoSidedErf',"two-sided-erf"]:
                 r50_prior=ngmix.priors.TwoSidedErf(*r50p['pars'], rng=self.rng)
 
             elif r50p['type']=="flat":
@@ -520,7 +520,7 @@ class SimpleFitterBase(FitterBase):
                 )
 
 
-            elif nup['type']=="two-sided-erf":
+            elif nup['type'] in ['TwoSidedErf',"two-sided-erf"]:
                 nu_prior=ngmix.priors.TwoSidedErf(*nup['pars'], rng=self.rng)
 
             elif nup['type']=="flat":
@@ -586,7 +586,7 @@ class SimpleFitterBase(FitterBase):
                 rng=self.rng,
             )
 
-        elif cp['type']=="two-sided-erf":
+        elif cp['type'] in ['TwoSidedErf',"two-sided-erf"]:
             counts_prior=ngmix.priors.TwoSidedErf(*cp['pars'], rng=self.rng)
 
         elif cp['type']=="flat":
@@ -829,6 +829,16 @@ class MaxMetacalFitter(MaxFitter):
                                  verbose=False)
         return boot
 
+    def _get_psf_T_guess(self, obslist):
+        if isinstance(obslist,ngmix.observation.ObsList):
+            j=obslist[0].jacobian
+        else:
+            j=obslist.jacobian
+
+        scale=j.get_scale()
+        Tguess = 4.0*scale**2
+        return Tguess
+ 
     def _do_fits(self, obs):
         """
         the basic fitter for this class
@@ -839,24 +849,25 @@ class MaxMetacalFitter(MaxFitter):
 
         boot=self._get_bootstrapper(obs)
 
-        Tguess=self.sim.get('psf_T',4.0)
+        mconf=self['max_pars']
+        covconf=mconf['cov']
+
         ppars=self['psf_pars']
 
-        psf_fit_pars = ppars.get('fit_pars',None)
-
         try:
+            Tguess=self._get_psf_T_guess(obs)
             # redo psf in case we did replacement fit above
-            boot.fit_psfs(ppars['model'],
-                          Tguess,
-                          ntry=ppars['ntry'],
-                          skip_already_done=False,
-                          fit_pars=psf_fit_pars)
+            boot.fit_psfs(
+                ppars['model'],
+                Tguess,
+                ntry=mconf['ntry'],
+                fit_pars=mconf['pars']['lm_pars'],
+                skip_already_done=False,
+            )
 
         except BootPSFFailure:
             raise TryAgainError("failed to fit psf")
 
-        mconf=self['max_pars']
-        covconf=mconf['cov']
 
         try:
             boot.fit_max(self['fit_model'],

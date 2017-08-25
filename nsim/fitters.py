@@ -679,23 +679,29 @@ class MaxFitter(SimpleFitterBase):
                                 use_round_T=use_round_T,
                                 verbose=False)
 
-        #Tguess = 4.0*obslist[0].jacobian.get_scale()
-        # guess FWHM=1'' which is 
-        sigma_guess = ngmix.moments.fwhm_to_sigma(1.0)
-        Tguess = 2*sigma_guess**2
-        ppars=self['psf_pars']
-        try:
-            boot.fit_psfs(ppars['model'], Tguess, ntry=ppars['ntry'])
-        except BootPSFFailure:
-            raise TryAgainError("failed to fit psf")
-
         mconf=self['max_pars']
         covconf=mconf['cov']
 
+        #Tguess = 4.0*obslist[0].jacobian.get_scale()
+        # guess FWHM=1'' which is 
+        #sigma_guess = ngmix.moments.fwhm_to_sigma(1.0)
+        #Tguess = 2*sigma_guess**2
+        Tguess=self._get_psf_T_guess(obslist)
+
+        ppars=self['psf_pars']
+        try:
+            boot.fit_psfs(
+                ppars['model'],
+                Tguess,
+                ntry=mconf['ntry'],
+            )
+        except BootPSFFailure:
+            raise TryAgainError("failed to fit psf")
+
+
         try:
             boot.fit_max(self['fit_model'],
-                         #mconf['pars'],
-                         mconf,
+                         mconf['pars'],
                          prior=self.prior,
                          ntry=mconf['ntry'])
 
@@ -725,6 +731,16 @@ class MaxFitter(SimpleFitterBase):
 
         return fitter
 
+    def _get_psf_T_guess(self, obslist):
+        if isinstance(obslist,ngmix.observation.ObsList):
+            j=obslist[0].jacobian
+        else:
+            j=obslist.jacobian
+
+        scale=j.get_scale()
+        Tguess = 4.0*scale**2
+        return Tguess
+ 
     def _print_res(self,res):
         """
         print some stats
@@ -829,16 +845,7 @@ class MaxMetacalFitter(MaxFitter):
                                  verbose=False)
         return boot
 
-    def _get_psf_T_guess(self, obslist):
-        if isinstance(obslist,ngmix.observation.ObsList):
-            j=obslist[0].jacobian
-        else:
-            j=obslist.jacobian
 
-        scale=j.get_scale()
-        Tguess = 4.0*scale**2
-        return Tguess
- 
     def _do_fits(self, obs):
         """
         the basic fitter for this class

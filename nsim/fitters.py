@@ -611,13 +611,23 @@ class SimpleFitterBase(FitterBase):
             raise ValueError("bad cen prior: '%s'" % cp['type'])
 
         if nu_prior is not None:
-            prior = ngmix.joint_prior.PriorSpergelSep(
-                cen_prior,
-                g_prior,
-                r50_prior,
-                nu_prior,
-                counts_prior,
-            )
+            if 'spergel' in self['fit_model']:
+                prior = ngmix.joint_prior.PriorSpergelSep(
+                    cen_prior,
+                    g_prior,
+                    r50_prior,
+                    nu_prior,
+                    counts_prior,
+                )
+            else:
+                prior=ngmix.joint_prior.PriorSersicSep(
+                    cen_prior,
+                    g_prior,
+                    T_prior,
+                    nu_prior,
+                    counts_prior,
+                )
+
         elif r50_prior is not None:
             prior = PriorSimpleSep(cen_prior,
                                    g_prior,

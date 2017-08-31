@@ -519,6 +519,13 @@ class SimpleFitterBase(FitterBase):
                     rng=self.rng,
                 )
 
+            elif nup['type']=='normal':
+                nu_prior = ngmix.priors.Normal(
+                    nup['mean'],
+                    nup['sigma'],
+                    rng=self.rng,
+                )
+
 
             elif nup['type'] in ['TwoSidedErf',"two-sided-erf"]:
                 nu_prior=ngmix.priors.TwoSidedErf(*nup['pars'], rng=self.rng)

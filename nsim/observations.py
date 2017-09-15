@@ -478,7 +478,7 @@ class ObservationMaker(dict):
             nrand = self['noise']['num']
             sigma_min,sigma_max = self['noise']['sigma_range']
 
-            sigmas=numpy.random.uniform(
+            sigmas=self.rng.uniform(
                 low=sigma_min,
                 high=sigma_max,
                 size=nrand,

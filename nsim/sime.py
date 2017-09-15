@@ -4,6 +4,7 @@ import logging
 
 import pprint
 import numpy
+import random
 
 from . import files
 from . import psfs
@@ -26,6 +27,7 @@ class Sim(dict):
         # local, we produce the same sim independent of the fitting
         # code which may use the global.
         numpy.random.seed(seed)
+        random.seed(numpy.random.randint(0,2**30))
         self.rng=numpy.random.RandomState(seed=numpy.random.randint(0,2**30))
         self.galsim_rng = galsim.BaseDeviate(self.rng.randint(0,2**30))
 

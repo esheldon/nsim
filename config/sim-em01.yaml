@@ -1,6 +1,6 @@
 images:
 
-    noise: 0.001
+    noise: 0.01
 
     psf:
         s2n: 10000

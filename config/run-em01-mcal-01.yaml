@@ -45,9 +45,9 @@ max_pars:
 # run details
 #
 
-ngal: 2000000
+ngal: 20000000
 
-desired_hours: 0.25
+desired_hours: 1.0
 
 # this is max we saw on all systems at BNL
 sec_per: 0.5

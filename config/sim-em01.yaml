@@ -1,0 +1,39 @@
+images:
+
+    noise: 0.01
+
+    psf:
+        s2n: 10000
+
+    object:
+        nepoch: 1
+        cen_shift:
+            type: "uniform"
+            radius: 1 # pixels
+
+    wcs:
+      dudx: 0.0
+      dudy: 0.263
+      dvdx: 0.263
+      dvdy: 0.0
+
+psf:
+    model: "moffat"
+
+    beta: 3.5
+    fwhm: 0.9
+
+    shape: [0.00, 0.01]
+
+
+object:
+    model: "exp"
+
+    g:
+        type: "ba"
+        sigma: 0.02
+
+    r50_flux:
+        type: "cosmos"
+
+shear: [0.02, 0.00]

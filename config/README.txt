@@ -192,6 +192,16 @@
     # limiting to fwhm [0.85,1.1]
 
 
+    # testing flux noise with and without coadd
+    sim-eg06
+        - with coaddition
+        - run-eg06-max-01
+
+    sim-eg07
+        - without coaddition
+        - run-eg07-max-01
+
+
 - testing s/g sep
     - sim-stars03 gauss psf, more realistic s/n distribution for
       stars and N(flux) ~ flux^{-1.4}

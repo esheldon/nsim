@@ -19,7 +19,7 @@ priors:
         type: "ba"
         sigma: 0.3
 
-    nu:
+    n:
         type: "TwoSidedErf"
         #pars: [0.7, 0.05, 5.5, 0.1]
         pars: [0.7, 0.05, 4.0, 1.0]

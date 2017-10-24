@@ -19,11 +19,11 @@ priors:
         type: "ba"
         sigma: 0.3
 
-    nu:
-        type: flat
-        pars: [0.5, 6.0]
-        #type: "TwoSidedErf"
-        #pars: [0.7, 0.05, 5.5, 0.1]
+    n:
+        #type: flat
+        #pars: [0.5, 6.0]
+        type: "TwoSidedErf"
+        pars: [0.7, 0.05, 5.5, 0.1]
         #pars: [0.7, 0.05, 4.0, 1.0]
         #type: "normal"
         #mean: 4.0 

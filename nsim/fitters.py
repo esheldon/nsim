@@ -535,6 +535,38 @@ class SimpleFitterBase(FitterBase):
             else:
                 raise ValueError("bad nuprior: '%s'" % nup['type'])
 
+        n_prior=None
+        if 'n' in ppars:
+
+            np = ppars['n']
+
+            if np['type']=="gmixnd":
+                n_prior = load_gmixnd(np, rng=self.rng)
+
+            elif np['type']=='lognormal':
+                n_prior = ngmix.priors.LogNormal(
+                    np['mean'],
+                    np['sigma'],
+                    shift=np.get('shift',None),
+                    rng=self.rng,
+                )
+
+            elif np['type']=='normal':
+                n_prior = ngmix.priors.Normal(
+                    np['mean'],
+                    np['sigma'],
+                    rng=self.rng,
+                )
+
+
+            elif np['type'] in ['TwoSidedErf',"two-sided-erf"]:
+                n_prior=ngmix.priors.TwoSidedErf(*np['pars'], rng=self.rng)
+
+            elif np['type']=="flat":
+                n_prior=ngmix.priors.FlatPrior(*np['pars'], rng=self.rng)
+            else:
+                raise ValueError("bad nprior: '%s'" % np['type'])
+
 
 
         cp=ppars['counts']
@@ -617,8 +649,17 @@ class SimpleFitterBase(FitterBase):
         else:
             raise ValueError("bad cen prior: '%s'" % cp['type'])
 
-        if nu_prior is not None:
-            if 'spergel' in self['fit_model']:
+        if n_prior is not None:
+            prior=ngmix.joint_prior.PriorSersicSep(
+                cen_prior,
+                g_prior,
+                T_prior,
+                n_prior,
+                counts_prior,
+            )
+        else:
+
+            if nu_prior is not None:
                 prior = ngmix.joint_prior.PriorSpergelSep(
                     cen_prior,
                     g_prior,
@@ -626,26 +667,17 @@ class SimpleFitterBase(FitterBase):
                     nu_prior,
                     counts_prior,
                 )
+            elif r50_prior is not None:
+                prior = PriorSimpleSep(cen_prior,
+                                       g_prior,
+                                       r50_prior,
+                                       counts_prior)
+
             else:
-                prior=ngmix.joint_prior.PriorSersicSep(
-                    cen_prior,
-                    g_prior,
-                    T_prior,
-                    nu_prior,
-                    counts_prior,
-                )
-
-        elif r50_prior is not None:
-            prior = PriorSimpleSep(cen_prior,
-                                   g_prior,
-                                   r50_prior,
-                                   counts_prior)
-
-        else:
-            prior = PriorSimpleSep(cen_prior,
-                                   g_prior,
-                                   T_prior,
-                                   counts_prior)
+                prior = PriorSimpleSep(cen_prior,
+                                       g_prior,
+                                       T_prior,
+                                       counts_prior)
         return prior
 
 

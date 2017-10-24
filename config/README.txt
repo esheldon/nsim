@@ -193,6 +193,7 @@
 
 
     # testing flux noise with and without coadd
+    # relatively high s/n 58
     sim-eg06
         - with coaddition
         - run-eg06-max-01
@@ -200,6 +201,17 @@
     sim-eg07
         - without coaddition
         - run-eg07-max-01
+
+    # testing flux noise with and without coadd
+    # relatively low s/n 13-14
+    sim-eg09
+        - with coaddition
+        - run-eg09-max-01
+
+    sim-eg10
+        - without coaddition
+        - run-eg10-max-01
+
 
 
 - testing s/g sep

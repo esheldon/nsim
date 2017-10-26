@@ -19,9 +19,9 @@ logger = logging.getLogger(__name__)
 
 def get_observation_maker(*args, **kw):
     conf = args[0]
-    if 'nnbr' in conf and conf['nnbr'] > 0:
-        #return NbrObservationMaker(*args)
-        return NbrObservationMakerMulti(*args, **kw)
+    if 'nbr' in conf:
+        return NbrObservationMaker(*args)
+        #return NbrObservationMakerMulti(*args, **kw)
     else:
         return ObservationMaker(*args, **kw)
         
@@ -157,46 +157,6 @@ class ObservationMaker(dict):
             cobjlist.append(cobj)
 
         return cobjlist, psflist, wcslist, meta
-
-    def __call__old(self):
-
-        objconf=self['object']
-
-        object, meta = self._get_object()
-
-        if 'randomize_morphology' in objconf:
-            # for multi-epoch sims
-            flux = object.getFlux()
-            try:
-                r50  = object.getHalfLightRadius()
-            except:
-                r50  = object.calculateHLR()
-
-        obslist = ngmix.observation.ObsList()
-
-        nepoch = objconf.get('nepoch',1)
-        for epoch in xrange(nepoch):
-
-            psf, psf_meta = self._get_psf()
-
-            if 'randomize_morphology' in objconf and epoch > 0:
-                # random ellipticity but same flux and size
-                r_flux, r_r50 = self._randomize_morphology(flux, r50)
-                object, meta = self._get_object(flux=r_flux, r50=r_r50)
-
-            obs = self._get_obs(psf, object)
-
-            obslist.append( obs )
-
-        meta['s2n']  = get_expected_s2n(obslist)
-
-        obslist.update_meta_data(meta)
-
-        if 'coadd' in self:
-            obslist = self._do_coadd(obslist)
-
-        return obslist
-
 
     def _do_coadd(self, obslist):
         import coaddsim
@@ -543,33 +503,117 @@ class ObservationMaker(dict):
                 raise ValueError("cen shift type should be 'uniform'")
 
 class NbrObservationMaker(ObservationMaker):
-    """
+    def __init__(self, *args, **kw):
+        super(NbrObservationMaker,self).__init__(*args, **kw)
+        self._set_nbr_sky_shift()
 
-    In this version we generate different objects totally separately and then
-    just add the images. I think this might not be right because then the whole
-    thing might not be sheared in a self-consistent way
 
-    Get an obs with neighbors
+    def _get_nbr_object(self, cen_obj):
+        """
+        get the galsim representation of the object
 
-    returns
-    -------
-    ngmix.Observation:
+        parameters
+        ----------
+        flux: float, optional
+            Force the given flux
+        r50: float, optional
+            Force the given r50
 
-    notes
-    ------
-        - the noise gets increased since the images are added
-        - you should fix the stamp size so the images can be added
-        - the cen_shift does not apply to the first object drawn
-          only subsequent ones
+        returns
+        -------
+        (gsobj, meta)
+           The galsim objects and metadata in a dictionary
+        """
 
-        - this requires the additional config parameter
-            object:
-                nnbr:   2 # number of neighbors
-                nepoch: 1 # only one epoch for now
-        - number of epochs must be 1 for now
-    """
+
+        nbrconf=self['nbr']
+
+        if 'size_ratio' in nbrconf:
+            r50 = cen_obj.half_light_radius*nbrconf['size_ratio']
+        else:
+            r50=None
+
+        if 'flux_ratio' in nbrconf:
+            flux = cen_obj.flux*nbrconf['flux_ratio']
+        else:
+            flux=None
+
+        objs = [obj]
+        for i in xrange(nbrconf['num']):
+            tobj, tmeta  = self.object_maker(r50=r50, flux=flux)
+
+            if self.nbr_sky_shift_pdf is not None:
+                shift = self._get_nbr_sky_shift()
+                tobj = tobj.shift(dx=shift[1], dy=shift[0])
+
+
+            # first shear the background shear
+            # only constant for now
+            if 'shear' in nbrconf:
+                tobj = tobj.shear(
+                    g1=nbrconf['shear'][0],
+                    g2=nbrconf['shear'][1],
+                )
+
+            # now add foreground shear
+            if self.shear_pdf is not None:
+                shear, shindex = self.shear_pdf.get_shear()
+                tobj = tobj.shear(g1=shear.g1, g2=shear.g2)
+
+            objs.append(tobj)
+
+        obj = galsim.Add(objs)
+
+        return obj, meta
+
+    def _set_nbr_sky_shift(self):
+        cr=self.get('nbr_sky_shift',None)
+
+        if cr is None:
+            self.nbr_sky_shift_pdf=None
+        else:
+            type=cr.get('type','uniform')
+            if type=='uniform':
+                self.nbr_sky_shift_pdf=ngmix.priors.FlatPrior(
+                    -cr['radius'], cr['radius'],
+                    rng=self.rng,
+                )
+            elif type=='disk':
+                self.nbr_sky_shift_pdf=ngmix.priors.ZDisk2D(
+                    cr['radius'],
+                    rng=self.rng,
+                )
+
+            elif type=='annulus':
+                self.nbr_sky_shift_pdf=ngmix.priors.ZAnnulus(
+                    cr['rmin'],
+                    cr['rmax'],
+                    rng=self.rng,
+                )
+
+
+            else:
+                raise ValueError("cen shift type should be 'uniform'")
+
+    def _get_nbr_sky_shift(self):
+        sky_shift_pdf = self.nbr_sky_shift_pdf
+        if hasattr(sky_shift_pdf,'sample2d'):
+            coff1,coff2 = sky_shift_pdf.sample2d()
+        else:
+            coff1 = sky_shift_pdf.sample()
+            coff2 = sky_shift_pdf.sample()
+
+        offset=(coff1,coff2)
+
+        logger.debug("sky shift: %g,%g" % offset)
+
+        return offset
+
+
+
     def __call__(self):
 
+        obj, meta = self._get_object()
 
         objconf=self['object']
         assert objconf['nepoch']==1

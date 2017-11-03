@@ -749,6 +749,7 @@ class MaxFitter(SimpleFitterBase):
 
 
         try:
+
             boot.fit_max(self['fit_model'],
                          mconf['pars'],
                          prior=self.prior,
@@ -766,6 +767,9 @@ class MaxFitter(SimpleFitterBase):
             res['psf_T'] = obslist[0].psf.gmix.get_T()
             res['psf_T_r'] = rres['psf_T_r']
 
+            pres=boot.get_psf_flux_result()
+            res['psf_flux'] = pres['psf_flux']
+            res['psf_flux_err'] = pres['psf_flux_err']
 
             if covconf['replace_cov']:
                 boot.try_replace_cov(covconf['cov_pars'])
@@ -835,7 +839,9 @@ class MaxFitter(SimpleFitterBase):
             ('T_r','f8'),
             ('psf_T_r','f8'),
             ('nfev','i4'),
-            ('ntry','i4')
+            ('ntry','i4'),
+            ('psf_flux','f8'),
+            ('psf_flux_err','f8'),
         ]
 
         if self['use_round_T']:
@@ -857,6 +863,9 @@ class MaxFitter(SimpleFitterBase):
             d['nfev'][i] = res['nfev']
             # set outside of fitter
             d['ntry'][i] = res['ntry']
+
+            d['psf_flux'][i] = res['psf_flux']
+            d['psf_flux_err'][i] = res['psf_flux_err']
 
             if self['use_round_T']:
                 d['T_s2n_r'][i] = res['T_s2n_r']

@@ -1,0 +1,50 @@
+images:
+
+    noise:
+        type: "uniform"
+        sigma_range: [0.114, 0.139]
+        num: 50
+
+    psf:
+        s2n: 10000
+
+    object:
+        nepoch: 10
+
+        cen_shift:
+            type: "uniform"
+            radius: 0.5 # pixels
+
+    wcs:
+      dudx: 0.0
+      dudy: 0.263
+      dvdx: 0.263
+      dvdy: 0.0
+
+psf:
+    model: "gauss"
+
+    fwhm:
+        type: "lognormal"
+        mean: 0.95
+        sigma: 0.10
+
+        limits: [0.8, 1.15]
+
+    shape:
+        type: "normal2d"
+        cen: [0.01, 0.01]
+        sigma: [0.01, 0.01]
+
+
+object:
+    model: "exp"
+
+    g:
+        type: "ba"
+        sigma: 0.02
+
+    r50: 0.15
+    flux: 14.0
+
+shear: [0.02, 0.00]

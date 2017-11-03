@@ -212,7 +212,18 @@
         - without coaddition
         - run-eg10-max-01
 
+    # no increaesed variance
+    # comparing to the gaussian calculations, we see that
+    # for sim-eg06 <R> = 0.86 and <s/n> = 58 so we could be in a regime
+    # where we expect no increased variance. Let's do one
 
+    # same as sim-eg06 at lower res
+    sim-eg11
+        - with coaddition
+        - run-eg11-max-01
+    sim-eg12
+        - without coaddition
+        - run-eg12-max-01
 
 - testing s/g sep
     - sim-stars03 gauss psf, more realistic s/n distribution for

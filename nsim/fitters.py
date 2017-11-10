@@ -864,8 +864,9 @@ class MaxFitter(SimpleFitterBase):
             # set outside of fitter
             d['ntry'][i] = res['ntry']
 
-            d['psf_flux'][i] = res['psf_flux']
-            d['psf_flux_err'][i] = res['psf_flux_err']
+            if 'psf_flux' in res:
+                d['psf_flux'][i] = res['psf_flux']
+                d['psf_flux_err'][i] = res['psf_flux_err']
 
             if self['use_round_T']:
                 d['T_s2n_r'][i] = res['T_s2n_r']

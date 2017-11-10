@@ -127,6 +127,7 @@
 
     # sim-e08 fwhm similar to DES but trimmed to
     # [0.8, 1.15]
+    run-e08-mcal-0[1-5].yaml
 
     S/N > 10 T/Tpsf > 0.5
         errors are 2 sigma

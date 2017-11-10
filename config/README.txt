@@ -151,6 +151,20 @@
     noise same in e1 where there was no psf anisotropy,
     but 8% higher in e2 where there was typically 0.01
 
+    # repeat with max like fitter to see if noise difference goes away
+    run-e08-mcal-t01 small run
+    run-e09-mcal-t01 small run
+    consistent noise
+
+    # large runs
+    run-e08-mcal-06 100M
+        running
+    run-e09-mcal-02 100M
+        to be run
+
+
+
+
     # should try two more sims, each with psf anisotropy
     # in both dimensions
 

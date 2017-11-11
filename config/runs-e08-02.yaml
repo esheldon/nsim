@@ -1,0 +1,8 @@
+
+name: run-e08-02
+
+runs: [
+    run-e08-mcal-06,
+    run-e08-mcal-07,
+    #run-e08-mcal-08,
+]

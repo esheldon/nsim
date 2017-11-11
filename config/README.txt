@@ -159,8 +159,13 @@
     # large runs
     run-e08-mcal-06 100M
     run-e08-mcal-07 200M
+        lots failed, got 125M
     run-e08-mcal-08 200M
         running
+    run-e08-mcal-09 200M
+        running
+
+
     run-e09-mcal-02 100M
         to be run
 

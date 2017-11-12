@@ -161,9 +161,30 @@
     run-e08-mcal-07 200M
         lots failed, got 125M
     run-e08-mcal-08 200M
-        running
     run-e08-mcal-09 200M
-        running
+    run-e08-mcal-10 200M
+
+    s/n > 10 T/Tpsf > 0.5
+    without correction
+    errors are 2 sigma
+    m: 5.423e-02 +/- 1.083e-03  c: 3.427e-06 +/- 2.164e-05
+
+    with correction
+    errors are 2 sigma
+    m: 1.510e-05 +/- 1.027e-03  c: 3.250e-06 +/- 2.051e-05
+
+
+    s/n > 15 T/Tpsf > 0.5
+    without correction
+    errors are 2 sigma
+    m: 4.598e-02 +/- 8.934e-04  c: -4.721e-06 +/- 1.786e-05
+
+    with correction
+    errors are 2 sigma
+    m: 6.536e-04 +/- 8.547e-04  c: -4.515e-06 +/- 1.708e-05
+
+
+    # probably want to do some more
 
 
     run-e09-mcal-02 100M

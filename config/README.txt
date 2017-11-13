@@ -164,6 +164,11 @@
     run-e08-mcal-09 200M
     run-e08-mcal-10 200M
 
+    # more running now...
+    run-e08-mcal-11 400M done
+    run-e08-mcal-12 400M running
+    run-e08-mcal-13 400M running
+
     s/n > 10 T/Tpsf > 0.5
     without correction
     errors are 2 sigma
@@ -184,9 +189,6 @@
     m: 6.536e-04 +/- 8.547e-04  c: -4.515e-06 +/- 1.708e-05
 
 
-    # more
-    run-e08-mcal-11 400M
-    run-e08-mcal-12 400M
 
     # no coadding, for variance test
     run-e09-mcal-02 100M

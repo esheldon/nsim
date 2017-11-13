@@ -184,11 +184,13 @@
     m: 6.536e-04 +/- 8.547e-04  c: -4.515e-06 +/- 1.708e-05
 
 
-    # probably want to do some more
+    # more
+    run-e08-mcal-11 400M
+    run-e08-mcal-12 400M
 
-
+    # no coadding, for variance test
     run-e09-mcal-02 100M
-        to be run
+        done
 
 
 

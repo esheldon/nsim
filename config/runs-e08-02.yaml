@@ -8,4 +8,6 @@ runs: [
     run-e08-mcal-09,
     run-e08-mcal-10,
     run-e08-mcal-11,
+    run-e08-mcal-12,
+    run-e08-mcal-13,
 ]

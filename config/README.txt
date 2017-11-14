@@ -166,8 +166,9 @@
 
     # more running now...
     run-e08-mcal-11 400M done
-    run-e08-mcal-12 400M running
+    run-e08-mcal-12 400M
     run-e08-mcal-13 400M running
+    run-e08-mcal-14 400M running
 
     s/n > 10 T/Tpsf > 0.5
     without correction

@@ -1,0 +1,63 @@
+# same as sim-e19 but low noise
+images:
+
+    # coadd the epochs
+    coadd:
+        type: "mean"
+        interp: "lanczos15"
+
+    noise: 0.001
+
+    psf:
+        s2n: 10000
+        #stamp_size: [48,48]
+
+    object:
+        nepoch: 10
+        #stamp_size: [48,48]
+
+    #    cen_shift:
+    #        type: "uniform"
+    #        radius: 0.5 # pixels
+
+    wcs:
+        dudx: 0.03
+        dudy: 0.27
+        dvdx: 0.25
+        dvdy: 0.015
+    #wcs:
+    #    dudx: 0.00
+    #    dudy: 0.263
+    #    dvdx: 0.263
+    #    dvdy: 0.00
+
+
+psf:
+    model: "moffat"
+
+    beta: 3.5
+
+    fwhm:
+        type: "lognormal"
+        mean: 0.95
+        sigma: 0.10
+
+        limits: [0.8, 1.15]
+
+    shape:
+        type: "normal2d"
+        cen: [0.0, 0.01]
+        sigma: [0.01, 0.01]
+
+
+object:
+    model: "exp"
+
+    g:
+        type: "ba"
+        sigma: 0.02
+
+    r50_flux:
+        type: "cosmos"
+
+shear: [0.02, 0.00]

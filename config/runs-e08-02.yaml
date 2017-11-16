@@ -11,4 +11,5 @@ runs: [
     run-e08-mcal-12,
     run-e08-mcal-13,
     run-e08-mcal-14,
+    run-e08-mcal-15,
 ]

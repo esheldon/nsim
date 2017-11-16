@@ -1,0 +1,7 @@
+
+name: run-e23-01
+
+runs: [
+    run-e23-mcal-01,
+    run-e23-mcal-02,
+]

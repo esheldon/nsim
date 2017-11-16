@@ -899,9 +899,18 @@ class MaxMetacalFitter(MaxFitter):
 
     def _get_bootstrapper(self, obs):
         from ngmix.bootstrap import MaxMetacalBootstrapper
-        boot=MaxMetacalBootstrapper(obs,
-                                 use_logpars=self['use_logpars'],
-                                 verbose=False)
+        metacal_pars=self['metacal_pars']
+        if metacal_pars.get('shear_psf_inv',False):
+            boot=MaxMetacalBootstrapperShearPSFInv(
+                obs,
+                verbose=False,
+            )
+
+        else:
+
+            boot=MaxMetacalBootstrapper(obs,
+                                     use_logpars=self['use_logpars'],
+                                     verbose=False)
         return boot
 
 
@@ -1088,7 +1097,119 @@ class MaxMetacalFitter(MaxFitter):
         logger.debug("    mcal s2n_r:" % res['s2n_r'])
         log_pars(res['pars'],       front='    mcal pars: ')
 
+class MaxMetacalBootstrapperShearPSFInv(ngmix.bootstrap.MaxMetacalBootstrapper):
+    def _get_all_metacal(self, metacal_pars, **kw):
+        metacal_pars=self._extract_metacal_pars(metacal_pars)
+        return get_all_metacal_shearpsfinv(self.mb_obs_list, **metacal_pars)
 
+
+class MetacalShearPSFInv(ngmix.metacal.Metacal):
+    def get_target_psf(self, shear, type, get_nopix=False):
+        """
+        get galsim object for the dilated, possibly sheared, psf
+
+        parameters
+        ----------
+        shear: ngmix.Shape
+            The applied shear
+        type: string
+            Type of psf target.  For type='gal_shear', the psf is just dilated to
+            deal with noise amplification.  For type='psf_shear' the psf is also
+            sheared for calculating Rpsf
+
+        returns
+        -------
+        galsim object
+        """
+
+        ngmix.metacal._check_shape(shear)
+        
+        denom = galsim.Deconvolve(self.psf_int_nopix).shear(
+            g1=shear.g1,
+            g2=shear.g2,
+        )
+        psf_grown_nopix = galsim.Deconvolve(denom)
+        psf_grown = galsim.Convolve(psf_grown_nopix,self.pixel)
+
+        # this should carry over the wcs
+        psf_grown_image = self.psf_image.copy()
+
+        try:
+            psf_grown.drawImage(
+                image=psf_grown_image,
+                method='no_pixel' # pixel is in the psf
+            )
+            import images
+            plt=images.multiview(psf_grown_image.array)
+            plt.write('shc.png',dpi=150)
+            stop
+
+            if get_nopix:
+                psf_grown_nopix_image = self.psf_image.copy()
+                psf_grown_nopix.drawImage(
+                    image=psf_grown_nopix_image,
+                    method='no_pixel' # pixel is in the psf
+                )
+
+                return psf_grown_image, psf_grown_nopix_image, psf_grown
+            else:
+                return psf_grown_image, psf_grown
+
+
+        except RuntimeError as err:
+            # argh, galsim uses generic exceptions
+            raise GMixRangeError("galsim error: '%s'" % str(err))
+
+
+def get_all_metacal_shearpsfinv(obs, step=0.01, **kw):
+    """
+    internal routine
+
+    get all metacal
+    """
+    if isinstance(obs, Observation):
+
+        m=MetacalShearPSFInv(obs, **kw)
+        odict=m.get_all(step, **kw)
+    elif isinstance(obs, ngmix.MultiBandObsList):
+        odict=make_metacal_mb_obs_list_dict_shearpsfinv(obs, step, **kw)
+    elif isinstance(obs, ngmix.ObsList):
+        odict=make_metacal_obs_list_dict_shearpsfinv(obs, step, **kw)
+    else:
+        raise ValueError("obs must be Observation, ObsList, "
+                         "or MultiBandObsList")
+
+    return odict
+
+def make_metacal_mb_obs_list_dict_shearpsfinv(mb_obs_list, step, **kw):
+
+    new_dict=None
+    for obs_list in mb_obs_list:
+        odict = make_metacal_obs_list_dict_shearpsfinv(obs_list, step, **kw)
+
+        if new_dict is None:
+            new_dict=ngmix.metacal._init_mb_obs_list_dict(odict.keys())
+
+        for key in odict:
+            new_dict[key].append(odict[key])
+
+    return new_dict
+
+
+def make_metacal_obs_list_dict_shearpsfinv(obs_list, step, **kw):
+    odict = None
+    first=True
+    for obs in obs_list:
+
+        todict=get_all_metacal_shearpsfinv(obs, step=step, **kw)
+
+        if odict is None:
+            odict=ngmix.metacal._init_obs_list_dict(todict.keys())
+
+        for key in odict:
+            odict[key].append( todict[key] )
+
+    return odict
 
 
 class GalsimFitter(SimpleFitterBase):

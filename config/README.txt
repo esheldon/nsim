@@ -163,40 +163,38 @@
     run-e08-mcal-08 200M
     run-e08-mcal-09 200M
     run-e08-mcal-10 200M
-
-    # more running now...
-    run-e08-mcal-11 400M done
+    run-e08-mcal-11 400M
     run-e08-mcal-12 400M
     run-e08-mcal-13 400M
-    run-e08-mcal-14 400M running
+    run-e08-mcal-14 400M
     run-e08-mcal-15 400M running
+    run-e08-mcal-16 400M running
+        might kill if Bob sends his config soon
+
+    # after 13
 
     s/n > 10 T/Tpsf > 0.5
-    without correction
     errors are 2 sigma
-    m: 5.423e-02 +/- 1.083e-03  c: 3.427e-06 +/- 2.164e-05
+    m: 5.496e-02 +/- 6.943e-04  c: 1.217e-05 +/- 1.387e-05
 
     with correction
     errors are 2 sigma
-    m: 1.510e-05 +/- 1.027e-03  c: 3.250e-06 +/- 2.051e-05
-
+    m: 6.890e-04 +/- 6.586e-04  c: 1.154e-05 +/- 1.316e-05
 
     s/n > 15 T/Tpsf > 0.5
-    without correction
     errors are 2 sigma
-    m: 4.598e-02 +/- 8.934e-04  c: -4.721e-06 +/- 1.786e-05
+    m: 4.601e-02 +/- 5.728e-04  c: 4.443e-06 +/- 1.145e-05
 
     with correction
     errors are 2 sigma
-    m: 6.536e-04 +/- 8.547e-04  c: -4.515e-06 +/- 1.708e-05
-
-
+    m: 6.918e-04 +/- 5.480e-04  c: 4.249e-06 +/- 1.095e-05
 
     # no coadding, for variance test
     run-e09-mcal-02 100M
         done
 
-
+    # sim-e19
+    # Bob's distortion
 
 
     # should try two more sims, each with psf anisotropy

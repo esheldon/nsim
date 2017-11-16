@@ -1,0 +1,44 @@
+images:
+
+    coadd:
+        type: "mean"
+        interp: "lanczos15"
+
+    noise: 0.125
+
+    psf:
+        s2n: 10000
+
+    object:
+        nepoch: 10
+
+    #    cen_shift:
+    #        type: "uniform"
+    #        radius: 0.5 # pixels
+
+    wcs:
+        dudx: 0.03
+        dudy: 0.27
+        dvdx: 0.25
+        dvdy: 0.015
+
+psf:
+    model: "moffat"
+
+    beta: 3.5
+
+    fwhm: 0.95
+
+    shape: [0.0, 0.0]
+
+object:
+    model: "exp"
+
+    g:
+        type: "ba"
+        sigma: 0.02
+
+    r50_flux:
+        type: "cosmos"
+
+shear: [0.02, 0.00]

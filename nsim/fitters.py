@@ -1094,7 +1094,7 @@ class MaxMetacalFitter(MaxFitter):
         super(MaxMetacalFitter,self)._print_res(resfull)
 
         res=resfull['noshear']
-        logger.debug("    mcal s2n_r:" % res['s2n_r'])
+        logger.debug("    mcal s2n_r: %g" % res['s2n_r'])
         log_pars(res['pars'],       front='    mcal pars: ')
 
 class MaxMetacalBootstrapperShearPSFInv(ngmix.bootstrap.MaxMetacalBootstrapper):

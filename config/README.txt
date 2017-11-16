@@ -1,4 +1,18 @@
 - coaddsim  using the coaddsim code base to make coadds from 
+    - high distortioin
+        - sim-e19
+            - huge bias
+        - sim-e20
+            - low noise
+            - huge bias
+        - sim-e21
+            - low noise and no offsets
+            - huge bias
+        - sim-e22
+            - low noise and no offsets
+            - no coadd, no variation in psf properties
+
+
     multi-epoch nsim simulated data
 
     - sim-bdkm02 (no actual knots)

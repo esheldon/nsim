@@ -3,6 +3,7 @@ images:
     coadd:
         type: "mean"
         interp: "lanczos15"
+        flat_wcs: True
 
     noise: 0.125
 

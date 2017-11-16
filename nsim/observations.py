@@ -79,13 +79,13 @@ class ObservationMaker(dict):
             objconf,
         )
 
-        dims = self._get_dims(cobjlist, wcslist)
+        dims, psf_dims = self._get_dims(cobjlist, psflist, wcslist)
 
         obslist = ngmix.observation.ObsList()
 
         for i in xrange(nepoch):
 
-            obs = self._get_obs(psflist[i], cobjlist[i], dims)
+            obs = self._get_obs(psflist[i], cobjlist[i], dims, psf_dims)
 
             obslist.append( obs )
 
@@ -98,7 +98,7 @@ class ObservationMaker(dict):
 
         return obslist
 
-    def _get_dims(self, cobjlist, wcslist):
+    def _get_dims(self, cobjlist, psflist, wcslist):
         """
         get maximum size from all listed convolved objects
         """
@@ -108,17 +108,23 @@ class ObservationMaker(dict):
 
         n=len(cobjlist)
         size=-1
+        psf_size=-1
         for i in xrange(n):
 
             scale, shear, theta, flip = wcslist[i].getDecomposition()
-            tsize=cobjlist[i].getGoodImageSize(scale)
 
+            tsize=cobjlist[i].getGoodImageSize(scale)
             size = max(tsize, size)
 
-        dims=[size,size]
-        logger.debug("    image dims: %s" % dims)
+            tsize=psflist[i].getGoodImageSize(scale)
+            psf_size = max(tsize, psf_size)
 
-        return dims
+        dims=[size,size]
+        psf_dims=[psf_size,psf_size]
+        logger.debug("    image dims: %s" % dims)
+        logger.debug("    psf dims:   %s" % psf_dims)
+
+        return dims, psf_dims
 
     def _get_convolved_object_info(self, objconf):
         """
@@ -208,6 +214,9 @@ class ObservationMaker(dict):
         if 'interp' in coadd_conf:
             kw['interp'] = coadd_conf['interp']
 
+        if 'flat_wcs' in coadd_conf:
+            kw['flat_wcs'] = coadd_conf['flat_wcs']
+
         coadder = coaddsim.CoaddImages(obslist, **kw)
 
         if coadd_conf['type']=='mean':
@@ -218,7 +227,18 @@ class ObservationMaker(dict):
         coadd_obslist=ngmix.ObsList()
         coadd_obslist.append(coadd_obs)
         coadd_obslist.update_meta_data(obslist.meta)
+
+        if False:
+            self._show_coadd(coadd_obslist)
         return coadd_obslist
+
+    def _show_coadd(self, obslist):
+        import images
+        obs=obslist[0]
+        images.multiview(obs.psf.image, title='psf',width=1000,height=1000)
+        images.multiview(obs.image, title='obj',width=1000,height=1000)
+        if raw_input('hit a key (q to quit): ')=='q':
+            stop
 
     def _randomize_morphology(self, flux, r50):
 
@@ -236,7 +256,7 @@ class ObservationMaker(dict):
 
         return r_flux, r_r50
 
-    def _get_obs(self, psf, cobj, dims):
+    def _get_obs(self, psf, cobj, dims, psf_dims):
 
         wcs=self._get_galsim_wcs()
 
@@ -245,6 +265,7 @@ class ObservationMaker(dict):
         psf_im, psf_jacob = self._get_psf_image(
             psf,
             wcs,
+            psf_dims,
             noise_obj,
         )
 
@@ -277,14 +298,14 @@ class ObservationMaker(dict):
         return obs
 
 
-    def _get_psf_image(self, psf, wcs, noise_obj):
+    def _get_psf_image(self, psf, wcs, psf_dims, noise_obj):
         """
         """
         gsimage = self._make_gsimage(
             psf,
             wcs,
-            nrows=self.psf_nrows,
-            ncols=self.psf_ncols,
+            nrows=psf_dims[0],
+            ncols=psf_dims[1],
         )
 
         gsimage.addNoiseSNR(
@@ -310,6 +331,7 @@ class ObservationMaker(dict):
         """
 
         offset=self._get_offset()
+
         gsimage = self._make_gsimage(
             convolved_object,
             wcs,
@@ -330,8 +352,8 @@ class ObservationMaker(dict):
             row, col = (tdims-1)/2.0
 
             if offset is not None:
-                row += offset[0]
-                col += offset[1]
+                row += offset['row_offset']
+                col += offset['col_offset']
             logger.debug("using canonical center %s" % (row,col))
         else:
             row, col = find_centroid(image_orig, self.rng, offset=offset)
@@ -366,12 +388,17 @@ class ObservationMaker(dict):
         """
         if nrows,ncols None, dims are chosen by galsim
         """
+
+        gs_offset=offset
+        if offset is not None:
+            gs_offset = (offset['col_offset'], offset['row_offset'])
+
         return gs_obj.drawImage(
             nx=ncols,
             ny=nrows,
             wcs=wcs,
             dtype=numpy.float64,
-            offset=offset,
+            offset=gs_offset,
         )
 
 
@@ -507,6 +534,10 @@ class ObservationMaker(dict):
                 coff2 = cen_pdf.sample()
 
             offset=(coff1,coff2)
+            offset = {
+                'row_offset':coff1,
+                'col_offset':coff2,
+            }
         else:
             offset=None
 
@@ -941,9 +972,8 @@ def find_centroid(image, rng, offset=None, maxiter=200, ntry=4):
     row0, col0 = (dims-1)/2.0
 
     if offset is not None:
-        # note galsim uses (col,row)
-        col0 += offset[0]
-        row0 += offset[1]
+        row0 += offset['row_offset']
+        col0 += offset['col_offset']
 
 
     if False:

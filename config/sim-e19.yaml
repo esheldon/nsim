@@ -13,19 +13,27 @@ images:
 
     psf:
         s2n: 10000
+        #stamp_size: [48,48]
 
     object:
         nepoch: 10
+        #stamp_size: [48,48]
 
         cen_shift:
             type: "uniform"
             radius: 0.5 # pixels
 
     wcs:
-      dudx: 0.03
-      dudy: 0.27
-      dvdx: 0.25
-      dvdy: 0.015
+        dudx: 0.03
+        dudy: 0.27
+        dvdx: 0.25
+        dvdy: 0.015
+    #wcs:
+    #    dudx: 0.00
+    #    dudy: 0.263
+    #    dvdx: 0.263
+    #    dvdy: 0.00
+
 
 psf:
     model: "moffat"

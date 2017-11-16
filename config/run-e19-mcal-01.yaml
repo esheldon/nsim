@@ -39,14 +39,15 @@ max_pars:
     cov:
         replace_cov: False
 
-ngal: 10000000
+ngal: 1000000
 
 # time for the entire MPI job at nersc
 #queue: "regular"
 #nodes: 100
 #constraint: "haswell"
 
-desired_hours: 0.5
-sec_per: 0.50
+jobs_per_condor_sub: 1000
+desired_hours: 0.25
+sec_per: 0.77
 
 verbose: False

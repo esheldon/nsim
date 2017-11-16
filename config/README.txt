@@ -12,6 +12,28 @@
             - low noise and no offsets
             - no coadd, no variation in psf properties
 
+        - sim-e23
+            - flat wcs in coadd
+            - stripped down, high noise but no variation
+              of the psf and no shifts, just to test the
+              distortion
+            - run-e23-mcal-01 02
+            s/n > 10 T/Tpsf > 0.5
+            errors are 2 sigma
+            m: -3.087e-03 +/- 9.201e-03  c: -1.304e-04 +/- 1.841e-04
+
+            s/n > 15
+            m: -2.472e-03 +/- 7.702e-03  c: -1.274e-04 +/- 1.541e-04
+
+        - sim-e24
+        same as e23 but not flat
+            - run-e24-mcal-01
+            - not symmetrizing
+              m: 9.693e-02 +/- 2.429e-02  c: 4.200e-03 +/- 4.819e-04
+            - run-e24-mcal-02
+            - gauss psf
+
+
 
     multi-epoch nsim simulated data
 

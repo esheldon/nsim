@@ -3,6 +3,7 @@ fit_model: "gauss"
 
 metacal_pars:
     use_noise_image: True
+    psf: "gauss"
     types: ['noshear','1p','1m','2p','2m']
 
 priors:
@@ -38,7 +39,7 @@ max_pars:
     cov:
         replace_cov: False
 
-ngal: 4000000
+ngal: 1000000
 
 # time for the entire MPI job at nersc
 #queue: "regular"
@@ -46,7 +47,7 @@ ngal: 4000000
 #constraint: "haswell"
 
 jobs_per_condor_sub: 1000
-desired_hours: 0.5
+desired_hours: 0.25
 sec_per: 0.77
 
 verbose: False

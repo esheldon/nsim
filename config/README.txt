@@ -26,13 +26,18 @@
             m: -2.472e-03 +/- 7.702e-03  c: -1.274e-04 +/- 1.541e-04
 
         - sim-e24
-        same as e23 but not flat
+            - same as e23 but not flat
             - run-e24-mcal-01
-            - not symmetrizing
-              m: 9.693e-02 +/- 2.429e-02  c: 4.200e-03 +/- 4.819e-04
-            - run-e24-mcal-02
-            - gauss psf
+              - not symmetrizing
+                m: 9.693e-02 +/- 2.429e-02  c: 4.200e-03 +/- 4.819e-04
+            - run-e24-mcal-02 03 04
+              - gauss psf
+              m: 1.258e-02 +/- 7.862e-03  c: 4.978e-04 +/- 1.566e-04
 
+        - sim-e25
+            - same as e19 but with flat wcs in coadd
+            - run-e25-mcal-01 small 1M
+ 
 
 
     multi-epoch nsim simulated data

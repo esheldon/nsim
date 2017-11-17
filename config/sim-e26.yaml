@@ -1,4 +1,12 @@
-# same as sim-e08 but with a distortion term
+# features
+# 10 epochs
+# large distortion term
+# varying psf size and ellipticity
+# galaxies shift around at the pixel level
+# galaxy size and flux drawn from cosmos
+# small shape noise
+# high pixel noise
+
 images:
 
     # coadd the epochs

@@ -45,6 +45,7 @@
         - sim-e26
              lower s/n threshold
              - run-e26-mcal-01 1M
+             - run-e26-mcal-02 10M
 
     multi-epoch nsim simulated data
 

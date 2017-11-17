@@ -42,6 +42,9 @@
             - run-e25-mcal-04 small 200M
  
 
+        - sim-e26
+             lower s/n threshold
+             - run-e26-mcal-01 1M
 
     multi-epoch nsim simulated data
 

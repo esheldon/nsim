@@ -46,6 +46,16 @@
              lower s/n threshold
              - run-e26-mcal-01 1M
              - run-e26-mcal-02 10M
+        - sim-e27
+             - varying wcs
+             - BNL
+             - sim-e27-mcal-01 10M
+             - sim-e27-mcal-01b 100M
+
+             - SLAC
+             - sim-e27-mcal-02 10M
+             - sim-e27-mcal-03 200M
+             - sim-e27-mcal-04 200M
 
     multi-epoch nsim simulated data
 

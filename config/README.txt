@@ -37,6 +37,9 @@
         - sim-e25
             - same as e19 but with flat wcs in coadd
             - run-e25-mcal-01 small 1M
+            - run-e25-mcal-02 small 20M
+            - run-e25-mcal-03 small 4M (bnl)
+            - run-e25-mcal-04 small 200M
  
 
 

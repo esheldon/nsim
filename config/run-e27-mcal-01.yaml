@@ -51,6 +51,8 @@ ngal: 10000000
 
 jobs_per_condor_sub: 1000
 desired_hours: 1.0
+
+# higher because lots are thrown out
 sec_per: 1.15
 
 verbose: False

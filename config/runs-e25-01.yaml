@@ -3,4 +3,6 @@ name: run-e25-01
 runs: [
     run-e25-mcal-01,
     run-e25-mcal-02,
+    run-e25-mcal-03,
+    run-e25-mcal-04,
 ]

@@ -85,7 +85,13 @@ class ObservationMaker(dict):
 
         for i in xrange(nepoch):
 
-            obs = self._get_obs(psflist[i], cobjlist[i], dims, psf_dims)
+            obs = self._get_obs(
+                psflist[i],
+                cobjlist[i],
+                wcslist[i],
+                dims,
+                psf_dims,
+            )
 
             obslist.append( obs )
 
@@ -154,6 +160,8 @@ class ObservationMaker(dict):
                 r_flux, r_r50 = self._randomize_morphology(flux, r50)
                 object, meta = self._get_object(flux=r_flux, r50=r_r50)
 
+            # this can be random, so only should be called
+            # once per object and epoch
             wcs = self._get_galsim_wcs()
             psf, psf_meta = self._get_psf()
             cobj = convolved_object = galsim.Convolve(object, psf)
@@ -256,9 +264,7 @@ class ObservationMaker(dict):
 
         return r_flux, r_r50
 
-    def _get_obs(self, psf, cobj, dims, psf_dims):
-
-        wcs=self._get_galsim_wcs()
+    def _get_obs(self, psf, cobj, wcs, dims, psf_dims):
 
         noise_obj=self._get_noise()
 
@@ -269,12 +275,11 @@ class ObservationMaker(dict):
             noise_obj,
         )
 
-        obj_im, obj_im_orig, obj_jacob, offset_pixels = self._get_object_image(
-            cobj,
-            wcs,
-            dims,
-            noise_obj,
-        )
+        obj_im, obj_im_orig, obj_jacob, offset_pixels = \
+                self._get_object_image(cobj,
+                                       wcs,
+                                       dims,
+                                       noise_obj)
 
         ivar = 1.0/noise_obj.sigma**2
         psf_weight = numpy.zeros( psf_im.shape ) + ivar

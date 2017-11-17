@@ -1,0 +1,6 @@
+name: run-e26-01
+
+runs: [
+    run-e26-mcal-01,
+    run-e26-mcal-02,
+]

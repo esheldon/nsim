@@ -1,0 +1,72 @@
+# features
+# 10 epochs
+# large distortion term
+# varying psf size and ellipticity
+# galaxies shift around at the pixel level
+# galaxy size and flux drawn from cosmos
+# small shape noise
+# high pixel noise
+
+images:
+
+    # coadd the epochs
+    coadd:
+        type: "mean"
+        interp: "lanczos15"
+        flat_wcs: True
+
+    noise:
+        type: "uniform"
+        sigma_range: [0.5, 0.6]
+        num: 50
+
+    psf:
+        s2n: 10000
+
+    object:
+        nepoch: 10
+
+        cen_shift:
+            type: "uniform"
+            radius: 0.5 # pixels
+
+    wcs:
+        dudx: 0.03
+        dudy: 0.27
+        dvdx: 0.25
+        dvdy: 0.015
+
+        dudx_std: 0.01
+        dudy_std: 0.01
+        dvdx_std: 0.01
+        dvdy_std: 0.01
+
+psf:
+    model: "moffat"
+
+    beta: 3.5
+
+    fwhm:
+        type: "lognormal"
+        mean: 0.95
+        sigma: 0.10
+
+        limits: [0.8, 1.15]
+
+    shape:
+        type: "normal2d"
+        cen: [0.0, 0.01]
+        sigma: [0.01, 0.01]
+
+
+object:
+    model: "exp"
+
+    g:
+        type: "ba"
+        sigma: 0.02
+
+    r50_flux:
+        type: "cosmos"
+
+shear: [0.02, 0.00]

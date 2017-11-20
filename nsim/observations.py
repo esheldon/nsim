@@ -225,7 +225,7 @@ class ObservationMaker(dict):
         if 'flat_wcs' in coadd_conf:
             kw['flat_wcs'] = coadd_conf['flat_wcs']
 
-        coadder = coaddsim.CoaddImages(obslist, **kw)
+        coadder = coaddsim.CoaddImages(obslist, rng=self.galsim_rng, **kw)
 
         if coadd_conf['type']=='mean':
             coadd_obs = coadder.get_mean_coadd()
@@ -316,6 +316,7 @@ class ObservationMaker(dict):
         gsimage.addNoiseSNR(
             noise_obj,
             self['psf']['s2n'],
+            preserve_flux=True,
         )
 
 

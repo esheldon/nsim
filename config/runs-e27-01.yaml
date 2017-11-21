@@ -1,0 +1,11 @@
+name: run-e27-01
+
+runs: [
+    run-e27-mcal-01,
+    run-e27-mcal-01b,
+    run-e27-mcal-02b,
+    run-e27-mcal-03b,
+    run-e27-mcal-04b,
+    run-e27-mcal-05b,
+    #run-e27-mcal-06b,
+]

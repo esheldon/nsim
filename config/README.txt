@@ -1,4 +1,25 @@
 - coaddsim  using the coaddsim code base to make coadds from 
+    - DES like distortion, using this for the paper
+        sim-e28
+        had cut at non-mcal s/n > 7 (about 10 for mcal) to make faster, which
+        meant we should apply a cut at s/n > 15
+
+        without correction
+        errors are 2 sigma
+        m: 5.202e-02 +/- 4.449e-04  c: 3.093e-06 +/- 8.893e-06
+
+        with correction
+        errors are 2 sigma
+        m: 4.061e-04 +/- 4.231e-04  c: 2.941e-06 +/- 8.454e-06
+        
+    - fixed flux and size for testing additional variance
+
+        sim-e30 coadded
+        sim-e31 not coadded
+
+        ratio of shear error from jackknifing 
+            1.00809652  1.00611512
+
     - high distortioin
         - sim-e19
             - huge bias

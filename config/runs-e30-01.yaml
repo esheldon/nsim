@@ -1,0 +1,7 @@
+name: run-e30-01
+
+runs: [
+    run-e30-mcal-01b,
+    run-e30-mcal-02b,
+    run-e30-mcal-03b,
+]

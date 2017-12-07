@@ -125,8 +125,8 @@ class ObservationMaker(dict):
             tsize=psflist[i].getGoodImageSize(scale)
             psf_size = max(tsize, psf_size)
 
-        dims=[size,size]
-        psf_dims=[psf_size,psf_size]
+        dims=numpy.array([size,size])
+        psf_dims=numpy.array([psf_size,psf_size])
         logger.debug("    image dims: %s" % dims)
         logger.debug("    psf dims:   %s" % psf_dims)
 
@@ -171,46 +171,6 @@ class ObservationMaker(dict):
             cobjlist.append(cobj)
 
         return cobjlist, psflist, wcslist, meta
-
-    def __call__old(self):
-
-        objconf=self['object']
-
-        object, meta = self._get_object()
-
-        if 'randomize_morphology' in objconf:
-            # for multi-epoch sims
-            flux = object.getFlux()
-            try:
-                r50  = object.getHalfLightRadius()
-            except:
-                r50  = object.calculateHLR()
-
-        obslist = ngmix.observation.ObsList()
-
-        nepoch = objconf.get('nepoch',1)
-        for epoch in xrange(nepoch):
-
-            psf, psf_meta = self._get_psf()
-
-            if 'randomize_morphology' in objconf and epoch > 0:
-                # random ellipticity but same flux and size
-                r_flux, r_r50 = self._randomize_morphology(flux, r50)
-                object, meta = self._get_object(flux=r_flux, r50=r_r50)
-
-            obs = self._get_obs(psf, object)
-
-            obslist.append( obs )
-
-        meta['s2n']  = get_expected_s2n(obslist)
-
-        obslist.update_meta_data(meta)
-
-        if 'coadd' in self:
-            obslist = self._do_coadd(obslist)
-
-        return obslist
-
 
     def _do_coadd(self, obslist):
         import coaddsim
@@ -302,10 +262,30 @@ class ObservationMaker(dict):
 
         return obs
 
+    def _make_biased_psf(self,psf,psf_dims):
+        """
+        produce a biased psf
+
+        currently support dilation
+        """
+        pb = self['psf_bias']
+        if 'dilate' in pb:
+            dilate = pb['dilate']
+            #print("dilating psf by:",dilate)
+            psf = psf.dilate(dilate)
+            psf_dims = ( psf_dims * dilate ).astype('i4')
+        else:
+            raise RuntimeError("expected psf bias parameters")
+
+        return psf, psf_dims
 
     def _get_psf_image(self, psf, wcs, psf_dims, noise_obj):
         """
         """
+
+        if 'psf_bias' in self:
+            psf, psf_dims = self._make_biased_psf(psf,psf_dims)
+
         gsimage = self._make_gsimage(
             psf,
             wcs,

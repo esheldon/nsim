@@ -19,6 +19,28 @@
 
         ratio of shear error from jackknifing 
             1.00809652  1.00611512
+            uncertainty 0.00025
+
+    - testing if PSF bias is worse from coadds
+        - object r50 = r50 psf
+        sim-e32
+        sim-e33
+
+
+        ratio of biases (error approximate)
+        1.0015 +/- 0.0025
+
+        - object r50 = 0.5 r50 psf
+        sim-e36
+        sim-e37
+
+
+        - high s/n but regular size distribution
+        - ambiguous
+        sim-e34
+        sim-e35
+
+
 
     - high distortioin
         - sim-e19

@@ -65,8 +65,7 @@ object:
         type: "ba"
         sigma: 0.02
 
-    # same as psf above
-    r50: 0.57
-    flux: 50.0
+    r50_flux:
+        type: cosmos
 
 shear: [0.02, 0.00]

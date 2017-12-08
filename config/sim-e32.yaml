@@ -71,6 +71,7 @@ object:
         type: "ba"
         sigma: 0.02
 
+    # same as FWHM of mean psf above
     r50: 0.57
     flux: 50.0
 

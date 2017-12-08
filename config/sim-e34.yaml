@@ -12,6 +12,12 @@ images:
     psf_bias:
         dilate: 1.10
 
+    # coadd the epochs
+    coadd:
+        type: "mean"
+        interp: "lanczos15"
+        flat_wcs: True
+
     noise: 0.01
 
     psf:
@@ -65,8 +71,7 @@ object:
         type: "ba"
         sigma: 0.02
 
-    # same as psf above
-    r50: 0.57
-    flux: 50.0
+    r50_flux:
+        type: cosmos
 
 shear: [0.02, 0.00]

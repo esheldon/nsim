@@ -28,11 +28,12 @@
 
 
         ratio of biases (error approximate)
-        1.0015 +/- 0.0025
+        1.0015 +/- 0.0035 # 2 sigma
 
         - object r50 = 0.5 r50 psf
         sim-e36
         sim-e37
+        1.008 +/- 0.002 # two sigma
 
 
         - high s/n but regular size distribution

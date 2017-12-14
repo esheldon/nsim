@@ -1,0 +1,55 @@
+# rotating wcs
+# fix PSF and noise to isolate this effect
+# also fix galaxy
+
+images:
+
+    # coadd the epochs
+    coadd:
+        type: "mean"
+        interp: "lanczos15"
+        flat_wcs: True
+
+    noise: 0.55
+
+    psf:
+        s2n: 10000
+
+    object:
+        nepoch: 10
+
+        cen_shift:
+            type: "uniform"
+            radius: 0.5 # pixels
+
+    wcs:
+
+        dudx:      0.00
+        dudy:      0.263
+        dvdx:      0.263
+        dvdy:      0.00
+
+        rotate:
+            type: "uniform"
+
+psf:
+    model: "moffat"
+
+    beta: 3.5
+
+    fwhm: 0.95
+    shape: [0.0, 0.01]
+
+
+object:
+    model: "exp"
+
+    g:
+        type: "ba"
+        sigma: 0.02
+
+    # half of psf above
+    r50: 0.29
+    flux: 50.0
+
+shear: [0.08, 0.00]

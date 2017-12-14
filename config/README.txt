@@ -42,6 +42,14 @@
         sim-e35
 
 
+    - rotating wcs with random angle
+          Fixed PSF and galaxy to isolate the effect of rotation
+
+        - sim-e38ln shear=0.08, no rotation, low noise to establish 
+            bias from high shear.
+            - run-e38ln-mcal-01
+
+        - sim-e38 shear=0.08, rotation, mean s/n ~ 15
 
     - high distortioin
         - sim-e19

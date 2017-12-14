@@ -1,7 +1,4 @@
-# rotating wcs
-# fix PSF and noise to isolate this effect
-# also fix galaxy
-
+# same as sim-e38 but not rotating wcs and low noise
 images:
 
     # coadd the epochs
@@ -45,8 +42,8 @@ object:
         type: "ba"
         sigma: 0.02
 
-    # half of psf above
-    r50: 0.29
-    flux: 50.0
+    # same hlr as psf
+    r50: 0.57
+    flux: 25.0
 
 shear: [0.08, 0.00]

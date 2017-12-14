@@ -1,9 +1,6 @@
 fitter: "metacal-max"
 fit_model: "gauss"
 
-# higher since s/n are inflated in coadd
-min_s2n: 7
-
 metacal_pars:
     use_noise_image: True
     symmetrize_psf: True
@@ -42,7 +39,7 @@ max_pars:
     cov:
         replace_cov: False
 
-ngal: 2000000
+ngal: 40000000
 
 # time for the entire MPI job at nersc
 #queue: "regular"
@@ -50,7 +47,7 @@ ngal: 2000000
 #constraint: "haswell"
 
 jobs_per_condor_sub: 1000
-desired_hours: 0.25
+desired_hours: 2.0
 
 sec_per: 0.75
 

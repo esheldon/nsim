@@ -394,6 +394,8 @@ class ObservationMaker(dict):
 
         The actual ngmix jacobian will be created from this later
         """
+        from math import cos, sin
+
         if 'wcs' in self:
             ws=self['wcs']
             dudx=ws['dudx']
@@ -407,6 +409,37 @@ class ObservationMaker(dict):
                 dudy = dudy + rng.normal(scale=ws['dudy_std'])
                 dvdx = dvdx + rng.normal(scale=ws['dvdx_std'])
                 dvdy = dvdy + rng.normal(scale=ws['dvdy_std'])
+            elif 'rotate' in ws:
+                if ws['rotate']['type'] == 'uniform':
+                    jmatrix = numpy.array(
+                        [[dudx,dudy],
+                         [dvdx,dvdy]]
+                    )
+                    angle = self.rng.uniform(
+                        low=0.0,
+                        high=numpy.pi*2,
+                    )
+                    angle=1.0*numpy.pi/1.0
+                    rotmatrix = numpy.array(
+                        [[ cos(angle), -sin(angle) ],
+                         [ sin(angle),  cos(angle) ]]
+                    )
+
+                    rotated_jmatrix = numpy.dot(rotmatrix,jmatrix)
+                    dudx = rotated_jmatrix[0,0]
+                    dudy = rotated_jmatrix[0,1]
+                    dvdx = rotated_jmatrix[1,0]
+                    dvdy = rotated_jmatrix[1,1]
+
+                    """
+                    import images
+                    print("original")
+                    images.imprint(jmatrix)
+                    print("rotated",angle*180.0/numpy.pi)
+                    images.imprint(rotated_jmatrix)
+                    print("-"*70)
+                    stop
+                    """
         else:
             dudx=1.0
             dudy=0.0

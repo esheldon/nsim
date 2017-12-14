@@ -1,0 +1,54 @@
+fitter: "metacal-max"
+fit_model: "gauss"
+
+metacal_pars:
+    use_noise_image: True
+    symmetrize_psf: True
+    types: ['noshear','1p','1m','2p','2m']
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 0.27
+
+    T:
+        type: "TwoSidedErf"
+        pars: [-10.0, 0.03, 1.0e+06, 1.0e+05]
+
+    counts:
+        type: "TwoSidedErf"
+        pars: [-1.0e+04, 1.0, 1.0e+09, 0.25e+08]
+        repeat: True
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+psf_pars:
+    model: "gauss"
+
+max_pars:
+    ntry: 2
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 2000
+            xtol: 5.0e-5
+            ftol: 5.0e-5
+
+    cov:
+        replace_cov: False
+
+ngal: 80000000
+
+# time for the entire MPI job at nersc
+#queue: "regular"
+#nodes: 100
+#constraint: "haswell"
+
+jobs_per_condor_sub: 1000
+desired_hours: 2.0
+
+sec_per: 0.75
+
+verbose: False

@@ -50,6 +50,21 @@
             - run-e38ln-mcal-01
 
         - sim-e38 shear=0.08, rotation, mean s/n ~ 15
+        - large additive and multiplicative bias
+
+        - sim-e39 lower shear
+            - still additive bias (less multiplicative)
+
+        - sim-e39ln same with low noise, no shear to see if we are
+            also leaking some anisotropy into the other
+            component
+            - no mean g detected, so the bias in sim-e39 
+            is related to handling the noise
+
+        - sim-e40
+            - larger size [48,48] for both psf and obj
+            - this is quite large for these small galaxies
+            - looks better
 
     - high distortioin
         - sim-e19

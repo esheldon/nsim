@@ -109,24 +109,31 @@ class ObservationMaker(dict):
         get maximum size from all listed convolved objects
         """
 
+        if self.nrows is None or self.psf_nrows is None:
+
+            n=len(cobjlist)
+            size=-1
+            psf_size=-1
+            for i in xrange(n):
+
+                scale, shear, theta, flip = wcslist[i].getDecomposition()
+
+                tsize=cobjlist[i].getGoodImageSize(scale)
+                size = max(tsize, size)
+
+                tsize=psflist[i].getGoodImageSize(scale)
+                psf_size = max(tsize, psf_size)
+
+            dims=numpy.array([size,size])
+            psf_dims=numpy.array([psf_size,psf_size])
+
+
         if self.nrows is not None:
-            return [self.nrows, self.ncols]
+            dims = [self.nrows, self.ncols]
 
-        n=len(cobjlist)
-        size=-1
-        psf_size=-1
-        for i in xrange(n):
+        if self.psf_nrows is not None:
+            psf_dims = [self.psf_nrows, self.psf_ncols]
 
-            scale, shear, theta, flip = wcslist[i].getDecomposition()
-
-            tsize=cobjlist[i].getGoodImageSize(scale)
-            size = max(tsize, size)
-
-            tsize=psflist[i].getGoodImageSize(scale)
-            psf_size = max(tsize, psf_size)
-
-        dims=numpy.array([size,size])
-        psf_dims=numpy.array([psf_size,psf_size])
         logger.debug("    image dims: %s" % dims)
         logger.debug("    psf dims:   %s" % psf_dims)
 

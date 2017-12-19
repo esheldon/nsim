@@ -7,4 +7,7 @@ runs: [
     run-e40-mcal-04,
     run-e40-mcal-05,
     run-e40-mcal-06,
+    run-e40-mcal-07,
+    run-e40-mcal-08,
+    run-e40-mcal-09,
 ]

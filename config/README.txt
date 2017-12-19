@@ -65,6 +65,8 @@
             - larger size [48,48] for both psf and obj
             - this is quite large for these small galaxies
             - looks better
+            m: 1.079e-04 +/- 7.232e-04  c: -5.260e-06 +/- 1.445e-05
+            (1 sigma m: 1.079e-04 +/- 3.616e-04  c: -5.260e-06 +/- 7.225e-06)
 
     - high distortioin
         - sim-e19

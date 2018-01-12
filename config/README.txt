@@ -68,6 +68,13 @@
             m: 1.079e-04 +/- 7.232e-04  c: -5.260e-06 +/- 1.445e-05
             (1 sigma m: 1.079e-04 +/- 3.616e-04  c: -5.260e-06 +/- 7.225e-06)
 
+    - testing different interpolations
+        - will be based on the sim-e40 sim which is sort of an extreme
+        due to rotations
+        - sim-e41 lanczos3
+            - large bias
+        - sim-e42 lanczos7
+
     - high distortioin
         - sim-e19
             - huge bias

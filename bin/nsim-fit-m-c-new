@@ -36,7 +36,7 @@ parser.add_argument('-d',default=None,help='file is in a local dir')
 parser.add_argument('--ntest',default=None,type=int,
                     help='work on a small subset for quick tests')
 
-parser.add_argument('--nsigma',default=2.0,type=float,
+parser.add_argument('--nsigma',default=3.0,type=float,
                     help='number sigma error bars to print')
 
 parser.add_argument(

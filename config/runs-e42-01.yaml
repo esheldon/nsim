@@ -5,4 +5,8 @@ runs: [
     run-e42-mcal-02,
     run-e42-mcal-03,
     run-e42-mcal-04,
+    run-e42-mcal-05,
+    run-e42-mcal-06,
+    run-e42-mcal-07,
+    run-e42-mcal-08,
 ]

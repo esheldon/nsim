@@ -1,6 +1,8 @@
 from __future__ import print_function
 
 import os
+import numpy
+import random
 import logging
 import fitsio
 from . import sime
@@ -36,7 +38,16 @@ def go(seed,
     if seed is None:
         raise ValueError("send a seed")
 
-    sim = sime.Sim(sim_conf, seed)
+    sim_type = sim_conf.get('type','sime')
+    if sim_type=='nbrs':
+        import minimof
+        numpy.random.seed(seed)
+        random.seed(numpy.random.randint(0,2**30))
+        tseed = numpy.random.randint(0, 2**30)
+        rng = numpy.random.RandomState(seed=tseed)
+        sim = minimof.simtest.NBRMaker(sim_conf, rng)
+    else:
+        sim = sime.Sim(sim_conf, seed)
 
     plot_base=output_file.replace('.fits','')
 

@@ -104,8 +104,9 @@ class FitterBase(dict):
                         obslist = self._do_deblend(obslist)
 
                     meta = self._extract_meta(obslist)
+                    s2n = meta.get('s2n',1.e9)
 
-                    if meta['s2n'] > self['s2n_min']:
+                    if s2n > self['s2n_min']:
                         n_proc += 1
 
                         # only objects that successfully get fit
@@ -182,9 +183,9 @@ class FitterBase(dict):
             raise TryAgainError("failed with flags %s" % res['flags'])
 
         meta = self._extract_meta(obslist)
-        res['r50_true'] = meta['r50']
-        res['flux_true'] = meta['flux']
-        res['s2n_true'] = meta['s2n']
+        res['r50_true'] = meta.get('r50',-9999.0)
+        res['flux_true'] = meta.get('flux',-9999.0)
+        res['s2n_true'] = meta.get('s2n',-9999.0)
 
         self._print_res(res)
 
@@ -722,6 +723,9 @@ class MaxFitter(SimpleFitterBase):
         Fit according to the requested method
         """
 
+        if 'mof' in self:
+            obslist = self._do_mof_fit(obslist)
+
         use_round_T=self['use_round_T']
         boot=ngmix.Bootstrapper(obslist,
                                 use_logpars=self['use_logpars'],
@@ -779,6 +783,30 @@ class MaxFitter(SimpleFitterBase):
         fitter=boot.get_max_fitter() 
 
         return fitter
+
+    def _do_mof_fit(self, allobs):
+        import minimof
+
+        try:
+            mm=minimof.MiniMOF(
+                self['mof'],
+                allobs,
+                self.rng,
+            )
+            mm.go()
+            mm_res = mm.get_result()
+            if not mm_res['converged']:
+                raise TryAgainError("MOF did not converge")
+        except BootPSFFailure as err:
+            raise TryAgainError("MOF psf failure: '%s'" % str(err))
+        except BootGalFailure as err:
+            raise TryAgainError("MOF gal failure: '%s'" % str(err))
+
+        # assume first is the central
+        corr_obslist = mm.get_corrected_obs(0)
+
+        return corr_obslist
+
 
     def _get_psf_T_guess(self, obslist):
         if isinstance(obslist,ngmix.observation.ObsList):
@@ -882,8 +910,8 @@ class MaxMetacalFitter(MaxFitter):
         Fit according to the requested method
         """
 
-        #assert len(obslist) == 1
-        #obs=obslist[0]
+        if 'mof' in self:
+            obslist = self._do_mof_fit(obslist)
 
         mdict = self._do_fits(obslist)
         res=mdict['res']

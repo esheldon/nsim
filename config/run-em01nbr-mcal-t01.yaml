@@ -24,24 +24,26 @@ admom_pars:
 
 
 mof:
+    maxiter: 15
+    Ttol: 1.0e-3
     model: "exp"
     priors:
         cen:
             type: "normal2d"
-            sigma: 0.1
+            sigma: 0.27
 
         T:
-            type: "lognormal"
-            mean: 10.0
-            sigma: 10.0
+            type: "two-sided-erf"
+            pars: [-10.0, 0.03, 1.0e+06, 1.0e+05]
 
         counts:
-            type: "flat"
-            pars: [10.0, 500.0]
+            type: "two-sided-erf"
+            pars: [-1.0e+04, 1.0, 1.0e+09, 0.25e+08]
 
         g:
             type: "ba"
             sigma: 0.3
+
 
     psf_pars:
         model: "em3"

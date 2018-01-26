@@ -1,0 +1,6 @@
+name: run-nbr01-01
+
+runs: [
+    run-nbr01-mcal-t01,
+    run-nbr01-mcal-02,
+]

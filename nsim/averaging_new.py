@@ -235,6 +235,10 @@ class Summer(dict):
 
                         if 'shear_index' not in data.dtype.names:
                             data=self._add_shear_index(data)
+                        else:
+                            w,=numpy.where(data['shear_index']==-1)
+                            if w.size > 0:
+                                data['shear_index'][w]=0
 
                         data=self._preselect(data)
 

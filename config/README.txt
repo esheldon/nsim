@@ -1,3 +1,15 @@
+- simple neighbor tests using minimof
+    - sim-nbr01.  One gaussian (central), one exp
+
+    - exp model
+    - run-nbr01-mcal-t01
+    - run-nbr01-mcal-02
+
+    - cm for models
+    - run-nbr01-mcal-t02
+    - run-nbr01-mcal-t03 (never ran at slac)
+    - run-nbr01-mcal-04 (running bnl)
+
 - coaddsim  using the coaddsim code base to make coadds from 
     - DES like distortion, using this for the paper
         sim-e28

@@ -87,7 +87,7 @@ ngal: 20000000
 
 desired_hours: 2.0
 
-sec_per: 0.7
+sec_per: 0.9
 
 jobs_per_condor_sub: 5000
 

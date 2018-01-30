@@ -10,6 +10,16 @@
     - run-nbr01-mcal-t03 (never ran at slac)
     - run-nbr01-mcal-04 (running bnl)
 
+    bias -4-5e-3
+
+    - sim-nbr02
+        - both exp models
+        - bias 3-4 e-3
+
+    - sim-nbr03
+        - both exp models, nbr 1/6 flux, same size
+
+
 - coaddsim  using the coaddsim code base to make coadds from 
     - DES like distortion, using this for the paper
         sim-e28

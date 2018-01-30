@@ -797,6 +797,11 @@ class MaxFitter(SimpleFitterBase):
             mm_res = mm.get_result()
             if not mm_res['converged']:
                 raise TryAgainError("MOF did not converge")
+
+            if False:
+                mm.show_residuals()
+                if raw_input("q to quit: ")=='q':
+                    stop
         except BootPSFFailure as err:
             raise TryAgainError("MOF psf failure: '%s'" % str(err))
         except BootGalFailure as err:

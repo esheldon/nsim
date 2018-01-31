@@ -1,0 +1,32 @@
+type: "nbrs"
+
+image:
+    dims: [48,48]
+    noise: 10.0
+    scale: 1.0
+
+psf:
+    model: "gauss"
+    hlr: 1.7
+    flux: 10000.0
+    noise: 0.001
+
+objects:
+    nbr_shifts:
+        type: "circle"
+        radius: 12.0
+
+    central:
+        model: "exp"
+        hlr: 1.7
+        flux: 6000.0
+        shift:
+            type: "pixel"
+
+    nbrs:
+        -
+            model: "exp"
+            hlr: 3.4
+            flux: 6000.0
+
+shear: [0.02, 0.00]

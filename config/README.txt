@@ -26,12 +26,21 @@
         - low bias now
 
     - sim-nbr06
-        - similar to sim-nbr02 but with center object shifts and equal flux
+        - similar to sim-nbr02, with neighbor bigger,
+          but with center object shifts and equal flux
+        - objects overlap at *lot*
+
         errors are 3 sigma
         m: -8.441e-03 +/- 6.152e-03  c: -3.692e-05 +/- 1.230e-04
 
     - sim-nbr07
-        - similar to sim-nbr02 but with center object shifts and 1/6 flux
+        - same as sim-nbr06 but neighbor has 1/6 flux
+        errors are 3 sigma
+        m: -1.215e-02 +/- 6.306e-03  c: 1.594e-05 +/- 1.260e-04
+
+    - sim-nbr08
+        - same as sim-nbr07 but neighbor is same size as central, so
+          less overlap
         errors are 3 sigma
 
 

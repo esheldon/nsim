@@ -18,6 +18,22 @@
 
     - sim-nbr03
         - both exp models, nbr 1/6 flux, same size
+    - sim-nbr04
+        - lower noise
+        - saw bias still
+    - sim-nbr05
+        - lower noise, offseting object from center
+        - low bias now
+
+    - sim-nbr06
+        - similar to sim-nbr02 but with center object shifts and equal flux
+        errors are 3 sigma
+        m: -8.441e-03 +/- 6.152e-03  c: -3.692e-05 +/- 1.230e-04
+
+    - sim-nbr07
+        - similar to sim-nbr02 but with center object shifts and 1/6 flux
+        errors are 3 sigma
+
 
 
 - coaddsim  using the coaddsim code base to make coadds from 

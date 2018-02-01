@@ -1,0 +1,6 @@
+name: run-e41-01
+
+runs: [
+    run-e41a-mcal-01,
+    run-e41a-mcal-02,
+]

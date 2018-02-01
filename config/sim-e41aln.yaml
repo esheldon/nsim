@@ -1,0 +1,55 @@
+# fix PSF and noise to isolate this effect
+# also fix galaxy
+
+images:
+
+    # coadd the epochs
+    coadd:
+        type: "mean"
+        interp: "lanczos3"
+
+        # no need for this, no rotations, diagonal in "standard" way
+        #flat_wcs: True
+
+    noise: 0.01
+
+    psf:
+        s2n: 10000
+        stamp_size: [48,48]
+
+    object:
+        nepoch: 10
+
+        cen_shift:
+            type: "uniform"
+            radius: 0.5 # pixels
+
+        stamp_size: [48,48]
+
+    wcs:
+        dudx:      0.263
+        dudy:      0.0
+        dvdx:      0.0
+        dvdy:      0.263
+
+psf:
+    model: "moffat"
+
+    beta: 3.5
+
+    fwhm: 0.95
+    shape: [0.0, 0.01]
+
+
+object:
+    model: "exp"
+
+    g:
+        type: "ba"
+        sigma: 0.02
+
+    # same hlr as psf
+    r50: 0.57
+    flux: 25.0
+
+shear: [0.02, 0.00]

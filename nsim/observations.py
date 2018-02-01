@@ -192,7 +192,21 @@ class ObservationMaker(dict):
         if 'flat_wcs' in coadd_conf:
             kw['flat_wcs'] = coadd_conf['flat_wcs']
 
-        coadder = coaddsim.CoaddImages(obslist, rng=self.galsim_rng, **kw)
+        use_nsim_noise_image=coadd_conf.get('use_nsim_noise_image',False)
+        if use_nsim_noise_image:
+            kw['use_noise_image'] = True
+            for obs in obslist:
+                sigma=numpy.sqrt(1.0/obs.weight[0,0])
+                obs.noise = self.rng.normal(
+                    scale=sigma,
+                    size=obs.image.shape,
+                )
+
+        coadder = coaddsim.CoaddImages(
+            obslist,
+            rng=self.galsim_rng,
+            **kw
+        )
 
         if coadd_conf['type']=='mean':
             coadd_obs = coadder.get_mean_coadd()

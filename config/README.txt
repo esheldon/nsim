@@ -122,6 +122,17 @@
             - large bias
         - sim-e42 lanczos7
 
+        - sim-e41a lanczos3
+        - sim-e41aln lanczos3
+            - simplest wcs +5e-3 bias
+
+        - sim-e43
+            - large stamp size for object [96,96]
+            - bias similar +6e-3
+
+        - sim-e44
+            - use noise image from nsim
+
     - high distortioin
         - sim-e19
             - huge bias

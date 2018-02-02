@@ -208,8 +208,9 @@ class ObservationMaker(dict):
             **kw
         )
 
+        trim_dims=coadd_conf.get('trim_dims',None)
         if coadd_conf['type']=='mean':
-            coadd_obs = coadder.get_mean_coadd()
+            coadd_obs = coadder.get_mean_coadd(dims=trim_dims)
         else:
             raise ValueError("bad coadd type: '%s'" % coadd_conf['type'])
 

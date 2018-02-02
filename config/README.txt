@@ -127,11 +127,27 @@
             - simplest wcs +5e-3 bias
 
         - sim-e43
-            - large stamp size for object [96,96]
+            - low noise, large stamp size for object [96,96]
             - bias similar +6e-3
 
         - sim-e44
-            - use noise image from nsim
+            - low noise, use noise image from nsim
+            - still biased 4e-3
+
+        - sim-e45
+            - trim to central part of image, to avoid edge effects
+            - low noise, use noise image from nsim
+            - still biased
+
+        - sim-e46
+            - larger object, twice psf hlr, to see if it might
+            be related to interpolation of not perfect sampled image
+
+            - also biased but it is smaller
+
+            - run-e46-mcal-03 use psf: gauss  Idea is maybe we should
+            suppress more small scale power due to interpolation
+
 
     - high distortioin
         - sim-e19

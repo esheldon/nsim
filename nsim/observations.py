@@ -249,6 +249,8 @@ class ObservationMaker(dict):
 
     def _get_obs(self, psf, cobj, wcs, dims, psf_dims):
 
+        offset_pixels=self._get_offset()
+
         noise_obj=self._get_noise()
 
         psf_im, psf_jacob = self._get_psf_image(
@@ -256,13 +258,16 @@ class ObservationMaker(dict):
             wcs,
             psf_dims,
             noise_obj,
+            offset_pixels,
         )
 
-        obj_im, obj_im_orig, obj_jacob, offset_pixels = \
-                self._get_object_image(cobj,
-                                       wcs,
-                                       dims,
-                                       noise_obj)
+        obj_im, obj_im_orig, obj_jacob = \
+                self._get_object_image(
+                    cobj,
+                    wcs,
+                    dims,
+                    noise_obj,offset_pixels,
+                )
 
         ivar = 1.0/noise_obj.sigma**2
         psf_weight = numpy.zeros( psf_im.shape ) + ivar
@@ -302,7 +307,7 @@ class ObservationMaker(dict):
 
         return psf, psf_dims
 
-    def _get_psf_image(self, psf, wcs, psf_dims, noise_obj):
+    def _get_psf_image(self, psf, wcs, psf_dims, noise_obj, offset):
         """
         """
 
@@ -314,6 +319,7 @@ class ObservationMaker(dict):
             wcs,
             nrows=psf_dims[0],
             ncols=psf_dims[1],
+            offset=offset,
         )
 
         gsimage.addNoiseSNR(
@@ -334,12 +340,10 @@ class ObservationMaker(dict):
         return image, jacob
 
 
-    def _get_object_image(self, convolved_object, wcs, dims, noise_obj):
+    def _get_object_image(self, convolved_object, wcs, dims, noise_obj, offset):
         """
         convolve the 
         """
-
-        offset=self._get_offset()
 
         gsimage = self._make_gsimage(
             convolved_object,
@@ -374,7 +378,7 @@ class ObservationMaker(dict):
 
         image = gsimage.array
 
-        return image, image_orig, jacob, offset
+        return image, image_orig, jacob
 
     def _get_jacobian(self, wcs, row, col):
         """

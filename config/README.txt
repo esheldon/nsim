@@ -134,6 +134,30 @@
             - low noise, use noise image from nsim
             - still biased 4e-3
 
+            - run-e44-mcal-02
+            - also interpolated psf with offset, but kept
+            psf canonical center  2% bias
+
+            - run-e44-mcal-03
+              - offset the psf in nsim
+              - small bias, low stats though
+
+            - run-e44-mcal-04
+              - offset the psf in nsim, and didn't use canonical center for
+                psf
+              - small bias, low tats
+
+            - run-e44-mcal-05 same as 04 but more stats.
+            - run-e44-mcal-07
+            * run-e44-mcal-08
+                3 sigma
+                m: -5.673e-05 +/- 4.802e-04  c: -3.385e-06 +/- 9.596e-06
+
+            - run-e44-mcal-06 just shift and not canonical center in 
+            coaddsim, no actual shift of psf in nsim
+            - 2 percent bias
+
+
         - sim-e45
             - trim to central part of image, to avoid edge effects
             - low noise, use noise image from nsim

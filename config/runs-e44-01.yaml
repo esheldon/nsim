@@ -1,0 +1,5 @@
+runs: [
+    run-e44-mcal-04,
+    run-e44-mcal-05,
+    run-e44-mcal-07,
+]

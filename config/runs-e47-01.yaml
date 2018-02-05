@@ -1,0 +1,12 @@
+runs: [
+    run-e47-mcal-01,
+    run-e47-mcal-02,
+    run-e47-mcal-03,
+    run-e47-mcal-04,
+    run-e47-mcal-05,
+    run-e47-mcal-06,
+    run-e47-mcal-07,
+    run-e47-mcal-08,
+    run-e47-mcal-09,
+    run-e47-mcal-10,
+]

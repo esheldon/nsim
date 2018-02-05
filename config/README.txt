@@ -149,13 +149,21 @@
 
             - run-e44-mcal-05 same as 04 but more stats.
             - run-e44-mcal-07
-            * run-e44-mcal-08
+            - run-e44-mcal-08
                 3 sigma
-                m: -5.673e-05 +/- 4.802e-04  c: -3.385e-06 +/- 9.596e-06
+                m: -3.638e-05 +/- 1.973e-04  c: -1.545e-06 +/- 3.942e-06
 
             - run-e44-mcal-06 just shift and not canonical center in 
             coaddsim, no actual shift of psf in nsim
             - 2 percent bias
+
+        - sim-e47
+            - noisy version of e44
+            - runs 01-10
+
+            ( old version 
+            - seeing what happens with psf shift, not fixnoise
+            - still biased)
 
 
         - sim-e45

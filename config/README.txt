@@ -159,11 +159,16 @@
 
         - sim-e47
             - noisy version of e44
+            - messed it up, was coadding single image
             - runs 01-10
 
             ( old version 
             - seeing what happens with psf shift, not fixnoise
             - still biased)
+
+        - sim-e48
+            - what 47 was supposed to be: no coadding, but
+              with offsetting psf
 
 
         - sim-e45

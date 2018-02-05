@@ -144,7 +144,7 @@
 
             - run-e44-mcal-04
               - offset the psf in nsim, and didn't use canonical center for
-                psf
+                psf ( center may not matter )
               - small bias, low tats
 
             - run-e44-mcal-05 same as 04 but more stats.

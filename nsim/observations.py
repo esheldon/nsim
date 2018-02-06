@@ -253,12 +253,17 @@ class ObservationMaker(dict):
 
         noise_obj=self._get_noise()
 
+        if self['psf']['shift_psf']:
+            psf_offset = offset_pixels
+        else:
+            psf_offset = None
+
         psf_im, psf_jacob = self._get_psf_image(
             psf,
             wcs,
             psf_dims,
             noise_obj,
-            offset_pixels,
+            psf_offset,
         )
 
         obj_im, obj_im_orig, obj_jacob = \
@@ -334,6 +339,9 @@ class ObservationMaker(dict):
         # no offset, jacobian is straightforward
         dims = numpy.array(gsimage.array.shape)
         row, col = (numpy.array(dims)-1.0)/2.0
+        if offset is not None:
+            row += offset[1]
+            col += offset[0]
 
         jacob = self._get_jacobian(wcs, row, col)
 

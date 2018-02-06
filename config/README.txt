@@ -160,11 +160,12 @@
         - sim-e47
             - noisy version of e44
             - messed it up, was coadding single image
+            - also symmetrizing but psf was offset! duh
             - runs 01-10
 
             ( old version 
             - seeing what happens with psf shift, not fixnoise
-            - still biased)
+            - still biased )
 
         - sim-e48
             - what 47 was supposed to be: no coadding, but

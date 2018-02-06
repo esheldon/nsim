@@ -1,4 +1,3 @@
-# sim has round psf.  Seeing if shifting psf does anything
 fitter: "metacal-moments-am"
 
 metacal_pars:

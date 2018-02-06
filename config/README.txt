@@ -170,7 +170,21 @@
         - sim-e48
             - what 47 was supposed to be: no coadding, but
               with offsetting psf
+              - run-e48-mcal-01,02,04,05  psf gauss instead
+              of symmetrizing, to try to deal with offset psf
+              (reminds me should check use in DES!!!)
+              - 3e-3 bias.  So off-setting the psf works for
+              coadding because it 1) puts interpolation effects
+              into the PSF, but 2) the PSF gets recentered
+              with the interpolation
+              - so I should be able to turn off the PSF offsetting
+              and see it work (sim-e50)
 
+        - sim-e50
+            turn off psf offsetting
+
+        - sim-e49
+            - quick test if fixnoise turned off
 
         - sim-e45
             - trim to central part of image, to avoid edge effects

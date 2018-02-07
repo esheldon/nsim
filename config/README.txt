@@ -183,10 +183,25 @@
         - sim-e50
             low noise, turn off psf offsetting
             - looks fine
-        - sim-e51
+        * sim-e51
             low noise, turn on psf offsetting
-            - so far fine
-            - so maybe can affect noise correction?
+
+        * sim-e52
+            - psf offset no coadd, very low shape noise
+            - bias 0.002
+        * sim-e53
+            - no psf offset no coadd, very low shape noise
+            - no extra bias
+
+        - fix bug with origin in coadd.py (might be ok)
+            - sim-e54
+                - psf offset and coadding (which should center psf back)
+                , very low shape noise
+                - some bias, -0.007
+
+            - sim-e55
+                - psf not offset and coadding, very low shape noise
+                - -0.002 now...
 
 
         - sim-e49

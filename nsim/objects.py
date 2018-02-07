@@ -150,6 +150,11 @@ class SimpleMaker(dict):
                 g_spec['sigma'],
                 rng=self.rng,
             )
+        elif g_spec['type'] == "gauss":
+            g_pdf=ngmix.priors.GPriorGauss(
+                g_spec['sigma'],
+                rng=self.rng,
+            )
         else:
             raise ValueError("bad g type: '%s'" % g_spec['type'])
 

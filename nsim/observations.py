@@ -340,8 +340,8 @@ class ObservationMaker(dict):
         dims = numpy.array(gsimage.array.shape)
         row, col = (numpy.array(dims)-1.0)/2.0
         if offset is not None:
-            row += offset[1]
-            col += offset[0]
+            row += offset['row_offset']
+            col += offset['col_offset']
 
         jacob = self._get_jacobian(wcs, row, col)
 

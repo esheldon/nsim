@@ -4,4 +4,5 @@ runs: [
     run-e50-mcal-03,
     run-e50-mcal-04,
     run-e50-mcal-05,
+    run-e50-mcal-06,
 ]

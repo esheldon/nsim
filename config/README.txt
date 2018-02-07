@@ -181,7 +181,13 @@
               and see it work (sim-e50)
 
         - sim-e50
-            turn off psf offsetting
+            low noise, turn off psf offsetting
+            - looks fine
+        - sim-e51
+            low noise, turn on psf offsetting
+            - so far fine
+            - so maybe can affect noise correction?
+
 
         - sim-e49
             - quick test if fixnoise turned off

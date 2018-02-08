@@ -259,11 +259,17 @@
 
         - sim-bdk09
             - more complex, with offsets between b/d
+            - this is a great and useful sim, not too much shape
+            noise but still a good test
             * run-bdk09-mcal-01-05
                 - psf shift, no shift in coaddsim
                 R: [ 0.62248316  0.62417745]
                 errors are 3 sigma
                 m: 1.845e-04 +/- 1.996e-04  c: -1.495e-06 +/- 3.891e-06
+
+        - sim-bdk10
+            - same as bdk09 but without psf shift, and checked
+            that bias is indeed still there
 
 
     - high distortioin

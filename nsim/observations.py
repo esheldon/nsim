@@ -214,20 +214,137 @@ class ObservationMaker(dict):
             coadd_obs = coadder.get_mean_coadd()
         else:
             raise ValueError("bad coadd type: '%s'" % coadd_conf['type'])
+        #coadd_obs = self._do_coadd_test(obslist)
+
+        #coadd_obs.psf.image = obslist[0].psf.image
 
         coadd_obslist=ngmix.ObsList()
         coadd_obslist.append(coadd_obs)
         coadd_obslist.update_meta_data(obslist.meta)
 
         if False:
+            #self._show_coadd(obslist)
             self._show_coadd(coadd_obslist)
         return coadd_obslist
 
+    def _do_coadd_test_straight(self, obslist, type):
+        iilist = [] 
+
+
+        for i,tobs in enumerate(obslist):
+            if type=='psf':
+                obs = tobs.psf
+            else:
+                obs = tobs
+
+            jac = obs.jacobian # copy
+            wcs = jac.get_galsim_wcs()
+
+            if type=='noise':
+                im = obs.noise
+            else:
+                im = obs.image
+
+            if i==0:
+                coadd_im = im.copy()
+            else:
+                coadd_im += im
+
+        coadd_im /= len(obslist)
+
+        cen = (numpy.array(coadd_im.shape)-1.0)/2.0
+        jac.set_cen(row=cen[0], col=cen[1])
+
+        return coadd_im, jac
+
+
+    def _do_coadd_test_type(self, obslist, type):
+        if obslist[0].meta['offset_pixels'] is None:
+            return self._do_coadd_test_straight(obslist, type)
+
+        iilist = [] 
+
+        for tobs in obslist:
+            if type=='psf':
+                doffset = tobs.meta['psf_offset_pixels']
+                obs = tobs.psf
+                #print("psf offset:",doffset)
+            else:
+                doffset = tobs.meta['offset_pixels']
+                obs = tobs
+                #print("obj offset:",doffset)
+
+            if doffset is not None:
+                offset=(doffset['col_offset'],doffset['row_offset'])
+            else:
+                offset=(0.0, 0.0)
+
+            jac = obs.jacobian # copy
+            wcs = jac.get_galsim_wcs()
+
+            if type=='noise':
+                im = obs.noise
+            elif type=='psf':
+                im = obs.image
+                im = im/im.sum()
+            else:
+                im = obs.image
+
+            interp=self['coadd']['interp']
+            ii = galsim.InterpolatedImage(
+                galsim.Image(im, wcs=wcs),
+                offset=offset,
+                x_interpolant=interp,
+            )
+
+            iilist.append(ii)
+
+        # use size and wcs from last one
+        ny,nx = im.shape
+        coadd_gsim = galsim.Image(nx, ny, wcs=wcs)
+
+        coadd_ii = galsim.Sum(iilist)
+        coadd_ii.drawImage(image=coadd_gsim, method='no_pixel')
+
+        coadd_im = coadd_gsim.array
+        coadd_im /= len(obslist)
+
+        # assume all same scale
+        cen = (numpy.array(obslist[0].image.shape)-1.0)/2.0
+        jac.set_cen(row=cen[0], col=cen[1])
+
+        return coadd_im, jac
+
+    def _do_coadd_test(self, obslist):
+
+        coadd_im, jac = self._do_coadd_test_type(obslist, 'image')
+        n_im, _ = self._do_coadd_test_type(obslist, 'noise')
+        psf_im, psf_jac = self._do_coadd_test_type(obslist, 'psf')
+
+        var = n_im.var()
+        weight = n_im*0 + 1.0/var
+
+        psf_obs = ngmix.Observation(
+            psf_im,
+            weight=obslist[0].psf.weight,
+            jacobian=psf_jac,
+        )
+        coadd_obs = ngmix.Observation(
+            coadd_im,
+            weight=weight,
+            jacobian=jac,
+            psf=psf_obs,
+        )
+        coadd_obs.noise = n_im
+
+        return coadd_obs
+
+
     def _show_coadd(self, obslist):
         import images
-        obs=obslist[0]
-        images.multiview(obs.psf.image, title='psf',width=1000,height=1000)
-        images.multiview(obs.image, title='obj',width=1000,height=1000)
+        for obs in obslist:
+            images.multiview(obs.psf.image, title='psf',width=1000,height=1000)
+            images.multiview(obs.image, title='obj',width=1000,height=1000)
         if raw_input('hit a key (q to quit): ')=='q':
             stop
 
@@ -254,16 +371,16 @@ class ObservationMaker(dict):
         noise_obj=self._get_noise()
 
         if self['psf']['shift_psf']:
-            psf_offset = offset_pixels
+            psf_offset_pixels = offset_pixels
         else:
-            psf_offset = None
+            psf_offset_pixels = None
 
         psf_im, psf_jacob = self._get_psf_image(
             psf,
             wcs,
             psf_dims,
             noise_obj,
-            psf_offset,
+            psf_offset_pixels,
         )
 
         obj_im, obj_im_orig, obj_jacob = \
@@ -292,6 +409,7 @@ class ObservationMaker(dict):
         )
         obs.image_orig = obj_im_orig
         obs.update_meta_data({'offset_pixels':offset_pixels})
+        obs.update_meta_data({'psf_offset_pixels':psf_offset_pixels})
 
         return obs
 

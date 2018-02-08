@@ -18,7 +18,7 @@ images:
         s2n: 10000
         stamp_size: [48,48]
 
-        shift_psf: False
+        shift_psf: True
 
     object:
         nepoch: 10
@@ -45,7 +45,7 @@ psf:
 
 
 object:
-    model: "exp"
+    model: "bdk"
 
     g:
         type: "gauss"
@@ -54,5 +54,21 @@ object:
     # same hlr as psf
     r50: 0.57
     flux: 25.0
+
+    # fraction of flux in the bulge
+    fracdev:
+        type: "uniform"
+        #range: [0.0, 1.0]
+        range: [0.0, 0.05]
+
+    # use random-walk to place knots, with fraction
+    # of disk flux [0,1.0]
+    knots:
+        num: 2
+        flux_frac:
+            type: "uniform"
+            #range: [0.0, 1.0]
+            range: [0.0, 0.05]
+
 
 shear: [0.02, 0.00]

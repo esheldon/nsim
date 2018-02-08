@@ -1,0 +1,5 @@
+runs: [
+    run-bdk08-mcal-04,
+    run-bdk08-mcal-05,
+    run-bdk08-mcal-06,
+]

@@ -181,12 +181,16 @@
               and see it work (sim-e50)
 
         - sim-e50
-            low noise, turn off psf offsetting
-            - looks fine
+            - no coadd, low noise
+            - turn off psf offsetting
+            errors are 3 sigma
+            m: 2.031e-04 +/- 1.995e-04  c: -8.035e-07 +/- 3.987e-06
         - sim-e51
-            low noise, turn on psf offsetting
-            - so far fine
-            - so maybe can affect noise correction?
+            - no coadd, low noise
+            - turn on psf offsetting
+            errors are 3 sigma
+            m: 6.230e-04 +/- 1.793e-04  c: 3.030e-06 +/- 3.582e-06
+
 
 
         - sim-e49

@@ -229,6 +229,42 @@
             - run-e46-mcal-03 use psf: gauss  Idea is maybe we should
             suppress more small scale power due to interpolation
 
+        - wonder if can get rid of these shifts if we have a complex
+        object
+        - sim-bdk08
+            - run-bdk08-mcal-01
+                - no psf shift, no shift in coaddsim
+                R: [ 0.70325588  0.70654134]
+                errors are 3 sigma
+                m: 4.457e-03 +/- 1.686e-03  c: 1.137e-06 +/- 3.359e-05
+
+            - run-bdk08-mcal-02
+                - no psf shift, shift in coaddsim
+                R: [ 0.70484486  0.70620869]
+                errors are 3 sigma
+                m: 3.489e-03 +/- 1.684e-03  c: -1.760e-05 +/- 3.360e-05
+
+            - run-bdk08-mcal-03
+                - psf shift, shift in coaddsim
+                R: [ 0.70660314  0.70723134] 
+                errors are 3 sigma
+                m: 5.532e-04 +/- 1.680e-03  c: -4.978e-06 +/- 3.351e-05
+
+            - run-bdk08-mcal-04
+            * run-bdk08-mcal-05
+                - psf shift, no shift in coaddsim
+                R: [ 0.7049719   0.70751422]
+                errors are 3 sigma
+                m: 6.765e-04 +/- 3.687e-04  c: 5.810e-07 +/- 7.356e-06
+
+        - sim-bdk09
+            - more complex, with offsets between b/d
+            * run-bdk09-mcal-01-05
+                - psf shift, no shift in coaddsim
+                R: [ 0.62248316  0.62417745]
+                errors are 3 sigma
+                m: 1.845e-04 +/- 1.996e-04  c: -1.495e-06 +/- 3.891e-06
+
 
     - high distortioin
         - sim-e19

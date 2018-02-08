@@ -59,25 +59,42 @@ class SimpleMaker(dict):
         if 'r50' in kw:
             r50=kw['r50']
 
+        fracknots, nknots = self._get_knot_info()
+
+        # if knots were not requested, fracknots defaults to 0.0
+        primary_flux = (1.0 - fracknots)*flux
+
         model=self['model']
         if model=='gauss':
-            gal = galsim.Gaussian(flux=flux, half_light_radius=r50)
+            gal = galsim.Gaussian(flux=primary_flux, half_light_radius=r50)
         elif model=='exp':
-            gal = galsim.Exponential(flux=flux, half_light_radius=r50)
+            gal = galsim.Exponential(flux=primary_flux, half_light_radius=r50)
         elif model=='dev':
-            gal = galsim.DeVaucouleurs(flux=flux, half_light_radius=r50)
+            gal = galsim.DeVaucouleurs(flux=primary_flux, half_light_radius=r50)
         else:
             raise ValueError("bad galaxy model: '%s'" % pars['model'])
+
+        if nknots > 0:
+            knot_flux = fracknots*flux
+
+            knots = galsim.RandomWalk(
+                npoints=nknots,
+                half_light_radius=r50,
+                flux=knot_flux,
+                rng=self.galsim_rng,
+            )
+
+            gal = galsim.Add([gal, knots])
 
         gal = gal.shear(g1=g1, g2=g2)
         meta={
             'r50':r50,
             'flux':flux,
+            'fracknots':fracknots,
+            'nknots':nknots,
         }
 
         return gal, meta
-
-
 
     def _set_pdf(self):
         """
@@ -86,8 +103,6 @@ class SimpleMaker(dict):
         We use joint distributions for flux and size, though these could
         be separable in practice
         """
-
-        
 
         if 'flux' in self and 'r50' in self:
             # the pdfs are separate
@@ -115,6 +130,8 @@ class SimpleMaker(dict):
         else:
             raise ValueError("only separable flux/size/shape "
                              "pdfs currently supported")
+
+        self.fracknots_pdf = self._get_fracknots_pdf()
 
     def _get_joint_r50_flux_pdf(self):
         """
@@ -233,6 +250,34 @@ class SimpleMaker(dict):
 
         return flux_pdf
 
+    def _get_knot_info(self):
+        if self.fracknots_pdf is None:
+            fracknots=0.0
+            num=0
+        else:
+            fracknots = self.fracknots_pdf.sample()
+            num = self['knots']['num']
+
+        return fracknots, num
+
+    def _get_fracknots_pdf(self):
+        if 'knots' not in self:
+            kconf=None
+        else:
+            kconf = self['knots']
+
+        if kconf is None:
+            pdf = None
+        else:
+            bdr = self['knots']['flux_frac']['range']
+            pdf = ngmix.priors.FlatPrior(
+                bdr[0],
+                bdr[1],
+                rng=self.rng,
+            )
+
+        return pdf
+
 class BDKMaker(SimpleMaker):
     def __init__(self, config, rng, galsim_rng):
         super(BDKMaker,self).__init__(config, rng)
@@ -241,9 +286,10 @@ class BDKMaker(SimpleMaker):
 
     def _set_pdf(self):
         super(BDKMaker,self)._set_pdf()
-
         self.fracdev_pdf = self._get_fracdev_pdf()
-        self.fracknots_pdf = self._get_fracknots_pdf()
+
+        # component shifts in sky units
+        self.shift_pdf = self._get_shift_pdf()
 
 
     def _make_object(self, **kw):
@@ -259,6 +305,7 @@ class BDKMaker(SimpleMaker):
         fracdev = self.fracdev_pdf.sample()
 
         fracknots, nknots = self._get_knot_info()
+        shifts = self._get_component_shifts()
 
         bulge_flux = flux*fracdev
 
@@ -290,6 +337,19 @@ class BDKMaker(SimpleMaker):
         disk  = disk.shear(g1=g1disk, g2=g2disk)
         bulge = bulge.shear(g1=g1bulge, g2=g2bulge)
 
+        if shifts is not None:
+            #print("shifting disk: ",shifts['disk'])
+            #print("shifting bulge:",shifts['bulge'])
+            disk  = disk.shift(
+                dx=shifts['disk']['dx'],
+                dy=shifts['disk']['dy'],
+            )
+            bulge  = bulge.shift(
+                dx=shifts['bulge']['dx'],
+                dy=shifts['bulge']['dy'],
+            )
+
+
         # combine them and shear that
         gal = galsim.Add([disk, bulge])
 
@@ -298,39 +358,35 @@ class BDKMaker(SimpleMaker):
             'flux':flux,
             'fracdev':fracdev,
             'fracknots':fracknots,
+            'nknots':nknots,
         }
 
         return gal, meta
-
-    def _get_knot_info(self):
-        if self.fracknots_pdf is None:
-            fracknots=0.0
-            num=0
-        else:
-            fracknots = self.fracknots_pdf.sample()
-            num = self['knots']['num']
-
-        return fracknots, num
 
     def _get_fracdev_pdf(self):
         bdr = self['fracdev']['range']
         return ngmix.priors.FlatPrior(bdr[0], bdr[1],
                                       rng=self.rng)
 
-    def _get_fracknots_pdf(self):
-        if 'knots' not in self:
-            kconf=None
+    def _get_component_shifts(self):
+        if 'component_offsets' in self:
+            dx,dy = self.shift_pdf.sample2d()
+            shift_disk = {'dx':dx, 'dy':dy}
+            dx,dy = self.shift_pdf.sample2d()
+            shift_bulge = {'dx':dx, 'dy':dy}
         else:
-            kconf = self['knots']
+            shift_disk = {'dx':0.0, 'dy':0.0}
+            shift_bulge = {'dx':0.0, 'dy':0.0}
 
-        if kconf is None:
-            pdf = None
-        else:
-            bdr = self['knots']['flux_frac']['range']
-            pdf = ngmix.priors.FlatPrior(
-                bdr[0],
-                bdr[1],
+        return {
+            'disk':shift_disk,
+            'bulge':shift_bulge,
+        }
+    def _get_shift_pdf(self):
+        if 'component_offsets' in self:
+            return ngmix.priors.ZDisk2D(
+                self['component_offsets']['radius'],
                 rng=self.rng,
             )
-
-        return pdf
+        else:
+            return None

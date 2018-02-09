@@ -271,6 +271,10 @@
             - same as bdk09 but without psf shift, and checked
             that bias is indeed still there
 
+        - sim-e57
+            - first with fixed sim:  now the object is shifted
+            in sky coords, same in all epochs, but there can
+            be an offset for each epoch in pixels
 
     - high distortioin
         - sim-e19

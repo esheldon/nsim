@@ -2,4 +2,7 @@ runs: [
     run-bdk11-mcal-01,
     run-bdk11-mcal-02,
     run-bdk11-mcal-03,
+    run-bdk11-mcal-04,
+    run-bdk11-mcal-05,
+    run-bdk11-mcal-06,
 ]

@@ -1,0 +1,4 @@
+runs: [
+    run-bdk12-mcal-01,
+    run-bdk12-mcal-02,
+]

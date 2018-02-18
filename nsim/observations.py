@@ -151,6 +151,14 @@ class ObservationMaker(dict):
 
         object, meta = self._get_object()
 
+        # offset of object, not the epochs
+        obj_shift = self._get_obj_shift()
+        if obj_shift is not None:
+            object = object.shift(
+                dx=obj_shift['col_offset'],
+                dy=obj_shift['row_offset'],
+            )
+
         if 'randomize_morphology' in objconf:
             raise NotImplementedError("make work with new system "
                                       "of same sized stamps")
@@ -223,7 +231,7 @@ class ObservationMaker(dict):
         coadd_obslist.update_meta_data(obslist.meta)
 
         if False:
-            #self._show_coadd(obslist)
+            self._show_coadd(obslist)
             self._show_coadd(coadd_obslist)
         return coadd_obslist
 
@@ -341,10 +349,23 @@ class ObservationMaker(dict):
 
 
     def _show_coadd(self, obslist):
+        import biggles
         import images
-        for obs in obslist:
-            images.multiview(obs.psf.image, title='psf',width=1000,height=1000)
-            images.multiview(obs.image, title='obj',width=1000,height=1000)
+
+
+        for i,obs in enumerate(obslist):
+            if len(obslist) > 1:
+                title='image %d' % i
+            else:
+                title='coadd'
+
+            tab = biggles.Table(2, 1)
+            ppsf = images.multiview(obs.psf.image, title='psf',width=1000,height=1000,show=False)
+            pim = images.multiview(obs.image, title=title,width=1000,height=1000,show=False)
+            tab[0,0] = ppsf
+            tab[1,0] = pim
+            tab.show()
+
         if raw_input('hit a key (q to quit): ')=='q':
             stop
 
@@ -366,7 +387,7 @@ class ObservationMaker(dict):
 
     def _get_obs(self, psf, cobj, wcs, dims, psf_dims):
 
-        offset_pixels=self._get_offset()
+        offset_pixels = self._get_epoch_offset()
 
         noise_obj=self._get_noise()
 
@@ -383,13 +404,13 @@ class ObservationMaker(dict):
             psf_offset_pixels,
         )
 
-        obj_im, obj_im_orig, obj_jacob = \
-                self._get_object_image(
-                    cobj,
-                    wcs,
-                    dims,
-                    noise_obj,offset_pixels,
-                )
+        obj_im, obj_im_orig, obj_jacob =  self._get_object_image(
+            cobj,
+            wcs,
+            dims,
+            noise_obj,
+            offset_pixels,
+        )
 
         ivar = 1.0/noise_obj.sigma**2
         psf_weight = numpy.zeros( psf_im.shape ) + ivar
@@ -644,7 +665,8 @@ class ObservationMaker(dict):
 
         self._set_noise()
         self._set_sizes()
-        self._set_offsets()
+        self._set_obj_shift()
+        self._set_epoch_offset()
 
     def _set_sizes(self):
         if 'stamp_size' in self['object']:
@@ -696,14 +718,28 @@ class ObservationMaker(dict):
         )
 
 
-    def _get_offset(self):
-        cen_pdf = self.cen_pdf
-        if cen_pdf is not None:
-            if hasattr(cen_pdf,'sample2d'):
-                coff1,coff2 = cen_pdf.sample2d()
+    def _get_obj_shift(self):
+        """
+        shift of object on the sky
+        """
+        return self._get_offset_generic(self.obj_shift_pdf)
+
+    def _get_epoch_offset(self):
+        """
+        offset of an epoch, not object
+        """
+        return self._get_offset_generic(self.epoch_offset_pdf)
+
+    def _get_offset_generic(self, pdf):
+        """
+        the shift of the object, not the epoch shift
+        """
+        if pdf is not None:
+            if hasattr(pdf,'sample2d'):
+                coff1,coff2 = pdf.sample2d()
             else:
-                coff1 = cen_pdf.sample()
-                coff2 = cen_pdf.sample()
+                coff1 = pdf.sample()
+                coff2 = pdf.sample()
 
             offset=(coff1,coff2)
             offset = {
@@ -716,26 +752,37 @@ class ObservationMaker(dict):
         return offset
 
 
-    def _set_offsets(self):
+    def _set_obj_shift(self):
         cr=self['object'].get('cen_shift',None)
+        self.obj_shift_pdf = self._get_shift_pdf(cr)
 
+    def _set_epoch_offset(self):
+        if 'coadd' in self:
+            cr=self['coadd'].get('offset',None)
+            pdf = self._get_shift_pdf(cr)
+        else:
+            pdf = None
+
+        self.epoch_offset_pdf = pdf
+
+    def _get_shift_pdf(self, cr):
         if cr is None:
-            self.cen_pdf=None
+            pdf=None
         else:
             type=cr.get('type','uniform')
             if type=='uniform':
-                self.cen_pdf=ngmix.priors.FlatPrior(
+                pdf=ngmix.priors.FlatPrior(
                     -cr['radius'], cr['radius'],
                     rng=self.rng,
                 )
             elif type=='disk':
-                self.cen_pdf=ngmix.priors.ZDisk2D(
+                pdf=ngmix.priors.ZDisk2D(
                     cr['radius'],
                     rng=self.rng,
                 )
 
             elif type=='annulus':
-                self.cen_pdf=ngmix.priors.ZAnnulus(
+                pdf=ngmix.priors.ZAnnulus(
                     cr['rmin'],
                     cr['rmax'],
                     rng=self.rng,
@@ -744,6 +791,8 @@ class ObservationMaker(dict):
 
             else:
                 raise ValueError("cen shift type should be 'uniform'")
+
+        return pdf
 
 class NbrObservationMaker(ObservationMaker):
     """
@@ -820,11 +869,11 @@ class NbrObservationMaker(ObservationMaker):
         return new_obslist
 
     def _restore_cen_pdf(self):
-        self.cen_pdf = self.cen_pdf_saved
+        self.obj_shift_pdf = self.obj_shift_pdf_saved
 
     def _save_cen_pdf(self):
-        self.cen_pdf_saved = self.cen_pdf
-        self.cen_pdf = None
+        self.obj_shift_pdf_saved = self.obj_shift_pdf
+        self.obj_shift_pdf = None
 
 
 class NbrObservationMakerMulti(ObservationMaker):
@@ -1038,100 +1087,6 @@ class NbrObservationMakerMulti(ObservationMaker):
                 raise ValueError("cen shift type should be 'uniform'")
 
 
-
-class NbrObservationMakerMultiOld(ObservationMaker):
-    """
-    get multple obs and combine them, getting a list
-    of new observations for use with MOF
-
-    returns
-    -------
-    list of ngmix.Observation:
-        Each obs has the same image and weight map, but different jacobians are
-        set with the nominal center for each object.  Also the metadata is the
-        metadata for that object.
-
-
-    notes
-    ------
-        - the noise gets increased since the images are added
-        - you should fix the stamp size so the images can be added
-        - you should make the stamp size large enough to hold all
-          the objects with their offsets
-        - the cen_shift does not apply to the first object drawn
-          only subsequent ones
-
-        - this requires the additional config parameter
-            object:
-                nnbr:   2 # number of neighbors
-                nepoch: 1 # only one epoch for now
-        - number of epochs must be 1 for now
-    """
-    def __call__(self):
-
-
-        objconf=self['object']
-        assert objconf['nepoch']==1
-
-        allobs = [] 
-
-        nobject = 1 + objconf['nnbr']
-        for i in xrange(nobject):
-            logger.debug("object %d of %d" % (i+1,nobject))
-            if i==0:
-                self._save_cen_pdf()
-
-            obslist = super(NbrObservationMakerMulti,self).__call__()
-            #return [obslist]
-
-            # keep orig for testing or bootstrapping
-            obslist_orig = deepcopy(obslist)
-            obslist.obslist_orig = obslist_orig
-
-            allobs.append( obslist )
-            obs=obslist[0]
-
-            if False:
-                import images
-                images.view(obs.image, width=800,height=800)
-                if 'q'==raw_input('hit a key: '):
-                    stop
-
-            if i==0:
-                self._restore_cen_pdf()
-
-                image  = obs.image
-                weight = obs.weight
-                var    = 1.0/weight
-            else:
-                image += obs.image
-                var   += 1.0/obs.weight
-
-        weight = 1.0/var
-        for obslist in allobs:
-            obs=obslist[0]
-            obs.image_orig = obs.image
-            obs.weight_orig = obs.weight
-
-            obs.image = image.copy()
-            obs.weight = weight.copy()
-
-        if False:
-            import images
-            #images.view(obs.image, width=800,height=800)
-            images.multiview(obs.image, width=800,height=800)
-            if 'q'==raw_input('hit a key: '):
-                stop
-            # just to keep things going
-            #raise TryAgainError("for testing")
-        return allobs
-
-    def _restore_cen_pdf(self):
-        self.cen_pdf = self.cen_pdf_saved
-
-    def _save_cen_pdf(self):
-        self.cen_pdf_saved = self.cen_pdf
-        self.cen_pdf = None
 
 
 def find_centroid(image, rng, offset=None, maxiter=200, ntry=4):

@@ -1,4 +1,4 @@
 runs: [
-    run-bdk12-mcal-01,
-    run-bdk12-mcal-02,
+    run-bdk12-mcal-03,
+    run-bdk12-mcal-04s,
 ]

@@ -271,6 +271,18 @@
             - same as bdk09 but without psf shift, and checked
             that bias is indeed still there
 
+        - sim-bdk12
+            - lanczos15
+
+            R: [ 0.74602926  0.74680734]
+            total wsum: 398794593.0
+            shear_meas: [  2.00322067e-02  -2.36545016e-05]
+            errors are 3 sigma
+            m: 1.610e-03 +/- 2.452e-03  c: -2.365e-05 +/- 4.900e-05
+
+        - sim-bdk13
+            - lanczos3
+
         - sim-e57
             - first with fixed sim:  now the object is shifted
             in sky coords, same in all epochs, but there can

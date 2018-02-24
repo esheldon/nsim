@@ -259,6 +259,7 @@
 
         - sim-bdk09
             - more complex, with offsets between b/d
+            - lanczos 3
             - this is a great and useful sim, not too much shape
             noise but still a good test
             * run-bdk09-mcal-01-05
@@ -280,8 +281,12 @@
             errors are 3 sigma
             m: 1.610e-03 +/- 2.452e-03  c: -2.365e-05 +/- 4.900e-05
 
+            03/04/05/04s
+
+
         - sim-bdk13
-            - lanczos3
+            - lanczos3, same as bdk09 but higher noise, fixed
+            issue
 
         - sim-e57
             - first with fixed sim:  now the object is shifted

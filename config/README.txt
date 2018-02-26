@@ -211,6 +211,8 @@
                 - psf not offset and coadding, very low shape noise
                 - -0.002 now...
 
+        - sim-e58ln - fixed bug in config, not shifting anything
+        - sim-e59ln - just check still bias when not shifting psf
 
         - sim-e49
             - quick test if fixnoise turned off

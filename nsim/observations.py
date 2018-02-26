@@ -396,6 +396,8 @@ class ObservationMaker(dict):
         else:
             psf_offset_pixels = None
 
+        #print("offset:",offset_pixels)
+        #print("offset psf:",psf_offset_pixels)
         psf_im, psf_jacob = self._get_psf_image(
             psf,
             wcs,

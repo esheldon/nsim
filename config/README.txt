@@ -288,6 +288,11 @@
             - lanczos3, same as bdk09 but higher noise, fixed
             issue
 
+        - sim-bdk14
+            - cosmos shape/flux distribution, lanczos3, similar to bdj03
+            but with the small offsets between exp and dev, and only
+            10 knots and only up to 10 percent of disk
+
         - sim-e57
             - first with fixed sim:  now the object is shifted
             in sky coords, same in all epochs, but there can

@@ -214,6 +214,11 @@
         - sim-e58ln - fixed bug in config, not shifting anything
         - sim-e59ln - just check still bias when not shifting psf
 
+        - sim-e60 - about s/n = 15 with fixes
+
+
+
+
         - sim-e49
             - quick test if fixnoise turned off
 

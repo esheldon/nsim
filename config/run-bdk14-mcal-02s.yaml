@@ -1,6 +1,10 @@
 fitter: "metacal-moments-am"
 
 metacal_pars:
+    #psf:
+    #    model: "gauss"
+    #    pars:
+    #        fwhm: 1.5
     use_noise_image: True
     psf: "gauss"
     types: ['noshear','1p','1m','2p','2m']
@@ -19,6 +23,6 @@ ngal: 200000000
 jobs_per_condor_sub: 1000
 desired_hours: 4.0
 
-sec_per: 0.4
+sec_per: 0.35
 
 verbose: False

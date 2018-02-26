@@ -13,7 +13,7 @@ admom_pars:
     ntry: 4
     maxiter: 200
 
-ngal: 200000000
+ngal: 500000
 
 # time for the entire MPI job at nersc
 #queue: "regular"
@@ -21,8 +21,8 @@ ngal: 200000000
 #constraint: "haswell"
 
 jobs_per_condor_sub: 1000
-desired_hours: 1.0
+desired_hours: 0.25
 
-sec_per: 0.7
+sec_per: 0.5
 
 verbose: False

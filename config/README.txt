@@ -213,6 +213,9 @@
 
         - sim-e58ln - fixed bug in config (was not shifting anything)
         - sim-e59ln - just check still bias when not shifting psf
+            - 1.2% bias
+        - sim-e61ln - lanczos15 and not shifting psf
+            - bias about what expected for weak shear approx
 
         - sim-e60 - about s/n = 15 with fixes
 

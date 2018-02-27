@@ -216,6 +216,9 @@
             - 1.2% bias
         - sim-e61ln - lanczos15 and not shifting psf
             - bias about what expected for weak shear approx
+        - sim-e62ln - lanczos3 and not shifting psf but large
+              galaxies
+            - bias reduced (0.3-0.4%)
 
         - sim-e60 - about s/n = 15 with fixes
 

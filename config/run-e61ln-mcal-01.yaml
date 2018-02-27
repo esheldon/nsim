@@ -21,7 +21,7 @@ ngal: 500000
 #constraint: "haswell"
 
 jobs_per_condor_sub: 1000
-desired_hours: 0.25
+desired_hours: 1.0
 
 sec_per: 0.5
 

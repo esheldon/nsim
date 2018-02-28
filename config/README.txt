@@ -211,8 +211,14 @@
                 - psf not offset and coadding, very low shape noise
                 - -0.002 now...
 
-        - sim-e58ln - fixed bug in config, not shifting anything
+        - sim-e58ln - fixed bug in config (was not shifting anything)
         - sim-e59ln - just check still bias when not shifting psf
+            - 1.2% bias
+        - sim-e61ln - lanczos15 and not shifting psf
+            - bias about what expected for weak shear approx
+        - sim-e62ln - lanczos3 and not shifting psf but large
+              galaxies
+            - bias reduced (0.3-0.4%)
 
         - sim-e60 - about s/n = 15 with fixes
 

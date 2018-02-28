@@ -1,0 +1,4 @@
+runs: [
+    run-e60-mcal-01s,
+    run-e60-mcal-02s,
+]

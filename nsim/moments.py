@@ -426,24 +426,22 @@ class MetacalMomentsAM(SimpleFitterBase):
         res['g']     = res['e']
         res['g_cov'] = res['e_cov']
 
-    def _copy_to_output(self, res, i):
+    def _make_output(self, res, i):
         """
         copy parameters specific to this class
         """
 
-        super(SimpleFitterBase,self)._copy_to_output(res, i)
-
-        d=self.data
+        d = super(SimpleFitterBase,self)._make_output(res, i)
 
         pres=res['psf']
-        d['psfrec_g'][i] = pres['g']
-        d['psfrec_T'][i] = pres['T']
+        d['psfrec_g'] = pres['g']
+        d['psfrec_T'] = pres['T']
 
         if 'fit_model' in self:
             n=self._get_namer()
             model_res=res['model_result']
             for name in ['pars','sums_cov','g','g_cov','s2n_r']:
-                d[n(name)][i] = model_res[name]
+                d[n(name)] = model_res[name]
 
 
         for type in self.metacal_types:
@@ -454,36 +452,37 @@ class MetacalMomentsAM(SimpleFitterBase):
             else:
                 back='_%s' % type
 
-            d['mcal_pars%s' % back][i] = tres['pars']
-            d['mcal_g%s' % back][i] = tres['g']
-            d['mcal_g_cov%s' % back][i] = tres['g_cov']
+            d['mcal_pars%s' % back] = tres['pars']
+            d['mcal_g%s' % back] = tres['g']
+            d['mcal_g_cov%s' % back] = tres['g_cov']
 
             if 'flux' in tres:
-                d['mcal_flux%s' % back][i] = tres['flux']
-                d['mcal_flux_s2n%s' % back][i] = tres['flux_s2n']
+                d['mcal_flux%s' % back] = tres['flux']
+                d['mcal_flux_s2n%s' % back] = tres['flux_s2n']
 
-            d['mcal_am_flux%s' % back][i] = tres['am_flux']
-            d['mcal_am_flux_s2n%s' % back][i] = tres['am_flux_s2n']
+            d['mcal_am_flux%s' % back] = tres['am_flux']
+            d['mcal_am_flux_s2n%s' % back] = tres['am_flux_s2n']
 
 
-            d['mcal_am_flux%s' % back][i] = tres['am_flux']
-            d['mcal_am_flux_s2n%s' % back][i] = tres['am_flux_s2n']
+            d['mcal_am_flux%s' % back] = tres['am_flux']
+            d['mcal_am_flux_s2n%s' % back] = tres['am_flux_s2n']
 
-            d['mcal_s2n%s' % back][i] = tres['s2n']
+            d['mcal_s2n%s' % back] = tres['s2n']
 
             if 'T_r' in tres:
-                d['mcal_s2n_r%s' % back][i] = tres['s2n_r']
-                d['mcal_T_r%s' % back][i] = tres['T_r']
+                d['mcal_s2n_r%s' % back] = tres['s2n_r']
+                d['mcal_T_r%s' % back] = tres['T_r']
 
-            d['mcal_numiter%s' % back][i] = tres['numiter']
+            d['mcal_numiter%s' % back] = tres['numiter']
 
             if type=='noshear':
                 for p in ['sums_cov','wsum','psfrec_g','psfrec_T']:
 
                     if p in tres:
                         name='mcal_%s' % p
-                        d[name][i] = tres[p]
+                        d[name] = tres[p]
 
+        return d
 
     def _get_dtype(self):
         """
@@ -676,16 +675,14 @@ class AMFitter(MetacalMomentsAM):
 
         return dt
 
-    def _copy_to_output(self, res, i):
+    def _make_output(self, res, i):
         """
         copy parameters specific to this class
         """
 
         # note copying super of our super, since
         # we didn't do a regular fit
-        super(SimpleFitterBase,self)._copy_to_output(res, i)
-
-        d=self.data
+        d = super(SimpleFitterBase,self)._make_output(res, i)
 
         ckeys=[
             'pars','sums_cov',
@@ -694,13 +691,15 @@ class AMFitter(MetacalMomentsAM):
             'numiter',
         ]
 
-        d['flux'][i] = res['am_flux']
-        d['flux_err'][i] = res['am_flux_err']
-        d['T'][i] = res['T']
-        d['T_err'][i] = res['T_err']
+        d['flux'] = res['am_flux']
+        d['flux_err'] = res['am_flux_err']
+        d['T'] = res['T']
+        d['T_err'] = res['T_err']
         for key in ckeys:
             if key in res:
-                d[key][i] = res[key]
+                d[key] = res[key]
+
+        return d
 
     def _print_res(self,res):
         """

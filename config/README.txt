@@ -221,6 +221,7 @@
             - bias reduced (0.3-0.4%)
 
         - sim-e60 - about s/n = 15 with fixes
+        - sim-e58 - cosmos flux, size distribution
 
 
 

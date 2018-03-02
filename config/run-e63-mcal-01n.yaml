@@ -17,7 +17,7 @@ nodes: 128
 constraint: "haswell"
 
 # many runs can share the same image
-docker_image: docker:esheldon/run-e63-mcal-v01
+docker_image: docker:esheldon/nsim-mpi:run-e63-mcal-v01
 
 #jobs_per_condor_sub: 1000
 #desired_hours: 0.5

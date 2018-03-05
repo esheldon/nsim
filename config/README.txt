@@ -222,6 +222,13 @@
 
         - sim-e60 - about s/n = 15 with fixes
         - sim-e58 - cosmos flux, size distribution
+           s/n > 15
+           so far
+           R: [ 0.67287475  0.67345688]
+           Rsel: [ 0.02122387  0.02136405]
+           errors are 3 sigma
+           m: 1.697e-04 +/- 1.699e-03  c: 4.902e-06 +/- 3.394e-05
+
 
 
 

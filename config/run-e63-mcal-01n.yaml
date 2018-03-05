@@ -1,0 +1,28 @@
+fitter: "metacal-moments-am"
+
+metacal_pars:
+    use_noise_image: True
+    psf: "gauss"
+    types: ['noshear','1p','1m','2p','2m']
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+ngal: 50000000
+
+# time for the entire MPI job at nersc
+queue: "regular"
+nodes: 128
+constraint: "haswell"
+
+# many runs can share the same image
+docker_image: docker:esheldon/nsim-mpi:run-e63-mcal-v01
+
+#jobs_per_condor_sub: 1000
+#desired_hours: 0.5
+
+# 0.15, padded to 0.20
+sec_per: 0.20
+
+verbose: False

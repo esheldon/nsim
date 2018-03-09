@@ -223,15 +223,25 @@
         - sim-e60 - about s/n = 15 with fixes
         - sim-e58 - cosmos flux, size distribution
            s/n > 15
-           so far
-           R: [ 0.67287475  0.67345688]
-           Rsel: [ 0.02122387  0.02136405]
-           errors are 3 sigma
-           m: 1.697e-04 +/- 1.699e-03  c: 4.902e-06 +/- 3.394e-05
 
+			R: [ 0.67284623  0.67343938]
+			Rsel: [ 0.02118986  0.02134926]
+			total wsum: 976094365.0
+			shear_meas: [  2.00111403e-02   9.28971949e-06]
+			without correction
+			errors are 3 sigma
+			m: 3.207e-02 +/- 1.114e-03  c: 9.584e-06 +/- 2.225e-05
 
+			with correction
+			errors are 3 sigma
+			m: 5.570e-04 +/- 1.080e-03  c: 9.290e-06 +/- 2.157e-05
 
+            running with max to conpare to sim-e58nc
+            run-e58-mcal-max-01s
 
+        - sim-e58nc
+            - no coadd
+            - run-e58nc-mcal-max-01s
 
         - sim-e49
             - quick test if fixnoise turned off

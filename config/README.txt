@@ -224,6 +224,8 @@
         - sim-e58 - cosmos flux, size distribution
            s/n > 15
 
+            c7330f229cdc22c1382a6fe7ae8b6228e09d82f6
+
 			R: [ 0.67284623  0.67343938]
 			Rsel: [ 0.02118986  0.02134926]
 			total wsum: 976094365.0
@@ -236,12 +238,16 @@
 			errors are 3 sigma
 			m: 5.570e-04 +/- 1.080e-03  c: 9.290e-06 +/- 2.157e-05
 
-            running with max to conpare to sim-e58nc
-            run-e58-mcal-max-01s
 
         - sim-e58nc
             - no coadd
             - run-e58nc-mcal-max-01s
+              d42c22a4947e38c5eadc9947eaee8e9e08401ccb
+
+            - for comparison
+            running with max to conpare to sim-e58nc
+            - run-e58-mcal-max-01s
+              d42c22a4947e38c5eadc9947eaee8e9e08401ccb
 
         - sim-e49
             - quick test if fixnoise turned off

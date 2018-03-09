@@ -11,17 +11,18 @@ admom_pars:
 
 ngal: 50000000
 
-# many runs can share the same image
-docker_image: docker:esheldon/nsim-mpi:run-e58-mcal-v01
-
 # time for the entire MPI job at nersc
 queue: "regular"
 nodes: 128
 constraint: "haswell"
 
-#desired_hours: 1.0
+# many runs can share the same image
+docker_image: docker:esheldon/nsim-mpi:run-e63-mcal-v01
 
-# ~0.26 but padded 50%
-sec_per: 0.4
+#jobs_per_condor_sub: 1000
+#desired_hours: 0.5
+
+# 0.15, padded to 0.20
+sec_per: 0.20
 
 verbose: False

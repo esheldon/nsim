@@ -759,13 +759,8 @@ class ObservationMaker(dict):
         self.obj_shift_pdf = self._get_shift_pdf(cr)
 
     def _set_epoch_offset(self):
-        if 'coadd' in self:
-            cr=self['coadd'].get('offset',None)
-            pdf = self._get_shift_pdf(cr)
-        else:
-            pdf = None
-
-        self.epoch_offset_pdf = pdf
+        cr=self['offset']
+        self.epoch_offset_pdf = self._get_shift_pdf(cr)
 
     def _get_shift_pdf(self, cr):
         if cr is None:

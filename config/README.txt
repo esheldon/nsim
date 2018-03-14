@@ -249,6 +249,9 @@
             - run-e58-mcal-max-01s
               d42c22a4947e38c5eadc9947eaee8e9e08401ccb
 
+          for s/n true > 15 (mcal > 10) ratio is
+            1.016, 1.014
+
         - sim-e49
             - quick test if fixnoise turned off
 

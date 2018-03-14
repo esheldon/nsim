@@ -602,6 +602,7 @@ class Summer(dict):
         n=self.get_namer(type)
 
         s2n=self._get_s2n(n, data, w)
+        s2n_true=self._get_s2n_true(n, data, w)
         size=self._get_size(n, data, w)
         flux=self._get_flux(n, data, w)
         am_flux=self._get_am_flux(n, data, w)
@@ -670,6 +671,13 @@ class Summer(dict):
             return None
 
         return data[name][w]
+
+    def _get_s2n_true(self, n, data, w):
+        if 's2n_true' in data.dtype.names:
+            return data['s2n_true'][w]
+        else:
+            return None
+
 
     def _get_size(self, n, data, w):
         name=n('pars')

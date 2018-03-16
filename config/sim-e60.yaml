@@ -1,4 +1,9 @@
 images:
+    # shift of the epochs
+    offset:
+        type: disk
+        radius: 0.5 # pixels
+
 
     # coadd the epochs
     coadd:
@@ -10,11 +15,6 @@ images:
 
         # set a noise image in the observation
         #use_nsim_noise_image: True
-
-        # shift of the epochs
-        offset:
-            type: disk
-            radius: 0.5 # pixels
 
     noise: 1.0
 

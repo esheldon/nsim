@@ -2,7 +2,6 @@ fitter: "metacal-max"
 fit_model: "gauss"
 
 metacal_pars:
-    use_noise_image: True
     psf: "gauss"
     types: ['noshear','1p','1m','2p','2m']
 
@@ -50,6 +49,6 @@ ngal: 10000000
 jobs_per_condor_sub: 1000
 desired_hours: 2.0
 
-sec_per: 0.50
+sec_per: 2.0
 
 verbose: False

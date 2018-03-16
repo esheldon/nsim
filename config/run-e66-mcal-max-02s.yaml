@@ -50,6 +50,6 @@ ngal: 10000000
 jobs_per_condor_sub: 1000
 desired_hours: 2.0
 
-sec_per: 0.50
+sec_per: 0.35
 
 verbose: False

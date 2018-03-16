@@ -338,6 +338,11 @@
             in sky coords, same in all epochs, but there can
             be an offset for each epoch in pixels
 
+    - increased variance
+        - see also previous with sim-e30 sim-e31
+        - sim-e66
+        - sim-e66nc
+
     - high distortioin
         - sim-e19
             - huge bias

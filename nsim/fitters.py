@@ -345,6 +345,11 @@ class SimpleFitterBase(FitterBase):
 
         logger.debug("using input search prior")
 
+        self.fracdev_prior=None
+        if 'fracdev' in ppars:
+            self.fracdev_prior = load_gmixnd(ppars['fracdev'], rng=self.rng)
+            print("added fracdev prior:",self.fracdev_prior)
+
         T_prior = None
         if 'T' in ppars:
             Tp = ppars['T']
@@ -644,10 +649,17 @@ class MaxFitter(SimpleFitterBase):
             obslist = self._do_mof_fit(obslist)
 
         use_round_T=self['use_round_T']
-        boot=ngmix.Bootstrapper(obslist,
-                                use_logpars=self['use_logpars'],
-                                use_round_T=use_round_T,
-                                verbose=False)
+        if self['fit_model'] == 'cm':
+            boot=ngmix.CompositeBootstrapper(
+                obslist,
+                fracdev_prior = self.fracdev_prior,
+                verbose=False,
+            )
+        else:
+            boot=ngmix.Bootstrapper(obslist,
+                                    use_logpars=self['use_logpars'],
+                                    use_round_T=use_round_T,
+                                    verbose=False)
 
         mconf=self['max_pars']
         covconf=mconf['cov']

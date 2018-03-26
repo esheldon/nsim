@@ -121,6 +121,8 @@ function runsim {
     return $status
 }
 
+export OMP_NUM_THREADS=1
+
 ngal=$1
 output=$2
 logfile=$3

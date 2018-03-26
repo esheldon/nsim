@@ -1,0 +1,44 @@
+images:
+
+    offset:
+        type: disk
+        radius: 0.5 # pixels
+
+    noise: 0.1739
+
+    psf:
+        s2n: 10000
+        stamp_size: [48,48]
+
+        shift_psf: False
+
+    object:
+        nepoch: 1
+        stamp_size: [48,48]
+
+    wcs:
+        dudx:      0.263
+        dudy:      0.0
+        dvdx:      0.0
+        dvdy:      0.263
+
+psf:
+    model: "moffat"
+
+    beta: 3.5
+
+    fwhm: 0.95
+    shape: [0.0, 0.01]
+
+
+object:
+    model: "exp"
+
+    g:
+        type: "gauss"
+        sigma: 0.005
+
+    r50_flux:
+        type: "cosmos"
+
+shear: [0.06, 0.00]

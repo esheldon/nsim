@@ -42,7 +42,7 @@ for f in files:
 
 
 setup(name="nsim", 
-      version="0.1.0",
+      version="0.9.0",
       description="Run shear simulations using ngmix",
       license = "GPL",
       author="Erin Scott Sheldon",

@@ -26,3 +26,5 @@ from . import averaging_new
 from . import bootstrappers
 
 from . import deblending
+
+__version__="0.9.0"

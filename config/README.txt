@@ -238,6 +238,16 @@
 			errors are 3 sigma
 			m: 5.570e-04 +/- 1.080e-03  c: 9.290e-06 +/- 2.157e-05
 
+        - sim-e68 same as e58 but shear 0.10
+        - sim-e69 same as e58 but shear 0.08
+        - sim-e70 same as e58 but shear 0.06
+
+        - sim-e71 same as e68 but only a single image (not me or coadd)
+        - sim-e72 same as e69 but only a single image (not me or coadd)
+        - sim-e73 same as e70 but only a single image (not me or coadd)
+
+
+
 
         - sim-e58nc
             - no coadd

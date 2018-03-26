@@ -134,6 +134,127 @@
             - low noise, use noise image from nsim
             - still biased 4e-3
 
+            - run-e44-mcal-02
+            - also interpolated psf with offset, but kept
+            psf canonical center  2% bias
+
+            - run-e44-mcal-03
+              - offset the psf in nsim
+              - small bias, low stats though
+
+            - run-e44-mcal-04
+              - offset the psf in nsim, and didn't use canonical center for
+                psf ( center may not matter )
+              - small bias, low tats
+
+            - run-e44-mcal-05 same as 04 but more stats.
+            - run-e44-mcal-07
+            - run-e44-mcal-08
+                3 sigma
+                m: -3.638e-05 +/- 1.973e-04  c: -1.545e-06 +/- 3.942e-06
+
+            - run-e44-mcal-06 just shift and not canonical center in 
+            coaddsim, no actual shift of psf in nsim
+            - 2 percent bias
+
+        - sim-e47
+            - noisy version of e44
+            - messed it up, was coadding single image
+            - also symmetrizing but psf was offset! duh
+            - runs 01-10
+
+            ( old version 
+            - seeing what happens with psf shift, not fixnoise
+            - still biased )
+
+        - sim-e48
+            - what 47 was supposed to be: no coadding, but
+              with offsetting psf
+              - run-e48-mcal-01,02,04,05  psf gauss instead
+              of symmetrizing, to try to deal with offset psf
+              (reminds me should check use in DES!!!)
+              - 3e-3 bias.  So off-setting the psf works for
+              coadding because it 1) puts interpolation effects
+              into the PSF, but 2) the PSF gets recentered
+              with the interpolation
+              - so I should be able to turn off the PSF offsetting
+              and see it work (sim-e50)
+
+        - sim-e50
+            - no coadd, low noise
+            - turn off psf offsetting
+            errors are 3 sigma
+            m: 2.031e-04 +/- 1.995e-04  c: -8.035e-07 +/- 3.987e-06
+        - sim-e51
+            - no coadd, low noise
+            - turn on psf offsetting
+            errors are 3 sigma
+            m: 6.230e-04 +/- 1.793e-04  c: 3.030e-06 +/- 3.582e-06
+
+        * sim-e51
+            low noise, turn on psf offsetting
+
+        * sim-e52
+            - psf offset no coadd, very low shape noise
+            - bias 0.002
+        * sim-e53
+            - no psf offset no coadd, very low shape noise
+            - no extra bias
+
+        - fix bug with origin in coadd.py (might be ok)
+            - sim-e54
+                - psf offset and coadding (which should center psf back)
+                , very low shape noise
+                - some bias, -0.007
+
+            - sim-e55
+                - psf not offset and coadding, very low shape noise
+                - -0.002 now...
+
+        - sim-e58ln - fixed bug in config (was not shifting anything)
+        - sim-e59ln - just check still bias when not shifting psf
+            - 1.2% bias
+        - sim-e61ln - lanczos15 and not shifting psf
+            - bias about what expected for weak shear approx
+        - sim-e62ln - lanczos3 and not shifting psf but large
+              galaxies
+            - bias reduced (0.3-0.4%)
+
+        - sim-e60 - about s/n = 15 with fixes
+        - sim-e58 - cosmos flux, size distribution
+           s/n > 15
+
+            c7330f229cdc22c1382a6fe7ae8b6228e09d82f6
+
+			R: [ 0.67284623  0.67343938]
+			Rsel: [ 0.02118986  0.02134926]
+			total wsum: 976094365.0
+			shear_meas: [  2.00111403e-02   9.28971949e-06]
+			without correction
+			errors are 3 sigma
+			m: 3.207e-02 +/- 1.114e-03  c: 9.584e-06 +/- 2.225e-05
+
+			with correction
+			errors are 3 sigma
+			m: 5.570e-04 +/- 1.080e-03  c: 9.290e-06 +/- 2.157e-05
+
+
+        - sim-e58nc
+            - no coadd
+            - run-e58nc-mcal-max-01s
+              d42c22a4947e38c5eadc9947eaee8e9e08401ccb
+
+            - for comparison
+            running with max to conpare to sim-e58nc
+            - run-e58-mcal-max-01s
+              d42c22a4947e38c5eadc9947eaee8e9e08401ccb
+
+          for s/n true > 15 (mcal > 10) ratio is
+            1.016, 1.014
+
+        - sim-e49
+            - quick test if fixnoise turned off
+
         - sim-e45
             - trim to central part of image, to avoid edge effects
             - low noise, use noise image from nsim
@@ -148,6 +269,79 @@
             - run-e46-mcal-03 use psf: gauss  Idea is maybe we should
             suppress more small scale power due to interpolation
 
+        - wonder if can get rid of these shifts if we have a complex
+        object
+        - sim-bdk08
+            - run-bdk08-mcal-01
+                - no psf shift, no shift in coaddsim
+                R: [ 0.70325588  0.70654134]
+                errors are 3 sigma
+                m: 4.457e-03 +/- 1.686e-03  c: 1.137e-06 +/- 3.359e-05
+
+            - run-bdk08-mcal-02
+                - no psf shift, shift in coaddsim
+                R: [ 0.70484486  0.70620869]
+                errors are 3 sigma
+                m: 3.489e-03 +/- 1.684e-03  c: -1.760e-05 +/- 3.360e-05
+
+            - run-bdk08-mcal-03
+                - psf shift, shift in coaddsim
+                R: [ 0.70660314  0.70723134] 
+                errors are 3 sigma
+                m: 5.532e-04 +/- 1.680e-03  c: -4.978e-06 +/- 3.351e-05
+
+            - run-bdk08-mcal-04
+            * run-bdk08-mcal-05
+                - psf shift, no shift in coaddsim
+                R: [ 0.7049719   0.70751422]
+                errors are 3 sigma
+                m: 6.765e-04 +/- 3.687e-04  c: 5.810e-07 +/- 7.356e-06
+
+        - sim-bdk09
+            - more complex, with offsets between b/d
+            - lanczos 3
+            - this is a great and useful sim, not too much shape
+            noise but still a good test
+            * run-bdk09-mcal-01-05
+                - psf shift, no shift in coaddsim
+                R: [ 0.62248316  0.62417745]
+                errors are 3 sigma
+                m: 1.845e-04 +/- 1.996e-04  c: -1.495e-06 +/- 3.891e-06
+
+        - sim-bdk10
+            - same as bdk09 but without psf shift, and checked
+            that bias is indeed still there
+
+        - sim-bdk12
+            - lanczos15
+
+            R: [ 0.74602926  0.74680734]
+            total wsum: 398794593.0
+            shear_meas: [  2.00322067e-02  -2.36545016e-05]
+            errors are 3 sigma
+            m: 1.610e-03 +/- 2.452e-03  c: -2.365e-05 +/- 4.900e-05
+
+            03/04/05/04s
+
+
+        - sim-bdk13
+            - lanczos3, same as bdk09 but higher noise, fixed
+            issue
+
+        - sim-bdk14
+            - cosmos shape/flux distribution, lanczos3, similar to bdj03
+            but with the small offsets between exp and dev, and only
+            10 knots and only up to 10 percent of disk
+
+        - sim-e57
+            - first with fixed sim:  now the object is shifted
+            in sky coords, same in all epochs, but there can
+            be an offset for each epoch in pixels
+
+    - increased variance
+        - see also previous with sim-e30 sim-e31
+        - sim-e66
+        - sim-e66nc
 
     - high distortioin
         - sim-e19

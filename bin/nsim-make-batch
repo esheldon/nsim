@@ -54,8 +54,10 @@ _slr_template_shifter="""#!/bin/bash -l
 #SBATCH --license=SCRATCH
 #SBATCH --constraint=%(constraint)s
 #SBATCH --account=des
-#SBATCH --image=docker:esheldon/nsim-mpi:%(run)s
+#SBATCH --image=%(docker_image)s
 #SBATCH --volume="/global/cscratch1/sd/esheldon/lensing/shapesim:/data/lensing/shapesim"
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=erin.sheldon@gmail.com
 
 # -n is ncores, should equal 32*number of nodes for haswell
 srun -n %(ncores)d shifter nsim-run-mpi %(run)s

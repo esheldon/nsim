@@ -1,0 +1,69 @@
+# separate object and epoch shifts
+images:
+
+    # coadd the epochs
+    coadd:
+        type: "mean"
+        interp: "lanczos3"
+
+        # each epoch gets an offset in pixels, not sky
+        # coordinates.
+        offset:
+            type: "disk"
+            radius: 0.5
+
+        # no need for this, no rotations, diagonal in "standard" way
+        #flat_wcs: True
+
+        # set a noise image in the observation
+        #use_nsim_noise_image: True
+
+    noise: 0.0001
+
+    psf:
+        s2n: 10000
+        stamp_size: [48,48]
+
+        shift_psf: True
+
+    object:
+        nepoch: 10
+
+        # object shift same for all epochs, sky coords
+        cen_shift:
+            type: "uniform"
+            radius: 0.135 # half 0.263
+
+        stamp_size: [48,48]
+
+    wcs:
+        #dudx:      1.0
+        dudx:      0.263
+        dudy:      0.0
+        dvdx:      0.0
+        #dvdy:      1.0
+        dvdy:      0.263
+
+psf:
+    model: "moffat"
+
+    beta: 3.5
+
+    fwhm: 0.95
+    #fwhm: 3.61
+    shape: [0.0, 0.01]
+
+
+object:
+    model: "exp"
+
+    g:
+        type: "gauss"
+        sigma: 0.0001
+
+    # same hlr as psf
+    r50: 0.57
+    #r50: 2.16
+    flux: 25.0
+
+shear: [0.02, 0.00]

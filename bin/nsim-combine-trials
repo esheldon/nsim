@@ -57,13 +57,8 @@ def combine_trials(args):
     with fitsio.FITS(tmpfile,mode="rw",clobber=True) as output:
 
         first=True
-        for isplit,f in enumerate(flist):
-            f=nsim.files.get_output_url(args.run, itrial=isplit)
-            if not os.path.exists(f):
-                print("   missing file:",f)
-                continue
-
-            print(f)
+        for i,f in enumerate(flist):
+            print('%d/%d %s' % (i+1, nf, f))
 
             try:
                 t=fitsio.read(f)

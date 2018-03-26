@@ -151,6 +151,14 @@ class ObservationMaker(dict):
 
         object, meta = self._get_object()
 
+        # offset of object, not the epochs
+        obj_shift = self._get_obj_shift()
+        if obj_shift is not None:
+            object = object.shift(
+                dx=obj_shift['col_offset'],
+                dy=obj_shift['row_offset'],
+            )
+
         if 'randomize_morphology' in objconf:
             raise NotImplementedError("make work with new system "
                                       "of same sized stamps")
@@ -214,20 +222,150 @@ class ObservationMaker(dict):
             coadd_obs = coadder.get_mean_coadd()
         else:
             raise ValueError("bad coadd type: '%s'" % coadd_conf['type'])
+        #coadd_obs = self._do_coadd_test(obslist)
+
+        #coadd_obs.psf.image = obslist[0].psf.image
 
         coadd_obslist=ngmix.ObsList()
         coadd_obslist.append(coadd_obs)
         coadd_obslist.update_meta_data(obslist.meta)
 
         if False:
+            self._show_coadd(obslist)
             self._show_coadd(coadd_obslist)
         return coadd_obslist
 
+    def _do_coadd_test_straight(self, obslist, type):
+        iilist = [] 
+
+
+        for i,tobs in enumerate(obslist):
+            if type=='psf':
+                obs = tobs.psf
+            else:
+                obs = tobs
+
+            jac = obs.jacobian # copy
+            wcs = jac.get_galsim_wcs()
+
+            if type=='noise':
+                im = obs.noise
+            else:
+                im = obs.image
+
+            if i==0:
+                coadd_im = im.copy()
+            else:
+                coadd_im += im
+
+        coadd_im /= len(obslist)
+
+        cen = (numpy.array(coadd_im.shape)-1.0)/2.0
+        jac.set_cen(row=cen[0], col=cen[1])
+
+        return coadd_im, jac
+
+
+    def _do_coadd_test_type(self, obslist, type):
+        if obslist[0].meta['offset_pixels'] is None:
+            return self._do_coadd_test_straight(obslist, type)
+
+        iilist = [] 
+
+        for tobs in obslist:
+            if type=='psf':
+                doffset = tobs.meta['psf_offset_pixels']
+                obs = tobs.psf
+                #print("psf offset:",doffset)
+            else:
+                doffset = tobs.meta['offset_pixels']
+                obs = tobs
+                #print("obj offset:",doffset)
+
+            if doffset is not None:
+                offset=(doffset['col_offset'],doffset['row_offset'])
+            else:
+                offset=(0.0, 0.0)
+
+            jac = obs.jacobian # copy
+            wcs = jac.get_galsim_wcs()
+
+            if type=='noise':
+                im = obs.noise
+            elif type=='psf':
+                im = obs.image
+                im = im/im.sum()
+            else:
+                im = obs.image
+
+            interp=self['coadd']['interp']
+            ii = galsim.InterpolatedImage(
+                galsim.Image(im, wcs=wcs),
+                offset=offset,
+                x_interpolant=interp,
+            )
+
+            iilist.append(ii)
+
+        # use size and wcs from last one
+        ny,nx = im.shape
+        coadd_gsim = galsim.Image(nx, ny, wcs=wcs)
+
+        coadd_ii = galsim.Sum(iilist)
+        coadd_ii.drawImage(image=coadd_gsim, method='no_pixel')
+
+        coadd_im = coadd_gsim.array
+        coadd_im /= len(obslist)
+
+        # assume all same scale
+        cen = (numpy.array(obslist[0].image.shape)-1.0)/2.0
+        jac.set_cen(row=cen[0], col=cen[1])
+
+        return coadd_im, jac
+
+    def _do_coadd_test(self, obslist):
+
+        coadd_im, jac = self._do_coadd_test_type(obslist, 'image')
+        n_im, _ = self._do_coadd_test_type(obslist, 'noise')
+        psf_im, psf_jac = self._do_coadd_test_type(obslist, 'psf')
+
+        var = n_im.var()
+        weight = n_im*0 + 1.0/var
+
+        psf_obs = ngmix.Observation(
+            psf_im,
+            weight=obslist[0].psf.weight,
+            jacobian=psf_jac,
+        )
+        coadd_obs = ngmix.Observation(
+            coadd_im,
+            weight=weight,
+            jacobian=jac,
+            psf=psf_obs,
+        )
+        coadd_obs.noise = n_im
+
+        return coadd_obs
+
+
     def _show_coadd(self, obslist):
+        import biggles
         import images
-        obs=obslist[0]
-        images.multiview(obs.psf.image, title='psf',width=1000,height=1000)
-        images.multiview(obs.image, title='obj',width=1000,height=1000)
+
+
+        for i,obs in enumerate(obslist):
+            if len(obslist) > 1:
+                title='image %d' % i
+            else:
+                title='coadd'
+
+            tab = biggles.Table(2, 1)
+            ppsf = images.multiview(obs.psf.image, title='psf',width=1000,height=1000,show=False)
+            pim = images.multiview(obs.image, title=title,width=1000,height=1000,show=False)
+            tab[0,0] = ppsf
+            tab[1,0] = pim
+            tab.show()
+
         if raw_input('hit a key (q to quit): ')=='q':
             stop
 
@@ -249,20 +387,32 @@ class ObservationMaker(dict):
 
     def _get_obs(self, psf, cobj, wcs, dims, psf_dims):
 
+        offset_pixels = self._get_epoch_offset()
+
         noise_obj=self._get_noise()
 
+        if self['psf']['shift_psf']:
+            psf_offset_pixels = offset_pixels
+        else:
+            psf_offset_pixels = None
+
+        #print("offset:",offset_pixels)
+        #print("offset psf:",psf_offset_pixels)
         psf_im, psf_jacob = self._get_psf_image(
             psf,
             wcs,
             psf_dims,
             noise_obj,
+            psf_offset_pixels,
         )
 
-        obj_im, obj_im_orig, obj_jacob, offset_pixels = \
-                self._get_object_image(cobj,
-                                       wcs,
-                                       dims,
-                                       noise_obj)
+        obj_im, obj_im_orig, obj_jacob =  self._get_object_image(
+            cobj,
+            wcs,
+            dims,
+            noise_obj,
+            offset_pixels,
+        )
 
         ivar = 1.0/noise_obj.sigma**2
         psf_weight = numpy.zeros( psf_im.shape ) + ivar
@@ -282,6 +432,7 @@ class ObservationMaker(dict):
         )
         obs.image_orig = obj_im_orig
         obs.update_meta_data({'offset_pixels':offset_pixels})
+        obs.update_meta_data({'psf_offset_pixels':psf_offset_pixels})
 
         return obs
 
@@ -302,7 +453,7 @@ class ObservationMaker(dict):
 
         return psf, psf_dims
 
-    def _get_psf_image(self, psf, wcs, psf_dims, noise_obj):
+    def _get_psf_image(self, psf, wcs, psf_dims, noise_obj, offset):
         """
         """
 
@@ -314,6 +465,7 @@ class ObservationMaker(dict):
             wcs,
             nrows=psf_dims[0],
             ncols=psf_dims[1],
+            offset=offset,
         )
 
         gsimage.addNoiseSNR(
@@ -328,18 +480,19 @@ class ObservationMaker(dict):
         # no offset, jacobian is straightforward
         dims = numpy.array(gsimage.array.shape)
         row, col = (numpy.array(dims)-1.0)/2.0
+        if offset is not None:
+            row += offset['row_offset']
+            col += offset['col_offset']
 
         jacob = self._get_jacobian(wcs, row, col)
 
         return image, jacob
 
 
-    def _get_object_image(self, convolved_object, wcs, dims, noise_obj):
+    def _get_object_image(self, convolved_object, wcs, dims, noise_obj, offset):
         """
         convolve the 
         """
-
-        offset=self._get_offset()
 
         gsimage = self._make_gsimage(
             convolved_object,
@@ -374,7 +527,7 @@ class ObservationMaker(dict):
 
         image = gsimage.array
 
-        return image, image_orig, jacob, offset
+        return image, image_orig, jacob
 
     def _get_jacobian(self, wcs, row, col):
         """
@@ -514,7 +667,8 @@ class ObservationMaker(dict):
 
         self._set_noise()
         self._set_sizes()
-        self._set_offsets()
+        self._set_obj_shift()
+        self._set_epoch_offset()
 
     def _set_sizes(self):
         if 'stamp_size' in self['object']:
@@ -566,14 +720,28 @@ class ObservationMaker(dict):
         )
 
 
-    def _get_offset(self):
-        cen_pdf = self.cen_pdf
-        if cen_pdf is not None:
-            if hasattr(cen_pdf,'sample2d'):
-                coff1,coff2 = cen_pdf.sample2d()
+    def _get_obj_shift(self):
+        """
+        shift of object on the sky
+        """
+        return self._get_offset_generic(self.obj_shift_pdf)
+
+    def _get_epoch_offset(self):
+        """
+        offset of an epoch, not object
+        """
+        return self._get_offset_generic(self.epoch_offset_pdf)
+
+    def _get_offset_generic(self, pdf):
+        """
+        the shift of the object, not the epoch shift
+        """
+        if pdf is not None:
+            if hasattr(pdf,'sample2d'):
+                coff1,coff2 = pdf.sample2d()
             else:
-                coff1 = cen_pdf.sample()
-                coff2 = cen_pdf.sample()
+                coff1 = pdf.sample()
+                coff2 = pdf.sample()
 
             offset=(coff1,coff2)
             offset = {
@@ -586,26 +754,32 @@ class ObservationMaker(dict):
         return offset
 
 
-    def _set_offsets(self):
+    def _set_obj_shift(self):
         cr=self['object'].get('cen_shift',None)
+        self.obj_shift_pdf = self._get_shift_pdf(cr)
 
+    def _set_epoch_offset(self):
+        cr=self['offset']
+        self.epoch_offset_pdf = self._get_shift_pdf(cr)
+
+    def _get_shift_pdf(self, cr):
         if cr is None:
-            self.cen_pdf=None
+            pdf=None
         else:
             type=cr.get('type','uniform')
             if type=='uniform':
-                self.cen_pdf=ngmix.priors.FlatPrior(
+                pdf=ngmix.priors.FlatPrior(
                     -cr['radius'], cr['radius'],
                     rng=self.rng,
                 )
             elif type=='disk':
-                self.cen_pdf=ngmix.priors.ZDisk2D(
+                pdf=ngmix.priors.ZDisk2D(
                     cr['radius'],
                     rng=self.rng,
                 )
 
             elif type=='annulus':
-                self.cen_pdf=ngmix.priors.ZAnnulus(
+                pdf=ngmix.priors.ZAnnulus(
                     cr['rmin'],
                     cr['rmax'],
                     rng=self.rng,
@@ -614,6 +788,8 @@ class ObservationMaker(dict):
 
             else:
                 raise ValueError("cen shift type should be 'uniform'")
+
+        return pdf
 
 class NbrObservationMaker(ObservationMaker):
     """
@@ -690,11 +866,11 @@ class NbrObservationMaker(ObservationMaker):
         return new_obslist
 
     def _restore_cen_pdf(self):
-        self.cen_pdf = self.cen_pdf_saved
+        self.obj_shift_pdf = self.obj_shift_pdf_saved
 
     def _save_cen_pdf(self):
-        self.cen_pdf_saved = self.cen_pdf
-        self.cen_pdf = None
+        self.obj_shift_pdf_saved = self.obj_shift_pdf
+        self.obj_shift_pdf = None
 
 
 class NbrObservationMakerMulti(ObservationMaker):
@@ -908,100 +1084,6 @@ class NbrObservationMakerMulti(ObservationMaker):
                 raise ValueError("cen shift type should be 'uniform'")
 
 
-
-class NbrObservationMakerMultiOld(ObservationMaker):
-    """
-    get multple obs and combine them, getting a list
-    of new observations for use with MOF
-
-    returns
-    -------
-    list of ngmix.Observation:
-        Each obs has the same image and weight map, but different jacobians are
-        set with the nominal center for each object.  Also the metadata is the
-        metadata for that object.
-
-
-    notes
-    ------
-        - the noise gets increased since the images are added
-        - you should fix the stamp size so the images can be added
-        - you should make the stamp size large enough to hold all
-          the objects with their offsets
-        - the cen_shift does not apply to the first object drawn
-          only subsequent ones
-
-        - this requires the additional config parameter
-            object:
-                nnbr:   2 # number of neighbors
-                nepoch: 1 # only one epoch for now
-        - number of epochs must be 1 for now
-    """
-    def __call__(self):
-
-
-        objconf=self['object']
-        assert objconf['nepoch']==1
-
-        allobs = [] 
-
-        nobject = 1 + objconf['nnbr']
-        for i in xrange(nobject):
-            logger.debug("object %d of %d" % (i+1,nobject))
-            if i==0:
-                self._save_cen_pdf()
-
-            obslist = super(NbrObservationMakerMulti,self).__call__()
-            #return [obslist]
-
-            # keep orig for testing or bootstrapping
-            obslist_orig = deepcopy(obslist)
-            obslist.obslist_orig = obslist_orig
-
-            allobs.append( obslist )
-            obs=obslist[0]
-
-            if False:
-                import images
-                images.view(obs.image, width=800,height=800)
-                if 'q'==raw_input('hit a key: '):
-                    stop
-
-            if i==0:
-                self._restore_cen_pdf()
-
-                image  = obs.image
-                weight = obs.weight
-                var    = 1.0/weight
-            else:
-                image += obs.image
-                var   += 1.0/obs.weight
-
-        weight = 1.0/var
-        for obslist in allobs:
-            obs=obslist[0]
-            obs.image_orig = obs.image
-            obs.weight_orig = obs.weight
-
-            obs.image = image.copy()
-            obs.weight = weight.copy()
-
-        if False:
-            import images
-            #images.view(obs.image, width=800,height=800)
-            images.multiview(obs.image, width=800,height=800)
-            if 'q'==raw_input('hit a key: '):
-                stop
-            # just to keep things going
-            #raise TryAgainError("for testing")
-        return allobs
-
-    def _restore_cen_pdf(self):
-        self.cen_pdf = self.cen_pdf_saved
-
-    def _save_cen_pdf(self):
-        self.cen_pdf_saved = self.cen_pdf
-        self.cen_pdf = None
 
 
 def find_centroid(image, rng, offset=None, maxiter=200, ntry=4):

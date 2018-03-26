@@ -1,0 +1,87 @@
+images:
+
+    # coadd the epochs
+    coadd:
+        type: "mean"
+        interp: "lanczos15"
+
+        # no need for this, no rotations, diagonal in "standard" way
+        #flat_wcs: True
+
+        # set a noise image in the observation
+        #use_nsim_noise_image: True
+
+        # shift of the epochs
+        offset:
+            type: disk
+            radius: 0.5 # pixels
+
+
+    #noise: 0.175
+    # 0.175*sqrt(10)
+    #noise: 0.55
+    noise: 0.001
+
+    psf:
+        s2n: 10000
+        stamp_size: [48,48]
+
+        shift_psf: False
+
+    object:
+        nepoch: 10
+
+        #cen_shift:
+        #    type: "uniform"
+        #    radius: 0.5 # pixels
+
+        stamp_size: [48,48]
+
+    wcs:
+        dudx:      0.263
+        dudy:      0.0
+        dvdx:      0.0
+        dvdy:      0.263
+
+psf:
+    model: "moffat"
+
+    beta: 3.5
+
+    fwhm: 0.95
+    shape: [0.0, 0.01]
+
+
+object:
+    model: "exp"
+
+    #g:
+    #    type: "ba"
+    #    sigma: 0.02
+    g:
+        type: "gauss"
+        sigma: 0.005
+
+    r50_flux:
+        type: "cosmos"
+
+    # fraction of flux in the bulge
+    #fracdev:
+    #    type: "uniform"
+    #    range: [0.0, 1.0]
+
+    # use random-walk to place knots, with fraction
+    # of disk flux [0,1.0]
+    #knots:
+    #    num: 10
+    #    flux_frac:
+    #        type: "uniform"
+    #        #range: [0.0, 1.0]
+    #        range: [0.0, 0.10]
+
+    #component_offsets:
+    #    # within a disk
+    #    # r50/10.0
+    #    radius: 0.057
+
+shear: [0.02, 0.00]

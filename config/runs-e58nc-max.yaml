@@ -1,0 +1,6 @@
+runs: [
+    run-e58nc-mcal-max-02s,
+    run-e58nc-mcal-max-03s,
+    run-e58nc-mcal-max-04s,
+    run-e58nc-mcal-max-05s,
+]

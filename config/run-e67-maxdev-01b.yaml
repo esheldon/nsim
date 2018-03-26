@@ -1,0 +1,50 @@
+fitter: "max"
+fit_model: "dev"
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 0.1
+
+    T:
+        type: "flat"
+        pars: [-10.0, 1.0e+06]
+
+    counts:
+        type: "flat"
+        pars: [-100.0, 1.0e+09]
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+
+psf_pars:
+    model: "gauss"
+
+max_pars:
+    ntry: 2
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 2000
+            xtol: 5.0e-5
+            ftol: 5.0e-5
+
+    cov:
+        replace_cov: False
+
+
+#
+# run details
+#
+
+ngal: 100000
+
+desired_hours: 0.10
+
+sec_per: 0.04
+
+jobs_per_condor_sub: 5000
+
+verbose: False

@@ -44,9 +44,6 @@ try:
 except ImportError:
     pass
 
-# minutes
-DEFAULT_CHECKPOINTS=[30,60,90,110]
-
 logger = logging.getLogger(__name__)
 
 class FitterBase(dict):
@@ -66,10 +63,6 @@ class FitterBase(dict):
         if 'masking' in self:
             self.replace_prior = self._get_prior(self['masking']['priors'])
 
-        self._setup_checkpoints(**keys)
-        if self.data is None:
-            self._make_struct()
-
         logger.info( pprint.pformat(self) )
 
     def go(self):
@@ -77,12 +70,10 @@ class FitterBase(dict):
         process the requested number of simulated galaxies
         """
 
+        dlist = []
         self._start_timer()
         self.tm_sim=0.0
         self.tm_fit=0.0
-
-        # number we simulated
-        n_sim=0
 
         # total we attempted to fit
         n_proc=0
@@ -91,54 +82,55 @@ class FitterBase(dict):
             self.igal=igal
             logger.debug('%s/%s' % (igal+1,self['ngal']) )
 
-            while True:
-                n_sim += 1
-                try:
+            try:
 
+                tm0=time.time()
+                obslist = self.sim()
+                self.tm_sim += time.time()-tm0
+
+                if self['deblend']:
+                    logger.debug("    deblending")
+                    obslist = self._do_deblend(obslist)
+
+                meta = self._extract_meta(obslist)
+                s2n = meta.get('s2n',1.e9)
+
+                if s2n > self['s2n_min']:
+                    n_proc += 1
+
+                    # only objects that successfully get fit
+                    # contribute to this
                     tm0=time.time()
-                    obslist = self.sim()
-                    self.tm_sim += time.time()-tm0
+                    res=self.process_one(obslist)
+                    self.tm_fit += time.time()-tm0
 
-                    if self['deblend']:
-                        logger.debug("    deblending")
-                        obslist = self._do_deblend(obslist)
+                    if 'shear' in meta:
+                        res['shear_true'] = meta['shear']
+                        res['shear_index'] = meta['shear_index']
 
-                    meta = self._extract_meta(obslist)
-                    s2n = meta.get('s2n',1.e9)
+                    d = self._make_output(res, igal)
+                    dlist.append(d)
 
-                    if s2n > self['s2n_min']:
-                        n_proc += 1
+                    self._set_elapsed_time()
 
-                        # only objects that successfully get fit
-                        # contribute to this
-                        tm0=time.time()
-                        res=self.process_one(obslist)
-                        self.tm_fit += time.time()-tm0
+                else:
+                    tup = meta['s2n'],self['s2n_min']
+                    logger.debug("        skipping low s2n: %g < %g" % tup)
+                    logger.debug("")
 
-                        if 'shear' in meta:
-                            res['shear_true'] = meta['shear']
-                            res['shear_index'] = meta['shear_index']
+            except TryAgainError as err:
+                logger.debug(str(err))
 
-                        self._copy_to_output(res, igal)
+        if len(dlist) == 0:
+            raise RuntimeError("none succeeded")
 
-                        self._set_elapsed_time()
-                        self._try_checkpoint()
-
-                        break
-                    else:
-                        tup = meta['s2n'],self['s2n_min']
-                        logger.debug("        skipping low s2n: %g < %g" % tup)
-                        logger.debug("")
-
-                except TryAgainError as err:
-                    logger.debug(str(err))
-
+        self.data = eu.numpy_util.combine_arrlist(dlist)
         self._set_elapsed_time()
 
-        logger.info("nprocessed (including failures): %s" % n_proc)
+        logger.info("nprocessed: %s" % n_proc)
         logger.info('time minutes: %s' % self.tm_minutes)
         logger.info('time per (total) %s' % (self.tm/self['ngal']))
-        logger.info('time to simulate: %s' % (self.tm_sim/n_sim))
+        logger.info('time to simulate: %s' % (self.tm_sim/self['ngal']))
         logger.info('time to fit: %s' % (self.tm_fit/n_proc))
 
     def _do_deblend(self, obslist):
@@ -213,16 +205,18 @@ class FitterBase(dict):
 
         raise RuntimeError("over-ride me")
 
-    def _copy_to_output(self, res, i):
-        d=self.data
+    def _make_output(self, res, i):
+        d=self._get_struct()
 
-        d['s2n_true'][i] = res['s2n_true']
-        d['r50_true'][i] = res['r50_true']
-        d['flux_true'][i] = res['flux_true']
+        d['s2n_true'] = res['s2n_true']
+        d['r50_true'] = res['r50_true']
+        d['flux_true'] = res['flux_true']
 
         if 'shear_true' in res:
-            d['shear_true'][i] = res['shear_true']
-            d['shear_index'][i] = res['shear_index']
+            d['shear_true'] = res['shear_true']
+            d['shear_index'] = res['shear_index']
+
+        return d
 
     def _setup(self, run_conf, **keys):
         """
@@ -277,83 +271,6 @@ class FitterBase(dict):
         self.tm = time.time()-self.tm0
         self.tm_minutes = self.tm/60.0
 
-
-    def _setup_checkpoints(self, **keys):
-        """
-        Set up checkpoint times, file, and sent data
-        """
-
-        self.checkpoints     = keys.get('checkpoints',DEFAULT_CHECKPOINTS)
-        self.n_checkpoint    = len(self.checkpoints)
-        self.checkpointed    = [False]*self.n_checkpoint
-
-        self.checkpoint_file=keys.get('checkpoint_file',None)
-        self._set_checkpoint_data(**keys)
-
-        if self.checkpoint_file is not None:
-            self.do_checkpoint=True
-        else:
-            self.do_checkpoint=False
-
-
-    def _set_checkpoint_data(self, **keys):
-        """
-        Look for checkpoint data, file etc.
-        """
-        self.data=None
-
-        checkpoint_data=keys.get('checkpoint_data',None)
-        if checkpoint_data is not None:
-            self.data=checkpoint_data
-
-
-    def _try_checkpoint(self):
-        """
-        If we should make a checkpoint, do so
-        """
-
-        should_checkpoint, icheck = self._should_checkpoint()
-
-        if should_checkpoint:
-            self._write_checkpoint()
-            self.checkpointed[icheck]=True
-
-
-    def _should_checkpoint(self):
-        """
-        Should we write a checkpoint file?
-        """
-
-        should_checkpoint=False
-        icheck=-1
-
-        if self.do_checkpoint:
-            for i in xrange(self.n_checkpoint):
-
-                checkpoint=self.checkpoints[i]
-                checkpointed=self.checkpointed[i]
-
-                if self.tm_minutes > checkpoint and not checkpointed:
-                    should_checkpoint=True
-                    icheck=i
-
-        return should_checkpoint, icheck
-
-
-    def _write_checkpoint(self):
-        """
-        Write the checkpoint file
-
-        The file is written to the cwd and if this is not the final
-        destination, an attempt is made to move it there.  This may fail and if
-        so a message is printed.
-
-        """
-
-        logger.debug('checkpointing at %s minutes' % self.tm_minutes)
-        success=write_fits(self.checkpoint_file, self.data)
-
-
     def _get_dtype(self):
         """
         Set generic dtype
@@ -369,36 +286,36 @@ class FitterBase(dict):
 
         return dt
 
-    def _make_struct(self):
+    def _get_struct(self):
         """
         Make the output array
         """
 
         dt=self._get_dtype()
-        self.data=numpy.zeros(self['ngal'], dtype=dt)
-
-        self.data['shear_index'] = -1
+        data = numpy.zeros(1, dtype=dt)
+        data['shear_index'] = -1
+        return data
 
 class SimpleFitterBase(FitterBase):
 
-    def _copy_to_output(self, res, i):
+    def _make_output(self, res, i):
 
-        super(SimpleFitterBase,self)._copy_to_output(res, i)
+        d = super(SimpleFitterBase,self)._make_output(res, i)
 
         n=self._get_namer()
 
-        d=self.data
+        d[n('pars')] = res['pars']
+        d[n('pars_cov')] = res['pars_cov']
 
-        d[n('pars')][i,:] = res['pars']
-        d[n('pars_cov')][i,:,:] = res['pars_cov']
+        d['psf_pars'] = res['psf_pars']
 
-        d['psf_pars'][i,:] = res['psf_pars']
+        d[n('g')] = res['g']
+        d[n('g_cov')] = res['g_cov']
 
-        d[n('g')][i,:] = res['g']
-        d[n('g_cov')][i,:,:] = res['g_cov']
+        d[n('s2n_r')] = res['s2n_r']
+        d['psf_T'] = res['psf_T']
 
-        d[n('s2n_r')][i] = res['s2n_r']
-        d['psf_T'][i] = res['psf_T']
+        return d
 
     def _get_prior(self, prior_info=None):
         """
@@ -427,6 +344,11 @@ class SimpleFitterBase(FitterBase):
             raise ValueError("implement other g prior")
 
         logger.debug("using input search prior")
+
+        self.fracdev_prior=None
+        if 'fracdev' in ppars:
+            self.fracdev_prior = load_gmixnd(ppars['fracdev'], rng=self.rng)
+            print("added fracdev prior:",self.fracdev_prior)
 
         T_prior = None
         if 'T' in ppars:
@@ -727,10 +649,17 @@ class MaxFitter(SimpleFitterBase):
             obslist = self._do_mof_fit(obslist)
 
         use_round_T=self['use_round_T']
-        boot=ngmix.Bootstrapper(obslist,
-                                use_logpars=self['use_logpars'],
-                                use_round_T=use_round_T,
-                                verbose=False)
+        if self['fit_model'] == 'cm':
+            boot=ngmix.CompositeBootstrapper(
+                obslist,
+                fracdev_prior = self.fracdev_prior,
+                verbose=False,
+            )
+        else:
+            boot=ngmix.Bootstrapper(obslist,
+                                    use_logpars=self['use_logpars'],
+                                    use_round_T=use_round_T,
+                                    verbose=False)
 
         mconf=self['max_pars']
         covconf=mconf['cov']
@@ -879,27 +808,26 @@ class MaxFitter(SimpleFitterBase):
         return dt
 
 
-    def _copy_to_output(self, res, i):
+    def _make_output(self, res, i):
 
-        super(MaxFitter,self)._copy_to_output(res, i)
-
-        d=self.data
+        d = super(MaxFitter,self)._make_output(res, i)
 
         if 'nfev' in res:
-            d['s2n_r'][i] = res['s2n_r']
-            d['T_r'][i] = res['T_r']
-            d['psf_T_r'][i] = res['psf_T_r']
-            d['nfev'][i] = res['nfev']
+            d['s2n_r'] = res['s2n_r']
+            d['T_r'] = res['T_r']
+            d['psf_T_r'] = res['psf_T_r']
+            d['nfev'] = res['nfev']
             # set outside of fitter
-            d['ntry'][i] = res['ntry']
+            d['ntry'] = res['ntry']
 
             if 'psf_flux' in res:
-                d['psf_flux'][i] = res['psf_flux']
-                d['psf_flux_err'][i] = res['psf_flux_err']
+                d['psf_flux'] = res['psf_flux']
+                d['psf_flux_err'] = res['psf_flux_err']
 
             if self['use_round_T']:
-                d['T_s2n_r'][i] = res['T_s2n_r']
+                d['T_s2n_r'] = res['T_s2n_r']
 
+        return d
 
 class MaxMetacalFitter(MaxFitter):
     """
@@ -1079,13 +1007,12 @@ class MaxMetacalFitter(MaxFitter):
         return dt
 
 
-    def _copy_to_output(self, res, i):
+    def _make_output(self, res, i):
         """
         copy parameters specific to this class
         """
-        super(MaxMetacalFitter,self)._copy_to_output(res, i)
+        d = super(MaxMetacalFitter,self)._make_output(res, i)
 
-        d=self.data
 
         for type in ngmix.metacal.METACAL_TYPES:
 
@@ -1099,21 +1026,22 @@ class MaxMetacalFitter(MaxFitter):
             else:
                 back='_%s' % type
 
-            d['mcal_pars%s' % back][i] = tres['pars']
-            d['mcal_g%s' % back][i] = tres['g']
-            d['mcal_g_cov%s' % back][i] = tres['g_cov']
-            d['mcal_s2n_r%s' % back][i] = tres['s2n_r']
+            d['mcal_pars%s' % back] = tres['pars']
+            d['mcal_g%s' % back] = tres['g']
+            d['mcal_g_cov%s' % back] = tres['g_cov']
+            d['mcal_s2n_r%s' % back] = tres['s2n_r']
 
             if type=='noshear':
                 for p in ['pars_cov','psfrec_g','psfrec_T']:
                     name='mcal_%s' % p
 
                     if p=='psfrec_g':
-                        d[name][i] = tres['gpsf']
+                        d[name] = tres['gpsf']
                     elif p=='psfrec_T':
-                        d[name][i] = tres['Tpsf']
+                        d[name] = tres['Tpsf']
                     else:
-                        d[name][i] = tres[p]
+                        d[name] = tres[p]
+        return d
 
     def _print_res(self,resfull):
         """
@@ -1366,12 +1294,10 @@ class GalsimFitter(SimpleFitterBase):
 
         return dt
 
-    def _copy_to_output(self, res, i):
+    def _make_output(self, res, i):
 
         # note super here
-        super(SimpleFitterBase,self)._copy_to_output(res, i)
-
-        d=self.data
+        d = super(SimpleFitterBase,self)._make_output(res, i)
 
         n=self._get_namer()
         d[n('pars')][i,:] = res['pars']
@@ -1384,16 +1310,17 @@ class GalsimFitter(SimpleFitterBase):
         d[n('g_cov')][i,:,:] = res['g_cov']
 
         if 'psf_T' in res:
-            d['psf_T'][i] = res['psf_T']
+            d['psf_T'] = res['psf_T']
 
         if 's2n_r' in res:
-            d[n('s2n_r')][i] = res['s2n_r']
+            d[n('s2n_r')] = res['s2n_r']
 
         if 'nfev' in res:
-            d['nfev'][i] = res['nfev']
+            d['nfev'] = res['nfev']
             # set outside of fitter
-            d['ntry'][i] = res['ntry']
+            d['ntry'] = res['ntry']
 
+        return d
 
 class SpergelFitter(GalsimFitter):
 
@@ -1545,16 +1472,14 @@ class SpergelMetacalFitter(SpergelFitter):
 
         return dt
 
-    def _copy_to_output(self, res, i):
+    def _make_output(self, res, i):
         """
         copy parameters specific to this class
         """
 
         # note copying super of our super, since
         # we didn't do a regular fit
-        super(SimpleFitterBase,self)._copy_to_output(res, i)
-
-        d=self.data
+        d = super(SimpleFitterBase,self)._make_output(res, i)
 
         for type in self.metacal_types:
 
@@ -1564,28 +1489,29 @@ class SpergelMetacalFitter(SpergelFitter):
             else:
                 back='_%s' % type
 
-            d['mcal_pars%s' % back][i] = tres['pars']
-            d['mcal_g%s' % back][i] = tres['g']
-            d['mcal_g_cov%s' % back][i] = tres['g_cov']
+            d['mcal_pars%s' % back] = tres['pars']
+            d['mcal_g%s' % back] = tres['g']
+            d['mcal_g_cov%s' % back] = tres['g_cov']
 
-            d['mcal_s2n_r%s' % back][i] = tres['s2n_r']
+            d['mcal_s2n_r%s' % back] = tres['s2n_r']
 
             r50 = tres['pars'][4]
             r50_s2n = r50/sqrt(tres['pars_cov'][4,4])
-            d['mcal_r50%s' % back][i] = r50
-            d['mcal_r50_s2n%s' % back][i] = r50_s2n
+            d['mcal_r50%s' % back] = r50
+            d['mcal_r50_s2n%s' % back] = r50_s2n
 
             flux     = tres['pars'][5]
             flux_s2n = flux/sqrt(tres['pars_cov'][5,5])
-            d['mcal_flux%s' % back][i] = flux
-            d['mcal_flux_s2n%s' % back][i] = flux_s2n
+            d['mcal_flux%s' % back] = flux
+            d['mcal_flux_s2n%s' % back] = flux_s2n
 
             if type=='noshear':
                 for p in ['pars_cov','gpsf','Tpsf']:
 
                     if p in tres:
                         name='mcal_%s' % p
-                        d[name][i] = tres[p]
+                        d[name] = tres[p]
+        return d
 
     def _print_res(self,res):
         """

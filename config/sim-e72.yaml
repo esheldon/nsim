@@ -41,4 +41,4 @@ object:
     r50_flux:
         type: "cosmos"
 
-shear: [0.10, 0.00]
+shear: [0.08, 0.00]

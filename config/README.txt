@@ -245,6 +245,7 @@
         - sim-e71 same as e68 but only a single image (not me or coadd)
         - sim-e72 same as e69 but only a single image (not me or coadd)
         - sim-e73 same as e70 but only a single image (not me or coadd)
+        - sim-e74 same as e58 but only a single image (not me or coadd)
 
 
 
@@ -255,7 +256,7 @@
               d42c22a4947e38c5eadc9947eaee8e9e08401ccb
 
             - for comparison
-            running with max to conpare to sim-e58nc
+            running with max to compare to sim-e58nc
             - run-e58-mcal-max-01s
               d42c22a4947e38c5eadc9947eaee8e9e08401ccb
 

@@ -1,4 +1,5 @@
 runs: [
     run-e71-mcal-01s,
     run-e71-mcal-02s,
+    run-e71-mcal-03s,
 ]

@@ -1,0 +1,24 @@
+fitter: "metacal-moments-am"
+
+metacal_pars:
+    use_noise_image: True
+    psf: "gauss"
+    types: ['noshear','1p','1m','2p','2m']
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+ngal: 200000000
+
+# time for the entire MPI job at nersc
+#queue: "regular"
+#nodes: 100
+#constraint: "haswell"
+
+jobs_per_condor_sub: 1000
+desired_hours: 2.0
+
+sec_per: 0.35
+
+verbose: False

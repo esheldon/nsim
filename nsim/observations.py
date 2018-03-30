@@ -219,8 +219,14 @@ class ObservationMaker(dict):
         if 'replace_bad_pixels' in coadd_conf:
             # do a fit on the coadd and use it to replace bad pixels
             # in the SE images
-            assert coadd_conf['replace_bad_pixels']['fit_type'] == 'me'
-            obslist = self._replace_bad_pixels_from_me_fit(obslist)
+            type=coadd_conf['replace_bad_pixels']['type']
+            if type == 'me':
+                obslist = self._replace_bad_pixels_from_me_fit(obslist)
+            elif type=='interp':
+                self._replace_bad_pixels_interp(obslist)
+            else:
+                raise ValueError("unsupported replace_bad_pixels "
+                                 "type: '%s'" % type)
 
         coadder = coaddsim.CoaddImages(
             obslist,
@@ -239,6 +245,59 @@ class ObservationMaker(dict):
             self._show_coadd(obslist)
             self._show_coadd(coadd_obslist)
         return coadd_obslist
+
+    def _replace_bad_pixels_interp(self, obslist):
+        import scipy.interpolate
+
+        iconf = self['coadd']['replace_bad_pixels']['interp']
+        assert iconf['type']=="cubic","only cubic interpolation for now"
+
+        for obs in obslist:
+
+            im=obs.image
+            weight=obs.weight
+
+            if not obs.has_bmask():
+                obs.bmask = numpy.zeros(im.shape, dtype='i4')
+
+            bmask = obs.bmask
+
+            imravel = im.ravel()
+            bmravel = bmask.ravel()
+            wtravel = weight.ravel()
+
+            wbad,=numpy.where( (bmravel != 0) | (wtravel == 0.0) )
+
+            if wbad.size > 0:
+                print("        interpolating %d/%d masked or zero weight "
+                      "pixels" % (wbad.size,im.size))
+
+                obs.image_orig = obs.image.copy()
+
+                yy, xx = numpy.mgrid[0:im.shape[0], 0:im.shape[1]]
+
+                x = xx.ravel()
+                y = yy.ravel()
+
+                yx = numpy.zeros( (x.size, 2) )
+                yx[:,0] = y
+                yx[:,1] = x
+
+                wgood, = numpy.where( (bmravel==0) & (wtravel != 0.0) )
+
+                ii = scipy.interpolate.CloughTocher2DInterpolator(
+                    yx[wgood,:],
+                    imravel[wgood],
+                    fill_value=0.0,
+                )
+
+                im_interp = im.copy()
+                im_interp_ravel = im_interp.ravel()
+
+                vals = ii(yx[wbad,:])
+                im_interp_ravel[wbad] = vals
+
+                obs.image = im_interp
 
     def _replace_bad_pixels_from_me_fit(self, obslist):
         """

@@ -20,6 +20,10 @@
           model bias in the galaxy fit
         -2.735e-04 +/- 9.552e-05
 
+    - sim-bd78lnrp
+        - now using cubic interpolation 
+                scipy.interpolate.CloughTocher2DInterpolator
+
     TODO:
         - test lower s/n
         - iteration

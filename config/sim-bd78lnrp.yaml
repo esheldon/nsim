@@ -11,22 +11,9 @@ images:
         interp: "lanczos3"
 
         replace_bad_pixels:
-            type: "me"
-
-            model: "exp"
-
-            # do a multi-epoch fit
-
-            max_pars:
-                ntry: 2
-                pars:
-                    method: "lm"
-                    lm_pars:
-                        maxfev: 2000
-                        xtol: 5.0e-5
-                        ftol: 5.0e-5
-            psf_pars:
-                model: "coellip3"
+            type: "interp"
+            interp:
+                type: "cubic"
 
     # 0.175*sqrt(10)
     #noise: 0.55

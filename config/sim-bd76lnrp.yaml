@@ -11,10 +11,10 @@ images:
         interp: "lanczos3"
 
         replace_bad_pixels:
-            model: "exp"
-
             # do a multi-epoch fit
-            fit_type: "me"
+            type: "me"
+
+            model: "exp"
 
             max_pars:
                 ntry: 2

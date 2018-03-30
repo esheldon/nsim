@@ -20,6 +20,14 @@
           model bias in the galaxy fit
         -2.735e-04 +/- 9.552e-05
 
+    TODO:
+        - test lower s/n
+        - iteration
+            - find a way to interpolate the SE images over bad pixels
+            - coadd
+            - test that and see how bad it is
+            - if doesn't work well, maybe use Gary's idea
+
 - simple neighbor tests using minimof
     - sim-nbr01.  One gaussian (central), one exp
 

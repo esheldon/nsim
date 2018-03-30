@@ -23,7 +23,7 @@
     - sim-bd78lnrp
         - now using cubic interpolation 
                 scipy.interpolate.CloughTocher2DInterpolator
-          1.874e-04 +/- 9.534e-05
+          2.711e-04 +/- 5.140e-05
 
     TODO:
         - test lower s/n

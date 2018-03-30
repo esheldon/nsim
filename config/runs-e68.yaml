@@ -5,4 +5,5 @@ runs: [
     run-e68-mcal-04s,
     run-e68-mcal-05s,
     run-e68-mcal-06s,
+    run-e68-mcal-07s,
 ]

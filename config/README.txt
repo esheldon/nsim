@@ -1,3 +1,25 @@
+- bad pixel, defect replacement for coadds
+    - sim-e75ln reference run at shear 0.1 for expected bias
+    - sim-e75lnrp
+    - single bad pixel, 1 in 10 images
+    - fit multi-epoch coellip3 to moffat psf, and exp to exp gal
+    - low noise
+    - looks fine: 7.853e-05 +/- 1.121e-04
+
+    - sim-bd76ln, sim-bd76lnrp
+        - 4 bad pixels per image
+        - using multi-epoch exp model but bulge+disk reality
+            - some small bias
+            - -2.636e-04 +/- 9.588e-05
+    - sim-bd77lnrp
+        - 1 bad pixel per image
+        - 1/10 has a bad column
+        - reference is still sim-bd76ln
+        - still multi-epoch exp model for replacing pix, not perfect intentionally
+        - about the same bias. So this is probably dominated by
+          model bias in the galaxy fit
+        -2.735e-04 +/- 9.552e-05
+
 - simple neighbor tests using minimof
     - sim-nbr01.  One gaussian (central), one exp
 

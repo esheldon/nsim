@@ -1,0 +1,86 @@
+images:
+
+    # shift of the epochs
+    offset:
+        type: disk
+        radius: 0.5 # pixels
+
+    # coadd the epochs
+    coadd:
+        type: "mean"
+        interp: "lanczos3"
+
+        replace_bad_pixels:
+            model: "exp"
+
+            # do a multi-epoch fit
+            fit_type: "me"
+
+            max_pars:
+                ntry: 2
+                pars:
+                    method: "lm"
+                    lm_pars:
+                        maxfev: 2000
+                        xtol: 5.0e-5
+                        ftol: 5.0e-5
+            psf_pars:
+                model: "coellip3"
+
+    # 0.175*sqrt(10)
+    #noise: 0.55
+    noise: 0.001
+
+    psf:
+        s2n: 10000
+        shift_psf: True
+
+    object:
+        stamp_size: [48, 48]
+        nepoch: 10
+
+    wcs:
+        dudx:      0.263
+        dudy:      0.0
+        dvdx:      0.0
+        dvdy:      0.263
+
+    defects:
+        -
+            type: bad_pixel
+
+            rate: all
+            nper: 1
+
+        -
+            type: bad_column
+
+            # 1 in 10 have a bad column
+            rate: 0.10
+
+
+psf:
+    model: "moffat"
+
+    beta: 3.5
+
+    fwhm: 0.95
+    shape: [0.0, 0.01]
+
+object:
+    model: "bd"
+
+    g:
+        type: "gauss"
+        sigma: 0.005
+
+    r50: 0.57
+    flux: 100.0
+
+    # fraction of flux in the bulge
+    fracdev:
+        type: "uniform"
+        range: [0.0, 1.0]
+
+
+shear: [0.10, 0.00]

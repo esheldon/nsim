@@ -17,6 +17,9 @@ from .util import TryAgainError
 
 logger = logging.getLogger(__name__)
 
+BAD_PIXEL=2**0
+BAD_COLUMN=2**1
+
 def get_observation_maker(*args, **kw):
     conf = args[0]
     if 'nnbr' in conf and conf['nnbr'] > 0:
@@ -98,6 +101,9 @@ class ObservationMaker(dict):
         meta['s2n']  = get_expected_s2n(obslist)
 
         obslist.update_meta_data(meta)
+
+        if 'defects' in self:
+            self._add_defects(obslist)
 
         if 'coadd' in self:
             obslist = self._do_coadd(obslist)
@@ -210,21 +216,20 @@ class ObservationMaker(dict):
                     size=obs.image.shape,
                 )
 
+        if 'replace_bad_pixels' in coadd_conf:
+            # do a fit on the coadd and use it to replace bad pixels
+            # in the SE images
+            assert coadd_conf['replace_bad_pixels']['fit_type'] == 'me'
+            obslist = self._replace_bad_pixels_from_me_fit(obslist)
+
         coadder = coaddsim.CoaddImages(
             obslist,
             rng=self.galsim_rng,
             **kw
         )
 
-        #trim_dims=coadd_conf.get('trim_dims',None)
-        if coadd_conf['type']=='mean':
-            #coadd_obs = coadder.get_mean_coadd(dims=trim_dims)
-            coadd_obs = coadder.get_mean_coadd()
-        else:
-            raise ValueError("bad coadd type: '%s'" % coadd_conf['type'])
-        #coadd_obs = self._do_coadd_test(obslist)
-
-        #coadd_obs.psf.image = obslist[0].psf.image
+        assert coadd_conf['type']=='mean'
+        coadd_obs = coadder.get_mean_coadd()
 
         coadd_obslist=ngmix.ObsList()
         coadd_obslist.append(coadd_obs)
@@ -234,6 +239,127 @@ class ObservationMaker(dict):
             self._show_coadd(obslist)
             self._show_coadd(coadd_obslist)
         return coadd_obslist
+
+    def _replace_bad_pixels_from_me_fit(self, obslist):
+        """
+        do a full multi-epoch fit use the model
+        to fill in bad pixels in the obslist
+        """
+        print("replacing bad pixels")
+        from ngmix.gexceptions import BootPSFFailure, BootGalFailure
+        repconf = self['coadd']['replace_bad_pixels']
+
+
+        boot = ngmix.bootstrap.Bootstrapper(obslist)
+        mconf=repconf['max_pars']
+        ppars=repconf['psf_pars']
+
+        scale = obslist[0].jacobian.get_scale()
+        psf_Tguess=4.0 * scale**2
+
+        g_prior = ngmix.priors.GPriorBA(0.2, rng=self.rng)
+        T_prior= ngmix.priors.FlatPrior(-10.0, 1.e6, rng=self.rng)
+        flux_prior= ngmix.priors.FlatPrior(-1.0e+04, 1.0e+09, rng=self.rng)
+        cen_prior=ngmix.priors.CenPrior(0.0, 0.0, scale, scale, rng=self.rng)
+        prior = ngmix.joint_prior.PriorSimpleSep(
+            cen_prior,
+            g_prior,
+            T_prior,
+            flux_prior,
+        )
+
+        try:
+            boot.fit_psfs(
+                ppars['model'],
+                psf_Tguess,
+                ntry=mconf['ntry'],
+                fit_pars=mconf['pars']['lm_pars'],
+            )
+        except BootPSFFailure:
+            raise TryAgainError("failed to fit psf for pixel replace")
+
+        try:
+
+            boot.fit_max(
+                repconf['model'],
+                mconf['pars'],
+                prior=prior,
+                ntry=mconf['ntry'],
+            )
+
+        except BootGalFailure:
+            raise TryAgainError("failed to fit galaxy")
+
+        boot.replace_masked_pixels()
+
+        # get first band
+        new_obslist = boot.mb_obs_list[0]
+        return new_obslist
+
+    def _add_defects(self, obslist):
+        for defect in self['defects']:
+            if defect['type'] == 'bad_pixel':
+                self._add_bad_pixels(obslist, defect)
+            elif defect['type'] == 'bad_column':
+                self._add_bad_columns(obslist, defect)
+            else:
+                raise ValueError("bad defect type: '%s'" % defect['type'])
+
+    def _add_bad_pixels(self, obslist, defect):
+        """
+        add single bad pixels with a given rate
+        """
+        print("adding single bad pixels")
+        for obs in obslist:
+            if not obs.has_bmask():
+                obs.bmask = numpy.zeros( obs.image.shape, dtype='i4' )
+
+            bmravel = obs.bmask.ravel()
+            imravel = obs.image.ravel()
+            wtravel = obs.weight.ravel()
+
+            if defect['rate']=='all':
+                num = defect['nper']
+            else:
+                r = self.rng.uniform()
+                if r < defect['rate']:
+                    num=1
+                else:
+                    num=0
+
+            for i in xrange(num):
+                # pick a random pixel
+
+                i = self.rng.randint(0, imravel.size)
+                #print("    ",i)
+
+                wtravel[i] = 0.0
+                imravel[i] = 1.e9
+                bmravel[i] = BAD_PIXEL
+
+    def _add_bad_columns(self, obslist, defect):
+        """
+        add single bad pixels with a given rate
+        """
+        print("adding bad columns")
+        for obs in obslist:
+            if not obs.has_bmask():
+                obs.bmask = numpy.zeros( obs.image.shape, dtype='i4' )
+
+            bmask  = obs.bmask
+            image  = obs.image
+            weight = obs.weight
+
+            r = self.rng.uniform()
+            if r < defect['rate']:
+                # pick a random column
+
+                i = self.rng.randint(0, image.shape[1])
+                print("    col:",i)
+
+                weight[:,i] = 0.0
+                image[:,i]  = 1.e9
+                bmask[:,i]  = BAD_COLUMN
 
     def _do_coadd_test_straight(self, obslist, type):
         iilist = [] 

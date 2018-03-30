@@ -10,7 +10,7 @@ def get_object_maker(config, rng, galsim_rng):
     model=config['model']
     if model in ['gauss','exp','dev']:
         maker=SimpleMaker(config, rng)
-    elif model =='bdk':
+    elif model in ['bdk','bd']:
         maker=BDKMaker(config, rng, galsim_rng)
     else:
         raise ValueError("bad model: '%s'" % model)

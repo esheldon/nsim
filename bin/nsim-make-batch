@@ -253,7 +253,7 @@ Queue
 _wq_template="""
 command: |
 
-    source activate nsim
+    source activate nsim3
 
     command=%(master_script)s
     ngal=%(ngal_per)s

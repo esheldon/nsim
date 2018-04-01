@@ -1,0 +1,4 @@
+runs: [
+    run-bd78rp-mcal-01s,
+    run-bd78rp-mcal-02s,
+]

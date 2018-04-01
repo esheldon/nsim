@@ -25,6 +25,18 @@
                 scipy.interpolate.CloughTocher2DInterpolator
           2.711e-04 +/- 5.140e-05
 
+    - sim-bd78
+        - higher noise control, not actually coadded
+        - I think this has too different response
+        3 sigma
+        m: 7.89658948e-03 +/- 5.23023609e-04  c: 1.20126149e-05 +/- 5.13505556e-05
+
+    - sim-bd78rp
+        - coadd with pixel replacement
+
+    - sim-bd79
+        - full coadd control for sim-bd78rp
+
     TODO:
         - test lower s/n
         - iteration

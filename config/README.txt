@@ -33,9 +33,18 @@
 
     - sim-bd78rp
         - coadd with pixel replacement
+        - 0.138 +/- 0.109 (3 sigma)
+        - so 13% higher bias.  At shear 0.02 that would be 0.25*(1.13)=0.28e-3
+            - not a killer but maybe real
+
+    
 
     - sim-bd79
         - full coadd control for sim-bd78rp
+
+    - sim-e77rp
+        - lower shear 0.02
+        - stamp size not specified, getting 34x34 and s/n~20
 
     TODO:
         - test lower s/n

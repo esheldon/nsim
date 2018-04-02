@@ -1,0 +1,44 @@
+# test shifting psf and using gauss psf (no coadd)
+images:
+
+    # shift of the epochs
+    offset:
+        type: uniform
+
+        # +/- half a pixel
+        radius: 0.5 # pixels
+
+    noise: 0.001
+
+    psf:
+        s2n: 10000
+        shift_psf: False
+
+    object:
+        nepoch: 1
+
+    wcs:
+        dudx:      0.263
+        dudy:      0.0
+        dvdx:      0.0
+        dvdy:      0.263
+
+psf:
+    model: "moffat"
+
+    beta: 3.5
+
+    fwhm: 0.95
+    shape: [0.0, 0.01]
+
+object:
+    model: "exp"
+
+    g:
+        type: "gauss"
+        sigma: 0.005
+
+    r50: 0.57
+    flux: 33.0
+
+shear: [0.02, 0.00]

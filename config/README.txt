@@ -54,6 +54,15 @@
             - test that and see how bad it is
             - if doesn't work well, maybe use Gary's idea
 
+
+- quick check of level of bias when we shift the PSF
+    - when can't symmetrization or "gauss psf" when the
+      psf is not centered
+
+    - sim-bd78 no psf shift
+    - sim-bd78shift shift the psf
+        - bias is 3e-3 +/- 2.4e-3 (3 sigma)
+
 - simple neighbor tests using minimof
     - sim-nbr01.  One gaussian (central), one exp
 

@@ -45,6 +45,13 @@
     - sim-e77rp
         - lower shear 0.02
         - stamp size not specified, getting 34x34 and s/n~20
+        - run-e77rp-mcal-01s
+        - seeing a bias ~4e-3
+    - sim-e79rp
+        - run-e79rp-mcal-01s
+            - now interpolating the noise also, and resetting bmask and weight
+            maps.  Not fully controlled, if it works we should dissect
+
 
     TODO:
         - test lower s/n

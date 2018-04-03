@@ -209,8 +209,8 @@ class ObservationMaker(dict):
         use_nsim_noise_image=coadd_conf.get('use_nsim_noise_image',False)
         if use_nsim_noise_image:
             kw['use_noise_image'] = True
+            sigma = self['noise']
             for obs in obslist:
-                sigma=numpy.sqrt(1.0/obs.weight[0,0])
                 obs.noise = self.rng.normal(
                     scale=sigma,
                     size=obs.image.shape,
@@ -247,9 +247,20 @@ class ObservationMaker(dict):
         return coadd_obslist
 
     def _replace_bad_pixels_interp(self, obslist):
-        import scipy.interpolate
+        """
+        do see bias when noisy
+        1 maybe because we need to interpolate the noise also
+        2 maybe because the weights were zero and this is messing
+          up the noise image in metacal?
 
-        iconf = self['coadd']['replace_bad_pixels']['interp']
+        First trying 1) but also resetting bmask and weight map, so not
+        fully controlled.  If it works we can dissect
+        """
+
+        coadd_conf=self['coadd']
+
+        assert coadd_conf['use_nsim_noise_image'],"forcing use noise image"
+        iconf = coadd_conf['replace_bad_pixels']['interp']
         assert iconf['type']=="cubic","only cubic interpolation for now"
 
         for obs in obslist:
@@ -261,8 +272,10 @@ class ObservationMaker(dict):
                 obs.bmask = numpy.zeros(im.shape, dtype='i4')
 
             bmask = obs.bmask
+            noise = obs.noise
 
             imravel = im.ravel()
+            noise_ravel = noise.ravel()
             bmravel = bmask.ravel()
             wtravel = weight.ravel()
 
@@ -271,8 +284,6 @@ class ObservationMaker(dict):
             if wbad.size > 0:
                 print("        interpolating %d/%d masked or zero weight "
                       "pixels" % (wbad.size,im.size))
-
-                obs.image_orig = obs.image.copy()
 
                 yy, xx = numpy.mgrid[0:im.shape[0], 0:im.shape[1]]
 
@@ -285,19 +296,37 @@ class ObservationMaker(dict):
 
                 wgood, = numpy.where( (bmravel==0) & (wtravel != 0.0) )
 
-                ii = scipy.interpolate.CloughTocher2DInterpolator(
-                    yx[wgood,:],
-                    imravel[wgood],
-                    fill_value=0.0,
-                )
-
-                im_interp = im.copy()
-                im_interp_ravel = im_interp.ravel()
-
-                vals = ii(yx[wbad,:])
-                im_interp_ravel[wbad] = vals
+                im_interp = self._do_interp(yx, im, wgood, wbad)
+                noise_interp = self._do_interp(yx, noise, wgood, wbad)
 
                 obs.image = im_interp
+                obs.noise = noise_interp
+
+                # for now set bmask to zero in case downstream is avoiding it
+                bmask[:,:]=0
+
+                # maybe want to interpolate weight map too in real data
+                obs.weight[:,:] = obs.weight.max()
+
+    def _do_interp(self, yx, im, wgood, wbad):
+        import scipy.interpolate
+
+        im_ravel = im.ravel()
+
+        ii = scipy.interpolate.CloughTocher2DInterpolator(
+            yx[wgood,:],
+            im_ravel[wgood],
+            fill_value=0.0,
+        )
+
+        im_interp = im.copy()
+        im_interp_ravel = im_interp.ravel()
+
+        vals = ii(yx[wbad,:])
+        im_interp_ravel[wbad] = vals
+
+        return im_interp
+
 
     def _replace_bad_pixels_from_me_fit(self, obslist):
         """

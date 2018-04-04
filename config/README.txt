@@ -52,11 +52,16 @@
         errors are 3 sigma
         m: 3.57726036e-03 +/- 2.25455169e-03  c: -2.53219181e-05 +/- 4.50782574e-05
 
+        - ideas
+            - need to also interpolate noise image. Seems most plausible,
+            although the bias itself seems a bit high to me.  See sim-e79rp
+            for a test of this idea.
 
     - sim-e79rp
         - run-e79rp-mcal-01s
             - now interpolating the noise also, and resetting bmask and weight
             maps.  Not fully controlled, if it works we should dissect
+            - just using sigma from config for noise image
 
 
     TODO:

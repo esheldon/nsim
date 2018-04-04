@@ -251,7 +251,8 @@ class ObservationMaker(dict):
         do see bias when noisy
         1 maybe because we need to interpolate the noise also
         2 maybe because the weights were zero and this is messing
-          up the noise image in metacal?
+          up the noise image in metacal?  No because in coaddsim
+          I return a constant weight images
 
         First trying 1) but also resetting bmask and weight map, so not
         fully controlled.  If it works we can dissect

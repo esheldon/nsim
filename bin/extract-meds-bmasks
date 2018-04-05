@@ -20,7 +20,7 @@ args=parser.parse_args()
 random.seed(args.seed)
 rng=numpy.random.RandomState( random.randint(0,2**15) )
 
-NKEEP_TOT=1400
+NKEEP_TOT=1500
 #NKEEP_TOT=105
 NKEEP_PER_TILE=10
 
@@ -134,11 +134,29 @@ def main():
                 # only intersted in certain bits
                 wnotset = numpy.where( (bmask & BITS_TO_CHECK) == 0 )
                 wset = numpy.where( (bmask & BITS_TO_CHECK) != 0 )
-                middle_ok = numpy.all(bmask[20:28, 20:28] == 0)
+
+                # don't allow center of object to be masked
+                middle_ok = numpy.all( (bmask[low:high, low:high] & BITS_TO_CHECK) == 0 )
+
+                # don't want to allow masked pixels at the edge of the stamp
+                # because our interpolation won't work well there.  Cut it out
+                # of the entire edge is masked
+
+                sides_bad = (
+                    numpy.all( (bmask[0, :] & BITS_TO_CHECK) != 0 )
+                    or
+                    numpy.all( (bmask[-1,:] & BITS_TO_CHECK) != 0 )
+                    or
+                    numpy.all( (bmask[:, 0] & BITS_TO_CHECK) != 0 )
+                    or
+                    numpy.all( (bmask[:,-1] & BITS_TO_CHECK) != 0 )
+                )
+                if sides_bad:
+                    print("sides bad")
 
                 mask_frac = wset[0].size/float(bmask.size)
 
-                if (middle_ok) and (mask_frac < MAX_MASKED_FRAC):
+                if middle_ok and (not sides_bad) and (mask_frac < MAX_MASKED_FRAC):
 
                     if wset[0].size > 0:
                         bmask[wset]=1
@@ -159,6 +177,7 @@ def main():
                     fits.write(bmask)
 
                     # for plotting, reverse the mask
+
                     plot_mask = numpy.zeros(bmask.shape, dtype='i2')
                     plot_mask[wnotset]=1
 
@@ -169,6 +188,7 @@ def main():
                     plt[0,1]=images.view(plot_mask, show=show)
 
                     plt.write_eps(epsfile)
+
 
                     i += 1
                     nkeep += 1

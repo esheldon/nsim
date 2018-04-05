@@ -5,12 +5,14 @@ except:
     xrange=range
     raw_input=input
 
+import os
 import logging
 import random
 from copy import deepcopy
 import numpy
 import galsim
 import ngmix
+import fitsio
 from . import pdfs
 
 from .util import TryAgainError
@@ -72,6 +74,7 @@ class ObservationMaker(dict):
         self.galsim_rng=galsim_rng
 
         self._set_pdfs()
+        self._load_bmasks()
 
     def __call__(self):
 
@@ -387,12 +390,53 @@ class ObservationMaker(dict):
 
     def _add_defects(self, obslist):
         for defect in self['defects']:
-            if defect['type'] == 'bad_pixel':
+            dtype=defect['type']
+            if dtype == 'bad_pixel':
                 self._add_bad_pixels(obslist, defect)
-            elif defect['type'] == 'bad_column':
+            elif dtype == 'bad_column':
                 self._add_bad_columns(obslist, defect)
+            elif dtype=='example_bmasks':
+                self._add_example_bmasks(obslist, defect)
             else:
                 raise ValueError("bad defect type: '%s'" % defect['type'])
+
+    def _get_example_bmask(self):
+        """
+        draw randomly from the list of example bmasks
+
+        randomly flip across rows using fliplr and cols using flipud
+        """
+        nmasks=len(self.bmask_list)
+        i = self.rng.randint(0, nmasks)
+
+        bmask = self.bmask_list[i]
+
+        r = self.rng.uniform()
+        if r > 0.5:
+            bmask = numpy.fliplr(bmask)
+
+        r = self.rng.uniform()
+        if r > 0.5:
+            bmask = numpy.flipud(bmask)
+
+        return bmask.copy()
+
+    def _add_example_bmasks(self, obslist, defect):
+        """
+        add single bad pixels with a given rate
+        """
+        print("adding example bmasks")
+        for obs in obslist:
+            if not obs.has_bmask():
+                obs.bmask = numpy.zeros( obs.image.shape, dtype='i4' )
+
+            bmask = self._get_example_bmask()
+
+            wbad = numpy.where(bmask != 0)
+            if wbad[0].size > 0:
+                obs.bmask = bmask
+                obs.weight[wbad] = 0.0
+                obs.image[wbad] = 1.e9
 
     def _add_bad_pixels(self, obslist, defect):
         """
@@ -1005,6 +1049,47 @@ class ObservationMaker(dict):
                 raise ValueError("cen shift type should be 'uniform'")
 
         return pdf
+
+    def _load_bmasks(self):
+        """
+        load masks from a multi-extension fits file
+
+        if add_rotated is set, a 90 degree rotated version
+        is added to cancel symmetries in the mask, such as
+        bad columns
+        """
+
+        mask_file=None
+        if 'defects' in self:
+            for defect in self['defects']:
+                if defect['type']=='example_bmasks':
+                    mask_file=os.path.expandvars(defect['file'])
+                    add_rotated=defect.get('add_rotated',False)
+                    break
+
+        if mask_file is None:
+            print("no bmasks to load")
+            return
+
+        print("Loading masks from:",mask_file)
+
+        bmask_list=[]
+        with fitsio.FITS(mask_file) as fits:
+
+            for hdu in fits:
+                if hdu.get_extname()=='catalog':
+                    continue
+
+                mask = hdu.read()
+                if add_rotated:
+                    rm = numpy.rot90(mask)
+                    mask = mask + rm
+
+                bmask_list.append( mask )
+
+        print("    loaded %d masks" % len(bmask_list))
+        self.bmask_list=bmask_list
+
 
 class NbrObservationMaker(ObservationMaker):
     """

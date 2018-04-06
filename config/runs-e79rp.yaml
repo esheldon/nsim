@@ -3,4 +3,5 @@ runs: [
     run-e79rp-mcal-02s,
     run-e79rp-mcal-03s,
     run-e79rp-mcal-04s,
+    run-e79rp-mcal-05s,
 ]

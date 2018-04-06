@@ -63,6 +63,20 @@
             maps.  Not fully controlled, if it works we should dissect
             - just using sigma from config for noise image
 
+    - sim-e80rp
+        - using real bmasks, extracted with extract-meds-bmasks
+        - There is a lower rate of masking but the masks can be
+        much more complicated
+
+        R: [ 0.93448942  0.9352017 ]
+        total wsum: 318904651.0
+        errors are 3 sigma
+        m: 3.17822643e-03 +/- 1.52470671e-03  c: 1.61637872e-05 +/- 3.04725420e-05
+
+        this is a big surprise, maybe we are just seeing bias
+        for this simulation
+
+
 
     TODO:
         - test lower s/n

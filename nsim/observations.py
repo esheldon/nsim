@@ -286,8 +286,8 @@ class ObservationMaker(dict):
             wbad,=numpy.where( (bmravel != 0) | (wtravel == 0.0) )
 
             if wbad.size > 0:
-                print("        interpolating %d/%d masked or zero weight "
-                      "pixels" % (wbad.size,im.size))
+                #print("        interpolating %d/%d masked or zero weight "
+                #      "pixels" % (wbad.size,im.size))
 
                 yy, xx = numpy.mgrid[0:im.shape[0], 0:im.shape[1]]
 
@@ -425,7 +425,7 @@ class ObservationMaker(dict):
         """
         add single bad pixels with a given rate
         """
-        print("adding example bmasks")
+        #print("adding example bmasks")
         for obs in obslist:
             if not obs.has_bmask():
                 obs.bmask = numpy.zeros( obs.image.shape, dtype='i4' )
@@ -1082,6 +1082,7 @@ class ObservationMaker(dict):
 
                 mask = hdu.read()
                 if add_rotated:
+                    #print("adding rotated")
                     rm = numpy.rot90(mask)
                     mask = mask + rm
 

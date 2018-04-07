@@ -76,6 +76,10 @@
         this is a big surprise, maybe we are just seeing bias
         for this simulation
 
+    - sim-e81rp
+        Same as sim-e80rp.  Maybe it is additive in g1 due to
+        bad columns.  This time adding rotated and round psf
+        with shear in g2
 
 
     TODO:

@@ -1,0 +1,4 @@
+runs: [
+    run-e82rp-mcal-01s,
+    run-e82rp-mcal-02s,
+]

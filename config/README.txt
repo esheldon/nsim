@@ -81,6 +81,18 @@
         bad columns.  This time adding rotated and round psf
         with shear in g2
 
+        - looks ok
+        R: [ 0.93904018  0.93817758]
+        Rpsf: [ 0.  0.]
+        total wsum: 1195851721.0
+        shear_meas: [ -5.44059082e-06   2.00115751e-02]
+        errors are 1 sigma
+        m: 5.78757125e-04 +/- 2.62853293e-04  c: -5.44059082e-06 +/- 5.25583480e-06
+
+    - sim-e82rp
+        - no shear to see if additive hypothesis is correct
+        - also no psf shape to confirm this doesn't correlate
+        with psf
 
     TODO:
         - test lower s/n

@@ -1167,10 +1167,18 @@ def get_boot_struct(nboot):
     return bs
 
 def get_m_c_oneshear(data, nsig=2.0):
-
     shmeas=data['shear'][0]
     shmeas_err  = data['shear_err'][0]
     shtrue = data['shear_true'][0]
+
+
+    fits=numpy.zeros(1, dtype=[('m','f8'),
+                               ('merr','f8'),
+                               ('c','f8'),
+                               ('cerr','f8')])
+
+    if shtrue[0]==0.0 and shtrue[1]==0.0:
+        return fits
 
     if shtrue[1] == 0.0:
         mel=0

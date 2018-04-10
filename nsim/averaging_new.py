@@ -135,7 +135,8 @@ class Summer(dict):
                 shear_err = gmean_err/(R+Rsel)
                 shear_err_nocorr = gmean_err/R
 
-                print("shear_meas:",shear)
+                print("shear_meas:    ",shear)
+                print("shear_meas_err:",shear_err)
                 means['shear'][i] = shear
                 means['shear_err'][i] = shear_err
                 if isinstance(shear_true,ngmix.Shape):

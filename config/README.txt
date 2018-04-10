@@ -82,17 +82,23 @@
         with shear in g2
 
         - looks ok
-        R: [ 0.93904018  0.93817758]
+
+        R: [ 0.93904277  0.93817261]
         Rpsf: [ 0.  0.]
-        total wsum: 1195851721.0
-        shear_meas: [ -5.44059082e-06   2.00115751e-02]
+        total wsum: 1795154799.0
+        shear_meas:     [ -3.51914056e-06   2.00117947e-02]
+        shear_meas_err: [  4.28970528e-06   4.29073042e-06]
         errors are 1 sigma
-        m: 5.78757125e-04 +/- 2.62853293e-04  c: -5.44059082e-06 +/- 5.25583480e-06
+        m: 5.89735191e-04 +/- 2.14536521e-04  c: -3.51914056e-06 +/- 4.28970528e-06
+
+        more running at bnl and slac
 
     - sim-e82rp
         - no shear to see if additive hypothesis is correct
         - also no psf shape to confirm this doesn't correlate
         with psf
+
+        06s from slac to combine
 
     TODO:
         - test lower s/n

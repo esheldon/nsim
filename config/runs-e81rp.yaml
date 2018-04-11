@@ -5,8 +5,13 @@ runs: [
     run-e81rp-mcal-04s,
     run-e81rp-mcal-05s,
     run-e81rp-mcal-06s,
+    run-e81rp-mcal-07s,
+    run-e81rp-mcal-08s,
+    run-e81rp-mcal-09s,
 
     run-e81rp-mcal-01b,
     run-e81rp-mcal-02b,
     run-e81rp-mcal-03b,
+    run-e81rp-mcal-04b,
+    run-e81rp-mcal-05b,
 ]

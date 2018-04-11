@@ -83,22 +83,26 @@
 
         - looks ok
 
-        R: [ 0.93904277  0.93817261]
+        R: [ 0.93904861  0.93816482]
         Rpsf: [ 0.  0.]
-        total wsum: 1795154799.0
-        shear_meas:     [ -3.51914056e-06   2.00117947e-02]
-        shear_meas_err: [  4.28970528e-06   4.29073042e-06]
+        total wsum: 2789147872.0
+        shear_meas:     [ -5.18272527e-07   2.00092245e-02]
+        shear_meas_err: [  3.44140742e-06   3.44235156e-06]
         errors are 1 sigma
-        m: 5.89735191e-04 +/- 2.14536521e-04  c: -3.51914056e-06 +/- 4.28970528e-06
+        m: 4.61224357e-04 +/- 1.72117578e-04  c: -5.18272527e-07 +/- 3.44140742e-06
 
-        more running at bnl and slac
+
 
     - sim-e82rp
         - no shear to see if additive hypothesis is correct
         - also no psf shape to confirm this doesn't correlate
         with psf
 
-        06s from slac to combine
+        R: [ 0.93856968  0.93851753]
+        Rpsf: [ 0.  0.]
+        total wsum: 1198035929.0
+        shear_meas:     [  6.70301682e-05   4.05541236e-06]
+        shear_meas_err: [  5.25145807e-06   5.25072786e-06]
 
     TODO:
         - test lower s/n

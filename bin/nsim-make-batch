@@ -232,7 +232,7 @@ GetEnv = True
 kill_sig        = SIGINT
 
 #requirements = (cpu_experiment == "star") || (cpu_experiment == "phenix")
-requirements = (cpu_experiment == "phenix")
+#requirements = (cpu_experiment == "phenix")
 
 +Experiment     = "astro"
 
@@ -253,7 +253,7 @@ Queue
 _wq_template="""
 command: |
 
-    source activate nsim
+    source activate nsim3
 
     command=%(master_script)s
     ngal=%(ngal_per)s

@@ -5,17 +5,22 @@ except:
     xrange=range
     raw_input=input
 
+import os
 import logging
 import random
 from copy import deepcopy
 import numpy
 import galsim
 import ngmix
+import fitsio
 from . import pdfs
 
 from .util import TryAgainError
 
 logger = logging.getLogger(__name__)
+
+BAD_PIXEL=2**0
+BAD_COLUMN=2**1
 
 def get_observation_maker(*args, **kw):
     conf = args[0]
@@ -69,6 +74,7 @@ class ObservationMaker(dict):
         self.galsim_rng=galsim_rng
 
         self._set_pdfs()
+        self._load_bmasks()
 
     def __call__(self):
 
@@ -98,6 +104,9 @@ class ObservationMaker(dict):
         meta['s2n']  = get_expected_s2n(obslist)
 
         obslist.update_meta_data(meta)
+
+        if 'defects' in self:
+            self._add_defects(obslist)
 
         if 'coadd' in self:
             obslist = self._do_coadd(obslist)
@@ -203,12 +212,24 @@ class ObservationMaker(dict):
         use_nsim_noise_image=coadd_conf.get('use_nsim_noise_image',False)
         if use_nsim_noise_image:
             kw['use_noise_image'] = True
+            sigma = self['noise']
             for obs in obslist:
-                sigma=numpy.sqrt(1.0/obs.weight[0,0])
                 obs.noise = self.rng.normal(
                     scale=sigma,
                     size=obs.image.shape,
                 )
+
+        if 'replace_bad_pixels' in coadd_conf:
+            # do a fit on the coadd and use it to replace bad pixels
+            # in the SE images
+            type=coadd_conf['replace_bad_pixels']['type']
+            if type == 'me':
+                obslist = self._replace_bad_pixels_from_me_fit(obslist)
+            elif type=='interp':
+                self._replace_bad_pixels_interp(obslist)
+            else:
+                raise ValueError("unsupported replace_bad_pixels "
+                                 "type: '%s'" % type)
 
         coadder = coaddsim.CoaddImages(
             obslist,
@@ -216,15 +237,8 @@ class ObservationMaker(dict):
             **kw
         )
 
-        #trim_dims=coadd_conf.get('trim_dims',None)
-        if coadd_conf['type']=='mean':
-            #coadd_obs = coadder.get_mean_coadd(dims=trim_dims)
-            coadd_obs = coadder.get_mean_coadd()
-        else:
-            raise ValueError("bad coadd type: '%s'" % coadd_conf['type'])
-        #coadd_obs = self._do_coadd_test(obslist)
-
-        #coadd_obs.psf.image = obslist[0].psf.image
+        assert coadd_conf['type']=='mean'
+        coadd_obs = coadder.get_mean_coadd()
 
         coadd_obslist=ngmix.ObsList()
         coadd_obslist.append(coadd_obs)
@@ -234,6 +248,251 @@ class ObservationMaker(dict):
             self._show_coadd(obslist)
             self._show_coadd(coadd_obslist)
         return coadd_obslist
+
+    def _replace_bad_pixels_interp(self, obslist):
+        """
+        do see bias when noisy
+        1 maybe because we need to interpolate the noise also
+        2 maybe because the weights were zero and this is messing
+          up the noise image in metacal?  No because in coaddsim
+          I return a constant weight images
+
+        First trying 1) but also resetting bmask and weight map, so not
+        fully controlled.  If it works we can dissect
+        """
+
+        coadd_conf=self['coadd']
+
+        assert coadd_conf['use_nsim_noise_image'],"forcing use noise image"
+        iconf = coadd_conf['replace_bad_pixels']['interp']
+        assert iconf['type']=="cubic","only cubic interpolation for now"
+
+        for obs in obslist:
+
+            im=obs.image
+            weight=obs.weight
+
+            if not obs.has_bmask():
+                obs.bmask = numpy.zeros(im.shape, dtype='i4')
+
+            bmask = obs.bmask
+            noise = obs.noise
+
+            imravel = im.ravel()
+            noise_ravel = noise.ravel()
+            bmravel = bmask.ravel()
+            wtravel = weight.ravel()
+
+            wbad,=numpy.where( (bmravel != 0) | (wtravel == 0.0) )
+
+            if wbad.size > 0:
+                #print("        interpolating %d/%d masked or zero weight "
+                #      "pixels" % (wbad.size,im.size))
+
+                yy, xx = numpy.mgrid[0:im.shape[0], 0:im.shape[1]]
+
+                x = xx.ravel()
+                y = yy.ravel()
+
+                yx = numpy.zeros( (x.size, 2) )
+                yx[:,0] = y
+                yx[:,1] = x
+
+                wgood, = numpy.where( (bmravel==0) & (wtravel != 0.0) )
+
+                im_interp = self._do_interp(yx, im, wgood, wbad)
+                noise_interp = self._do_interp(yx, noise, wgood, wbad)
+
+                obs.image = im_interp
+                obs.noise = noise_interp
+
+                # for now set bmask to zero in case downstream is avoiding it
+                bmask[:,:]=0
+
+                # maybe want to interpolate weight map too in real data
+                obs.weight[:,:] = obs.weight.max()
+
+    def _do_interp(self, yx, im, wgood, wbad):
+        import scipy.interpolate
+
+        im_ravel = im.ravel()
+
+        ii = scipy.interpolate.CloughTocher2DInterpolator(
+            yx[wgood,:],
+            im_ravel[wgood],
+            fill_value=0.0,
+        )
+
+        im_interp = im.copy()
+        im_interp_ravel = im_interp.ravel()
+
+        vals = ii(yx[wbad,:])
+        im_interp_ravel[wbad] = vals
+
+        return im_interp
+
+
+    def _replace_bad_pixels_from_me_fit(self, obslist):
+        """
+        do a full multi-epoch fit use the model
+        to fill in bad pixels in the obslist
+        """
+        print("replacing bad pixels")
+        from ngmix.gexceptions import BootPSFFailure, BootGalFailure
+        repconf = self['coadd']['replace_bad_pixels']
+
+
+        boot = ngmix.bootstrap.Bootstrapper(obslist)
+        mconf=repconf['max_pars']
+        ppars=repconf['psf_pars']
+
+        scale = obslist[0].jacobian.get_scale()
+        psf_Tguess=4.0 * scale**2
+
+        g_prior = ngmix.priors.GPriorBA(0.2, rng=self.rng)
+        T_prior= ngmix.priors.FlatPrior(-10.0, 1.e6, rng=self.rng)
+        flux_prior= ngmix.priors.FlatPrior(-1.0e+04, 1.0e+09, rng=self.rng)
+        cen_prior=ngmix.priors.CenPrior(0.0, 0.0, scale, scale, rng=self.rng)
+        prior = ngmix.joint_prior.PriorSimpleSep(
+            cen_prior,
+            g_prior,
+            T_prior,
+            flux_prior,
+        )
+
+        try:
+            boot.fit_psfs(
+                ppars['model'],
+                psf_Tguess,
+                ntry=mconf['ntry'],
+                fit_pars=mconf['pars']['lm_pars'],
+            )
+        except BootPSFFailure:
+            raise TryAgainError("failed to fit psf for pixel replace")
+
+        try:
+
+            boot.fit_max(
+                repconf['model'],
+                mconf['pars'],
+                prior=prior,
+                ntry=mconf['ntry'],
+            )
+
+        except BootGalFailure:
+            raise TryAgainError("failed to fit galaxy")
+
+        boot.replace_masked_pixels()
+
+        # get first band
+        new_obslist = boot.mb_obs_list[0]
+        return new_obslist
+
+    def _add_defects(self, obslist):
+        for defect in self['defects']:
+            dtype=defect['type']
+            if dtype == 'bad_pixel':
+                self._add_bad_pixels(obslist, defect)
+            elif dtype == 'bad_column':
+                self._add_bad_columns(obslist, defect)
+            elif dtype=='example_bmasks':
+                self._add_example_bmasks(obslist, defect)
+            else:
+                raise ValueError("bad defect type: '%s'" % defect['type'])
+
+    def _get_example_bmask(self):
+        """
+        draw randomly from the list of example bmasks
+
+        randomly flip across rows using fliplr and cols using flipud
+        """
+        nmasks=len(self.bmask_list)
+        i = self.rng.randint(0, nmasks)
+
+        bmask = self.bmask_list[i]
+
+        r = self.rng.uniform()
+        if r > 0.5:
+            bmask = numpy.fliplr(bmask)
+
+        r = self.rng.uniform()
+        if r > 0.5:
+            bmask = numpy.flipud(bmask)
+
+        return bmask.copy()
+
+    def _add_example_bmasks(self, obslist, defect):
+        """
+        add single bad pixels with a given rate
+        """
+        #print("adding example bmasks")
+        for obs in obslist:
+            if not obs.has_bmask():
+                obs.bmask = numpy.zeros( obs.image.shape, dtype='i4' )
+
+            bmask = self._get_example_bmask()
+
+            wbad = numpy.where(bmask != 0)
+            if wbad[0].size > 0:
+                obs.bmask = bmask
+                obs.weight[wbad] = 0.0
+                obs.image[wbad] = 1.e9
+
+    def _add_bad_pixels(self, obslist, defect):
+        """
+        add single bad pixels with a given rate
+        """
+        print("adding single bad pixels")
+        for obs in obslist:
+            if not obs.has_bmask():
+                obs.bmask = numpy.zeros( obs.image.shape, dtype='i4' )
+
+            bmravel = obs.bmask.ravel()
+            imravel = obs.image.ravel()
+            wtravel = obs.weight.ravel()
+
+            if defect['rate']=='all':
+                num = defect['nper']
+            else:
+                r = self.rng.uniform()
+                if r < defect['rate']:
+                    num=1
+                else:
+                    num=0
+
+            for i in xrange(num):
+                # pick a random pixel
+
+                i = self.rng.randint(0, imravel.size)
+                #print("    ",i)
+
+                wtravel[i] = 0.0
+                imravel[i] = 1.e9
+                bmravel[i] = BAD_PIXEL
+
+    def _add_bad_columns(self, obslist, defect):
+        """
+        add single bad pixels with a given rate
+        """
+        print("adding bad columns")
+        for obs in obslist:
+            if not obs.has_bmask():
+                obs.bmask = numpy.zeros( obs.image.shape, dtype='i4' )
+
+            bmask  = obs.bmask
+            image  = obs.image
+            weight = obs.weight
+
+            r = self.rng.uniform()
+            if r < defect['rate']:
+                # pick a random column
+
+                i = self.rng.randint(0, image.shape[1])
+                print("    col:",i)
+
+                weight[:,i] = 0.0
+                image[:,i]  = 1.e9
+                bmask[:,i]  = BAD_COLUMN
 
     def _do_coadd_test_straight(self, obslist, type):
         iilist = [] 
@@ -790,6 +1049,48 @@ class ObservationMaker(dict):
                 raise ValueError("cen shift type should be 'uniform'")
 
         return pdf
+
+    def _load_bmasks(self):
+        """
+        load masks from a multi-extension fits file
+
+        if add_rotated is set, a 90 degree rotated version
+        is added to cancel symmetries in the mask, such as
+        bad columns
+        """
+
+        mask_file=None
+        if 'defects' in self:
+            for defect in self['defects']:
+                if defect['type']=='example_bmasks':
+                    mask_file=os.path.expandvars(defect['file'])
+                    add_rotated=defect.get('add_rotated',False)
+                    break
+
+        if mask_file is None:
+            print("no bmasks to load")
+            return
+
+        print("Loading masks from:",mask_file)
+
+        bmask_list=[]
+        with fitsio.FITS(mask_file) as fits:
+
+            for hdu in fits:
+                if hdu.get_extname()=='catalog':
+                    continue
+
+                mask = hdu.read()
+                if add_rotated:
+                    #print("adding rotated")
+                    rm = numpy.rot90(mask)
+                    mask = mask + rm
+
+                bmask_list.append( mask )
+
+        print("    loaded %d masks" % len(bmask_list))
+        self.bmask_list=bmask_list
+
 
 class NbrObservationMaker(ObservationMaker):
     """

@@ -135,7 +135,8 @@ class Summer(dict):
                 shear_err = gmean_err/(R+Rsel)
                 shear_err_nocorr = gmean_err/R
 
-                print("shear_meas:",shear)
+                print("shear_meas:    ",shear)
+                print("shear_meas_err:",shear_err)
                 means['shear'][i] = shear
                 means['shear_err'][i] = shear_err
                 if isinstance(shear_true,ngmix.Shape):
@@ -1167,10 +1168,18 @@ def get_boot_struct(nboot):
     return bs
 
 def get_m_c_oneshear(data, nsig=2.0):
-
     shmeas=data['shear'][0]
     shmeas_err  = data['shear_err'][0]
     shtrue = data['shear_true'][0]
+
+
+    fits=numpy.zeros(1, dtype=[('m','f8'),
+                               ('merr','f8'),
+                               ('c','f8'),
+                               ('cerr','f8')])
+
+    if shtrue[0]==0.0 and shtrue[1]==0.0:
+        return fits
 
     if shtrue[1] == 0.0:
         mel=0
@@ -1198,7 +1207,8 @@ def get_m_c_oneshear(data, nsig=2.0):
     fits['cerr']=cerr
 
 
-    print("m: %.3e +/- %.3e  c: %.3e +/- %.3e" % (m,nsig*merr,c,nsig*cerr))
+    #print("m: %.3e +/- %.3e  c: %.3e +/- %.3e" % (m,nsig*merr,c,nsig*cerr))
+    print("m: %.8e +/- %.8e  c: %.8e +/- %.8e" % (m,nsig*merr,c,nsig*cerr))
 
     return fits
 

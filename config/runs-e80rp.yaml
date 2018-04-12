@@ -1,0 +1,5 @@
+runs: [
+    run-e80rp-mcal-01s,
+    run-e80rp-mcal-02s,
+    run-e80rp-mcal-03s,
+]

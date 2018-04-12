@@ -1,3 +1,126 @@
+- bad pixel, defect replacement for coadds
+    - sim-e75ln reference run at shear 0.1 for expected bias
+    - sim-e75lnrp
+    - single bad pixel, 1 in 10 images
+    - fit multi-epoch coellip3 to moffat psf, and exp to exp gal
+    - low noise
+    - looks fine: 7.853e-05 +/- 1.121e-04
+
+    - sim-bd76ln, sim-bd76lnrp
+        - 4 bad pixels per image
+        - using multi-epoch exp model but bulge+disk reality
+            - some small bias
+            - -2.636e-04 +/- 9.588e-05
+    - sim-bd77lnrp
+        - 1 bad pixel per image
+        - 1/10 has a bad column
+        - reference is still sim-bd76ln
+        - still multi-epoch exp model for replacing pix, not perfect intentionally
+        - about the same bias. So this is probably dominated by
+          model bias in the galaxy fit
+        -2.735e-04 +/- 9.552e-05
+
+    - sim-bd78lnrp
+        - now using cubic interpolation 
+                scipy.interpolate.CloughTocher2DInterpolator
+          2.711e-04 +/- 5.140e-05
+
+    - sim-bd78
+        - higher noise control, not actually coadded
+        - I think this has too different response
+        3 sigma
+        m: 7.89658948e-03 +/- 5.23023609e-04  c: 1.20126149e-05 +/- 5.13505556e-05
+
+    - sim-bd78rp
+        - coadd with pixel replacement
+        - 0.138 +/- 0.109 (3 sigma)
+        - so 13% higher bias.  At shear 0.02 that would be 0.25*(1.13)=0.28e-3
+            - not a killer but maybe real
+
+    
+
+    - sim-bd79
+        - full coadd control for sim-bd78rp
+
+    - sim-e77rp
+        - lower shear 0.02
+        - stamp size not specified, getting 34x34 and s/n~20
+        - run-e77rp-mcal-01s
+        - seeing a bias ~4e-3
+        R: [ 0.9337326  0.9343232]
+        total wsum: 146591058.0
+        errors are 3 sigma
+        m: 3.57726036e-03 +/- 2.25455169e-03  c: -2.53219181e-05 +/- 4.50782574e-05
+
+        - ideas
+            - need to also interpolate noise image. Seems most plausible,
+            although the bias itself seems a bit high to me.  See sim-e79rp
+            for a test of this idea.
+
+    - sim-e79rp
+        - run-e79rp-mcal-01s
+            - now interpolating the noise also, and resetting bmask and weight
+            maps.  Not fully controlled, if it works we should dissect
+            - just using sigma from config for noise image
+
+    - sim-e80rp
+        - using real bmasks, extracted with extract-meds-bmasks
+        - There is a lower rate of masking but the masks can be
+        much more complicated
+
+        R: [ 0.93448942  0.9352017 ]
+        total wsum: 318904651.0
+        errors are 3 sigma
+        m: 3.17822643e-03 +/- 1.52470671e-03  c: 1.61637872e-05 +/- 3.04725420e-05
+
+        this is a big surprise, maybe we are just seeing bias
+        for this simulation
+
+    - sim-e81rp
+        Same as sim-e80rp.  Maybe it is additive in g1 due to
+        bad columns.  This time adding rotated and round psf
+        with shear in g2
+
+        - looks ok
+
+        R: [ 0.93904861  0.93816482]
+        Rpsf: [ 0.  0.]
+        total wsum: 2789147872.0
+        shear_meas:     [ -5.18272527e-07   2.00092245e-02]
+        shear_meas_err: [  3.44140742e-06   3.44235156e-06]
+        errors are 1 sigma
+        m: 4.61224357e-04 +/- 1.72117578e-04  c: -5.18272527e-07 +/- 3.44140742e-06
+
+
+
+    - sim-e82rp
+        - no shear to see if additive hypothesis is correct
+        - also no psf shape to confirm this doesn't correlate
+        with psf
+
+        R: [ 0.93856968  0.93851753]
+        Rpsf: [ 0.  0.]
+        total wsum: 1198035929.0
+        shear_meas:     [  6.70301682e-05   4.05541236e-06]
+        shear_meas_err: [  5.25145807e-06   5.25072786e-06]
+
+    TODO:
+        - test lower s/n
+        - iteration
+            - find a way to interpolate the SE images over bad pixels
+            - coadd
+            - test that and see how bad it is
+            - if doesn't work well, maybe use Gary's idea
+
+
+- quick check of level of bias when we shift the PSF
+    - when can't symmetrization or "gauss psf" when the
+      psf is not centered
+
+    - sim-bd78 no psf shift
+    - sim-bd78shift shift the psf
+        - bias is 3e-3 +/- 2.4e-3 (3 sigma)
+
 - simple neighbor tests using minimof
     - sim-nbr01.  One gaussian (central), one exp
 

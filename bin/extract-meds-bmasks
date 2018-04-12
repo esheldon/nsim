@@ -9,18 +9,52 @@ import biggles
 import fitsio
 import images
 from esutil.numpy_util import between
+import random
 
-seed=10
-rng=numpy.random.RandomState(seed)
+from argparse import ArgumentParser
+parser=ArgumentParser()
+parser.add_argument('seed',type=int)
+parser.add_argument('box_size',type=int)
+args=parser.parse_args()
 
-NKEEP_TOT=1400
-NKEEP_PER_TILE=100
+random.seed(args.seed)
+rng=numpy.random.RandomState( random.randint(0,2**15) )
+
+NKEEP_TOT=1500
+#NKEEP_TOT=105
+NKEEP_PER_TILE=10
 
 # max masking should be a column plus one bad pixel
-MAX_MASKED_FRAC=(48.0+1.0)/(48.0*48.0)
+#MAX_MASKED_FRAC=(48.0+1.0)/(48.0*48.0)
+MAX_MASKED_FRAC=0.05
 MIN_GOOD_FRAC=1.0-MAX_MASKED_FRAC
 
+DES_BADPIX_MAP={
+    "BPM":          1,  #/* set in bpm (hot/dead pixel/column)        */
+    "SATURATE":     2,  #/* saturated pixel                           */
+    "INTERP":       4,  #/* interpolated pixel                        */
+    "BADAMP":       8,  #/* Data from non-functional amplifier        */
+    "CRAY":        16,  #/* cosmic ray pixel                          */
+    "STAR":        32,  #/* bright star pixel                         */
+    "TRAIL":       64,  #/* bleed trail pixel                         */
+    "EDGEBLEED":  128,  #/* edge bleed pixel                          */
+    "SSXTALK":    256,  #/* pixel potentially effected by xtalk from  */
+                        #/*       a super-saturated source            */
+    "EDGE":       512,  #/* pixel flag to exclude CCD glowing edges   */
+    "STREAK":    1024,  #/* pixel associated with streak from a       */
+                        #/*       satellite, meteor, ufo...           */
+    "SUSPECT":   2048,  #/* nominally useful pixel but not perfect    */
+    "FIXED":     4096,  #/* corrected by pixcorrect                   */
+    "NEAREDGE":  8192,  #/* suspect due to edge proximity             */
+    "TAPEBUMP": 16384,  #/* suspect due to known tape bump            */
+}
 
+
+BITS_TO_CHECK = sum( [
+    DES_BADPIX_MAP['BPM'],
+    DES_BADPIX_MAP['SATURATE'],
+    DES_BADPIX_MAP['CRAY'],
+])
 def get_output_dir():
     output_dir=os.path.expanduser('~/lensing/shapesim/bmask-examples')
 
@@ -28,46 +62,58 @@ def get_output_dir():
         os.makedirs(output_dir)
     return output_dir
 
-def get_meds_flist():
-    md=os.path.expandvars('$DESDATA/meds')
-    md=os.path.join(md, 'tb-y1a1-us82-000')
+def get_meds_dirs():
+    pattern=os.path.expandvars('$MEDS_DIR/y3v02/DES*')
 
-    pattern=os.path.join(md, '*', '*-i-meds*.fz')
+    dirlist=glob(pattern)
+    return dirlist
 
-    flist=glob(pattern)
-    return flist
+def get_output_file(box_size):
+    output_dir=get_output_dir()
+    return os.path.join(
+        output_dir,
+        'bmask-examples-%dx%d.fits' % (box_size,box_size),
+    )
+def get_eps_file(tilename,id,box_size):
+    output_dir=get_output_dir()
+    return os.path.join(
+        output_dir,
+        '%s-bmask-%06d-%dx%d.eps' % (tilename,id,box_size,box_size)
+    )
+
 
 def main():
 
+    box_size=args.box_size
+
     biggles.configure('default','fontsize_min',1.5)
 
-    meds_files=get_meds_flist()
-    output_dir=get_output_dir()
-
-    output_file=os.path.join(output_dir, 'bmask-examples.fits')
+    dirlist=get_meds_dirs()
+    random.shuffle(dirlist)
 
     nkeep=0
 
-    with fitsio.FITS(output_file,'rw',clobber=True) as fits:
-        for fname in meds_files:
+    output_file=get_output_file(box_size)
 
-            tilename=os.path.basename(fname)[0:12]
+    cat=numpy.zeros(NKEEP_TOT, dtype=[('id','i8'),('mask_frac','f8')])
+    with fitsio.FITS(output_file,'rw',clobber=True) as fits:
+        for meds_dir in dirlist:
+            tilename=os.path.basename(meds_dir)
+
+            pattern=os.path.join(meds_dir, '*_i_*.fz')
+            meds_files = glob(pattern)
+            if len(meds_files)==0:
+                continue
+            assert len(meds_files)==1
+            fname=meds_files[0]
+
             print(fname)
 
             m=meds.MEDS(fname)
             ii=m.get_image_info()
-            catfile=ii['image_path'][0].strip().replace('.fits.fz','_cat.fits')
-            #catfile=os.path.basename(catfile)
-            #catfile=os.path.join('cats',catfile)
 
-            cat=fitsio.read(catfile,lower=True)
-
-            w,=numpy.where(
-                (m['box_size'] == 48)
-                & (cat['flags'] == 0)
-            )
+            w,=numpy.where( (m['box_size'] == box_size) & (m['ncutout'] > 1) )
             print("    ",w.size)
-
 
             # get twice as many in order to remove the
             # crazy ones
@@ -76,33 +122,64 @@ def main():
             for i,rint in enumerate(rints):
 
                 ii=w[rint]
+                id=m['id'][ii]
 
                 cutout=m.get_cutout(ii, 1)
-                wt=m.get_cutout(ii, 1,type='weight')
                 bmask=m.get_cutout(ii, 1, type='bmask')
 
-                wgood=numpy.where( (bmask==0) & (wt > 0.002) )
-                middle_ok = numpy.all(bmask[20:28, 20:28] == 0)
+                cen = (numpy.array(cutout.shape)-1.0)/2.0
+                low=int(round(cen[0]-3.5))
+                high=int(round(cen[0]+3.5+1))
 
-                if (middle_ok) and (wgood[0].size > MIN_GOOD_FRAC*wt.size):
+                # only intersted in certain bits
+                wnotset = numpy.where( (bmask & BITS_TO_CHECK) == 0 )
+                wset = numpy.where( (bmask & BITS_TO_CHECK) != 0 )
 
-                    title='%s-%06d' % (tilename,ii)
+                # don't allow center of object to be masked
+                middle_ok = numpy.all( (bmask[low:high, low:high] & BITS_TO_CHECK) == 0 )
 
-                    epsfile='%s-bmask-%06d.eps' % (tilename,ii)
-                    epsfile=os.path.join(output_dir,epsfile)
+                # don't want to allow masked pixels at the edge of the stamp
+                # because our interpolation won't work well there.  Cut it out
+                # of the entire edge is masked
 
+                sides_bad = (
+                    numpy.all( (bmask[0, :] & BITS_TO_CHECK) != 0 )
+                    or
+                    numpy.all( (bmask[-1,:] & BITS_TO_CHECK) != 0 )
+                    or
+                    numpy.all( (bmask[:, 0] & BITS_TO_CHECK) != 0 )
+                    or
+                    numpy.all( (bmask[:,-1] & BITS_TO_CHECK) != 0 )
+                )
+                if sides_bad:
+                    print("sides bad")
+
+                mask_frac = wset[0].size/float(bmask.size)
+
+                if middle_ok and (not sides_bad) and (mask_frac < MAX_MASKED_FRAC):
+
+                    if wset[0].size > 0:
+                        bmask[wset]=1
+                    if wnotset[0].size > 0:
+                        bmask[wnotset]=0
+
+                    title='%s-%06d frac: %.2f' % (tilename,id,mask_frac)
+
+                    epsfile=get_eps_file(tilename,id,box_size)
 
                     print(epsfile)
+                    print("mask_frac:",mask_frac)
 
-                    # make the mask either 0 for OK for 1 for masked
-                    out_mask = numpy.ones(bmask.shape, dtype='i2')
-                    out_mask[wgood]=0
+                    cat['id'][nkeep] = id
+                    cat['mask_frac'][nkeep] = mask_frac
+
                     # new extension
-                    fits.write(out_mask)
+                    fits.write(bmask)
 
                     # for plotting, reverse the mask
+
                     plot_mask = numpy.zeros(bmask.shape, dtype='i2')
-                    plot_mask[wgood]=1
+                    plot_mask[wnotset]=1
 
                     plt=biggles.Table(1,2)
 
@@ -112,13 +189,16 @@ def main():
 
                     plt.write_eps(epsfile)
 
+
                     i += 1
                     nkeep += 1
 
-                if i >= NKEEP_PER_TILE:
+                if (i >= NKEEP_PER_TILE) or (nkeep >= NKEEP_TOT):
                     break
 
             if nkeep >= NKEEP_TOT:
                 break
+
+        fits.write(cat, extname='catalog')
 
 main()

@@ -1,0 +1,52 @@
+images:
+
+    # shift of the epochs
+    offset:
+        type: disk
+        radius: 0.5 # pixels
+
+    # coadd the epochs
+    coadd:
+        type: "mean"
+        interp: "lanczos3"
+
+
+    # 0.175*sqrt(10)
+    #noise: 0.55
+    noise: 0.001
+
+    psf:
+        s2n: 10000
+        shift_psf: False
+
+    object:
+        stamp_size: [32, 32]
+        nepoch: 10
+
+    wcs:
+        dudx:      0.263
+        dudy:      0.0
+        dvdx:      0.0
+        dvdy:      0.263
+
+
+psf:
+    model: "moffat"
+
+    beta: 3.5
+
+    fwhm: 0.95
+    shape: [0.00, 0.00]
+
+object:
+    model: "exp"
+
+    g:
+        type: "gauss"
+        sigma: 0.005
+
+    r50: 0.57
+    flux: 33.0
+
+shear: [0.02, 0.0]
+

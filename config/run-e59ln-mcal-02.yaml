@@ -9,7 +9,7 @@ admom_pars:
     ntry: 4
     maxiter: 200
 
-ngal: 500000
+ngal: 2000000
 
 # time for the entire MPI job at nersc
 #queue: "regular"

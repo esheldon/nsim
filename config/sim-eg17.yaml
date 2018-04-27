@@ -3,6 +3,10 @@ images:
         type: "uniform"
         radius: 0.5 # pixels
 
+    # coadd the epochs
+    coadd:
+        interp: "lanczos15"
+
     noise:
         type: "uniform"
         sigma_range: [0.114, 0.139]
@@ -10,7 +14,7 @@ images:
 
     psf:
         s2n: 10000
-        shift_psf: True
+        shift_psf: False
 
     object:
         nepoch: 10

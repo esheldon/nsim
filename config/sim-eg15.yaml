@@ -3,6 +3,11 @@ images:
         type: "uniform"
         radius: 0.5 # pixels
 
+    # coadd the epochs
+    coadd:
+        interp: "lanczos15"
+        weight_type: 'noise-fwhm'
+
     noise:
         type: "uniform"
         sigma_range: [0.114, 0.139]

@@ -3,6 +3,12 @@ images:
         type: "uniform"
         radius: 0.5 # pixels
 
+
+    # coadd the epochs
+    coadd:
+        type: "mean"
+        interp: "lanczos15"
+
     noise:
         type: "uniform"
         sigma_range: [0.114, 0.139]
@@ -24,17 +30,8 @@ images:
 psf:
     model: "gauss"
 
-    fwhm:
-        type: "lognormal"
-        mean: 0.95
-        sigma: 0.10
-
-        limits: [0.8, 1.15]
-
-    shape:
-        type: "normal2d"
-        cen: [0.01, 0.01]
-        sigma: [0.01, 0.01]
+    fwhm: 0.95
+    shape: [0.0, 0.0]
 
 
 object:

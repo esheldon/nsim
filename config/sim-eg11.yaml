@@ -1,8 +1,10 @@
 images:
+    offset:
+        type: "uniform"
+        radius: 0.5 # pixels
 
     # coadd the epochs
     coadd:
-        type: "mean"
         interp: "lanczos15"
 
     noise:
@@ -12,13 +14,10 @@ images:
 
     psf:
         s2n: 10000
+        shift_psf: True
 
     object:
         nepoch: 10
-
-        cen_shift:
-            type: "uniform"
-            radius: 0.5 # pixels
 
     wcs:
       dudx: 0.0

@@ -42,7 +42,7 @@ nodes: 100
 constraint: "haswell"
 
 # BNL, doubled
-sec_per: 0.5
+sec_per: 0.2
 desired_hours: 0.25
 jobs_per_condor_sub: 1000
 

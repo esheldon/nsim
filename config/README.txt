@@ -808,6 +808,28 @@
         - without coaddition
         - run-eg12-max-01
 
+        now T noise increased greatly, factor of 1.75
+
+    # same as 11/12 but no psf variation to see if T noise
+    # still increased. fwhm is same as mean of previous
+    sim-eg13
+        - with coaddition
+        - run-eg13-max-01
+    sim-eg14
+        - without coaddition
+        - run-eg14-max-01
+    yes much lower increase in T noise, but now both have
+    higher T noise
+
+    # same as 11/12 but weighting by 1/(V*fwhm**2)
+    # still increased
+    sim-eg15
+        - with coaddition
+        - run-eg15-max-01
+    sim-eg16
+        - without coaddition
+        - run-eg16-max-01
+
 - testing s/g sep
     - sim-stars03 gauss psf, more realistic s/n distribution for
       stars and N(flux) ~ flux^{-1.4}

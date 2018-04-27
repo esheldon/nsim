@@ -197,7 +197,7 @@ class ObservationMaker(dict):
         return cobjlist, psflist, wcslist, meta
 
     def _do_coadd(self, obslist):
-        import coaddsim
+        import psc
 
         coadd_conf=self['coadd']
 
@@ -209,15 +209,15 @@ class ObservationMaker(dict):
         if 'flat_wcs' in coadd_conf:
             kw['flat_wcs'] = coadd_conf['flat_wcs']
 
-        use_nsim_noise_image=coadd_conf.get('use_nsim_noise_image',False)
-        if use_nsim_noise_image:
-            kw['use_noise_image'] = True
-            sigma = self['noise']
-            for obs in obslist:
-                obs.noise = self.rng.normal(
-                    scale=sigma,
-                    size=obs.image.shape,
-                )
+        if 'weight_type' in coadd_conf:
+            kw['weight_type'] = coadd_conf['weight_type']
+
+        for obs in obslist:
+            sigma = numpy.sqrt(1./obs.weight.max())
+            obs.noise = self.rng.normal(
+                scale=sigma,
+                size=obs.image.shape,
+            )
 
         if 'replace_bad_pixels' in coadd_conf:
             # do a fit on the coadd and use it to replace bad pixels
@@ -231,14 +231,9 @@ class ObservationMaker(dict):
                 raise ValueError("unsupported replace_bad_pixels "
                                  "type: '%s'" % type)
 
-        coadder = coaddsim.CoaddImages(
-            obslist,
-            rng=self.galsim_rng,
-            **kw
-        )
+        coadder = psc.Coadder(obslist, **kw)
 
-        assert coadd_conf['type']=='mean'
-        coadd_obs = coadder.get_mean_coadd()
+        coadd_obs = coadder.get_coadd()
 
         coadd_obslist=ngmix.ObsList()
         coadd_obslist.append(coadd_obs)
@@ -533,7 +528,8 @@ class ObservationMaker(dict):
 
         for tobs in obslist:
             if type=='psf':
-                doffset = tobs.meta['psf_offset_pixels']
+                #doffset = tobs.meta['psf_offset_pixels']
+                doffset = tobs.psf.meta['offset_pixels']
                 obs = tobs.psf
                 #print("psf offset:",doffset)
             else:
@@ -691,7 +687,7 @@ class ObservationMaker(dict):
         )
         obs.image_orig = obj_im_orig
         obs.update_meta_data({'offset_pixels':offset_pixels})
-        obs.update_meta_data({'psf_offset_pixels':psf_offset_pixels})
+        obs.psf.update_meta_data({'offset_pixels':psf_offset_pixels})
 
         return obs
 

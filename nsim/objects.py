@@ -291,6 +291,27 @@ class BDKMaker(SimpleMaker):
         # component shifts in sky units
         self.shift_pdf = self._get_shift_pdf()
 
+        self.bulge_size_fac_pdf=None
+        spec = self.get('bulge_size_fac',None)
+        if spec is not None:
+            assert spec['type']=='uniform'
+            rng=spec['range']
+            self.bulge_size_fac_pdf= ngmix.priors.FlatPrior(
+                rng[0], rng[1],
+                rng=self.rng,
+            )
+
+    def _get_component_sizes(self, r50):
+
+        disk_r50=r50
+
+        if self.bulge_size_fac_pdf is not None:
+            fac = self.bulge_size_fac_pdf.sample()
+        else:
+            fac=1
+
+        bulge_r50 = disk_r50*fac
+        return disk_r50, bulge_r50
 
     def _make_object(self, **kw):
         g1disk,g2disk,r50,flux = self.pdf.sample()
@@ -301,6 +322,7 @@ class BDKMaker(SimpleMaker):
         if 'r50' in kw:
             r50=kw['r50']
 
+        disk_r50, bulge_r50 = self._get_component_sizes(r50)
 
         fracdev = self.fracdev_pdf.sample()
 
@@ -315,13 +337,13 @@ class BDKMaker(SimpleMaker):
 
         disk_raw = galsim.Exponential(
             flux=disk_flux,
-            half_light_radius=r50,
+            half_light_radius=disk_r50,
         )
 
         if nknots > 0:
             knots = galsim.RandomWalk(
                 npoints=nknots,
-                half_light_radius=r50,
+                half_light_radius=disk_r50,
                 flux=knot_flux,
                 rng=self.galsim_rng,
             )
@@ -331,7 +353,10 @@ class BDKMaker(SimpleMaker):
             disk = disk_raw
 
         # the bulge is always smooth
-        bulge = galsim.DeVaucouleurs(flux=bulge_flux, half_light_radius=r50)
+        bulge = galsim.DeVaucouleurs(
+            flux=bulge_flux,
+            half_light_radius=bulge_r50,
+        )
 
         # disk and bulge get independent shapes
         disk  = disk.shear(g1=g1disk, g2=g2disk)

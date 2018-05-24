@@ -12,10 +12,13 @@ def get_object_maker(config, rng, galsim_rng):
         maker=SimpleMaker(config, rng)
     elif model in ['bdk','bd']:
         maker=BDKMaker(config, rng, galsim_rng)
+    elif model in ['knots']:
+        maker=KnotsMaker(config, rng, galsim_rng)
     else:
         raise ValueError("bad model: '%s'" % model)
 
     return maker
+
 
 class SimpleMaker(dict):
     """
@@ -277,6 +280,40 @@ class SimpleMaker(dict):
             )
 
         return pdf
+
+class KnotsMaker(SimpleMaker):
+    """
+    pure knots
+    """
+    def __init__(self, config, rng, galsim_rng):
+        super(KnotsMaker,self).__init__(config, rng)
+
+        self.galsim_rng=galsim_rng
+
+
+    def _make_object(self, **kw):
+        g1,g2,r50,flux = self.pdf.sample()
+
+        if 'flux' in kw:
+            flux=kw['flux']
+        if 'r50' in kw:
+            r50=kw['r50']
+
+        gal = galsim.RandomWalk(
+            npoints=self['num'],
+            half_light_radius=r50,
+            flux=flux,
+            rng=self.galsim_rng,
+        )
+
+        gal = gal.shear(g1=g1, g2=g2)
+        meta={
+            'r50':r50,
+            'flux':flux,
+            'nknots':self['num'],
+        }
+
+        return gal, meta
 
 class BDKMaker(SimpleMaker):
     def __init__(self, config, rng, galsim_rng):

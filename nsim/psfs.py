@@ -1,4 +1,5 @@
 from __future__ import print_function
+import os
 import logging
 import galsim
 import ngmix
@@ -52,7 +53,8 @@ class PSFSampler(dict):
         kw = self._get_keywords()
 
         if model=='moffat':
-            kw['beta'] = self['beta']
+            if 'beta' not in kw:
+                kw['beta'] = self['beta']
             cls = galsim.Moffat
         elif model=='gauss':
             cls = galsim.Gaussian
@@ -81,43 +83,67 @@ class PSFSampler(dict):
 
         return g1, g2
 
+    def _sample_fwhm_beta_joint(self):
+        fbc=self['fwhm_beta']
+        br=fbc['beta_range']
+        fr=fbc['fwhm_range']
+        while True:
+            fwhm, beta = self._fwhm_beta_pdf.sample()
+            if (fwhm > fr[0]
+                and fwhm < fr[1]
+                and beta > br[0]
+                and beta < br[1]):
+                break
+
+        #print(fwhm,beta)
+        return fwhm, beta
     def _get_keywords(self):
 
         kw={}
 
-        if 'r50' in self:
-            if self.r50_pdf is not None:
-                r50 = self.r50_pdf.sample()
-                logger.debug("    psf r50: %g" % r50)
+        if 'fwhm_beta' in self:
+            kw['fwhm'], kw['beta'] = self._sample_fwhm_beta_joint()
+        else:
+            if 'r50' in self:
+                if self.r50_pdf is not None:
+                    r50 = self.r50_pdf.sample()
+                    logger.debug("    psf r50: %g" % r50)
 
-            elif 'r50' in self:
-                r50 = self['r50']
+                elif 'r50' in self:
+                    r50 = self['r50']
 
-            else:
-                raise ValueError("r50 value or distribution must be set")
+                else:
+                    raise ValueError("r50 value or distribution must be set")
 
-            kw['half_light_radius'] = r50
-
-        elif 'fwhm' in self:
-            if self.fwhm_pdf is not None:
-                fwhm = self.fwhm_pdf.sample()
-                logger.debug("    psf fwhm: %g" % fwhm)
+                kw['half_light_radius'] = r50
 
             elif 'fwhm' in self:
-                fwhm = self['fwhm']
+                if self.fwhm_pdf is not None:
+                    fwhm = self.fwhm_pdf.sample()
+                    logger.debug("    psf fwhm: %g" % fwhm)
 
-            else:
-                raise ValueError("fwhm value or distribution must be set")
+                elif 'fwhm' in self:
+                    fwhm = self['fwhm']
 
-            kw['fwhm'] = fwhm
+                else:
+                    raise ValueError("fwhm value or distribution must be set")
+
+                kw['fwhm'] = fwhm
 
         return kw
 
 
     def _set_pdfs(self):
 
+        if 'fwhm_beta' in self:
+            fname=os.path.expandvars(self['fwhm_beta']['file'])
+            gm=ngmix.gmix_ndim.GMixND()
+            gm.load_mixture(fname)
+            self._fwhm_beta_pdf=gm
+        else:
+            self._set_size_pdf()
+
         self._set_shape_pdf()
-        self._set_size_pdf()
 
     def _set_shape_pdf(self):
         self.shape_pdf=None

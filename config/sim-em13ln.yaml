@@ -27,8 +27,8 @@ psf:
         type: "gmixnd"
         file: "$DES_LENSDIR/test-moffat/fwhm-beta-gmixnd-griz.fits"
 
-        beta_range: [2, 7]
-        fwhm_range: [0.75, 2.0]
+        beta_range: [2, 6]
+        fwhm_range: [0.8, 2.0]
 
     shape:
         type: "normal2d"

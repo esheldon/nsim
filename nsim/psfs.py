@@ -95,8 +95,8 @@ class PSFSampler(dict):
                 and beta < br[1]):
                 break
 
-        #print(fwhm,beta)
         return fwhm, beta
+
     def _get_keywords(self):
 
         kw={}

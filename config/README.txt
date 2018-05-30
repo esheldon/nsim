@@ -1,3 +1,12 @@
+- exploring truncated PSF images
+    - sim-em13ln
+        - draw from Moffat fits from DES
+        - cosmos
+        - low n oise
+    - run-em13ln-mcal-01,02,02
+    errors are 3 sigma
+        m: 4.15822926e-04 +/- 5.24173616e-04  c: 2.05336392e-06 +/- 9.54386265e-06
+
 - bad pixel, defect replacement for coadds
     - sim-e75ln reference run at shear 0.1 for expected bias
     - sim-e75lnrp

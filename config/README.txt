@@ -1,3 +1,6 @@
+- exploring PSF s/n
+    - sim-e15ln
+    - dist from DES PIFF v29 mean 156 sigma 22, truncated at 100
 - exploring truncated PSF images
     - sim-em13ln
         - draw from Moffat fits from DES

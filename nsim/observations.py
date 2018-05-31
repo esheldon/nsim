@@ -723,9 +723,11 @@ class ObservationMaker(dict):
             offset=offset,
         )
 
+        s2n = self._get_psf_s2n()
+
         gsimage.addNoiseSNR(
             noise_obj,
-            self['psf']['s2n'],
+            s2n,
             preserve_flux=True,
         )
 
@@ -743,6 +745,12 @@ class ObservationMaker(dict):
 
         return image, jacob
 
+    def _get_psf_s2n(self):
+        if hasattr(self,'_psf_s2n_pdf'):
+            s2n = self._psf_s2n_pdf.sample()
+        else:
+            s2n = self['psf']['s2n']
+        return s2n
 
     def _get_object_image(self, convolved_object, wcs, dims, noise_obj, offset):
         """
@@ -921,6 +929,7 @@ class ObservationMaker(dict):
     def _set_pdfs(self):
 
         self._set_noise()
+        self._set_psf_s2n_pdf()
         self._set_sizes()
         self._set_obj_shift()
         self._set_epoch_offset()
@@ -1045,6 +1054,21 @@ class ObservationMaker(dict):
                 raise ValueError("cen shift type should be 'uniform'")
 
         return pdf
+
+    def _set_psf_s2n_pdf(self):
+        if isinstance(self['psf']['s2n'], dict):
+            pconf=self['psf']['s2n']
+            assert pconf['type']=='normal'
+            pdf=ngmix.priors.Normal(
+                pconf['mean'],
+                pconf['sigma'],
+                rng=self.rng,
+            )
+            if 'limits' in pconf:
+                pdf = ngmix.priors.LimitPDF(pdf, pconf['limits'])
+
+            self._psf_s2n_pdf=pdf
+
 
     def _load_bmasks(self):
         """

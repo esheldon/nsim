@@ -1,0 +1,7 @@
+runs: [
+    run-em15ln-mcal-01,
+    run-em15ln-mcal-02,
+    run-em15ln-mcal-03,
+    run-em15ln-mcal-04,
+    run-em15ln-mcal-05,
+]

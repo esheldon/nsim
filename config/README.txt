@@ -1,3 +1,22 @@
+- exploring PSF s/n
+    - sim-e15ln
+    - dist from DES PIFF v29 mean 156 sigma 22, truncated at 100
+	R: [0.4098639  0.41020869]
+	total wsum: 158788713.0
+	shear_meas:     [ 2.00156296e-02 -5.57052344e-06]
+	shear_meas_err: [2.99914235e-06 2.84790804e-06]
+	errors are 3 sigma
+	m: 7.81480053e-04 +/- 4.49871352e-04  c: -5.57052344e-06 +/- 8.54372413e-06
+
+- exploring truncated PSF images
+    - sim-em13ln
+        - draw from Moffat fits from DES
+        - cosmos
+        - low n oise
+    - run-em13ln-mcal-01,02,02
+    errors are 3 sigma
+        m: 4.15822926e-04 +/- 5.24173616e-04  c: 2.05336392e-06 +/- 9.54386265e-06
+
 - bad pixel, defect replacement for coadds
     - sim-e75ln reference run at shear 0.1 for expected bias
     - sim-e75lnrp

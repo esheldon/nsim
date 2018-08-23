@@ -851,13 +851,19 @@ class KMetacal(ngmix.metacal.Metacal):
 
         return kobs
 
-class MetacalMomentsFixed(MetacalMomentsAM):
+class MetacalMomentsFixed(SimpleFitterBase):
     """
     fixed weight function
     """
 
+    def _setup(self, *args, **kw):
+        super(MetacalMomentsFixed,self)._setup(*args, **kw)
+
+        mpars=self['metacal_pars']
+
+        self._set_mompars()
+
     def _set_mompars(self):
-        super(MetacalMomentsFixed,self)._set_mompars()
         wpars=self['weight']
 
         self.weight=ngmix.GMixModel(
@@ -865,20 +871,76 @@ class MetacalMomentsFixed(MetacalMomentsAM):
             wpars['model'],
         )
 
-    def _measure_psf_moments(self, psf_obs):
-        """
-        want to run admom for psf
-        """
-        return super(MetacalMomentsFixed,self)._measure_moments(
-            psf_obs,
-            self.psf_ampars,
-            doround=False,
+    def _dofit(self, obslist):
+
+        psfres = self._measure_psf(obslist)
+        obsdict=self._get_metacal(obslist)
+
+        res=self._do_metacal(obsdict)
+        res['psf'] = psfres
+
+
+        if 'fit_model' in self:
+            res['model_result'] = flux_result
+
+        res['flags']=0
+        return res
+
+    def _get_metacal(self, obslist):
+        mcpars=self['metacal_pars']
+        odict=ngmix.metacal.get_all_metacal(
+            obslist,
+            rng=self.rng,
+            **mcpars
         )
 
+        return odict
 
-    def _measure_moments(self, obslist, junk, doround=True):
+    def _do_metacal(self, odict):
+        mpars=self['metacal_pars']
+        res={}
+
+        for type in mpars['types']:
+            obslist=odict[type]
+
+            tres=self._measure_moments(obslist)
+            if tres['flags'] != 0:
+                raise TryAgainError("        bad T")
+
+            if type=='noshear':
+                pres = self._measure_psf(obslist)
+                e1,e2=pres['e']
+                g1,g2=ngmix.shape.e1e2_to_g1g2(e1,e2)
+                tres['psfrec_g'] = numpy.array([g1,g2])
+                tres['psfrec_T'] = pres['T']
+
+            res[type]=tres
+
+        return res
+
+    def _measure_psf(self, obslist):
+        """
+        measure the mean psf size and shape
+        """
+        assert len(obslist)==1
+        return self._measure_psf_admom(obslist[0].psf)
+
+    def _measure_psf_admom(self, obs):
         """
         measure adaptive moments
+        """
+        Tguess=4.0*obs.jacobian.get_scale()**2
+
+        fitter=ngmix.admom.run_admom(obs, Tguess)
+        res=fitter.get_result()
+        if res['flags'] != 0:
+            raise TryAgainError("        admom psf failed")
+
+        return res
+
+    def _measure_moments(self, obslist):
+        """
+        measure weighted moments
         """
 
         if isinstance(obslist,ngmix.ObsList):
@@ -911,35 +973,103 @@ class MetacalMomentsFixed(MetacalMomentsAM):
         if res['flags'] != 0:
             raise TryAgainError("        moments failed")
 
-        res['e'] = res['pars'][2:2+2]
-        res['e_cov'] = res['pars_cov'][2:2+2, 2:2+2]
+        res['g']       = res['e']
+        res['g_cov']   = res['e_cov']
+        res['numiter'] = 1
 
-        pars_cov=res['pars_cov']
-        flux_sum=res['pars'][5]
-        fvar_sum=pars_cov[5,5]
+        return res
 
-        if fvar_sum > 0.0:
+    def _print_res(self, res):
+        """
+        print some stats
+        """
 
-            flux_err = numpy.sqrt(fvar_sum)
-            res['s2n'] = flux_sum/flux_err
+        logger.debug("    s2n: %(s2n)f g: %(g)s" % res['noshear'])
 
-            # error on each shape component from BJ02 for gaussians
-            # assumes round
+    def _get_dtype(self):
+        """
+        get the dtype for the output struct
+        """
 
-            res['e_err_r'] = 2.0/res['s2n']
-        else:
-            res['flags'] = 0x40
-            flux_err = 9999.0
+        # always 6 for am
+        npars=6
 
-        res['g']     = res['e']
-        res['g_cov'] = res['e_cov']
-        res['T'] = res['pars'][4]
-        res['am_flux'] = flux_sum
-        res['am_flux_err'] = flux_err
-        res['am_flux_s2n'] = res['s2n']
-        res['numiter']=1
+        dt=super(MetacalMomentsFixed,self)._get_dtype()
+        dt += [
+            ('psfrec_g','f8',2),
+            ('psfrec_T','f8'),
+        ]
 
-        fitter=None
-        return res, fitter
+        mpars=self['metacal_pars']
+        for type in mpars['types']:
+
+            if type=='noshear':
+                back=''
+            else:
+                back='_%s' % type
+
+            dt += [
+                ('mcal_g%s' % back,'f8',2),
+                ('mcal_g_cov%s' % back,'f8',(2,2)),
+                ('mcal_pars%s' % back,'f8',npars),
+            ]
+
+            if type=='noshear':
+                dt += [
+                    ('mcal_wsum','f8'),
+                    ('mcal_sums_cov','f8',(npars,npars)),
+                    ('mcal_psfrec_g','f8',2),
+                    ('mcal_psfrec_T','f8'),
+                ]
+
+            dt += [
+                ('mcal_s2n%s' % back,'f8'),
+
+                ('mcal_am_flux%s' % back,'f8'),
+                ('mcal_am_flux_s2n%s' % back,'f8'),
+            ]
+
+            dt += [('mcal_numiter%s' % back,'i4')]
+
+        return dt
+
+
+    def _make_output(self, res, i):
+        """
+        copy parameters specific to this class
+        """
+        d=self._get_struct()
+        #d = super(MaxMetacalFitter,self)._make_output(res, i)
+
+        for type in ngmix.metacal.METACAL_TYPES:
+
+            # sometimes we don't calculate all
+            if type not in res:
+                continue
+
+            tres=res[type]
+            if type=='noshear':
+                back=''
+            else:
+                back='_%s' % type
+
+            d['mcal_pars%s' % back] = tres['pars']
+            d['mcal_g%s' % back] = tres['g']
+            d['mcal_g_cov%s' % back] = tres['g_cov']
+            d['mcal_s2n%s' % back] = tres['s2n']
+
+            if type=='noshear':
+                #for p in ['pars_cov','psfrec_g','psfrec_T']:
+                for p in ['psfrec_g','psfrec_T']:
+                    name='mcal_%s' % p
+
+                    if p=='psfrec_g':
+                        d[name] = tres['psfrec_g']
+                    elif p=='psfrec_T':
+                        d[name] = tres['psfrec_T']
+                    else:
+                        d[name] = tres[p]
+        return d
+
 
 

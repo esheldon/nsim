@@ -88,6 +88,12 @@ class FitterBase(dict):
                 obslist = self.sim()
                 self.tm_sim += time.time()-tm0
 
+                if self['show']:
+                    import images
+                    images.multiview(obslist[0].image)
+                    if raw_input('hit a key (q to quit): ')=='q':
+                        stop
+
                 if self['deblend']:
                     logger.debug("    deblending")
                     obslist = self._do_deblend(obslist)

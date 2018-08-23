@@ -1,10 +1,15 @@
 - fixed moments
     - todo:
-        - check works at higher noise
-            - looks ok
+        x check works at higher noise
+            - run-eg18hnhis*
+
         - check if we use not canonical center
-            - looks ok using the admom fit to noiseless image
-            - trying running sep....
+            x looks ok using the admom fit to noiseless image
+            x running sep ok, but note the bias is lower than
+              what I would expect for shear 0.08. Getting lucky
+              with cancellation of biases?
+
+              run-eg18hnhis-findcen*
 
         - implement alternative fixnoise?
             - rather than adding the noise field, measure a noise field
@@ -12,12 +17,17 @@
               this.  Also could potentially grab random field from image,
               which would contain objects and subtract that.  Not sure
               how well that would work since still non-linear
-        - weighted psf T for T ratio
-        - keep running sums over multiple obs
-        - fluxes.  Want equivalent of the aperture fluxes.  So maybe the
-          weight should be 1 at the center rather than normalized; not sure
-          how to make that happen yet
+
+        x check no fixnoise
+            - seems to work without fixnoise. running a larger test
+              run-eg18hnhis-nofix*
+
+        x weighted psf T for T ratio
+        x keep running sums over multiple obs.  Code is in place
+        - fluxes.  Want some template fluxes or something
         - errors on all parameters
+
+        - test with neighbors
 
 - exploring PSF s/n
     - sim-e15ln

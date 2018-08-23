@@ -1,9 +1,5 @@
 fitter: "metacal-moments-fixed"
 
-#
-# metacal
-#
-
 metacal_pars:
     types: ['noshear','1p','1m','2p','2m']
     psf: gauss
@@ -11,17 +7,10 @@ metacal_pars:
 admom_pars:
     ntry: 4
     maxiter: 200
-    fixcen: True
-
-#
-# fixed weight function
-#
 
 weight:
-    model: gauss
-    use_canonical_center: True
-    # gaussian 0.9'' fwhm has T of about 0.3
-    T: 0.5
+    fwhm: 1.2
+    find_center: True
 
 ngal: 1000000
 

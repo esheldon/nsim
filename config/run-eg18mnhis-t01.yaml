@@ -1,9 +1,5 @@
 fitter: "metacal-moments-fixed"
 
-#
-# metacal
-#
-
 metacal_pars:
     types: ['noshear','1p','1m','2p','2m']
     psf: gauss

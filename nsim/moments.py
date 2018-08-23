@@ -868,7 +868,7 @@ class MetacalMomentsFixed(SimpleFitterBase):
         if wpars['find_center']:
             assert self['weight']['use_canonical_center']==False,\
                     "don't set use_canonical_center when finding center"
-            self.filter_kernel =  array([
+            filter_kernel =  array([
                 [0.004963, 0.021388, 0.051328, 0.068707, 0.051328, 0.021388, 0.004963],
                 [0.021388, 0.092163, 0.221178, 0.296069, 0.221178, 0.092163, 0.021388],
                 [0.051328, 0.221178, 0.530797, 0.710525, 0.530797, 0.221178, 0.051328],
@@ -877,6 +877,14 @@ class MetacalMomentsFixed(SimpleFitterBase):
                 [0.021388, 0.092163, 0.221178, 0.296069, 0.221178, 0.092163, 0.021388],
                 [0.004963, 0.021388, 0.051328, 0.068707, 0.051328, 0.021388, 0.004963],
             ])
+
+            self.sep_thresh=0.8
+            self.sep_pars={
+                'deblend_cont':0.00001,
+                'deblend_nthresh':64,
+                'minarea':4,
+                'filter_kernel':filter_kernel,
+            }
 
     def _set_mompars(self):
         wpars=self['weight']
@@ -929,16 +937,11 @@ class MetacalMomentsFixed(SimpleFitterBase):
         obs=obslist[0]
 
         noise=sqrt(1.0/obs.weight[0,0])
-        #thresh=1.5
-        thresh=0.8
         objs=sep.extract(
             obs.image,
-            thresh,
+            self.sep_thresh,
             err=noise,
-            deblend_cont=0.00001,
-            deblend_nthresh=64,
-            minarea=4,
-            filter_kernel=self.filter_kernel,
+            **self.sep_pars
         )
         logger.debug('    found %d objects' % objs.size)
         if objs.size > 1:

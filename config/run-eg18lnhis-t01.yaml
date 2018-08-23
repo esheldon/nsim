@@ -1,0 +1,34 @@
+fitter: "metacal-moments-fixed"
+
+#
+# metacal
+#
+
+metacal_pars:
+    types: ['noshear','1p','1m','2p','2m']
+    psf: gauss
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+    fixcen: True
+
+#
+# fixed weight function
+#
+
+weight:
+    model: gauss
+    use_canonical_center: True
+    # gaussian 0.9'' fwhm has T of about 0.3
+    T: 0.5
+
+ngal: 1000000
+
+desired_hours: 0.15
+
+sec_per: 0.40
+
+jobs_per_condor_sub: 5000
+
+verbose: False

@@ -1,3 +1,24 @@
+- fixed moments
+    - todo:
+        - check works at higher noise
+            - looks ok
+        - check if we use not canonical center
+            - looks ok using the admom fit to noiseless image
+            - trying running sep....
+
+        - implement alternative fixnoise?
+            - rather than adding the noise field, measure a noise field
+              and subtract moments.  Because moments are fast could repeat
+              this.  Also could potentially grab random field from image,
+              which would contain objects and subtract that.  Not sure
+              how well that would work since still non-linear
+        - weighted psf T for T ratio
+        - keep running sums over multiple obs
+        - fluxes.  Want equivalent of the aperture fluxes.  So maybe the
+          weight should be 1 at the center rather than normalized; not sure
+          how to make that happen yet
+        - errors on all parameters
+
 - exploring PSF s/n
     - sim-e15ln
     - dist from DES PIFF v29 mean 156 sigma 22, truncated at 100

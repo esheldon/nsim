@@ -859,21 +859,56 @@ class MetacalMomentsFixed(SimpleFitterBase):
     def _setup(self, *args, **kw):
         super(MetacalMomentsFixed,self)._setup(*args, **kw)
 
-        mpars=self['metacal_pars']
-
         self._set_mompars()
+
+        wpars=self['weight']
+        wpars['use_canonical_center']=wpars.get('use_canonical_center',False)
+        wpars['find_center']=wpars.get('find_center',False)
+
+        if wpars['find_center']:
+            assert self['weight']['use_canonical_center']==False,\
+                    "don't set use_canonical_center when finding center"
+            self.filter_kernel =  array([
+                [0.004963, 0.021388, 0.051328, 0.068707, 0.051328, 0.021388, 0.004963],
+                [0.021388, 0.092163, 0.221178, 0.296069, 0.221178, 0.092163, 0.021388],
+                [0.051328, 0.221178, 0.530797, 0.710525, 0.530797, 0.221178, 0.051328],
+                [0.068707, 0.296069, 0.710525, 0.951108, 0.710525, 0.296069, 0.068707],
+                [0.051328, 0.221178, 0.530797, 0.710525, 0.530797, 0.221178, 0.051328],
+                [0.021388, 0.092163, 0.221178, 0.296069, 0.221178, 0.092163, 0.021388],
+                [0.004963, 0.021388, 0.051328, 0.068707, 0.051328, 0.021388, 0.004963],
+            ])
 
     def _set_mompars(self):
         wpars=self['weight']
 
-        self.weight=ngmix.GMixModel(
-            [0.0, 0.0, 0.0, 0.0, wpars['T'], 1.0],
-            wpars['model'],
+        if 'fwhm' in wpars:
+            T=ngmix.moments.fwhm_to_T(wpars['fwhm'])
+        else:
+            T=wpars['T']
+
+        weight=ngmix.GMixModel(
+            [0.0, 0.0, 0.0, 0.0, T, 1.0],
+            'gauss',
         )
+
+        # make the max of the weight 1.0 to get good
+        # fluxes
+
+        weight.set_norms()
+        norm=weight.get_data()['norm'][0]
+        weight.set_flux(1.0/norm)
+
+        self.weight=weight
 
     def _dofit(self, obslist):
 
-        psfres = self._measure_psf(obslist)
+        wpars=self['weight']
+        if wpars['find_center']:
+            logger.debug("    finding center")
+            self._find_center_sep(obslist)
+
+        psfres = self._measure_admom(obslist[0].psf)
+
         obsdict=self._get_metacal(obslist)
 
         res=self._do_metacal(obsdict)
@@ -885,6 +920,61 @@ class MetacalMomentsFixed(SimpleFitterBase):
 
         res['flags']=0
         return res
+
+    def _find_center_sep(self, obslist):
+        import sep
+
+        assert len(obslist)==1
+
+        obs=obslist[0]
+
+        noise=sqrt(1.0/obs.weight[0,0])
+        #thresh=1.5
+        thresh=0.8
+        objs=sep.extract(
+            obs.image,
+            thresh,
+            err=noise,
+            deblend_cont=0.00001,
+            deblend_nthresh=64,
+            minarea=4,
+            filter_kernel=self.filter_kernel,
+        )
+        logger.debug('    found %d objects' % objs.size)
+        if objs.size > 1:
+            logger.debug('        y:    %s' % (objs['y']))
+            logger.debug('        x:    %s' % (objs['x']))
+            logger.debug('        flux: %s' % (objs['flux']))
+        imax=objs['flux'].argmax()
+        row=objs['y'][imax]
+        col=objs['x'][imax]
+
+        # update the jacobian center
+
+        # this makes a copy
+        jac=obs.jacobian
+        oldrow,oldcol=jac.get_cen()
+        logger.debug('    old pos: %f %f' % (oldrow,oldcol))
+        logger.debug('    new pos: %f %f' % (row,col))
+        logger.debug('    shift: %f %f' % (row-oldrow,col-oldcol))
+
+        jac.set_cen(row=row, col=col)
+        obs.jacobian=jac
+
+    def _find_center_admom(self, obslist):
+        assert len(obslist)==1
+        obs=obslist[0]
+
+        res=self._measure_admom(obs)
+
+        # update the jacobian center
+
+        # this makes a copy
+        jac=obs.jacobian
+        v,u = res['pars'][0:0+2]
+        row,col = jac.get_rowcol(v,u)
+        jac.set_cen(row=row, col=col)
+        obs.jacobian=jac
 
     def _get_metacal(self, obslist):
         mcpars=self['metacal_pars']
@@ -902,52 +992,38 @@ class MetacalMomentsFixed(SimpleFitterBase):
 
         for type in mpars['types']:
             obslist=odict[type]
+            obs=obslist[0]
 
-            tres=self._measure_moments(obslist)
-            if tres['flags'] != 0:
-                raise TryAgainError("        bad T")
+            tres=self._measure_moments(obs)
 
             if type=='noshear':
-                pres = self._measure_psf(obslist)
-                e1,e2=pres['e']
-                g1,g2=ngmix.shape.e1e2_to_g1g2(e1,e2)
-                tres['psfrec_g'] = numpy.array([g1,g2])
-                tres['psfrec_T'] = pres['T']
+                pres  = self._measure_moments(obs.psf)
+                tres['psf_e'] = pres['e']
+                tres['psf_T'] = pres['T']
 
             res[type]=tres
 
         return res
 
-    def _measure_psf(self, obslist):
-        """
-        measure the mean psf size and shape
-        """
-        assert len(obslist)==1
-        return self._measure_psf_admom(obslist[0].psf)
-
-    def _measure_psf_admom(self, obs):
+    def _measure_admom(self, obs):
         """
         measure adaptive moments
         """
+
         Tguess=4.0*obs.jacobian.get_scale()**2
 
         fitter=ngmix.admom.run_admom(obs, Tguess)
         res=fitter.get_result()
         if res['flags'] != 0:
-            raise TryAgainError("        admom psf failed")
+            raise TryAgainError("        admom failed")
 
         return res
 
-    def _measure_moments(self, obslist):
+    def _measure_moments(self, obs):
         """
         measure weighted moments
         """
 
-        if isinstance(obslist,ngmix.ObsList):
-            obs=obslist[0]
-        else:
-            obs=obslist
-            
         wpars=self['weight']
         if wpars['use_canonical_center']:
         
@@ -963,9 +1039,7 @@ class MetacalMomentsFixed(SimpleFitterBase):
 
             )
 
-        res = self.weight.get_weighted_moments(
-            obs,
-        )
+        res = self.weight.get_weighted_moments(obs)
 
         if wpars['use_canonical_center']:
             obs.jacobian=jold
@@ -973,8 +1047,6 @@ class MetacalMomentsFixed(SimpleFitterBase):
         if res['flags'] != 0:
             raise TryAgainError("        moments failed")
 
-        res['g']       = res['e']
-        res['g_cov']   = res['e_cov']
         res['numiter'] = 1
 
         return res
@@ -984,23 +1056,29 @@ class MetacalMomentsFixed(SimpleFitterBase):
         print some stats
         """
 
-        logger.debug("    s2n: %(s2n)f g: %(g)s" % res['noshear'])
+        logger.debug("    s2n: %(s2n)f flux: %(flux)f e: %(e)s" % res['noshear'])
+
+    def _get_struct(self):
+        """
+        Make the output array
+        """
+
+        dt=self._get_dtype()
+        return numpy.zeros(1, dtype=dt)
 
     def _get_dtype(self):
         """
         get the dtype for the output struct
         """
 
-        # always 6 for am
         npars=6
 
-        dt=super(MetacalMomentsFixed,self)._get_dtype()
-        dt += [
+        mpars=self['metacal_pars']
+        dt=[
             ('psfrec_g','f8',2),
             ('psfrec_T','f8'),
         ]
 
-        mpars=self['metacal_pars']
         for type in mpars['types']:
 
             if type=='noshear':
@@ -1008,28 +1086,20 @@ class MetacalMomentsFixed(SimpleFitterBase):
             else:
                 back='_%s' % type
 
-            dt += [
-                ('mcal_g%s' % back,'f8',2),
-                ('mcal_g_cov%s' % back,'f8',(2,2)),
-                ('mcal_pars%s' % back,'f8',npars),
-            ]
-
             if type=='noshear':
                 dt += [
-                    ('mcal_wsum','f8'),
-                    ('mcal_sums_cov','f8',(npars,npars)),
                     ('mcal_psfrec_g','f8',2),
                     ('mcal_psfrec_T','f8'),
                 ]
 
             dt += [
+                ('mcal_g%s' % back,'f8',2),
+                ('mcal_g_cov%s' % back,'f8',(2,2)),
+                ('mcal_pars%s' % back,'f8',npars),
                 ('mcal_s2n%s' % back,'f8'),
-
-                ('mcal_am_flux%s' % back,'f8'),
-                ('mcal_am_flux_s2n%s' % back,'f8'),
+                ('mcal_T%s' % back,'f8'),
             ]
 
-            dt += [('mcal_numiter%s' % back,'i4')]
 
         return dt
 
@@ -1040,6 +1110,11 @@ class MetacalMomentsFixed(SimpleFitterBase):
         """
         d=self._get_struct()
         #d = super(MaxMetacalFitter,self)._make_output(res, i)
+
+        # these are really e type but we copy to the common
+        # naming scheme
+        d['psfrec_g'] = res['psf']['e']
+        d['psfrec_T'] = res['psf']['T']
 
         for type in ngmix.metacal.METACAL_TYPES:
 
@@ -1054,9 +1129,10 @@ class MetacalMomentsFixed(SimpleFitterBase):
                 back='_%s' % type
 
             d['mcal_pars%s' % back] = tres['pars']
-            d['mcal_g%s' % back] = tres['g']
-            d['mcal_g_cov%s' % back] = tres['g_cov']
+            d['mcal_g%s' % back] = tres['e']
+            d['mcal_g_cov%s' % back] = tres['e_cov']
             d['mcal_s2n%s' % back] = tres['s2n']
+            d['mcal_T%s' % back] = tres['T']
 
             if type=='noshear':
                 #for p in ['pars_cov','psfrec_g','psfrec_T']:
@@ -1064,9 +1140,9 @@ class MetacalMomentsFixed(SimpleFitterBase):
                     name='mcal_%s' % p
 
                     if p=='psfrec_g':
-                        d[name] = tres['psfrec_g']
+                        d[name] = tres['psf_e']
                     elif p=='psfrec_T':
-                        d[name] = tres['psfrec_T']
+                        d[name] = tres['psf_T']
                     else:
                         d[name] = tres[p]
         return d

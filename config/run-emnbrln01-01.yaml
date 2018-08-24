@@ -1,0 +1,28 @@
+fitter: "metacal-moments-fixed"
+
+metacal_pars:
+    fixnoise: False
+    types: ['noshear','1p','1m','2p','2m']
+    psf: gauss
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+weight:
+    fwhm: 1.2
+
+    # find center using sep.  The brightest of the
+    # objects found will be used
+    find_center: True
+
+    # do a field without the central
+    do_random_field: True
+
+ngal: 4000000
+
+sec_per: 0.26
+desired_hours: 0.15
+jobs_per_condor_sub: 1000
+
+verbose: False

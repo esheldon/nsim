@@ -11,23 +11,131 @@
 
               run-eg18hnhis-findcen*
 
-        - implement alternative fixnoise?
-            - rather than adding the noise field, measure a noise field
-              and subtract moments.  Because moments are fast could repeat
-              this.  Also could potentially grab random field from image,
-              which would contain objects and subtract that.  Not sure
-              how well that would work since still non-linear
+        - implement nbr correction
+            - Measure moments from random field and subtract it.
+              Because moments are fast could repeat
+              this.
+
+              Second moments would have to be subtracted directly.
+              Use same center location within stamp probably?
 
         x check no fixnoise
-            - seems to work without fixnoise. running a larger test
-              run-eg18hnhis-nofix*
+            x seems to work without fixnoise
 
         x weighted psf T for T ratio
         x keep running sums over multiple obs.  Code is in place
+
         - fluxes.  Want some template fluxes or something
         - errors on all parameters
 
         - test with neighbors
+            - sim-emnbr01
+            - run-emnbr01-nofix01
+            - 10 close nbrs with 1/10 flux, randomly placed
+
+            - might be seeing some bias to the negative.  also
+            small additive
+
+                errors are 3 sigma
+                m: -3.95123264e-03 +/- 4.33922348e-03
+                c: -5.96265540e-04 +/- 3.44287054e-04
+
+              but need to make sure
+              I understand the results at low noise and a range of shears
+              first to know if that is contributing in any way
+
+              x shear 0.08 low noise.  Does show some bias
+              high as expected
+                  errors are 3 sigma
+                  m: 3.76463903e-03 +/- 7.58758132e-04
+                  c: 8.05496130e-06 +/- 5.99174228e-05
+
+              so above test is about 6 sigma low from this
+
+              If this persists I might want to look at it as
+              a function of flux_frac and density
+
+           - also check that using moffat didn't screw things up
+               - run-emlnhis01-nofix01
+               looks ok at low noise
+               errors are 3 sigma
+               m: 4.52693690e-03 +/- 7.68014952e-04
+               c: -1.98471837e-05 +/- 6.06745898e-05
+
+            - try reducing postage stamp size just to avoid
+              odd things at edge from big interpolations
+
+                  48x48
+                - sim-emnbr02
+                - run-emnbr02-nofix01
+
+                - with low noise, these neighbors seem pretty 
+                  big and bright actually....
+
+                - looks similar
+                  errors are 3 sigma
+                  m: -3.46923753e-03 +/- 4.35790931e-03
+                  c: -3.96414772e-04 +/- 3.45908078e-04
+
+
+             - using weight function fwhm=0.8
+                 run-emnbr02-nofix02
+                 errors are 3 sigma
+                 m: -3.69097784e-02 +/- 7.88651966e-03
+                 c: -8.79054920e-04 +/- 6.29685862e-04
+
+             - using weight function fwhm=1.75
+                 hmm.... close to expected bias.  lucky somehow?
+
+                 run-emnbr02-nofix03
+                 R: [0.41809592 0.42255817]
+                 errors are 3 sigma
+                 m: 4.99281726e-03 +/- 2.74687901e-03
+                 c: -1.27774503e-04 +/- 2.17246119e-04
+
+             - try original center, fwhm=1.2
+                 don't use canonical center or find center (use
+                 original)
+                 run-emnbr02-nofix04
+
+             - try canonical center, fwhm=1.2
+                 run-emnbr02-nofix05
+
+             - using weight function fwhm=2.0, find cent
+                 if converging then this is good
+                 run-emnbr02-nofix06 nope!
+
+    - measure moments of fields without central and subtract
+
+        - first a run where moment sums are saved
+            - run-emnbr02-nofix07 
+                errors are 3 sigma
+                m: -3.05004677e-03 +/- 4.33760804e-03
+                c: -3.72664675e-04 +/- 3.44129277e-04
+
+        - run with just the nbrs
+            - run-emnbrnocen01-nofix01
+            - need to write code to average those sums
+
+    - running with canonical center and limit circle weight
+        - note looks ok for low noise
+
+        - run-emnbr03-01 (shear 0.08 )
+            errors are 3 sigma
+            m: 1.19083774e-02 +/- 4.28351228e-03
+            c: -5.79000308e-05 +/- 3.38529046e-04
+        - run-emnbr04-01 ( shear 0.02 )
+            errors are 3 sigma
+            m: 1.10811787e-02 +/- 4.26249042e-03
+            c: -1.20274165e-04 +/- 8.52062838e-05
+
+        - maybe this is a situation of noise issues that
+          were not showing up when there were not nbrs.
+          Maybe need to use random image as noise image
+          instead of doing separately?  But how would it
+          be different from just subtracting the moments
+          since it is linear?
+
 
 - exploring PSF s/n
     - sim-e15ln

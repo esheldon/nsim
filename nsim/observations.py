@@ -23,12 +23,7 @@ BAD_PIXEL=2**0
 BAD_COLUMN=2**1
 
 def get_observation_maker(*args, **kw):
-    conf = args[0]
-    if 'nnbr' in conf and conf['nnbr'] > 0:
-        #return NbrObservationMaker(*args)
-        return NbrObservationMakerMulti(*args, **kw)
-    else:
-        return ObservationMaker(*args, **kw)
+    return ObservationMaker(*args, **kw)
         
 
 class ObservationMaker(dict):
@@ -76,13 +71,14 @@ class ObservationMaker(dict):
         self._set_pdfs()
         self._load_bmasks()
 
-    def __call__(self):
+    def __call__(self, **kw):
 
         objconf=self['object']
         nepoch = objconf.get('nepoch',1)
 
         cobjlist, psflist, wcslist, meta = self._get_convolved_object_info(
             objconf,
+            **kw
         )
 
         dims, psf_dims = self._get_dims(cobjlist, psflist, wcslist)
@@ -97,6 +93,7 @@ class ObservationMaker(dict):
                 wcslist[i],
                 dims,
                 psf_dims,
+                **kw
             )
 
             obslist.append( obs )
@@ -148,7 +145,7 @@ class ObservationMaker(dict):
 
         return dims, psf_dims
 
-    def _get_convolved_object_info(self, objconf):
+    def _get_convolved_object_info(self, objconf, **kw):
         """
         get convolved objects and psfs and wcs
         """
@@ -158,7 +155,7 @@ class ObservationMaker(dict):
 
         nepoch = objconf.get('nepoch',1)
 
-        object, meta = self._get_object()
+        object, meta = self._get_object(**kw)
 
         # offset of object, not the epochs
         obj_shift = self._get_obj_shift()
@@ -168,21 +165,7 @@ class ObservationMaker(dict):
                 dy=obj_shift['row_offset'],
             )
 
-        if 'randomize_morphology' in objconf:
-            raise NotImplementedError("make work with new system "
-                                      "of same sized stamps")
-            # for multi-epoch sims
-            flux = object.getFlux()
-            try:
-                r50  = object.getHalfLightRadius()
-            except:
-                r50  = object.calculateHLR()
-
         for epoch in xrange(nepoch):
-
-            if 'randomize_morphology' in objconf:
-                r_flux, r_r50 = self._randomize_morphology(flux, r50)
-                object, meta = self._get_object(flux=r_flux, r50=r_r50)
 
             # this can be random, so only should be called
             # once per object and epoch
@@ -624,23 +607,8 @@ class ObservationMaker(dict):
         if raw_input('hit a key (q to quit): ')=='q':
             stop
 
-    def _randomize_morphology(self, flux, r50):
 
-        rng=self.rng
-
-        rspec = self['object']['randomize_morphology']
-
-        if rspec['type']=='uniform':
-            low,high=rspec['range']
-            r_flux = flux *(1.0 + rng.uniform(low=low, high=high))
-            r_r50  = r50  *(1.0 + rng.uniform(low=low, high=high))
-        else:
-            raise ValueError("randomize_morphology must be of "
-                             "type uniform, got '%s'" % rspec['type'])
-
-        return r_flux, r_r50
-
-    def _get_obs(self, psf, cobj, wcs, dims, psf_dims):
+    def _get_obs(self, psf, cobj, wcs, dims, psf_dims, **kw):
 
         offset_pixels = self._get_epoch_offset()
 
@@ -667,6 +635,7 @@ class ObservationMaker(dict):
             dims,
             noise_obj,
             offset_pixels,
+            **kw
         )
 
         ivar = 1.0/noise_obj.sigma**2
@@ -752,7 +721,7 @@ class ObservationMaker(dict):
             s2n = self['psf']['s2n']
         return s2n
 
-    def _get_object_image(self, convolved_object, wcs, dims, noise_obj, offset):
+    def _get_object_image(self, convolved_object, wcs, dims, noise_obj, offset, **kw):
         """
         convolve the 
         """
@@ -772,14 +741,15 @@ class ObservationMaker(dict):
 
         image_orig = gsimage.array.copy()
 
-        if self['use_canonical_center']:
+        use_ccen=kw.get('use_canonical_center',False)
+        if self['use_canonical_center'] or use_ccen:
             tdims = numpy.array(image_orig.shape)
             row, col = (tdims-1)/2.0
 
             if offset is not None:
                 row += offset['row_offset']
                 col += offset['col_offset']
-            logger.debug("using canonical center %s" % (row,col))
+            logger.debug("using canonical center %s %s" % (row,col))
         else:
             row, col = find_centroid(image_orig, self.rng, offset=offset)
 
@@ -1110,300 +1080,6 @@ class ObservationMaker(dict):
 
         print("    loaded %d masks" % len(bmask_list))
         self.bmask_list=bmask_list
-
-
-class NbrObservationMaker(ObservationMaker):
-    """
-
-    In this version we generate different objects totally separately and then
-    just add the images. I think this might not be right because then the whole
-    thing might not be sheared in a self-consistent way
-
-    Get an obs with neighbors
-
-    returns
-    -------
-    ngmix.Observation:
-
-    notes
-    ------
-        - the noise gets increased since the images are added
-        - you should fix the stamp size so the images can be added
-        - the cen_shift does not apply to the first object drawn
-          only subsequent ones
-
-        - this requires the additional config parameter
-            object:
-                nnbr:   2 # number of neighbors
-                nepoch: 1 # only one epoch for now
-        - number of epochs must be 1 for now
-    """
-    def __call__(self):
-
-
-        objconf=self['object']
-        assert objconf['nepoch']==1
-
-        nobject = 1 + objconf['nnbr']
-        for i in xrange(nobject):
-            logger.debug("    object %d of %d" % (i+1,nobject))
-            if i==0:
-                self._save_cen_pdf()
-
-            obslist = super(NbrObservationMaker,self).__call__()
-            obs=obslist[0]
-
-            if i==0:
-                self._restore_cen_pdf()
-
-                new_obslist = deepcopy(obslist)
-
-
-                image  = obs.image
-                weight = obs.weight
-                var    = 1.0/weight
-            else:
-                image += obs.image
-                var   += 1.0/obs.weight
-
-        weight = 1.0/var
-        obs = new_obslist[0]
-
-        obs.image_orig = obs.image
-        obs.weight_orig = obs.weight
-
-        obs.image = image.copy()
-        obs.weight = weight.copy()
-
-        if False:
-            import images
-            #images.view(obs.image, width=800,height=800)
-            images.multiview(obs.image, width=800,height=800)
-            if 'q'==raw_input('hit a key: '):
-                stop
-            # just to keep things going
-            #raise TryAgainError("for testing")
-
-        return new_obslist
-
-    def _restore_cen_pdf(self):
-        self.obj_shift_pdf = self.obj_shift_pdf_saved
-
-    def _save_cen_pdf(self):
-        self.obj_shift_pdf_saved = self.obj_shift_pdf
-        self.obj_shift_pdf = None
-
-
-class NbrObservationMakerMulti(ObservationMaker):
-    """
-    multi means an observation is returned with center
-    on each of the objects
-    """
-    def __init__(self, *args, **kw):
-        super(NbrObservationMakerMulti,self).__init__(*args, **kw)
-
-        self._set_nbr_sky_shift()
-        self._set_nbr_size_dilation()
-
-    def __call__(self):
-        
-        obslist=super(NbrObservationMakerMulti,self).__call__()
-        
-        obs = obslist[0]
-        jac = obs.jacobian
-        meta=obslist.meta
-
-        shiftlist=meta['shiftlist']
-        nobj = len(shiftlist)
-        logger.debug("nobj: %d" % nobj)
-
-        allobs = [] 
-
-        for i in xrange(nobj):
-
-
-            if i==0:
-                allobs.append( obslist )
-            else:
-                # this works because we demand trivial wcs
-                dskyrow, dskycol = shiftlist[i]
-
-                tjac = jac.copy()
-                scale = jac.get_scale()
-                row,col = jac.get_cen()
-                drow,dcol = dskyrow/scale, dskycol/scale
-
-                row0 = row + drow
-                col0 = col + dcol
-                logger.debug("new cen:" % (row0,col0))
-                tjac.set_cen(row=row0, col=col0)
-
-                tobs = ngmix.Observation(
-                    obs.image.copy(),
-                    obs.weight.copy(),
-                    jacobian=tjac,
-                    meta=obs.meta,
-                    psf=obs.psf,
-                )
-
-                tlist = ngmix.ObsList()
-                tlist.append(tobs)
-                tlist.update_meta_data(obslist.meta)
-
-                allobs.append(tlist)
-
-
-        if False:
-            import images
-            #images.view(obs.image, width=800,height=800)
-            obs = allobs[0][0]
-            images.multiview(obs.image, width=800,height=800)
-            if 'q'==raw_input('hit a key: '):
-                stop
-            # just to keep things going
-            #raise TryAgainError("for testing")
-        return allobs
-
-
-
-    def _get_object(self, **kw):
-        """
-        get the galsim representation of the object
-
-        parameters
-        ----------
-        flux: float, optional
-            Force the given flux
-        r50: float, optional
-            Force the given r50
-
-        returns
-        -------
-        (gsobj, meta)
-           The galsim objects and metadata in a dictionary
-        """
-
-        nnbr = self['nnbr']
-
-        objlist=[]
-        shiftlist = []
-        parlist=[]
-
-        nobj = 1 + nnbr
-        for i in xrange(nobj):
-            tobj, tmeta  = self.object_maker(**kw)
-
-            shift=None
-            if i > 0:
-
-                # always dilate first
-                dilation = self._get_nbr_dilation()
-                if dilation is not None:
-                    tobj = tobj.dilate(dilation)
-                    logger.debug("dilation: %s flux: %s" % (dilation,tobj.getFlux()))
-
-                if self.nbr_sky_shift_pdf is not None:
-                    shift = self._get_nbr_sky_shift()
-                    tobj = tobj.shift(dx=shift[1], dy=shift[0])
-            else:
-                meta=tmeta
-
-            objlist.append(tobj)
-            shiftlist.append(shift)
-
-            pars={}
-            pars.update(tmeta)
-            parlist.append(pars)
-
-        obj = galsim.Add(objlist)
-
-        meta['shiftlist'] = shiftlist
-        meta['parlist'] = parlist
-
-        if self.shear_pdf is not None:
-            shear, shindex = self.shear_pdf.get_shear()
-            obj = obj.shear(g1=shear.g1, g2=shear.g2)
-
-            meta['shear'] = (shear.g1, shear.g2)
-            meta['shear_index'] = shindex
-
-        return obj, meta
-
-    def _get_nbr_sky_shift(self):
-        sky_shift_pdf = self.nbr_sky_shift_pdf
-        if hasattr(sky_shift_pdf,'sample2d'):
-            coff1,coff2 = sky_shift_pdf.sample2d()
-        else:
-            coff1 = sky_shift_pdf.sample()
-            coff2 = sky_shift_pdf.sample()
-
-        offset=(coff1,coff2)
-
-        logger.debug("sky shift: %g,%g" % offset)
-
-        return offset
-
-    def _get_galsim_wcs(self):
-        """
-        set basic wcs info
-
-        The actual ngmix jacobian will be created from this later
-        """
-        if 'wcs' in self:
-            raise ValueError("only trivial wcs for nbrs")
-
-        dudx=1.0
-        dudy=0.0
-        dvdx=0.0
-        dvdy=1.0
-
-        return galsim.JacobianWCS(
-            dudx,
-            dudy,
-            dvdx,
-            dvdy,
-        )
-
-    def _get_nbr_dilation(self):
-        return self._dilation
-
-    def _set_nbr_size_dilation(self):
-        spec = self['nbr_size_ratio']
-        if spec is not None:
-            self._dilation = spec
-        else:
-            raise  ValueError("currently only support "
-                              "constant for size ratio")
-
-    def _set_nbr_sky_shift(self):
-        cr=self.get('nbr_sky_shift',None)
-
-        if cr is None:
-            self.nbr_sky_shift_pdf=None
-        else:
-            type=cr.get('type','uniform')
-            if type=='uniform':
-                self.nbr_sky_shift_pdf=ngmix.priors.FlatPrior(
-                    -cr['radius'], cr['radius'],
-                    rng=self.rng,
-                )
-            elif type=='disk':
-                self.nbr_sky_shift_pdf=ngmix.priors.ZDisk2D(
-                    cr['radius'],
-                    rng=self.rng,
-                )
-
-            elif type=='annulus':
-                self.nbr_sky_shift_pdf=ngmix.priors.ZAnnulus(
-                    cr['rmin'],
-                    cr['rmax'],
-                    rng=self.rng,
-                )
-
-
-            else:
-                raise ValueError("cen shift type should be 'uniform'")
-
 
 
 

@@ -49,12 +49,40 @@ class SimpleMaker(dict):
         self._set_pdf()
 
     def __call__(self, **kw):
-
-        gal, meta = self._make_object(**kw)
-
-        return gal, meta
+        return self._make_object(**kw)
 
     def _make_object(self, **kw):
+        no_central=kw.get('no_central',False)
+        if 'nbrs' in self:
+            nconf=self['nbrs']
+
+            objs=[]
+            if not no_central:
+                central, meta = self._get_one_model(**kw)
+                objs.append(central)
+
+            for i in range(nconf['num']):
+                nbr, nmeta = self._get_one_model(**kw)
+                nbr = nbr.withScaledFlux(nconf['flux_frac'])
+
+                dx, dy = self._nbr_shift_pdf.sample(2)
+                nbr=nbr.shift(dx=dx, dy=dy)
+
+                objs.append(nbr)
+
+            obj = galsim.Sum(objs)
+        else:
+            obj,meta = self._get_one_model(**kw)
+
+        if no_central:
+            logger.debug('    not adding central')
+            meta=nmeta
+        else:
+            logger.debug('    adding central')
+
+        return obj, meta
+
+    def _get_one_model(self, **kw):
         g1,g2,r50,flux = self.pdf.sample()
 
         if 'flux' in kw:
@@ -135,6 +163,18 @@ class SimpleMaker(dict):
                              "pdfs currently supported")
 
         self.fracknots_pdf = self._get_fracknots_pdf()
+
+        if 'nbrs' in self:
+            self._nbr_shift_pdf=self._get_nbr_shift_pdf()
+            #self['nbrs']['no_central'] = self['nbrs'].get('no_central',False)
+
+    def _get_nbr_shift_pdf(self):
+        sconf=self['nbrs']['shift']
+        assert sconf['type']=='uniform'
+        return ngmix.priors.FlatPrior(
+            -sconf['radius'], sconf['radius'],
+            rng=self.rng,
+        )
 
     def _get_joint_r50_flux_pdf(self):
         """
@@ -291,7 +331,7 @@ class KnotsMaker(SimpleMaker):
         self.galsim_rng=galsim_rng
 
 
-    def _make_object(self, **kw):
+    def _get_one_model(self, **kw):
         g1,g2,r50,flux = self.pdf.sample()
 
         if 'flux' in kw:
@@ -350,7 +390,7 @@ class BDKMaker(SimpleMaker):
         bulge_r50 = disk_r50*fac
         return disk_r50, bulge_r50
 
-    def _make_object(self, **kw):
+    def _get_one_model(self, **kw):
         g1disk,g2disk,r50,flux = self.pdf.sample()
         g1bulge,g2bulge,junk,junk = self.pdf.sample()
 

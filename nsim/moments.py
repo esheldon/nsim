@@ -864,6 +864,10 @@ class MetacalMomentsFixed(SimpleFitterBase):
         wpars=self['weight']
         wpars['use_canonical_center']=wpars.get('use_canonical_center',False)
         wpars['find_center']=wpars.get('find_center',False)
+        wpars['measure_shape']=wpars.get('measure_shape',True)
+
+        # for nbrs
+        wpars['do_random_field']=wpars.get('do_random_field',False)
 
         if wpars['find_center']:
             assert self['weight']['use_canonical_center']==False,\
@@ -894,6 +898,10 @@ class MetacalMomentsFixed(SimpleFitterBase):
         else:
             T=wpars['T']
 
+        # the weight is always centered at 0, 0 or the
+        # center of the coordinate system as defined
+        # by the jacobian
+
         weight=ngmix.GMixModel(
             [0.0, 0.0, 0.0, 0.0, T, 1.0],
             'gauss',
@@ -919,9 +927,34 @@ class MetacalMomentsFixed(SimpleFitterBase):
 
         obsdict=self._get_metacal(obslist)
 
-        res=self._do_metacal(obsdict)
+        res=self._do_metacal(
+            obsdict,
+            use_canonical_center=wpars['use_canonical_center'],
+            measure_shape=wpars['measure_shape'],
+        )
         res['psf'] = psfres
 
+        if wpars['do_random_field']:
+            # will contain neighbors only
+
+            # turn off center finding for this field which might
+            # not have visible peaks
+            robslist=self.sim(no_central=True, use_canonical_center=True)
+
+            # make sure same center is set (still may be over-ridden
+            # if use_canonical_center is set
+            logger.debug('    re-using center for random field')
+            for obs,robs in zip(obslist,robslist):
+                robs.jacobian=obs.jacobian
+
+            robsdict=self._get_metacal(robslist)
+
+            res['field_res']=self._do_metacal(
+                robsdict,
+                use_canonical_center=wpars['use_canonical_center'],
+                measure_shape=False,
+            )
+            
 
         if 'fit_model' in self:
             res['model_result'] = flux_result
@@ -989,7 +1022,10 @@ class MetacalMomentsFixed(SimpleFitterBase):
 
         return odict
 
-    def _do_metacal(self, odict):
+    def _do_metacal(self,
+                    odict,
+                    use_canonical_center=False,
+                    measure_shape=True):
         mpars=self['metacal_pars']
         res={}
 
@@ -997,7 +1033,11 @@ class MetacalMomentsFixed(SimpleFitterBase):
             obslist=odict[type]
             obs=obslist[0]
 
-            tres=self._measure_moments(obs)
+            tres=self._measure_moments(
+                obs,
+                use_canonical_center=use_canonical_center,
+                measure_shape=measure_shape,
+            )
 
             if type=='noshear':
                 pres  = self._measure_moments(obs.psf)
@@ -1022,13 +1062,16 @@ class MetacalMomentsFixed(SimpleFitterBase):
 
         return res
 
-    def _measure_moments(self, obs):
+    def _measure_moments(self,
+                         obs,
+                         use_canonical_center=False,
+                         measure_shape=True):
         """
         measure weighted moments
         """
 
-        wpars=self['weight']
-        if wpars['use_canonical_center']:
+        if use_canonical_center:
+            #logger.debug('        using canonical center')
         
             ccen=(numpy.array(obs.image.shape)-1.0)/2.0
             jold=obs.jacobian
@@ -1042,9 +1085,19 @@ class MetacalMomentsFixed(SimpleFitterBase):
 
             )
 
-        res = self.weight.get_weighted_moments(obs)
+        # choose a circle that doesn't intersect the edges
+        maxrad_arcsec=self._get_max_radius(obs)
 
-        if wpars['use_canonical_center']:
+        if measure_shape:
+            res = self.weight.get_weighted_moments(obs,maxrad_arcsec)
+        else:
+            ares = self.weight.get_weighted_sums(obs,maxrad_arcsec)
+            res={}
+            for n in ares.dtype.names:
+                res[n] = ares[n]
+
+
+        if use_canonical_center:
             obs.jacobian=jold
 
         if res['flags'] != 0:
@@ -1054,12 +1107,36 @@ class MetacalMomentsFixed(SimpleFitterBase):
 
         return res
 
+    def _get_max_radius(self, obs):
+        dims = obs.image.shape
+
+        jac = obs.jacobian
+
+        # this is in arcsec
+        wcen=array(self.weight.get_cen())
+
+        cen=jac.get_rowcol(wcen[0], wcen[1])
+
+        # now get smallest distance
+        maxrad_pixels = min(
+
+            cen[0]-0.0,
+            (dims[0]-1)-cen[0],
+
+            cen[1]-0.0,
+            (dims[1]-1)-cen[1],
+        )
+        #logger.debug('    maxrad pix: %g' % maxrad_pixels)
+        maxrad_arcsec = maxrad_pixels*jac.scale
+        return maxrad_arcsec
+
     def _print_res(self, res):
         """
         print some stats
         """
 
-        logger.debug("    s2n: %(s2n)f flux: %(flux)f e: %(e)s" % res['noshear'])
+        if 's2n' in res['noshear']:
+            logger.debug("    s2n: %(s2n)f flux: %(flux)f e: %(e)s" % res['noshear'])
 
     def _get_struct(self):
         """
@@ -1073,6 +1150,8 @@ class MetacalMomentsFixed(SimpleFitterBase):
         """
         get the dtype for the output struct
         """
+
+        wpars=self['weight']
 
         npars=6
 
@@ -1099,10 +1178,15 @@ class MetacalMomentsFixed(SimpleFitterBase):
                 ('mcal_g%s' % back,'f8',2),
                 ('mcal_g_cov%s' % back,'f8',(2,2)),
                 ('mcal_pars%s' % back,'f8',npars),
+                ('mcal_sums%s' % back,'f8',npars),
                 ('mcal_s2n%s' % back,'f8'),
                 ('mcal_T%s' % back,'f8'),
             ]
 
+            if wpars['do_random_field']:
+                dt += [
+                    ('mcal_field_sums%s' % back,'f8',npars),
+                ]
 
         return dt
 
@@ -1119,6 +1203,8 @@ class MetacalMomentsFixed(SimpleFitterBase):
         d['psfrec_g'] = res['psf']['e']
         d['psfrec_T'] = res['psf']['T']
 
+        wpars=self['weight']
+
         for type in ngmix.metacal.METACAL_TYPES:
 
             # sometimes we don't calculate all
@@ -1131,11 +1217,18 @@ class MetacalMomentsFixed(SimpleFitterBase):
             else:
                 back='_%s' % type
 
-            d['mcal_pars%s' % back] = tres['pars']
-            d['mcal_g%s' % back] = tres['e']
-            d['mcal_g_cov%s' % back] = tres['e_cov']
-            d['mcal_s2n%s' % back] = tres['s2n']
-            d['mcal_T%s' % back] = tres['T']
+            d['mcal_sums%s' % back] = tres['sums']
+
+            if wpars['do_random_field']:
+                tfres=res['field_res'][type]
+                d['mcal_field_sums%s' % back] = tfres['sums']
+
+            if wpars['measure_shape']:
+                d['mcal_pars%s' % back] = tres['pars']
+                d['mcal_g%s' % back] = tres['e']
+                d['mcal_g_cov%s' % back] = tres['e_cov']
+                d['mcal_s2n%s' % back] = tres['s2n']
+                d['mcal_T%s' % back] = tres['T']
 
             if type=='noshear':
                 #for p in ['pars_cov','psfrec_g','psfrec_T']:

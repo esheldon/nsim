@@ -35,8 +35,8 @@ class Sim(dict):
 
         self._set_makers()
 
-    def __call__(self):
-        return self._image_maker()
+    def __call__(self, **kw):
+        return self._image_maker(**kw)
 
     def _set_makers(self):
         psf_maker    = psfs.get_psf_maker(self['psf'], self.rng)

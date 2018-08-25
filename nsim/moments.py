@@ -193,16 +193,20 @@ class MetacalMomentsAM(SimpleFitterBase):
         )
 
         for i in xrange(ntry):
-            Tguess=self._get_guess(obslist)
+            try:
+                Tguess=self._get_guess(obslist)
 
-            fitter.go(Tguess)
+                fitter.go(Tguess)
 
-            res=fitter.get_result()
+                res=fitter.get_result()
 
-            if doround:
-                if res['flags'] != 0:
-                    continue
-                self._set_am_flux(obslist,fitter)
+                if doround:
+                    if res['flags'] != 0:
+                        continue
+                    self._set_am_flux(obslist,fitter)
+            except ngmix.GMixRangeError as err:
+                print(str(err))
+                res={'flags':1}
 
             if res['flags'] == 0:
                 break

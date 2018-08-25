@@ -129,12 +129,15 @@
             m: 1.10811787e-02 +/- 4.26249042e-03
             c: -1.20274165e-04 +/- 8.52062838e-05
 
-        - maybe this is a situation of noise issues that
-          were not showing up when there were not nbrs.
-          Maybe need to use random image as noise image
-          instead of doing separately?  But how would it
-          be different from just subtracting the moments
-          since it is linear?
+        - seems like it works until noise is added, which
+        is odd since we didn't need it when a single object
+        is present
+
+        - run-emnbr04-02
+           - fixnoise
+           errors are 3 sigma
+           m: 1.59495027e-04 +/- 5.98430889e-03
+           c: 1.48611734e-05 +/- 1.19663820e-04
 
 
 - exploring PSF s/n

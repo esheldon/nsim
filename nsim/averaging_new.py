@@ -60,7 +60,6 @@ class Summer(dict):
         conf['simc'] = files.read_config(conf['sim'])
 
         conf['simc']['do_ring'] = conf['simc'].get('do_ring',False)
-        print("do_ring:",conf['simc']['do_ring'])
 
         self.update(conf)
         self._set_step()
@@ -191,6 +190,30 @@ class Summer(dict):
 
         return fname
 
+    def do_file_sums(self, fname):
+        """
+        get sums for a single file
+        """
+
+        sums=self.get_sums_struct()
+
+        print("processing:",fname)
+        data=fitsio.read(fname) 
+
+        if 'shear_index' not in data.dtype.names:
+            data=self._add_shear_index(data)
+        else:
+            w,=where(data['shear_index']==-1)
+            if w.size > 0:
+                data['shear_index'][w]=0
+
+        data=self._preselect(data)
+
+        sums=self.do_sums1(data)
+
+        return sums
+
+
     def do_sums(self):
 
         args=self.args
@@ -207,7 +230,7 @@ class Summer(dict):
             if args.force or run_sums is None:
                 # no cache found, we need to do the sums
 
-                run_sums=self._get_sums_struct()
+                run_sums=self.get_sums_struct()
 
                 fname=self.get_run_output(run)
                 print(fname)
@@ -252,7 +275,7 @@ class Summer(dict):
                         if args.ntest is not None and ntot > args.ntest:
                             break
 
-                self._write_sums(run, run_sums)
+                self.write_sums(run, run_sums)
 
             if sums is None:
                 sums=run_sums.copy()
@@ -367,7 +390,7 @@ class Summer(dict):
         assert nshear==nind
 
         if sums is None:
-            sums=self._get_sums_struct()
+            sums=self.get_sums_struct()
 
         ntot=0
         nkeep=0
@@ -745,7 +768,7 @@ class Summer(dict):
         fitsio.write(fname, self.means, extname="corr", clobber=True)
         fitsio.write(fname, self.means_nocorr, extname="nocorr")
 
-    def _write_sums(self, run, sums):
+    def write_sums(self, run, sums):
         fname=self._get_sums_file(run)
         eu.ostools.makedirs_fromfile(fname)
         print("writing:",fname)
@@ -824,7 +847,7 @@ class Summer(dict):
         return fname
 
 
-    def _get_sums_struct(self):
+    def get_sums_struct(self):
         dt=self._get_sums_dt()
         return numpy.zeros(self['nshear'], dtype=dt)
 

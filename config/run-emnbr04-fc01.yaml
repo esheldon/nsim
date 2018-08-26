@@ -1,0 +1,22 @@
+fitter: "metacal-moments-fixed"
+
+metacal_pars:
+    types: ['noshear','1p','1m','2p','2m']
+    psf: gauss
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+weight:
+    fwhm: 1.2
+    find_center: True
+
+
+ngal: 200_000_000
+
+sec_per: 0.26
+desired_hours: 1.0
+jobs_per_condor_sub: 1000
+
+verbose: False

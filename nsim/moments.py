@@ -874,9 +874,9 @@ class MetacalMomentsFixed(SimpleFitterBase):
         # for nbrs
         wpars['do_random_field']=wpars.get('do_random_field',False)
 
-        if wpars['find_center']:
-            assert self['weight']['use_canonical_center']==False,\
-                    "don't set use_canonical_center when finding center"
+        #if wpars['find_center']:
+        #    assert self['weight']['use_canonical_center']==False,\
+        #            "don't set use_canonical_center when finding center"
 
     def _set_mompars(self):
         wpars=self['weight']
@@ -905,11 +905,22 @@ class MetacalMomentsFixed(SimpleFitterBase):
         self.weight=weight
 
     def _dofit(self, obslist):
+        assert len(obslist)==1
 
         wpars=self['weight']
+
+        if wpars.get('field_noise_image',False):
+            robslist=self.sim(no_central=True, use_canonical_center=True)
+            obslist[0].noise = robslist[0].image
+
         if wpars['find_center']:
             logger.debug("    finding center")
             self._find_center_sep(obslist)
+
+        if wpars['trim_image']:
+            logger.debug("    trimming image")
+            obslist=self._trim_image(obslist)
+
 
         psfres = self._measure_admom(obslist[0].psf)
 
@@ -975,6 +986,10 @@ class MetacalMomentsFixed(SimpleFitterBase):
         logger.debug('    new pos: %f %f' % (row,col))
         logger.debug('    shift: %f %f' % (row-oldrow,col-oldcol))
 
+        crow,ccol=(array(obs.image.shape)-1.0)/2.0
+        offset_from_ccen=(row-crow, col-ccol)
+        logger.debug('    offset_from_ccen: %g %g ' % tuple(offset_from_ccen))
+
         jac.set_cen(row=row, col=col)
         obs.jacobian=jac
 
@@ -992,6 +1007,71 @@ class MetacalMomentsFixed(SimpleFitterBase):
         row,col = jac.get_rowcol(v,u)
         jac.set_cen(row=row, col=col)
         obs.jacobian=jac
+
+    def _trim_image(self, obslist):
+        assert len(obslist)==1
+        obs=obslist[0]
+
+        dims = obs.image.shape
+
+        jac = obs.jacobian
+
+        # this is in arcsec
+        cen=array(jac.get_cen())
+
+        rowpix=int(round(cen[0]))
+        colpix=int(round(cen[1]))
+
+        # now get smallest distance to an edge
+        radpix = min(
+
+            rowpix-0,
+            (dims[0]-1)-rowpix,
+
+            colpix-0,
+            (dims[1]-1)-colpix,
+        )
+
+        # note adding 1 for the slice
+        row_start = rowpix-radpix
+        row_end   = rowpix+radpix+1
+        col_start = colpix-radpix
+        col_end   = colpix+radpix+1
+        logger.debug('    row start/end %s:%s' % (row_start, row_end))
+        logger.debug('    col start/end %s:%s' % (col_start, col_end))
+
+        im=obs.image
+        subim = im[
+            row_start:row_end,
+            col_start:col_end,
+        ]
+        logger.debug('    subim dims: %s' % str(subim.shape))
+        assert subim.shape[0]==subim.shape[1]
+
+        newcen = cen - array([row_start, col_start])
+        logger.debug('    new cen: %g %g' % tuple(newcen))
+        new_ccen=(array(subim.shape)-1.0)/2.0
+        logger.debug('    new ccen: %g %g' % tuple(new_ccen))
+
+        offset_from_ccen=newcen-new_ccen
+        logger.debug('    offset from ccen: %g %g ' % tuple(offset_from_ccen))
+
+        jac.set_cen(row=newcen[0], col=newcen[1])
+
+        wt00=obs.weight[0,0]
+        newobs = ngmix.Observation(
+            subim,
+            weight=subim*0 + wt00,
+            jacobian=jac,
+            meta=obs.meta,
+            psf=obs.psf.copy(),
+        )
+
+        newobslist=ngmix.ObsList()
+        newobslist.append(newobs)
+        return newobslist
+
+
 
     def _get_metacal(self, obslist):
         mcpars=self['metacal_pars']
@@ -1052,7 +1132,7 @@ class MetacalMomentsFixed(SimpleFitterBase):
         """
 
         if use_canonical_center:
-            #logger.debug('        using canonical center')
+            #logger.debug('        getting moms with canonical center')
         
             ccen=(numpy.array(obs.image.shape)-1.0)/2.0
             jold=obs.jacobian

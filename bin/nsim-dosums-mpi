@@ -1,0 +1,85 @@
+#!/usr/bin/env python
+"""
+mpirun -n 8 nsim-dosums-mpi
+"""
+
+import os
+from glob import glob
+import esutil as eu
+import nsim
+import navy
+import argparse
+
+fclass=argparse.ArgumentDefaultsHelpFormatter
+parser=argparse.ArgumentParser(formatter_class=fclass)
+
+parser.add_argument('runs', help='run to process')
+
+parser.add_argument('--select',default=None,
+            help='read the selection from the indicated selection config')
+
+parser.add_argument('--nsigma',default=3.0,type=float,
+                    help='number sigma error bars to print')
+
+parser.add_argument('--preselect',action='store_true',help='preselect s2n_true > 5')
+
+# these not used but needed for Summer
+parser.add_argument('--ntest',default=None,type=int,
+                    help='work on a small subset for quick tests')
+
+
+parser.add_argument('--chunksize',type=int,default=1000000,
+                    help='size of chunks when reading')
+parser.add_argument(
+    '--weighted',
+    action='store_true',
+)
+parser.add_argument('--R',help='input R')
+parser.add_argument('--Rselect',help='input R select')
+
+parser.add_argument('--index',default=None,type=int,
+                    help='just do sums on one output file')
+
+
+def add_all_sums(sums_list):
+    sums = sums_list[0].copy()
+
+    for tsums in sums_list[1:]:
+        for n in sums.dtype.names:
+            if n in ['shear_true']:
+                continue
+            else:
+                sums[n] += tsums[n]
+
+    return sums
+
+def main():
+    args=parser.parse_args()
+
+    def dorun(fname):
+        summer=nsim.averaging_new.Summer(args)
+        return summer.do_file_sums(fname)
+
+    if navy.rank == navy.ADMIRAL:
+
+        dir=nsim.files.get_output_dir(args.runs, sub='bytrial')
+        pattern=os.path.join(dir, '*.fits')
+        flist=glob(pattern)
+        flist.sort()
+        #flist=flist[0:12]
+
+        admiral = navy.Admiral(flist)
+        admiral.orchestrate()
+
+        sums = add_all_sums(admiral.reports)
+
+        summer=nsim.averaging_new.Summer(args)
+        summer.write_sums(args.runs, sums)
+
+    else:
+        ship = navy.Ship(dorun)
+        ship.go()
+
+
+
+main()

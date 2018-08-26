@@ -746,9 +746,9 @@ class ObservationMaker(dict):
             tdims = numpy.array(image_orig.shape)
             row, col = (tdims-1)/2.0
 
-            if offset is not None:
-                row += offset['row_offset']
-                col += offset['col_offset']
+            #if offset is not None:
+            #    row += offset['row_offset']
+            #    col += offset['col_offset']
             logger.debug("using canonical center %s %s" % (row,col))
         else:
             row, col = find_centroid(image_orig, self.rng, offset=offset)

@@ -22,6 +22,7 @@ from . import util
 from .util import TryAgainError
 
 from .fitters import SimpleFitterBase
+from . import runsep
 
 import galsim
 
@@ -876,23 +877,6 @@ class MetacalMomentsFixed(SimpleFitterBase):
         if wpars['find_center']:
             assert self['weight']['use_canonical_center']==False,\
                     "don't set use_canonical_center when finding center"
-            filter_kernel =  array([
-                [0.004963, 0.021388, 0.051328, 0.068707, 0.051328, 0.021388, 0.004963],
-                [0.021388, 0.092163, 0.221178, 0.296069, 0.221178, 0.092163, 0.021388],
-                [0.051328, 0.221178, 0.530797, 0.710525, 0.530797, 0.221178, 0.051328],
-                [0.068707, 0.296069, 0.710525, 0.951108, 0.710525, 0.296069, 0.068707],
-                [0.051328, 0.221178, 0.530797, 0.710525, 0.530797, 0.221178, 0.051328],
-                [0.021388, 0.092163, 0.221178, 0.296069, 0.221178, 0.092163, 0.021388],
-                [0.004963, 0.021388, 0.051328, 0.068707, 0.051328, 0.021388, 0.004963],
-            ])
-
-            self.sep_thresh=0.8
-            self.sep_pars={
-                'deblend_cont':0.00001,
-                'deblend_nthresh':64,
-                'minarea':4,
-                'filter_kernel':filter_kernel,
-            }
 
     def _set_mompars(self):
         wpars=self['weight']
@@ -967,19 +951,12 @@ class MetacalMomentsFixed(SimpleFitterBase):
         return res
 
     def _find_center_sep(self, obslist):
-        import sep
-
         assert len(obslist)==1
 
         obs=obslist[0]
 
-        noise=sqrt(1.0/obs.weight[0,0])
-        objs=sep.extract(
-            obs.image,
-            self.sep_thresh,
-            err=noise,
-            **self.sep_pars
-        )
+        objs=runsep.find_objects(obs)
+
         logger.debug('    found %d objects' % objs.size)
         if objs.size > 1:
             logger.debug('        y:    %s' % (objs['y']))

@@ -154,8 +154,45 @@
         m: -1.78503467e-03 +/- 2.20794886e-03
         c: 5.36273768e-05 +/- 4.43028302e-05
 
+        no detected m yet really, but some additive
+
         - now trying with find center
         - run-emnbr04-fc01
+
+            R: [0.25843068 0.25833722]
+            errors are 3 sigma
+            m: -1.81408918e-02 +/- 3.93387849e-03
+            c: -3.22056098e-04 +/- 7.87979066e-05
+
+        - same but using a field with no central as noise field
+        errors are 3 sigma
+        - run-emnbr04-fc01
+            m: -1.92668575e-02 +/- 3.42422443e-03
+            c: -2.71789356e-04 +/- 6.85774622e-05
+
+
+        worse than the admom, and additive is
+        in different direction.  Maybe because now not
+        metacaling the centroiding
+
+        - ideas
+            - recentroid each time, but then might as well do
+            admom right?
+            - trim image around found center and use canonical center? maybe
+            some moment effects occur when not at canonical center?
+            - odd vs even?
+            - try noise field generated from no-cen version of
+            sim? why didn't subtracting those moments help, because
+            I wasn't doing fixnoise?
+
+
+        - run-emnbr04-fc03
+            - trim image to put the object near canonical center, 
+            to avoid the object moving around as much after shearing
+            and producing too high of a response. Then still use
+            canonical center in new image as a test (we can try
+            using the best center later after verify nothing
+            breaks)
 
 
 - exploring PSF s/n

@@ -868,15 +868,14 @@ class MetacalMomentsFixed(SimpleFitterBase):
 
         wpars=self['weight']
         wpars['use_canonical_center']=wpars.get('use_canonical_center',False)
-        wpars['find_center']=wpars.get('find_center',False)
+
+        wpars['center']=wpars.get('center',{'find_center':False,'find_each_metacal':False})
+
         wpars['measure_shape']=wpars.get('measure_shape',True)
 
         # for nbrs
         wpars['do_random_field']=wpars.get('do_random_field',False)
 
-        #if wpars['find_center']:
-        #    assert self['weight']['use_canonical_center']==False,\
-        #            "don't set use_canonical_center when finding center"
 
     def _set_mompars(self):
         wpars=self['weight']
@@ -913,7 +912,7 @@ class MetacalMomentsFixed(SimpleFitterBase):
             robslist=self.sim(no_central=True, use_canonical_center=True)
             obslist[0].noise = robslist[0].image
 
-        if wpars['find_center']:
+        if wpars['center']['find_center']:
             logger.debug("    finding center")
             self._find_center_sep(obslist)
 
@@ -925,6 +924,11 @@ class MetacalMomentsFixed(SimpleFitterBase):
         psfres = self._measure_admom(obslist[0].psf)
 
         obsdict=self._get_metacal(obslist)
+        if wpars['center']['find_center_metacal']:
+            for type in obsdict:
+                logger.debug('    finding center for %s' % type)
+                self._find_center_sep(obsdict[type])
+
 
         res=self._do_metacal(
             obsdict,

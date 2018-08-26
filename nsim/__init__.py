@@ -26,5 +26,6 @@ from . import averaging_new
 from . import bootstrappers
 
 from . import deblending
+from . import runsep
 
 __version__="0.9.0"

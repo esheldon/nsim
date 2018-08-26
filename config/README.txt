@@ -135,9 +135,27 @@
 
         - run-emnbr04-02
            - fixnoise
+
            errors are 3 sigma
            m: 1.59495027e-04 +/- 5.98430889e-03
            c: 1.48611734e-05 +/- 1.19663820e-04
+
+           more stats errors are 3 sigma
+           m: 2.08122378e-03 +/- 4.22491763e-03
+           c: -2.89620402e-05 +/- 8.44538866e-05
+
+        - admom
+        errors are 3 sigma
+        m: -2.23706556e-03 +/- 3.18381340e-03
+        c: 5.39293271e-05 +/- 6.38821981e-05
+
+        running some more
+        errors are 3 sigma
+        m: -1.78503467e-03 +/- 2.20794886e-03
+        c: 5.36273768e-05 +/- 4.43028302e-05
+
+        - now trying with find center
+        - run-emnbr04-fc01
 
 
 - exploring PSF s/n

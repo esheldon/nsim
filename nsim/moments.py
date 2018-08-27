@@ -869,7 +869,12 @@ class MetacalMomentsFixed(SimpleFitterBase):
         wpars=self['weight']
         wpars['use_canonical_center']=wpars.get('use_canonical_center',False)
 
-        wpars['center']=wpars.get('center',{'find_center':False,'find_each_metacal':False})
+        defcenpars={
+            'find_center':False,
+            'find_center_metacal':False,
+        }
+        wpars['center']=wpars.get('center',defcenpars)
+        wpars['trim_image'] = wpars.get('trim_image',False)
 
         wpars['measure_shape']=wpars.get('measure_shape',True)
 

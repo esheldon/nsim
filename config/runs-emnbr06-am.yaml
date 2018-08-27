@@ -1,4 +1,5 @@
 runs: [
     run-emnbr06-am01,
     run-emnbr06-am02,
+    run-emnbr06-am03,
 ]

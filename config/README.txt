@@ -145,16 +145,14 @@
            c: -2.89620402e-05 +/- 8.44538866e-05
 
         - admom
-        errors are 3 sigma
-        m: -2.23706556e-03 +/- 3.18381340e-03
-        c: 5.39293271e-05 +/- 6.38821981e-05
+        runs-emnbr06-am
 
-        running some more
-        errors are 3 sigma
-        m: -1.78503467e-03 +/- 2.20794886e-03
-        c: 5.36273768e-05 +/- 4.43028302e-05
 
-        no detected m yet really, but some additive
+        R: [1.55494649 1.55896488]
+        total wsum: 237971441.0
+        errors are 3 sigma
+        m: -1.94994333e-03 +/- 1.58878937e-03
+        c: 3.47851585e-05 +/- 3.18753845e-05
 
         - now trying with find center
         - run-emnbr04-fc01
@@ -193,6 +191,11 @@
             canonical center in new image as a test (we can try
             using the best center later after verify nothing
             breaks)
+
+            no good
+        - run-emnbr04-fc03
+            - reran center finding on metacal images also, no good
+
 
 
 - exploring PSF s/n

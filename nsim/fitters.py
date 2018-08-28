@@ -211,6 +211,80 @@ class FitterBase(dict):
 
         raise RuntimeError("over-ride me")
 
+    def _find_center_sep(self, obslist):
+        from . import runsep
+
+        assert len(obslist)==1
+        obs=obslist[0]
+
+        # this makes a copy
+        jac=obs.jacobian
+
+        cconf=self['center']
+
+        objs, seg = runsep.find_objects(
+            obs,
+            segmentation_map=True,
+        )
+
+        if objs.size == 0:
+            if self['show']:
+                logger.debug('no objects found')
+                self._show_image_and_seg(obs.image, seg)
+            raise TryAgainError('no objects found')
+
+        logger.debug('    found %d objects' % objs.size)
+        if objs.size > 1:
+            logger.debug('        y:    %s' % (objs['y']))
+            logger.debug('        x:    %s' % (objs['x']))
+            logger.debug('        flux: %s' % (objs['flux']))
+
+        if 'restrict_radius_pixels' in cconf:
+            logger.debug('    restricting to radius %.2f '
+                         'pixels' % cconf['restrict_radius_pixels'])
+            # restrict to the central region
+            ccen=(array(obs.image.shape)-1.0)/2.0
+            rad=sqrt(
+                (ccen[0]-objs['y'])**2
+                +
+                (ccen[1]-objs['x'])**2
+            )
+            w,=where(rad < cconf['restrict_radius_pixels'])
+            logger.debug('    found %d within central region' % w.size)
+            if w.size == 0:
+                if self['show']:
+                    logger.debug('no objects found in central region')
+                    self._show_image_and_seg(obs.image, seg)
+                raise TryAgainError("no objects found in central region")
+            objs = objs[w]
+
+        imax=objs['flux'].argmax()
+        row=objs['y'][imax]
+        col=objs['x'][imax]
+
+        # update the jacobian center
+
+        oldrow,oldcol=jac.get_cen()
+        logger.debug('    old pos: %f %f' % (oldrow,oldcol))
+        logger.debug('    new pos: %f %f' % (row,col))
+        logger.debug('    shift: %f %f' % (row-oldrow,col-oldcol))
+
+        crow,ccol=(array(obs.image.shape)-1.0)/2.0
+        offset_from_ccen=(row-crow, col-ccol)
+        logger.debug('    offset_from_ccen: %g %g ' % tuple(offset_from_ccen))
+
+        if self['show']:
+            self._show_image_and_seg(obs.image, seg)
+
+        jac.set_cen(row=row, col=col)
+        obs.jacobian=jac
+
+    def _show_image_and_seg(self, im, seg):
+        import images
+        images.view_mosaic([im, seg])
+        if 'q'==raw_input('hit a key (q to quit): '):
+            stop
+
     def _make_output(self, res, i):
         d=self._get_struct()
 
@@ -262,6 +336,16 @@ class FitterBase(dict):
 
         self['make_plots']=keys.get('make_plots',False)
         self['plot_base']=keys.get('plot_base',None)
+
+        cenpars={
+            'find_center':False,
+            'find_center_metacal':False,
+        }
+        incenpars=self.get('center',{})
+        cenpars.update(incenpars)
+        self['center'] = cenpars
+        if self['center']['find_center_metacal']:
+            raise NotImplementedError('implement find_center_metacal')
 
     def _get_prior(self):
         raise RuntimeError("over-ride me")
@@ -986,79 +1070,6 @@ class MaxMetacalFitter(MaxFitter):
         else:
             raise ValueError("only sep used for finding center for now")
 
-    def _find_center_sep(self, obslist):
-        from . import runsep
-
-        assert len(obslist)==1
-        obs=obslist[0]
-
-        # this makes a copy
-        jac=obs.jacobian
-
-        cconf=self['center']
-
-        objs, seg = runsep.find_objects(
-            obs,
-            segmentation_map=True,
-        )
-
-        if objs.size == 0:
-            if self['show']:
-                logger.debug('no objects found')
-                self._show_image_and_seg(obs.image, seg)
-            raise TryAgainError('no objects found')
-
-        logger.debug('    found %d objects' % objs.size)
-        if objs.size > 1:
-            logger.debug('        y:    %s' % (objs['y']))
-            logger.debug('        x:    %s' % (objs['x']))
-            logger.debug('        flux: %s' % (objs['flux']))
-
-        if 'restrict_radius_pixels' in cconf:
-            logger.debug('    restricting to radius %.2f '
-                         'pixels' % cconf['restrict_radius_pixels'])
-            # restrict to the central region
-            ccen=(array(obs.image.shape)-1.0)/2.0
-            rad=sqrt(
-                (ccen[0]-objs['y'])**2
-                +
-                (ccen[1]-objs['x'])**2
-            )
-            w,=where(rad < cconf['restrict_radius_pixels'])
-            logger.debug('    found %d within central region' % w.size)
-            if w.size == 0:
-                if self['show']:
-                    logger.debug('no objects found in central region')
-                    self._show_image_and_seg(obs.image, seg)
-                raise TryAgainError("no objects found in central region")
-            objs = objs[w]
-
-        imax=objs['flux'].argmax()
-        row=objs['y'][imax]
-        col=objs['x'][imax]
-
-        # update the jacobian center
-
-        oldrow,oldcol=jac.get_cen()
-        logger.debug('    old pos: %f %f' % (oldrow,oldcol))
-        logger.debug('    new pos: %f %f' % (row,col))
-        logger.debug('    shift: %f %f' % (row-oldrow,col-oldcol))
-
-        crow,ccol=(array(obs.image.shape)-1.0)/2.0
-        offset_from_ccen=(row-crow, col-ccol)
-        logger.debug('    offset_from_ccen: %g %g ' % tuple(offset_from_ccen))
-
-        if self['show']:
-            self._show_image_and_seg(obs.image, seg)
-
-        jac.set_cen(row=row, col=col)
-        obs.jacobian=jac
-
-    def _show_image_and_seg(self, im, seg):
-        import images
-        images.view_mosaic([im, seg])
-        if 'q'==raw_input('hit a key (q to quit): '):
-            stop
 
     def _get_dtype(self):
         """

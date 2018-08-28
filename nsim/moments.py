@@ -869,13 +869,9 @@ class MetacalMomentsFixed(SimpleFitterBase):
         wpars=self['weight']
         wpars['use_canonical_center']=wpars.get('use_canonical_center',False)
 
-        cenpars={
-            'find_center':False,
-            'find_center_metacal':False,
-        }
-        incenpars=wpars.get('center',{})
-        cenpars.update(incenpars)
-        wpars['center'] = cenpars
+        if 'center' in wpars:
+            raise NotImplementedError('use center in self rather than wpars')
+
         wpars['trim_image'] = wpars.get('trim_image',False)
 
         wpars['measure_shape']=wpars.get('measure_shape',True)
@@ -919,9 +915,9 @@ class MetacalMomentsFixed(SimpleFitterBase):
             robslist=self.sim(no_central=True, use_canonical_center=True)
             obslist[0].noise = robslist[0].image
 
-        if wpars['center']['find_center']:
+        if self['center']['find_center']:
             logger.debug("    finding center")
-            self._find_center_sep(obslist)
+            self._find_center(obslist)
 
         if wpars['trim_image']:
             logger.debug("    trimming image")
@@ -934,7 +930,7 @@ class MetacalMomentsFixed(SimpleFitterBase):
         if wpars['center']['find_center_metacal']:
             for type in obsdict:
                 logger.debug('    finding center for %s' % type)
-                self._find_center_sep(obsdict[type])
+                self._find_center(obsdict[type])
 
 
         res=self._do_metacal(
@@ -971,38 +967,6 @@ class MetacalMomentsFixed(SimpleFitterBase):
 
         res['flags']=0
         return res
-
-    def _find_center_sep(self, obslist):
-        assert len(obslist)==1
-
-        obs=obslist[0]
-
-        objs=runsep.find_objects(obs)
-
-        logger.debug('    found %d objects' % objs.size)
-        if objs.size > 1:
-            logger.debug('        y:    %s' % (objs['y']))
-            logger.debug('        x:    %s' % (objs['x']))
-            logger.debug('        flux: %s' % (objs['flux']))
-        imax=objs['flux'].argmax()
-        row=objs['y'][imax]
-        col=objs['x'][imax]
-
-        # update the jacobian center
-
-        # this makes a copy
-        jac=obs.jacobian
-        oldrow,oldcol=jac.get_cen()
-        logger.debug('    old pos: %f %f' % (oldrow,oldcol))
-        logger.debug('    new pos: %f %f' % (row,col))
-        logger.debug('    shift: %f %f' % (row-oldrow,col-oldcol))
-
-        crow,ccol=(array(obs.image.shape)-1.0)/2.0
-        offset_from_ccen=(row-crow, col-ccol)
-        logger.debug('    offset_from_ccen: %g %g ' % tuple(offset_from_ccen))
-
-        jac.set_cen(row=row, col=col)
-        obs.jacobian=jac
 
     def _find_center_admom(self, obslist):
         assert len(obslist)==1

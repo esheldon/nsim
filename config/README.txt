@@ -290,10 +290,30 @@
        - sim-emnbr11
            - more realistic density I think, based on dbsim
            stuff.  
+           - actually density quite high, 68/sq arcmin detected
            - run-emnbr11-max01
                take the brightest detection.
                - looking at the s/n distribution, this is a 
                pretty stupid thing to do
+           - run-emnbr11-det01
+               - note initial detection does depend on psf
+
+            s/n > 10 Trat > 0.5
+            R: [0.59948248 0.60245011]
+            Rsel: [-0.02657803 -0.02560432]
+            total wsum: 26123266.0
+            without correction
+            errors are 3 sigma
+            m: 1.05485366e-02 +/- 1.20765793e-02  c: -5.03887425e-04 +/- 2.37993333e-04
+
+            with correction
+            errors are 3 sigma
+            m: 5.74296338e-02 +/- 1.26368328e-02  c: -5.26253359e-04 +/- 2.48557087e-04
+
+       - sim-emnbr11
+           - 3 per.  effective 11/sq arcmin.  Still high
+           - run-emnbr12-det01
+
 
 - exploring PSF s/n
     - sim-e15ln

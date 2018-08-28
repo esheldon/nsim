@@ -1,0 +1,63 @@
+images:
+
+    # doing this to avoid finding the center
+    # which might fail with neighbors. let
+    # the fitter do the object/center finding
+
+    use_canonical_center: True
+
+    offset:
+        type: "uniform"
+        radius: 0.5 # pixels
+
+    noise: 0.1739
+    #noise: 0.001
+
+    psf:
+        s2n: 10000
+        shift_psf: False
+
+    object:
+        stamp_size: [128, 128]
+        nepoch: 1
+
+    wcs:
+      dudx: 0.263
+      dudy: 0.0
+      dvdx: 0.0
+      dvdy: 0.263
+
+psf:
+    model: "moffat"
+
+    beta: 3.5
+    fwhm: 0.9
+    shape: [0.00, 0.01]
+
+
+object:
+    no_central: True
+    model: "exp"
+
+    g:
+        type: "ba"
+        sigma: 0.02
+
+    r50_flux:
+        type: "cosmos"
+        r50_range: [0.15, 1.0]
+        flux_range: [2.5, 100.0]
+
+    nbrs:
+        # gives about 1.7 per.. odd since 6 gave about 3 per
+        # thats about 38/sq arcmin, still a bit high about
+        # 11 per square arcminute effective
+        num: 3
+
+        flux_frac: 1.0
+        shift:
+            type: uniform
+            # arcsec, 24 pixels radius
+            radius: 6.312
+
+shear: [0.02, 0.00]

@@ -53,13 +53,20 @@ class SimpleMaker(dict):
 
     def _make_object(self, **kw):
         no_central=kw.get('no_central',False)
+        no_central=kw.get('no_central',None)
+        if no_central is None:
+            no_central=self.get('no_central',False)
+
         if 'nbrs' in self:
             nconf=self['nbrs']
 
             objs=[]
             if not no_central:
+                logger.debug('    adding central')
                 central, meta = self._get_one_model(**kw)
                 objs.append(central)
+            else:
+                logger.debug('    not adding central')
 
             for i in range(nconf['num']):
                 nbr, nmeta = self._get_one_model(**kw)
@@ -74,14 +81,12 @@ class SimpleMaker(dict):
                 objs.append(nbr)
 
             obj = galsim.Sum(objs)
+
+            if no_central:
+                meta=nmeta
+
         else:
             obj,meta = self._get_one_model(**kw)
-
-        if no_central:
-            logger.debug('    not adding central')
-            meta=nmeta
-        else:
-            logger.debug('    adding central')
 
         return obj, meta
 
@@ -169,7 +174,6 @@ class SimpleMaker(dict):
 
         if 'nbrs' in self:
             self._nbr_shift_pdf=self._get_nbr_shift_pdf()
-            #self['nbrs']['no_central'] = self['nbrs'].get('no_central',False)
 
     def _get_nbr_shift_pdf(self):
         sconf=self['nbrs']['shift']

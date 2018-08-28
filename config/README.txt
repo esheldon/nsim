@@ -248,10 +248,11 @@
              with detections and pulling out centered stamps
 
            s2n_r > 10 T_r/Tpsf > 0.5
+           kept about 0.3
 
            R: [0.6337559  0.63515716]
            Rsel: [0.02124612 0.02075724]
-           total wsum: 11948607.0
+           total wsum: 11_948_607
 
            errors are 3 sigma
            m: 3.81957329e-02 +/- 1.19892612e-02
@@ -266,6 +267,33 @@
            suppressed at all
            * run-emnbr10-max01
            run config same as run-emnbr09-max01
+
+           s2n_r > 10 T_r/Tpsf > 0.5
+           kept about 0.45!  wow, the coincidence of
+           objects overlapping is important here
+
+           R: [0.59122528 0.58960358]
+           Rsel: [-0.02838306 -0.02926805]
+           Rpsf_sel: [0. 0.]
+           total wsum: 14_353_513
+
+           without correction
+           errors are 3 sigma
+           m: -1.18377353e-03 +/- 1.63881615e-02
+           c: -3.03289835e-04 +/- 3.29491246e-04
+
+           with correction
+           errors are 3 sigma
+           m: 4.91846216e-02 +/- 1.72145852e-02
+           c: -3.19131596e-04 +/- 3.46701588e-04
+
+       - sim-emnbr11
+           - more realistic density I think, based on dbsim
+           stuff.  
+           - run-emnbr11-max01
+               take the brightest detection.
+               - looking at the s/n distribution, this is a 
+               pretty stupid thing to do
 
 - exploring PSF s/n
     - sim-e15ln

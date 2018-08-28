@@ -78,6 +78,8 @@ class FitterBase(dict):
         # total we attempted to fit
         n_proc=0
 
+        detconf=self.get('detection',None)
+
         for igal in xrange(self['ngal']):
             self.igal=igal
             logger.debug('%s/%s' % (igal+1,self['ngal']) )
@@ -94,35 +96,26 @@ class FitterBase(dict):
                     if raw_input('hit a key (q to quit): ')=='q':
                         stop
 
-                if self['deblend']:
-                    logger.debug("    deblending")
-                    obslist = self._do_deblend(obslist)
+                n_proc += 1
 
-                meta = self._extract_meta(obslist)
-                s2n = meta.get('s2n',1.e9)
-
-                if s2n > self['s2n_min']:
-                    n_proc += 1
-
-                    # only objects that successfully get fit
-                    # contribute to this
+                # only objects that successfully get fit
+                # contribute to this
+                if detconf is not None and detconf['detect']:
+                    tm0=time.time()
+                    list_of_obslist=self._detect_objects(obslist)
+                    this_dlist=self.process_multiple_objects(list_of_obslist)
+                    dlist += this_dlist
+                    self.tm_fit += time.time()-tm0
+                else:
                     tm0=time.time()
                     res=self.process_one(obslist)
                     self.tm_fit += time.time()-tm0
 
-                    if 'shear' in meta:
-                        res['shear_true'] = meta['shear']
-                        res['shear_index'] = meta['shear_index']
+                    d = self._make_output(res)
 
-                    d = self._make_output(res, igal)
                     dlist.append(d)
 
-                    self._set_elapsed_time()
-
-                else:
-                    tup = meta['s2n'],self['s2n_min']
-                    logger.debug("        skipping low s2n: %g < %g" % tup)
-                    logger.debug("")
+                self._set_elapsed_time()
 
             except TryAgainError as err:
                 logger.debug(str(err))
@@ -139,32 +132,6 @@ class FitterBase(dict):
         logger.info('time to simulate: %s' % (self.tm_sim/self['ngal']))
         logger.info('time to fit: %s' % (self.tm_fit/n_proc))
 
-    def _do_deblend(self, obslist):
-        try:
-            new_obslist = deblending.deblend(obslist)
-        except numpy.linalg.linalg.LinAlgError:
-            raise TryAgainError("lingalg error in deblender")
-
-        if False:
-            import images
-            images.view_mosaic(
-                [new_obslist[0].image_orig,
-                 new_obslist[0].image],
-            )
-            if 'q'==raw_input('hit a key: '):
-                stop
-
-
-        return new_obslist
-
-    def _extract_meta(self, obslist):
-        if hasattr(obslist,'meta'):
-            meta=obslist.meta
-        else:
-            meta=obslist[0].meta
-
-        return meta
-
     def process_one(self, obslist):
         """
         perform the fit
@@ -180,17 +147,28 @@ class FitterBase(dict):
         if res['flags'] != 0:
             raise TryAgainError("failed with flags %s" % res['flags'])
 
-        meta = self._extract_meta(obslist)
-        res['r50_true'] = meta.get('r50',-9999.0)
-        res['flux_true'] = meta.get('flux',-9999.0)
-        res['s2n_true'] = meta.get('s2n',-9999.0)
-
         self._print_res(res)
 
         if self['make_plots']:
             self._make_plots(fitter,self.get('fit_model',''))
 
         return res
+
+    def process_multiple_objects(self, list_of_obslist):
+        """
+        process multiple objects independently
+        """
+        dlist=[]
+        for obslist in list_of_obslist:
+            try:
+                res=self.process_one(obslist)
+                d = self._make_output(res)
+
+                dlist.append(d)
+            except TryAgainError as err:
+                logger.info(str(err))
+
+        return dlist
 
     def get_data(self):
         """
@@ -210,6 +188,74 @@ class FitterBase(dict):
         """
 
         raise RuntimeError("over-ride me")
+
+
+    def _detect_objects(self, obslist):
+        from . import runsep
+
+        assert len(obslist)==1
+        obs=obslist[0]
+
+        detconf=self['detection']
+
+        objs, seg = runsep.find_objects(
+            obs,
+            segmentation_map=True,
+        )
+
+        if self['show']:
+            self._show_image_and_seg(obs.image, seg)
+
+        if objs.size == 0:
+            logger.debug('no objects found')
+            raise TryAgainError('no objects found')
+
+        logger.debug('    found %d objects' % objs.size)
+
+
+        if 'restrict_radius_pixels' in detconf:
+            logger.debug('    restricting to radius %.2f '
+                         'pixels' % detconf['restrict_radius_pixels'])
+            # restrict to a central region
+            ccen=(array(obs.image.shape)-1.0)/2.0
+            rad=sqrt(
+                (ccen[0]-objs['y'])**2
+                +
+                (ccen[1]-objs['x'])**2
+            )
+            w,=where(rad < detconf['restrict_radius_pixels'])
+            logger.debug('    found %d within central region' % w.size)
+            if w.size == 0:
+                raise TryAgainError("no objects found in central region")
+            objs = objs[w]
+
+
+
+        # make list of obslist centered on these positions
+        list_of_obslist=[]
+        for i in xrange(objs.size):
+            row=objs['y'][i]
+            col=objs['x'][i]
+
+            # this makes a copy
+            jac=obs.jacobian
+
+            jac.set_cen(row=row, col=col)
+
+            newobs = obs.copy()
+            newobs.jacobian=jac
+
+            newobs = self._trim_image_from_detection(newobs)
+            new_obslist=ngmix.ObsList()
+            new_obslist.append(newobs)
+
+            list_of_obslist.append( new_obslist )
+
+        if self['show']:
+            self._show_images([o[0].image for o in list_of_obslist])
+
+        return list_of_obslist
+
 
     def _find_center_sep(self, obslist):
         from . import runsep
@@ -279,23 +325,150 @@ class FitterBase(dict):
         jac.set_cen(row=row, col=col)
         obs.jacobian=jac
 
+    def _show_image(self, im):
+        import images
+        images.multiview(im)
+        if 'q'==raw_input('hit a key (q to quit): '):
+            stop
+
+    def _show_images(self, imlist):
+        import images
+        images.view_mosaic(imlist)
+        if 'q'==raw_input('hit a key (q to quit): '):
+            stop
+
+
+
     def _show_image_and_seg(self, im, seg):
         import images
         images.view_mosaic([im, seg])
         if 'q'==raw_input('hit a key (q to quit): '):
             stop
 
-    def _make_output(self, res, i):
+    def _trim_image_from_detection(self, obs):
+
+        dims = obs.image.shape
+
+        jac = obs.jacobian
+
+        # this is in arcsec
+        cen=array(jac.get_cen())
+
+        rowpix=int(round(cen[0]))
+        colpix=int(round(cen[1]))
+
+        # now get smallest distance to an edge
+        radpix = self['detection']['stamp_radius']
+
+        # note adding 1 for the slice
+        row_start = rowpix-radpix
+        row_end   = rowpix+radpix+1
+        col_start = colpix-radpix
+        col_end   = colpix+radpix+1
+        logger.debug('    row start/end %s:%s' % (row_start, row_end))
+        logger.debug('    col start/end %s:%s' % (col_start, col_end))
+
+        im=obs.image
+        subim = im[
+            row_start:row_end,
+            col_start:col_end,
+        ]
+        logger.debug('    subim dims: %s' % str(subim.shape))
+        assert subim.shape[0]==subim.shape[1]
+
+        newcen = cen - array([row_start, col_start])
+        logger.debug('    new cen: %g %g' % tuple(newcen))
+        new_ccen=(array(subim.shape)-1.0)/2.0
+        logger.debug('    new ccen: %g %g' % tuple(new_ccen))
+
+        offset_from_ccen=newcen-new_ccen
+        logger.debug('    offset from ccen: %g %g ' % tuple(offset_from_ccen))
+
+        jac.set_cen(row=newcen[0], col=newcen[1])
+
+        wt00=obs.weight[0,0]
+        newobs = ngmix.Observation(
+            subim,
+            weight=subim*0 + wt00,
+            jacobian=jac,
+            meta=obs.meta,
+            psf=obs.psf.copy(),
+        )
+        return newobs
+
+    def _trim_image_for_centering(self, obslist):
+        assert len(obslist)==1
+        obs=obslist[0]
+
+        dims = obs.image.shape
+
+        jac = obs.jacobian
+
+        # this is in arcsec
+        cen=array(jac.get_cen())
+
+        rowpix=int(round(cen[0]))
+        colpix=int(round(cen[1]))
+
+        # now get smallest distance to an edge
+        radpix = self['center'].get('trim_radius',None)
+        if radpix is None:
+            radpix = min(
+
+                rowpix-0,
+                (dims[0]-1)-rowpix,
+
+                colpix-0,
+                (dims[1]-1)-colpix,
+            )
+
+        # note adding 1 for the slice
+        row_start = rowpix-radpix
+        row_end   = rowpix+radpix+1
+        col_start = colpix-radpix
+        col_end   = colpix+radpix+1
+        logger.debug('    row start/end %s:%s' % (row_start, row_end))
+        logger.debug('    col start/end %s:%s' % (col_start, col_end))
+
+        im=obs.image
+        subim = im[
+            row_start:row_end,
+            col_start:col_end,
+        ]
+        logger.debug('    subim dims: %s' % str(subim.shape))
+        assert subim.shape[0]==subim.shape[1]
+
+        newcen = cen - array([row_start, col_start])
+        logger.debug('    new cen: %g %g' % tuple(newcen))
+        new_ccen=(array(subim.shape)-1.0)/2.0
+        logger.debug('    new ccen: %g %g' % tuple(new_ccen))
+
+        offset_from_ccen=newcen-new_ccen
+        logger.debug('    offset from ccen: %g %g ' % tuple(offset_from_ccen))
+
+        jac.set_cen(row=newcen[0], col=newcen[1])
+
+        wt00=obs.weight[0,0]
+        newobs = ngmix.Observation(
+            subim,
+            weight=subim*0 + wt00,
+            jacobian=jac,
+            meta=obs.meta,
+            psf=obs.psf.copy(),
+        )
+
+        newobslist=ngmix.ObsList()
+        newobslist.append(newobs)
+
+        if self['show']:
+            self._show_images([obs.image, newobs.image])
+
+        return newobslist
+
+
+
+    def _make_output(self, res):
         d=self._get_struct()
-
-        d['s2n_true'] = res['s2n_true']
-        d['r50_true'] = res['r50_true']
-        d['flux_true'] = res['flux_true']
-
-        if 'shear_true' in res:
-            d['shear_true'] = res['shear_true']
-            d['shear_index'] = res['shear_index']
-
         return d
 
     def _setup(self, run_conf, **keys):
@@ -340,6 +513,7 @@ class FitterBase(dict):
         cenpars={
             'find_center':False,
             'find_center_metacal':False,
+            'trim_image':False,
         }
         incenpars=self.get('center',{})
         cenpars.update(incenpars)
@@ -368,16 +542,7 @@ class FitterBase(dict):
         """
         Set generic dtype
         """
-
-        dt=[
-            ('s2n_true','f8'),
-            ('r50_true','f8'),
-            ('flux_true','f8'),
-            ('shear_true','f8',2),
-            ('shear_index','i4'),
-        ]
-
-        return dt
+        return []
 
     def _get_struct(self):
         """
@@ -386,14 +551,13 @@ class FitterBase(dict):
 
         dt=self._get_dtype()
         data = numpy.zeros(1, dtype=dt)
-        data['shear_index'] = -1
         return data
 
 class SimpleFitterBase(FitterBase):
 
-    def _make_output(self, res, i):
+    def _make_output(self, res):
 
-        d = super(SimpleFitterBase,self)._make_output(res, i)
+        d = super(SimpleFitterBase,self)._make_output(res)
 
         n=self._get_namer()
 
@@ -858,8 +1022,6 @@ class MaxFitter(SimpleFitterBase):
         log_pars(res['pars'],      front='        pars: ')
         log_pars(res['pars_err'],  front='        perr: ')
 
-        logger.debug('        true r50: %(r50_true)g flux: %(flux_true)g s2n: %(s2n_true)g' % res)
-
     def _make_plots(self, fitter, key):
         """
         Write a plot file of the trials
@@ -901,9 +1063,9 @@ class MaxFitter(SimpleFitterBase):
         return dt
 
 
-    def _make_output(self, res, i):
+    def _make_output(self, res):
 
-        d = super(MaxFitter,self)._make_output(res, i)
+        d = super(MaxFitter,self)._make_output(res)
 
         if 'nfev' in res:
             d['s2n_r'] = res['s2n_r']
@@ -977,6 +1139,9 @@ class MaxMetacalFitter(MaxFitter):
             if self['center']['find_center']:
                 logger.debug("    finding center")
                 self._find_center(obs)
+
+            if self['center']['trim_image']:
+                obs=self._trim_image_for_centering(obs)
 
         boot=self._get_bootstrapper(obs)
 
@@ -1114,11 +1279,11 @@ class MaxMetacalFitter(MaxFitter):
         return dt
 
 
-    def _make_output(self, res, i):
+    def _make_output(self, res):
         """
         copy parameters specific to this class
         """
-        d = super(MaxMetacalFitter,self)._make_output(res, i)
+        d = super(MaxMetacalFitter,self)._make_output(res)
 
 
         for type in ngmix.metacal.METACAL_TYPES:
@@ -1405,7 +1570,7 @@ class GalsimFitter(SimpleFitterBase):
     def _make_output(self, res, i):
 
         # note super here
-        d = super(SimpleFitterBase,self)._make_output(res, i)
+        d = super(SimpleFitterBase,self)._make_output(res)
 
         n=self._get_namer()
         d[n('pars')][i,:] = res['pars']
@@ -1587,7 +1752,7 @@ class SpergelMetacalFitter(SpergelFitter):
 
         # note copying super of our super, since
         # we didn't do a regular fit
-        d = super(SimpleFitterBase,self)._make_output(res, i)
+        d = super(SimpleFitterBase,self)._make_output(res)
 
         for type in self.metacal_types:
 

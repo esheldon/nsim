@@ -431,12 +431,12 @@ class MetacalMomentsAM(SimpleFitterBase):
         res['g']     = res['e']
         res['g_cov'] = res['e_cov']
 
-    def _make_output(self, res, i):
+    def _make_output(self, res):
         """
         copy parameters specific to this class
         """
 
-        d = super(SimpleFitterBase,self)._make_output(res, i)
+        d = super(SimpleFitterBase,self)._make_output(res)
 
         pres=res['psf']
         d['psfrec_g'] = pres['g']
@@ -569,7 +569,6 @@ class MetacalMomentsAM(SimpleFitterBase):
         cov = subres['g_cov'].clip(min=0, max=None)
         gerr=diag(sqrt(cov))
 
-        logger.debug('    true r50: %(r50_true)g flux: %(flux_true)g s2n: %(s2n_true)g' % res)
         logger.debug("    mcal s2n: %g  e:  %g +/- %g  %g +/- %g" % (s2n,g[0],gerr[0],g[1],gerr[1]))
         if 'flux' in subres:
             logger.debug("        flux: %g +/- %g flux_s2n:  %g" % (subres['flux'],subres['flux_err'],subres['flux_s2n']))
@@ -680,14 +679,14 @@ class AMFitter(MetacalMomentsAM):
 
         return dt
 
-    def _make_output(self, res, i):
+    def _make_output(self, res):
         """
         copy parameters specific to this class
         """
 
         # note copying super of our super, since
         # we didn't do a regular fit
-        d = super(SimpleFitterBase,self)._make_output(res, i)
+        d = super(SimpleFitterBase,self)._make_output(res)
 
         ckeys=[
             'pars','sums_cov',
@@ -717,8 +716,6 @@ class AMFitter(MetacalMomentsAM):
         logger.debug("    e_err: %g" % numpy.sqrt(res['g_cov'][0,0]))
 
         log_pars(res['pars'],      front='        pars: ')
-
-        logger.debug('        true r50: %(r50_true)g flux: %(flux_true)g s2n: %(s2n_true)g' % res)
 
 
 def get_shears(step):
@@ -921,7 +918,7 @@ class MetacalMomentsFixed(SimpleFitterBase):
 
         if wpars['trim_image']:
             logger.debug("    trimming image")
-            obslist=self._trim_image(obslist)
+            obslist=self._trim_image_for_centering(obslist)
 
 
         psfres = self._measure_admom(obslist[0].psf)
@@ -982,70 +979,6 @@ class MetacalMomentsFixed(SimpleFitterBase):
         row,col = jac.get_rowcol(v,u)
         jac.set_cen(row=row, col=col)
         obs.jacobian=jac
-
-    def _trim_image(self, obslist):
-        assert len(obslist)==1
-        obs=obslist[0]
-
-        dims = obs.image.shape
-
-        jac = obs.jacobian
-
-        # this is in arcsec
-        cen=array(jac.get_cen())
-
-        rowpix=int(round(cen[0]))
-        colpix=int(round(cen[1]))
-
-        # now get smallest distance to an edge
-        radpix = min(
-
-            rowpix-0,
-            (dims[0]-1)-rowpix,
-
-            colpix-0,
-            (dims[1]-1)-colpix,
-        )
-
-        # note adding 1 for the slice
-        row_start = rowpix-radpix
-        row_end   = rowpix+radpix+1
-        col_start = colpix-radpix
-        col_end   = colpix+radpix+1
-        logger.debug('    row start/end %s:%s' % (row_start, row_end))
-        logger.debug('    col start/end %s:%s' % (col_start, col_end))
-
-        im=obs.image
-        subim = im[
-            row_start:row_end,
-            col_start:col_end,
-        ]
-        logger.debug('    subim dims: %s' % str(subim.shape))
-        assert subim.shape[0]==subim.shape[1]
-
-        newcen = cen - array([row_start, col_start])
-        logger.debug('    new cen: %g %g' % tuple(newcen))
-        new_ccen=(array(subim.shape)-1.0)/2.0
-        logger.debug('    new ccen: %g %g' % tuple(new_ccen))
-
-        offset_from_ccen=newcen-new_ccen
-        logger.debug('    offset from ccen: %g %g ' % tuple(offset_from_ccen))
-
-        jac.set_cen(row=newcen[0], col=newcen[1])
-
-        wt00=obs.weight[0,0]
-        newobs = ngmix.Observation(
-            subim,
-            weight=subim*0 + wt00,
-            jacobian=jac,
-            meta=obs.meta,
-            psf=obs.psf.copy(),
-        )
-
-        newobslist=ngmix.ObsList()
-        newobslist.append(newobs)
-        return newobslist
-
 
 
     def _get_metacal(self, obslist):
@@ -1227,12 +1160,12 @@ class MetacalMomentsFixed(SimpleFitterBase):
         return dt
 
 
-    def _make_output(self, res, i):
+    def _make_output(self, res):
         """
         copy parameters specific to this class
         """
         d=self._get_struct()
-        #d = super(MaxMetacalFitter,self)._make_output(res, i)
+        #d = super(MaxMetacalFitter,self)._make_output(res)
 
         # these are really e type but we copy to the common
         # naming scheme

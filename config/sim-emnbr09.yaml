@@ -49,6 +49,8 @@ object:
 
     nbrs:
         num: 10
+        # because variable flux, this can still give
+        # neighbors that are brighter than the central
         flux_frac: 0.1
         shift:
             type: uniform

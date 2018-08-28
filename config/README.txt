@@ -236,6 +236,30 @@
             m: -7.92636750e-03 +/- 6.87964240e-03
             c: 3.07694947e-04 +/- 1.37571007e-04
 
+       - sim-emnbr09
+           - neighbors and object from cosmos, nbrs with flux
+           0.1
+           - run-emnbr09-max01
+
+           s2n_r > 10 T_r/Tpsf > 0.5
+
+           R: [0.6337559  0.63515716]
+           Rsel: [0.02124612 0.02075724]
+           total wsum: 11948607.0
+
+           errors are 3 sigma
+           m: 3.81957329e-02 +/- 1.19892612e-02
+           c: 3.93905095e-05 +/- 2.39292592e-04
+
+           with correction
+           m: 4.52006984e-03 +/- 1.16003689e-02
+           c: 3.81439468e-05 +/- 2.31719874e-04
+
+       - sim-emnbr10
+           - neighbors and object from cosmos, no suppression
+           of nbr flux
+           * run-emnbr10-max01
+
 - exploring PSF s/n
     - sim-e15ln
     - dist from DES PIFF v29 mean 156 sigma 22, truncated at 100

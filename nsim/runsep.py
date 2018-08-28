@@ -20,14 +20,15 @@ SEP_PARS={
     'filter_kernel':SEP_FILTER_KERNEL,
 }
 
-def find_objects(obs):
+def find_objects(obs, segmentation_map=False):
     import sep
 
     noise=np.sqrt(1.0/obs.weight[0,0])
-    objs=sep.extract(
+    return sep.extract(
         obs.image,
         SEP_THRESH,
+        segmentation_map=segmentation_map,
         err=noise,
         **SEP_PARS
     )
-    return objs
+

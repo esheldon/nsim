@@ -997,9 +997,16 @@ class MaxMetacalFitter(MaxFitter):
 
         cconf=self['center']
 
-        objs=runsep.find_objects(obs)
+        objs, seg = runsep.find_objects(
+            obs,
+            segmentation_map=True,
+        )
+
         if objs.size == 0:
-            raise TryAgainError("no objects found")
+            if self['show']:
+                logger.debug('no objects found')
+                self._show_image_and_seg(obs.image, seg)
+            raise TryAgainError('no objects found')
 
         logger.debug('    found %d objects' % objs.size)
         if objs.size > 1:
@@ -1020,6 +1027,9 @@ class MaxMetacalFitter(MaxFitter):
             w,=where(rad < cconf['restrict_radius_pixels'])
             logger.debug('    found %d within central region' % w.size)
             if w.size == 0:
+                if self['show']:
+                    logger.debug('no objects found in central region')
+                    self._show_image_and_seg(obs.image, seg)
                 raise TryAgainError("no objects found in central region")
             objs = objs[w]
 
@@ -1038,9 +1048,17 @@ class MaxMetacalFitter(MaxFitter):
         offset_from_ccen=(row-crow, col-ccol)
         logger.debug('    offset_from_ccen: %g %g ' % tuple(offset_from_ccen))
 
+        if self['show']:
+            self._show_image_and_seg(obs.image, seg)
+
         jac.set_cen(row=row, col=col)
         obs.jacobian=jac
 
+    def _show_image_and_seg(self, im, seg):
+        import images
+        images.view_mosaic([im, seg])
+        if 'q'==raw_input('hit a key (q to quit): '):
+            stop
 
     def _get_dtype(self):
         """

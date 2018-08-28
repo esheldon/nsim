@@ -254,8 +254,11 @@ class FitterBase(dict):
 
         # this is "full" pars
         if 'psf_pars' in self:
-            self['psf_npars']=\
-                6*ngmix.gmix._gmix_ngauss_dict[self['psf_pars']['model']]
+            if 'am' in self['psf_pars']['model']:
+                self['psf_npars']=6
+            else:
+                self['psf_npars']=\
+                    6*ngmix.gmix._gmix_ngauss_dict[self['psf_pars']['model']]
 
         self['make_plots']=keys.get('make_plots',False)
         self['plot_base']=keys.get('plot_base',None)
@@ -860,6 +863,7 @@ class MaxMetacalFitter(MaxFitter):
 
         return fitter
 
+        
     def _get_bootstrapper(self, obs):
         from ngmix.bootstrap import MaxMetacalBootstrapper
         metacal_pars=self['metacal_pars']
@@ -884,6 +888,11 @@ class MaxMetacalFitter(MaxFitter):
 
         if 'masking' in self:
             replace_fitter=self._do_fits_for_replacement(obs)
+
+        if 'center' in self:
+            if self['center']['find_center']:
+                logger.debug("    finding center")
+                self._find_center(obs)
 
         boot=self._get_bootstrapper(obs)
 
@@ -971,6 +980,68 @@ class MaxMetacalFitter(MaxFitter):
             metacal_pars=self['metacal_pars'],
         )
 
+    def _find_center(self, obslist):
+        if self['center']['method']=='sep':
+            self._find_center_sep(obslist)
+        else:
+            raise ValueError("only sep used for finding center for now")
+
+    def _find_center_sep(self, obslist):
+        from . import runsep
+
+        assert len(obslist)==1
+        obs=obslist[0]
+
+        # this makes a copy
+        jac=obs.jacobian
+
+        cconf=self['center']
+
+        objs=runsep.find_objects(obs)
+        if objs.size == 0:
+            raise TryAgainError("no objects found")
+
+        logger.debug('    found %d objects' % objs.size)
+        if objs.size > 1:
+            logger.debug('        y:    %s' % (objs['y']))
+            logger.debug('        x:    %s' % (objs['x']))
+            logger.debug('        flux: %s' % (objs['flux']))
+
+        if 'restrict_radius_pixels' in cconf:
+            logger.debug('    restricting to radius %.2f '
+                         'pixels' % cconf['restrict_radius_pixels'])
+            # restrict to the central region
+            ccen=(array(obs.image.shape)-1.0)/2.0
+            rad=sqrt(
+                (ccen[0]-objs['y'])**2
+                +
+                (ccen[1]-objs['x'])**2
+            )
+            w,=where(rad < cconf['restrict_radius_pixels'])
+            logger.debug('    found %d within central region' % w.size)
+            if w.size == 0:
+                raise TryAgainError("no objects found in central region")
+            objs = objs[w]
+
+        imax=objs['flux'].argmax()
+        row=objs['y'][imax]
+        col=objs['x'][imax]
+
+        # update the jacobian center
+
+        oldrow,oldcol=jac.get_cen()
+        logger.debug('    old pos: %f %f' % (oldrow,oldcol))
+        logger.debug('    new pos: %f %f' % (row,col))
+        logger.debug('    shift: %f %f' % (row-oldrow,col-oldcol))
+
+        crow,ccol=(array(obs.image.shape)-1.0)/2.0
+        offset_from_ccen=(row-crow, col-ccol)
+        logger.debug('    offset_from_ccen: %g %g ' % tuple(offset_from_ccen))
+
+        jac.set_cen(row=row, col=col)
+        obs.jacobian=jac
+
+
     def _get_dtype(self):
         """
         get the dtype for the output struct
@@ -1008,6 +1079,7 @@ class MaxMetacalFitter(MaxFitter):
 
             dt += [
                 ('mcal_s2n_r%s' % back,'f8'),
+                ('mcal_T_r%s' % back,'f8'),
             ]
 
         return dt
@@ -1036,6 +1108,7 @@ class MaxMetacalFitter(MaxFitter):
             d['mcal_g%s' % back] = tres['g']
             d['mcal_g_cov%s' % back] = tres['g_cov']
             d['mcal_s2n_r%s' % back] = tres['s2n_r']
+            d['mcal_T_r%s' % back] = tres['T_r']
 
             if type=='noshear':
                 for p in ['pars_cov','psfrec_g','psfrec_T']:

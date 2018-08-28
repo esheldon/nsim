@@ -1,4 +1,4 @@
-- fixed moments
+- nbrs and fixed moments
     - todo:
         x check works at higher noise
             - run-eg18hnhis*
@@ -239,7 +239,13 @@
        - sim-emnbr09
            - neighbors and object from cosmos, nbrs with flux
            0.1
+           - center of object shifted +/- 0.5 pixels
            - run-emnbr09-max01
+             only keeping detections within 2 pixel radius
+             does not account for when close blend shifts
+             gets called one object and peak is closer
+             to the nbr. Better would be to do properly
+             with detections and pulling out centered stamps
 
            s2n_r > 10 T_r/Tpsf > 0.5
 
@@ -256,9 +262,10 @@
            c: 3.81439468e-05 +/- 2.31719874e-04
 
        - sim-emnbr10
-           - neighbors and object from cosmos, no suppression
-           of nbr flux
+           - same as sim-emnbr09 but with nbr flux not
+           suppressed at all
            * run-emnbr10-max01
+           run config same as run-emnbr09-max01
 
 - exploring PSF s/n
     - sim-e15ln

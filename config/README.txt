@@ -148,11 +148,11 @@
         runs-emnbr06-am
 
 
-        R: [1.55494649 1.55896488]
-        total wsum: 237971441.0
-        errors are 3 sigma
-        m: -1.94994333e-03 +/- 1.58878937e-03
-        c: 3.47851585e-05 +/- 3.18753845e-05
+            R: [1.55494649 1.55896488]
+            total wsum: 237971441.0
+            errors are 3 sigma
+            m: -1.94994333e-03 +/- 1.58878937e-03
+            c: 3.47851585e-05 +/- 3.18753845e-05
 
         - now trying with find center
         - run-emnbr04-fc01
@@ -192,11 +192,49 @@
             using the best center later after verify nothing
             breaks)
 
-            no good
-        - run-emnbr04-fc03
-            - reran center finding on metacal images also, no good
+            errors are 3 sigma
+            m: -4.41260657e-02 +/- 8.63407315e-03
+            c: -2.15878476e-04 +/- 1.72789156e-04
+
+            what?
+
+        - run-emnbr04-fc04
+            - reran center finding on metacal images also
+            errors are 3 sigma
+            m: -1.78647033e-02 +/- 9.21668238e-03
+            c: -2.10811236e-04 +/- 1.84659271e-04
 
 
+        - turns out I was cutting off the exponential a bit using
+        48x48 because it was a large object.   New sim with smaller
+        object
+        - sim-emnbr07
+        - runs-emnbr07-max
+
+            R: [0.8252431  0.82621901]
+            Rpsf: [0. 0.]
+            total wsum: 422929462.0
+            errors are 3 sigma
+            m: -4.23699794e-04 +/- 1.33667692e-03
+            c: 8.30913362e-06 +/- 2.66941570e-05
+
+            looks like max is not seeing a big bias here
+
+        - runs-emnbr08-max
+        shifing large amount within disk
+        R: [0.82403187 0.82491617]
+        Rpsf: [0. 0.]
+        total wsum: 240013524.0
+        errors are 3 sigma
+        m: -8.70220543e-04 +/- 1.77374391e-03
+        c: -5.91417803e-07 +/- 3.54258001e-05
+
+        - run-emnbr07-fc01
+            - fixed weight fwhm 1.2 (still smaller than object)
+            and finding center
+            errors are 3 sigma
+            m: -7.92636750e-03 +/- 6.87964240e-03
+            c: 3.07694947e-04 +/- 1.37571007e-04
 
 - exploring PSF s/n
     - sim-e15ln

@@ -63,7 +63,10 @@ class SimpleMaker(dict):
 
             for i in range(nconf['num']):
                 nbr, nmeta = self._get_one_model(**kw)
-                nbr = nbr.withScaledFlux(nconf['flux_frac'])
+                if 'flux_frac' in nconf:
+                    nbr = nbr.withScaledFlux(nconf['flux_frac'])
+                else:
+                    nbr = nbr.withFlux(nconf['flux'])
 
                 dx, dy = self._nbr_shift_pdf.sample(2)
                 nbr=nbr.shift(dx=dx, dy=dy)

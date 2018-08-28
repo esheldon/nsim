@@ -1,0 +1,4 @@
+runs: [
+    run-emone01-am01,
+    run-emone01-am02,
+]

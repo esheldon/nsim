@@ -1,5 +1,11 @@
 images:
 
+    # doing this to avoid finding the center
+    # which might fail with neighbors. let
+    # the fitter do the object/center finding
+
+    use_canonical_center: True
+
     offset:
         type: "uniform"
         radius: 0.5 # pixels
@@ -35,8 +41,8 @@ object:
         type: "ba"
         sigma: 0.02
 
-    r50: 1.5
-    flux: 14.0
+    r50: 1.0
+    flux: 10.0
 
     nbrs:
         num: 10

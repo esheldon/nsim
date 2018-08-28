@@ -1,0 +1,34 @@
+fitter: "metacal-moments-fixed"
+
+metacal_pars:
+    types: ['noshear','1p','1m','2p','2m']
+    psf: gauss
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+weight:
+    fwhm: 1.2
+    center:
+        # find the center
+        find_center: True
+
+        # refind the center for each metacal image
+        #find_center_metacal: True
+
+    #trim_image: True
+
+    # after finding the center, we fall back to using
+    # the canconical to make sure nothing breaks
+    # if this looks OK I'll try with the regular center
+
+    #use_canonical_center: True
+
+ngal: 30_000_000
+
+sec_per: 0.26
+desired_hours: 0.5
+jobs_per_condor_sub: 1000
+
+verbose: False

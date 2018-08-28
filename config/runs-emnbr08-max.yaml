@@ -1,0 +1,4 @@
+runs: [
+    run-emnbr08-max01,
+    run-emnbr08-max02,
+]

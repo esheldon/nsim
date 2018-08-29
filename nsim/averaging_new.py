@@ -198,7 +198,11 @@ class Summer(dict):
         sums=self.get_sums_struct()
 
         print("processing:",fname)
-        data=fitsio.read(fname) 
+        try:
+            data=fitsio.read(fname) 
+        except IOError as err:
+            print(str(err))
+            return None
 
         if 'shear_index' not in data.dtype.names:
             data=self._add_shear_index(data)

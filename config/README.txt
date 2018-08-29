@@ -310,9 +310,40 @@
             errors are 3 sigma
             m: 5.74296338e-02 +/- 1.26368328e-02  c: -5.26253359e-04 +/- 2.48557087e-04
 
-       - sim-emnbr11
+       - sim-emnbr12
            - 3 per.  effective 11/sq arcmin.  Still high
            - run-emnbr12-det01
+
+            R: [0.62455951 0.62773899]
+            Rsel: [-0.00438276 -0.00343644]
+            total wsum: 41427722.0
+            without correction
+            errors are 3 sigma
+            m: 2.24435688e-02 +/- 7.78655661e-03  c: -1.27582231e-04 +/- 1.54050664e-04
+
+            with correction
+            errors are 3 sigma
+            m: 2.96691355e-02 +/- 7.84158388e-03  c: -1.28284501e-04 +/- 1.54898628e-04
+
+    - ideas
+
+        - pixels being re-used is the problem (although I thought I tested
+          with all objects detected, s/n ~ 15 in dbsim, all same flux that it
+          worked fine)
+            - average all the metacal quantities from the group together
+              somehow?  How to deal with selection then? take average flux,
+              s/n etc.?
+
+            - maybe metacal full MOF instead  (not stamps)  (clearly needs to
+              be a small image for this to work though). but then we still
+              are using the multiple shapes in the final shear without
+              accounting for covariance.
+
+                - include metacal of detection?  why not?
+
+            - have additional overall shear parameter for group? Would that
+            not just exaclty be compensated in the individual inferred
+            shapes?
 
 
 - exploring PSF s/n

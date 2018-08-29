@@ -42,6 +42,24 @@ parser.add_argument('--index',default=None,type=int,
 
 
 def add_all_sums(sums_list):
+    first=True
+    for tsums in sums_list:
+        if tsums is None:
+            continue
+
+        if first:
+            sums=tsums.copy()
+            first=False
+        else:
+            for n in sums.dtype.names:
+                if n in ['shear_true']:
+                    continue
+                else:
+                    sums[n] += tsums[n]
+
+    return sums
+
+def add_all_sums_old(sums_list):
     sums = sums_list[0].copy()
 
     for tsums in sums_list[1:]:
@@ -52,6 +70,7 @@ def add_all_sums(sums_list):
                 sums[n] += tsums[n]
 
     return sums
+
 
 def main():
     args=parser.parse_args()

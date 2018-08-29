@@ -229,8 +229,186 @@ class FitterBase(dict):
                 raise TryAgainError("no objects found in central region")
             objs = objs[w]
 
+        logger.debug('    y: %s' % str(objs['y']))
+        logger.debug('    x: %s' % str(objs['x']))
+        if ('deblending' in detconf
+                and detconf['deblending']['deblend']):
+            #and objs.size > 1):
+            if detconf['deblending']['type']=='full':
+                list_of_obslist=self._run_mof(objs, obs)
+            else:
+                list_of_obslist=self._run_mof_stamps(objs, obs)
+        else:
+            list_of_obslist=self._extract_simple_stamps(objs, obs)
+
+        if self['show']:
+            self._show_images([o[0].image for o in list_of_obslist])
+
+        return list_of_obslist
+
+    def _run_mof_stamps(self, objs, obs):
+        """
+        fit all objects using MOF and get corrected observations
+
+        Not yet doing FoF grouping
+        """
+        import mof
+
+        # we need obs to have jacobian with center at 0,0 for the
+        # full MOF
+        debconf=self['detection']['deblending']
+        mofconf=debconf['mof']
+
+        # set the PSF
+
+        pconf=mofconf['psf_pars']
+        assert pconf['model']=='coellip2'
+        jac=obs.jacobian
+        Tguess=4.0*jac.scale**2
+        ngauss=2
+        runner=ngmix.bootstrap.PSFRunnerCoellip(
+            obs.psf, 
+            Tguess,
+            ngauss,
+            pconf['lm_pars'],
+        )
+        runner.go(ntry=pconf['ntry'])
+        psf_fitter=runner.get_fitter()
+        pres=psf_fitter.get_result()
+        if pres['flags']!= 0:
+            raise TryAgainError('psf fitting for MOF failed')
+
+        psf_gmix=psf_fitter.get_gmix() 
+        obs.psf.set_gmix(psf_gmix)
+
+        # make the medsifier and MEDS object
+        dlist=[
+            {
+                'image':obs.image,
+                'weight':obs.weight,
+                'wcs':obs.jacobian.get_galsim_wcs(),
+            }
+        ]
+        mer=mof.stamps.MEDSifier(
+            dlist,
+            meds_config=debconf['meds_config'],
+            sx_config=debconf['sx_config'],
+        )
+        mbm=mer.get_multiband_meds()
+        list_of_mbobs=mbm.get_mbobs_list(weight_type=debconf['weight_type'])
+        for mbobs in list_of_mbobs:
+            mbobs[0][0].set_psf( obs.psf.copy() )
+
+        prior=mof.moflib.get_mof_stamps_prior(
+            list_of_mbobs,
+            mofconf['model'],
+            self.rng,
+        )
+
+        fitter=mof.MOFStamps(
+            list_of_mbobs,
+            mofconf['model'],
+            prior=prior,
+        )
+        detband=0
+        for i in xrange(mofconf['ntry']):
+            guesses=mof.moflib.get_stamp_guesses(
+                list_of_mbobs,
+                detband,
+                mofconf['model'],
+                self.rng,
+            )
+            #ngmix.print_pars(guesses, front='    guess: ')
+            fitter.go(guesses)
+            res=fitter.get_result()
+            if res['flags']==0:
+                break
+
+        if res['flags'] != 0:
+            raise TryAgainError('mof failed')
+
+        list_of_obslist = fitter.make_corrected_obs(band=0)
+        #for obslist in list_of_obslist:
+        #    assert obslist[0].has_psf_gmix()
+
+        return list_of_obslist
 
 
+    def _run_mof(self, objs, obs):
+        """
+        fit all objects using MOF and get corrected observations
+
+        Not yet doing FoF grouping
+        """
+        import mof
+
+        # we need obs to have jacobian with center at 0,0 for the
+        # full MOF
+        mofconf=self['detection']['deblending']['mof']
+
+        jac=obs.jacobian
+        jac.set_cen(row=0, col=0)
+        logger.debug('jacobian: %s' % jac)
+        obs.jacobian=jac
+
+        pconf=mofconf['psf_pars']
+        assert pconf['model']=='coellip2'
+        Tguess=4.0*jac.scale**2
+        ngauss=2
+        runner=ngmix.bootstrap.PSFRunnerCoellip(
+            obs.psf, 
+            Tguess,
+            ngauss,
+            pconf['lm_pars'],
+        )
+        runner.go(ntry=pconf['ntry'])
+        psf_fitter=runner.get_fitter()
+        pres=psf_fitter.get_result()
+        if pres['flags']!= 0:
+            raise TryAgainError('psf fitting for MOF failed')
+
+        psf_gmix=psf_fitter.get_gmix() 
+        obs.psf.set_gmix(psf_gmix)
+
+        nband=1
+        prior=mof.moflib.get_mof_full_image_prior(
+            objs,
+            nband,
+            jac,
+            mofconf['model'],
+            self.rng,
+        )
+        fitter=mof.MOF(
+            obs,
+            mofconf['model'],
+            objs.size,prior=prior,
+        )
+        for i in xrange(mofconf['ntry']):
+            guesses=mof.moflib.get_full_image_guesses(
+                objs,
+                nband,
+                jac,
+                mofconf['model'],
+                self.rng,
+                #Tguess=1.0*jac.scale**2,
+            )
+            #ngmix.print_pars(guesses, front='    guess: ')
+            fitter.go(guesses)
+            res=fitter.get_result()
+            if res['flags']==0:
+                break
+
+        if res['flags'] != 0:
+            raise TryAgainError('mof failed')
+
+        list_of_obslist=[]
+        for i in xrange(objs.size): 
+            cobslist = fitter.make_corrected_obs(index=i, band=0)
+            list_of_obslist.append(cobslist)
+
+        return list_of_obslist
+
+    def _extract_simple_stamps(self, objs, obs):
         # make list of obslist centered on these positions
         list_of_obslist=[]
         for i in xrange(objs.size):
@@ -250,12 +428,7 @@ class FitterBase(dict):
             new_obslist.append(newobs)
 
             list_of_obslist.append( new_obslist )
-
-        if self['show']:
-            self._show_images([o[0].image for o in list_of_obslist])
-
         return list_of_obslist
-
 
     def _find_center_sep(self, obslist):
         from . import runsep
@@ -275,7 +448,6 @@ class FitterBase(dict):
 
         if objs.size == 0:
             if self['show']:
-                logger.debug('no objects found')
                 self._show_image_and_seg(obs.image, seg)
             raise TryAgainError('no objects found')
 

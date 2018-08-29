@@ -16,8 +16,10 @@ SEP_THRESH=0.8
 SEP_PARS={
     'deblend_cont':0.00001,
     'deblend_nthresh':64,
+    #'minarea':9,
     'minarea':4,
     'filter_kernel':SEP_FILTER_KERNEL,
+    'filter_type':'conv',
 }
 
 def find_objects(obs, segmentation_map=False):

@@ -75,7 +75,7 @@ class SimpleMaker(dict):
                 else:
                     nbr = nbr.withFlux(nconf['flux'])
 
-                dx, dy = self._nbr_shift_pdf.sample(2)
+                dx, dy = self._get_nbr_shift()
                 nbr=nbr.shift(dx=dx, dy=dy)
 
                 objs.append(nbr)
@@ -89,6 +89,14 @@ class SimpleMaker(dict):
             obj,meta = self._get_one_model(**kw)
 
         return obj, meta
+
+    def _get_nbr_shift(self):
+        if hasattr(self._nbr_shift_pdf,'sample2d'):
+            dx, dy = self._nbr_shift_pdf.sample2d()
+        else:
+            dx, dy = self._nbr_shift_pdf.sample(2)
+
+        return dx, dy
 
     def _get_one_model(self, **kw):
         g1,g2,r50,flux = self.pdf.sample()
@@ -177,11 +185,19 @@ class SimpleMaker(dict):
 
     def _get_nbr_shift_pdf(self):
         sconf=self['nbrs']['shift']
-        assert sconf['type']=='uniform'
-        return ngmix.priors.FlatPrior(
-            -sconf['radius'], sconf['radius'],
-            rng=self.rng,
-        )
+
+        if sconf['type']=='uniform':
+            return ngmix.priors.FlatPrior(
+                -sconf['radius'], sconf['radius'],
+                rng=self.rng,
+            )
+        elif sconf['type']=='disk':
+            return ngmix.priors.ZDisk2D(
+                sconf['radius'],
+                rng=self.rng,
+            )
+        else:
+            raise ValueError('bad nbr shift pdf: %s' % sconf['type'])
 
     def _get_joint_r50_flux_pdf(self):
         """

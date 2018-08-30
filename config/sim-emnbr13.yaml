@@ -1,0 +1,63 @@
+# one very close neighbor that won't be identified but
+# will make the object effectively more extended, elliptical and higher
+# s/n
+# only about 1/2500 found two objects in centeral region
+# using config in run-emnbr13
+
+images:
+
+    # doing this to avoid finding the center
+    # which might fail with neighbors. let
+    # the fitter do the object/center finding
+
+    use_canonical_center: True
+
+    offset:
+        type: "uniform"
+        radius: 0.5 # pixels
+
+    noise: 0.015
+
+    psf:
+        s2n: 10000
+        shift_psf: False
+
+    object:
+        stamp_size: [64, 64]
+        nepoch: 1
+
+    wcs:
+      dudx: 0.263
+      dudy: 0.0
+      dvdx: 0.0
+      dvdy: 0.263
+
+psf:
+    model: "moffat"
+
+    beta: 3.5
+    fwhm: 0.9
+    shape: [0.00, 0.01]
+
+
+object:
+
+    model: "exp"
+
+    g:
+        type: "ba"
+        sigma: 0.02
+
+    #r50: 1.0
+    r50: 0.5
+    flux: 1.0
+
+    nbrs:
+        num: 1
+
+        flux_frac: 1.0
+        shift:
+            type: disk
+            radius: 1.0 # arcsec
+
+shear: [0.02, 0.00]

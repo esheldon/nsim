@@ -1,0 +1,122 @@
+fitter: "metacal-max"
+
+metacal_pars:
+    types: ['noshear','1p','1m','2p','2m']
+    psf: gauss
+
+fit_model: gauss
+
+detection:
+    detect: True
+
+
+    # for odd size stamp. This gives 47x47 with
+    # object on center pixel
+    stamp_radius: 23
+
+    # to avoid spurious objects right on the edge which
+    # would have an incomplete stamp
+
+    restrict_radius_pixels: 28
+
+    deblending:
+        deblend: True
+        #type: full
+        type: stamps
+
+        # meds and sx config for stamps version
+        weight_type: uberseg
+
+        meds_config:
+            min_box_size: 32
+            max_box_size: 48
+
+            box_type: sigma_size
+            sigma_fac: 5.0
+
+            #box_type: iso_radius
+            #rad_min: 4
+            #rad_fac: 2
+            #box_padding: 2
+
+
+        sx_config: 
+            # in sky sigma
+            #DETECT_THRESH
+            detect_thresh: 0.8
+
+            # Minimum contrast parameter for deblending
+            #DEBLEND_MINCONT
+            deblend_cont: 0.00001
+
+            deblend_nthresh: 64
+
+            minarea: 9
+            #minarea: 4
+
+            filter_type: 'conv'
+
+            # 7x7 convolution mask of a gaussian PSF with FWHM = 3.0 pixels.
+            filter_kernel:  [
+                [0.004963, 0.021388, 0.051328, 0.068707, 0.051328, 0.021388, 0.004963],
+                [0.021388, 0.092163, 0.221178, 0.296069, 0.221178, 0.092163, 0.021388],
+                [0.051328, 0.221178, 0.530797, 0.710525, 0.530797, 0.221178, 0.051328],
+                [0.068707, 0.296069, 0.710525, 0.951108, 0.710525, 0.296069, 0.068707],
+                [0.051328, 0.221178, 0.530797, 0.710525, 0.530797, 0.221178, 0.051328],
+                [0.021388, 0.092163, 0.221178, 0.296069, 0.221178, 0.092163, 0.021388],
+                [0.004963, 0.021388, 0.051328, 0.068707, 0.051328, 0.021388, 0.004963],
+            ]
+
+
+        mof:
+            model: "exp"
+            ntry: 2
+            psf_pars:
+                ntry: 2
+                model: "coellip2"
+                lm_pars:
+                    maxfev: 2000
+                    xtol: 5.0e-5
+                    ftol: 5.0e-5
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 0.27
+
+    T:
+        type: "TwoSidedErf"
+        pars: [-10.0, 0.03, 1.0e+06, 1.0e+05]
+
+    counts:
+        type: "TwoSidedErf"
+        pars: [-1.0e+04, 1.0, 1.0e+09, 0.25e+08]
+        repeat: True
+
+    g:
+        type: "ba"
+        sigma: 0.3
+
+psf_pars:
+    model: "am"
+
+max_pars:
+    ntry: 2
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 2000
+            xtol: 5.0e-5
+            ftol: 5.0e-5
+
+    cov:
+        replace_cov: False
+
+
+
+# get about 2 per
+ngal: 15_000_000
+
+sec_per: 0.63
+desired_hours: 0.5
+jobs_per_condor_sub: 1000

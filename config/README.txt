@@ -325,6 +325,44 @@
             errors are 3 sigma
             m: 2.96691355e-02 +/- 7.84158388e-03  c: -1.28284501e-04 +/- 1.54898628e-04
 
+           - run-emnbr12-mof01
+           R: [0.64930111 0.65006374]
+           Rsel: [0.02016063 0.02067501]
+           total wsum: 17554803.0
+
+           errors are 3 sigma
+           without correction
+           m: -3.93485550e-03 +/- 9.86274723e-03  c: 4.94341217e-05 +/- 1.96776419e-04
+
+           with correction
+           m: -3.39310460e-02 +/- 9.56573368e-03  c: 4.79103528e-05 +/- 1.90710936e-04
+
+       - sim-emnbr13
+            one very close neighbor that won't be identified but
+            will make the object effectively more extended and elliptical
+            and higher s/n
+            only about 1/2500 found two objects in centeral region
+            using config in run-emnbr13
+            fixed flux and size
+
+            R: [0.75479803 0.7556162 ]
+            total wsum: 29642943.0
+            errors are 3 sigma
+            m: -2.98401179e-03 +/- 6.97154254e-03  c: -5.23058730e-06 +/- 1.39318987e-04
+
+            - definitely less biased.
+                - no selection effects, all blended objects are found and no
+                cuts are made.
+                - no detection effects, same reason
+
+       - sim-emnbr14
+           - two s/n ~13-14 objects one at center the other randomly
+           placed, detection (with minarea=9 to avoid junk)
+           - all objects should be detected, even if combined, so
+           no selections will be done
+           - significant overlap in good number of cases, probably
+           5%
+
     - ideas
 
         - pixels being re-used is the problem (although I thought I tested

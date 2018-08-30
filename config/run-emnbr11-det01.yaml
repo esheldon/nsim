@@ -1,4 +1,7 @@
-# take brightest object found
+#
+# detect objects and run on each separately
+#
+
 fitter: "metacal-max"
 
 metacal_pars:

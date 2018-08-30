@@ -319,6 +319,7 @@ class FitterBase(dict):
                 self.rng,
             )
             #ngmix.print_pars(guesses, front='    guess: ')
+            #logger.debug('guess: %s' % repr(guesses))
             fitter.go(guesses)
             res=fitter.get_result()
             if res['flags']==0:
@@ -392,6 +393,7 @@ class FitterBase(dict):
                 self.rng,
                 #Tguess=1.0*jac.scale**2,
             )
+            #logger.debug('guess: %s' % repr(guesses))
             #ngmix.print_pars(guesses, front='    guess: ')
             fitter.go(guesses)
             res=fitter.get_result()

@@ -14,6 +14,7 @@
     - runs-emln02
         noisy (s/n=300) and elliptical Moffat PSF
 
+        quite a bit more noisy shear recovery
         looks to be biased a bit low
 
         errors are 3 sigma
@@ -24,7 +25,12 @@
     - run-emln03-01
         noisier (s/n=100) and elliptical Moffat PSF
 
+        shear recovery even more noisy
+
         errors are 3 sigma
+        m: -2.45151991e-04 +/- 9.16824275e-04
+        c: 2.32322220e-05 +/- 1.83269807e-05
+
 
 
 - checking psf shift again

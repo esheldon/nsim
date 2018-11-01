@@ -1,3 +1,105 @@
+- the `psf: gauss` method is convenient but is overly conservative, especially
+  when there is a lot of noise
+
+  - new class MetacalFitGaussPSF, specify in the metacal pars with
+    `psf: fitgauss`
+
+    - run-emln01-01
+        looks a bit too good
+
+        errors are 3 sigma
+        m: 1.61310586e-04 +/- 3.63008408e-04
+        c: -3.41999351e-07 +/- 7.24902613e-06
+
+    - runs-emln02
+        noisy (s/n=300) and elliptical Moffat PSF
+
+        looks to be biased a bit low
+
+        errors are 3 sigma
+        m: -5.91660858e-05 +/- 3.25917325e-04
+        c: 3.15110641e-06 +/- 6.51544152e-06
+
+
+    - run-emln03-01
+        noisier (s/n=100) and elliptical Moffat PSF
+
+        errors are 3 sigma
+
+
+- checking psf shift again
+    - for run-e78shift saw a bias of 3.e-3 +/- 2.4e-3 (3 sigma)
+    - this seems to go away in the new run
+        run-empshift01-01
+            errors are 3 sigma
+            m: 3.97586051e-04 +/- 3.75237228e-04
+            c: -2.74195892e-07 +/- 7.24025945e-06
+    - I can only guess this is a change in galsim, very odd.
+
+    - coadding without psf shift
+        run-empnoshiftc01-02
+        coadd interp quintic
+        with lanczos15 in metacal
+        errors are 3 sigma
+        m: -1.37374827e-03 +/- 1.08346468e-04
+        c: 3.81912349e-07 +/- 2.15983230e-06
+
+    - coadding with psf shift
+        this one looks about right
+        run-empshiftc02-01
+        coadd interp lanczos3
+        with lanczos15 in metacal
+
+        errors are 3 sigma
+        m: 3.57555298e-04 +/- 1.08580770e-04
+        c: -3.24470381e-07 +/- 2.17382780e-06
+
+    - coadding with psf shift
+        run-empshiftc01-02
+        coadd interp quintic
+        with lanczos15 in metacal
+        errors are 3 sigma
+        m: 6.71336524e-04 +/- 1.07973884e-04
+        c: 1.05923611e-06 +/- 2.15692156e-06
+
+    - so it seems that offsetting the psf isn't biasing
+    the fit without coadd, but is still needed for coadds
+
+
+
+    - also trying with standard interp quintic
+        - runs-empshift01-02plus
+            looks too good, I'm guessing it is being biased low by just
+            about the usual ~4e-4 amount, but not sure why
+
+            errors are 3 sigma
+            m: -3.68198603e-05 +/- 1.86876772e-04
+            c: 5.26242043e-07 +/- 3.62334151e-06
+        - ran at shear 0.08 to see what's up
+            run-empshifthis01-01
+            errors are 3 sigma
+
+            again, the bias is too small
+            m: 3.89061096e-03 +/- 1.25395056e-04
+            c: 3.76639775e-07 +/- 7.17985796e-06
+
+        - doing coadd and not shifting psf
+            run-empnoshiftc01-01
+            now there is a bias
+
+            errors are 3 sigma
+            m: -6.35487434e-04 +/- 1.07702564e-04
+            c: 7.61944081e-07 +/- 2.15188281e-06
+
+
+        - doing coadd with shifting psf
+            run-empshiftc01-01
+            what?
+
+            errors are 3 sigma
+            m: -1.64634677e-03 +/- 1.07917780e-04
+            c: 2.73349864e-07 +/- 2.15081653e-06
+
 - nbrs and fixed moments
     - todo:
         x check works at higher noise
@@ -362,6 +464,13 @@
            no selections will be done
            - significant overlap in good number of cases, probably
            5%
+           R: [0.64121228 0.6420562 ]
+           total wsum: 29270839.0
+           errors are 3 sigma
+           m: -1.57711179e-02 +/- 7.99012795e-03  c: 1.16363240e-05 +/- 1.59702836e-04
+
+           try to replicate this one in dbsim with metadetect
+
 
     - ideas
 
@@ -522,8 +631,8 @@
     - when can't symmetrization or "gauss psf" when the
       psf is not centered
 
-    - sim-bd78 no psf shift
-    - sim-bd78shift shift the psf
+    - sim-e78 no psf shift
+    - sim-e78shift shift the psf
         - bias is 3e-3 +/- 2.4e-3 (3 sigma)
 
 - simple neighbor tests using minimof

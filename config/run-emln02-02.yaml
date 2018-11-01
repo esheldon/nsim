@@ -1,0 +1,18 @@
+# testing using fitgauss method
+fitter: "metacal-moments-am"
+
+# we expect a bias from shifted PSF for psf: gauss setting
+metacal_pars:
+    psf: "fitgauss"
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+ngal: 9_000_000
+
+sec_per: 0.16
+desired_hours: 0.25
+jobs_per_condor_sub: 1000
+
+verbose: False

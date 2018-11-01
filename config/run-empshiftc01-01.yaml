@@ -1,0 +1,20 @@
+# in sim psf is shifted
+# testing effect on shear recovery
+fitter: "metacal-moments-am"
+
+# we expect a bias from shifted PSF for psf: gauss setting
+metacal_pars:
+    types: ['noshear','1p','1m','2p','2m']
+    psf: gauss
+
+admom_pars:
+    ntry: 4
+    maxiter: 200
+
+ngal: 1_000_000
+
+sec_per: 0.27
+desired_hours: 0.10
+jobs_per_condor_sub: 1000
+
+verbose: False

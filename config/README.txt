@@ -27,10 +27,11 @@
 
         shear recovery even more noisy
 
-        errors are 3 sigma
-        m: -2.45151991e-04 +/- 9.16824275e-04
-        c: 2.32322220e-05 +/- 1.83269807e-05
+        some additive and multiplicative (or maybe
+        a combination?)
 
+        errors are 3 sigma
+        m: -4.23422015e-04 +/- 4.58413141e-04  c: 1.89504372e-05 +/- 9.16343840e-06
 
 
 - checking psf shift again

@@ -91,10 +91,7 @@ class FitterBase(dict):
                 self.tm_sim += time.time()-tm0
 
                 if self['show']:
-                    import images
-                    images.multiview(obslist[0].image)
-                    if raw_input('hit a key (q to quit): ')=='q':
-                        stop
+                    self._show_obs(obslist)
 
                 n_proc += 1
 
@@ -131,6 +128,17 @@ class FitterBase(dict):
         logger.info('time per (total) %s' % (self.tm/self['ngal']))
         logger.info('time to simulate: %s' % (self.tm_sim/self['ngal']))
         logger.info('time to fit: %s' % (self.tm_fit/n_proc))
+
+    def _show_obs(self, obslist):
+        import images
+        import biggles
+        tab = biggles.Table(2,1)
+
+        tab[0,0]=images.multiview(obslist[0].image,show=False,title='object')
+        tab[1,0]=images.multiview(obslist[0].psf.image,show=False,title='psf')
+        tab.show()
+        if raw_input('hit a key (q to quit): ')=='q':
+            stop
 
     def process_one(self, obslist):
         """

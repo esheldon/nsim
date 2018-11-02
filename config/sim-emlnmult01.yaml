@@ -1,0 +1,45 @@
+# two-component PSF, each a round gaussian
+# second component is shifted by 0.1''
+images:
+    offset:
+        type: "uniform"
+        radius: 0.5 # pixels
+
+    noise: 0.001
+
+    psf:
+        s2n: 10000.0
+
+        # shift the overall psf same as the object?
+        shift_psf: False
+
+        stamp_size: [32, 32]
+
+    object:
+        nepoch: 1
+        stamp_size: [32, 32]
+
+    wcs:
+      dudx: 0.263
+      dudy: 0.0
+      dvdx: 0.0
+      dvdy: 0.263
+
+psf:
+    model: "moffat"
+
+    model: "multi-component"
+
+    components:
+        - {model: gauss, fwhm: 0.9, flux_frac: 0.5, shape: [0.0, 0.0]}
+        - {model: gauss, fwhm: 0.9, flux_frac: 0.5, shape: [0.0, 0.0], shift: [0.1,0.0]}
+
+
+
+object:
+    model: "exp"
+
+    r50: 0.5
+    flux: 14.0
+
+shear: [0.02, 0.00]

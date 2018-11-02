@@ -16,6 +16,8 @@
 
         quite a bit more noisy shear recovery
         looks to be biased a bit low
+        !! was using different noise realization for
+        each psf !!
 
         errors are 3 sigma
         m: -5.91660858e-05 +/- 3.25917325e-04
@@ -32,6 +34,13 @@
 
         errors are 3 sigma
         m: -4.23422015e-04 +/- 4.58413141e-04  c: 1.89504372e-05 +/- 9.16343840e-06
+
+        - fixed mistake where PSF noise was different for each metacal
+        image.
+        - run-emln03-03
+        errors are 3 sigma
+        m: -3.63936441e-04 +/- 2.89979421e-03
+        c: 6.07633234e-05 +/- 5.78905310e-05
 
 
 - checking psf shift again

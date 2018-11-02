@@ -231,6 +231,12 @@ class MultiComponentPSF(object):
         parts=[]
         for c in self.components:
             tobj, junk = c()
+
+            tobj = tobj.withScaledFlux(c['flux_frac'])
+
+            if 'shift' in c:
+                tobj = tobj.shift(*c['shift'])
+
             parts.append(tobj)
 
         obj = galsim.Add(parts)

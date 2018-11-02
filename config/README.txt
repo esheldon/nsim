@@ -42,6 +42,10 @@
         m: -3.63936441e-04 +/- 2.89979421e-03
         c: 6.07633234e-05 +/- 5.78905310e-05
 
+    - now checking two-component psf with one shifted to see if
+      using our roundified and centered FitGaussPSF is still ok
+      - sim-emlnmult01.yaml
+          - run-emlnmult01-01
 
 - checking psf shift again
     - for run-e78shift saw a bias of 3.e-3 +/- 2.4e-3 (3 sigma)

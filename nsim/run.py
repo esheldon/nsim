@@ -188,8 +188,8 @@ def go(seed,
         else:
             raise RuntimeError("don't have mom metacal for ngmix sim yet")
 
-    elif ftype=='metacal-admom':
-        fitclass=fitters.AMMetacalFitter
+    #elif ftype=='metacal-admom':
+    #    fitclass=fitters.AMMetacalFitter
 
 
     elif ftype=='metacal-isample':

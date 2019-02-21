@@ -800,7 +800,6 @@ class SimpleFitterBase(FitterBase):
                 T_prior = load_gmixnd(Tp, rng=self.rng)
 
             elif Tp['type']=='normal':
-                Tpars=Tp['pars']
                 T_prior=ngmix.priors.Normal(
                     Tp['mean'],
                     Tp['sigma'],

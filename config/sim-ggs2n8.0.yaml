@@ -1,0 +1,38 @@
+images:
+    offset:
+        type: "uniform"
+        radius: 0.5 # pixels
+
+    noise: 1.0
+
+    psf:
+        s2n: 10000
+        shift_psf: True
+
+    object:
+        nepoch: 1
+
+    wcs:
+      dudx: 0.0
+      dudy: 0.263
+      dvdx: 0.263
+      dvdy: 0.0
+
+psf:
+    model: "gauss"
+
+    fwhm: 0.9
+
+    shape: [0.0, 0.0]
+
+object:
+    model: "exp"
+
+    g:
+        type: "ba"
+        sigma: 0.02
+
+    r50: 0.001
+    flux: 40.0
+
+shear: [0.00, 0.00]

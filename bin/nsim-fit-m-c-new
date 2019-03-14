@@ -11,14 +11,15 @@ import yaml
 
 import fitsio
 
+import esutil as eu
+from esutil.numpy_util import between
+
 import ngmix
 import nsim
 from nsim import files
 from nsim.averaging_new import Summer
 
 import argparse
-import esutil as eu
-from esutil.numpy_util import between
 
 
 fclass=argparse.ArgumentDefaultsHelpFormatter

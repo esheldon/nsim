@@ -35,17 +35,25 @@
         errors are 3 sigma
         m: -4.23422015e-04 +/- 4.58413141e-04  c: 1.89504372e-05 +/- 9.16343840e-06
 
+
         - fixed mistake where PSF noise was different for each metacal
-        image.
-        - run-emln03-03
-        errors are 3 sigma
-        m: -3.63936441e-04 +/- 2.89979421e-03
-        c: 6.07633234e-05 +/- 5.78905310e-05
+          image.
+        - run-emln03-03,04
+            errors are 3 sigma
+            m: -2.88076273e-04 +/- 5.31901998e-04
+            c: 1.51256490e-05 +/- 1.06364109e-05
 
     - now checking two-component psf with one shifted to see if
       using our roundified and centered FitGaussPSF is still ok
       - sim-emlnmult01.yaml
           - run-emlnmult01-01
+          errors are 3 sigma
+          m: 4.31157514e-04 +/- 2.60732419e-04
+          c: -1.95457292e-07 +/- 5.20383810e-06
+
+      - should probably shift it by the fit psf center though...
+        better for the max like fitters where there is a prior
+        on the center
 
 - checking psf shift again
     - for run-e78shift saw a bias of 3.e-3 +/- 2.4e-3 (3 sigma)

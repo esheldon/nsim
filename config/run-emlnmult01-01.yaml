@@ -12,7 +12,7 @@ admom_pars:
 ngal: 1_000_000
 
 sec_per: 0.16
-desired_hours: 0.25
+desired_hours: 0.10
 jobs_per_condor_sub: 1000
 
 verbose: False

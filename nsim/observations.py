@@ -105,6 +105,17 @@ class ObservationMaker(dict):
         if 'defects' in self:
             self._add_defects(obslist)
 
+        if 'replace_bad_pixels' in self:
+            # do a fit on the coadd and use it to replace bad pixels
+            # in the SE images
+            type=self['replace_bad_pixels']['type']
+            if type=='interp':
+                self._replace_bad_pixels_interp(obslist)
+            else:
+                raise ValueError("unsupported replace_bad_pixels "
+                                 "type: '%s'" % type)
+
+
         if 'coadd' in self:
             obslist = self._do_coadd(obslist)
 
@@ -209,7 +220,7 @@ class ObservationMaker(dict):
             if type == 'me':
                 obslist = self._replace_bad_pixels_from_me_fit(obslist)
             elif type=='interp':
-                self._replace_bad_pixels_interp(obslist)
+                self._replace_bad_pixels_interp_coadd(obslist)
             else:
                 raise ValueError("unsupported replace_bad_pixels "
                                  "type: '%s'" % type)
@@ -227,7 +238,7 @@ class ObservationMaker(dict):
             self._show_coadd(coadd_obslist)
         return coadd_obslist
 
-    def _replace_bad_pixels_interp(self, obslist):
+    def _replace_bad_pixels_interp_coadd(self, obslist):
         """
         do see bias when noisy
         1 maybe because we need to interpolate the noise also
@@ -264,8 +275,6 @@ class ObservationMaker(dict):
             wbad,=numpy.where( (bmravel != 0) | (wtravel == 0.0) )
 
             if wbad.size > 0:
-                #print("        interpolating %d/%d masked or zero weight "
-                #      "pixels" % (wbad.size,im.size))
 
                 yy, xx = numpy.mgrid[0:im.shape[0], 0:im.shape[1]]
 
@@ -289,6 +298,62 @@ class ObservationMaker(dict):
 
                 # maybe want to interpolate weight map too in real data
                 obs.weight[:,:] = obs.weight.max()
+
+
+    def _replace_bad_pixels_interp(self, obslist):
+
+        for obs in obslist:
+
+            im=obs.image
+            weight=obs.weight
+
+            if not obs.has_bmask():
+                obs.bmask = numpy.zeros(im.shape, dtype='i4')
+
+            bmask = obs.bmask
+            # make noise field, needed!
+            # also need to symmetrize the mask/weights!
+            if not obs.has_noise():
+                scale=numpy.sqrt(1.0/weight.max())
+                obs.noise = self.rng.normal(scale=scale, size=im.shape)
+
+            noise = obs.noise
+
+            imravel = im.ravel()
+            bmravel = bmask.ravel()
+            wtravel = weight.ravel()
+
+            wbad,=numpy.where( (bmravel != 0) | (wtravel == 0.0) )
+
+            if wbad.size > 0:
+
+                yy, xx = numpy.mgrid[0:im.shape[0], 0:im.shape[1]]
+
+                x = xx.ravel()
+                y = yy.ravel()
+
+                yx = numpy.zeros( (x.size, 2) )
+                yx[:,0] = y
+                yx[:,1] = x
+
+                wgood, = numpy.where( (bmravel==0) & (wtravel != 0.0) )
+
+                im_interp = self._do_interp(yx, im, wgood, wbad)
+
+                if obs.has_noise():
+                    noise_interp = self._do_interp(yx, noise, wgood, wbad)
+                    obs.noise = noise_interp
+
+                obs.image[:,:] = im_interp
+
+                # for now set bmask to zero in case downstream is avoiding it
+                bmask[:,:]=0
+
+                # maybe want to interpolate weight map too in real data
+                obs.weight[:,:] = obs.weight.max()
+
+                obs.update_pixels()
+
 
     def _do_interp(self, yx, im, wgood, wbad):
         import scipy.interpolate
@@ -315,7 +380,7 @@ class ObservationMaker(dict):
         do a full multi-epoch fit use the model
         to fill in bad pixels in the obslist
         """
-        print("replacing bad pixels")
+        logger.debug("replacing bad pixels")
         from ngmix.gexceptions import BootPSFFailure, BootGalFailure
         repconf = self['coadd']['replace_bad_pixels']
 
@@ -403,7 +468,6 @@ class ObservationMaker(dict):
         """
         add single bad pixels with a given rate
         """
-        #print("adding example bmasks")
         for obs in obslist:
             if not obs.has_bmask():
                 obs.bmask = numpy.zeros( obs.image.shape, dtype='i4' )
@@ -414,13 +478,15 @@ class ObservationMaker(dict):
             if wbad[0].size > 0:
                 obs.bmask = bmask
                 obs.weight[wbad] = 0.0
-                obs.image[wbad] = 1.e9
+                obs.image[wbad] = 0.0
+
+                obs.update_pixels()
 
     def _add_bad_pixels(self, obslist, defect):
         """
         add single bad pixels with a given rate
         """
-        print("adding single bad pixels")
+        logger.debug("adding single bad pixels")
         for obs in obslist:
             if not obs.has_bmask():
                 obs.bmask = numpy.zeros( obs.image.shape, dtype='i4' )
@@ -442,35 +508,44 @@ class ObservationMaker(dict):
                 # pick a random pixel
 
                 i = self.rng.randint(0, imravel.size)
-                #print("    ",i)
 
                 wtravel[i] = 0.0
-                imravel[i] = 1.e9
+                imravel[i] = 0.0
                 bmravel[i] = BAD_PIXEL
+
+            obs.update_pixels()
 
     def _add_bad_columns(self, obslist, defect):
         """
         add single bad pixels with a given rate
         """
-        print("adding bad columns")
+        logger.debug("adding bad columns")
         for obs in obslist:
             if not obs.has_bmask():
                 obs.bmask = numpy.zeros( obs.image.shape, dtype='i4' )
-
-            bmask  = obs.bmask
-            image  = obs.image
-            weight = obs.weight
 
             r = self.rng.uniform()
             if r < defect['rate']:
                 # pick a random column
 
-                i = self.rng.randint(0, image.shape[1])
-                print("    col:",i)
+                i = self.rng.randint(0, obs.image.shape[1])
+                logger.debug("    col: %d" % i)
 
-                weight[:,i] = 0.0
-                image[:,i]  = 1.e9
+                #obs.weight[:,i] = 0.0
+                #obs.image[:,i]  = 0.0
+                bmask = obs.bmask
                 bmask[:,i]  = BAD_COLUMN
+
+                if defect.get('symmetrize',False):
+                    bmask |= numpy.rot90(bmask)
+
+                obs.bmask = bmask
+
+                w=numpy.where(bmask != 0)
+                obs.weight[w] = 0.0
+                obs.image[w] = 0.0
+
+            obs.update_pixels()
 
     def _do_coadd_test_straight(self, obslist, type):
         iilist = [] 
@@ -514,11 +589,9 @@ class ObservationMaker(dict):
                 #doffset = tobs.meta['psf_offset_pixels']
                 doffset = tobs.psf.meta['offset_pixels']
                 obs = tobs.psf
-                #print("psf offset:",doffset)
             else:
                 doffset = tobs.meta['offset_pixels']
                 obs = tobs
-                #print("obj offset:",doffset)
 
             if doffset is not None:
                 offset=(doffset['col_offset'],doffset['row_offset'])
@@ -619,8 +692,6 @@ class ObservationMaker(dict):
         else:
             psf_offset_pixels = None
 
-        #print("offset:",offset_pixels)
-        #print("offset psf:",psf_offset_pixels)
         psf_im, psf_jacob = self._get_psf_image(
             psf,
             wcs,
@@ -669,7 +740,6 @@ class ObservationMaker(dict):
         pb = self['psf_bias']
         if 'dilate' in pb:
             dilate = pb['dilate']
-            #print("dilating psf by:",dilate)
             psf = psf.dilate(dilate)
             psf_dims = ( psf_dims * dilate ).astype('i4')
         else:
@@ -840,15 +910,6 @@ class ObservationMaker(dict):
                     dvdx = rotated_jmatrix[1,0]
                     dvdy = rotated_jmatrix[1,1]
 
-                    """
-                    import images
-                    print("original")
-                    images.imprint(jmatrix)
-                    print("rotated",angle*180.0/numpy.pi)
-                    images.imprint(rotated_jmatrix)
-                    print("-"*70)
-                    stop
-                    """
         else:
             dudx=1.0
             dudy=0.0
@@ -1058,10 +1119,10 @@ class ObservationMaker(dict):
                     break
 
         if mask_file is None:
-            print("no bmasks to load")
+            logger.debug("no bmasks to load")
             return
 
-        print("Loading masks from:",mask_file)
+        logger.info("Loading masks from: %s" % mask_file)
 
         bmask_list=[]
         with fitsio.FITS(mask_file) as fits:
@@ -1072,13 +1133,12 @@ class ObservationMaker(dict):
 
                 mask = hdu.read()
                 if add_rotated:
-                    #print("adding rotated")
                     rm = numpy.rot90(mask)
                     mask = mask + rm
 
                 bmask_list.append( mask )
 
-        print("    loaded %d masks" % len(bmask_list))
+        logger.info("    loaded %d masks" % len(bmask_list))
         self.bmask_list=bmask_list
 
 

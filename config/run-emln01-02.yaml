@@ -1,0 +1,45 @@
+# testing using fitgauss method
+fitter: "metacal-max"
+fit_model: 'gauss'
+
+# we expect a bias from shifted PSF for psf: gauss setting
+metacal_pars:
+    psf: "fitgauss"
+
+priors:
+    cen:
+        type: "normal2d"
+        sigma: 0.2
+
+    T:
+        type: "two-sided-erf"
+        pars: [-0.5, 0.5, 1000.0, 10.0]
+
+    counts:
+        type: "two-sided-erf"
+        pars: [-0.5, 0.5, 1000.0, 10.0]
+
+    g:
+        type: "ba"
+        sigma: 0.2
+
+psf_pars:
+    model: "gauss"
+    ntry: 10
+
+max_pars:
+    ntry: 5
+    pars:
+        method: "lm"
+        lm_pars:
+            maxfev: 4000
+    cov:
+        replace_cov: False
+
+ngal: 1_000_000
+
+sec_per: 0.16
+desired_hours: 0.10
+jobs_per_condor_sub: 1000
+
+verbose: False

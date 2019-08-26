@@ -46,7 +46,7 @@ admom_pars:
 #    cov:
 #        replace_cov: False
 
-ngal: 400_000
+ngal: 1_000_000
 
 # time for the entire MPI job at nersc
 #queue: "regular"
@@ -54,7 +54,7 @@ ngal: 400_000
 #constraint: "haswell"
 
 jobs_per_condor_sub: 1000
-desired_hours: 0.1
+desired_hours: 0.25
 sec_per: 0.25
 
 verbose: False

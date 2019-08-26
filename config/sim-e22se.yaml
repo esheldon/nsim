@@ -8,7 +8,7 @@ images:
         # interp: "lanczos15"
         flat_wcs: True
 
-    noise: 0.1
+    noise: 0.2
 
     psf:
         s2n: 10000

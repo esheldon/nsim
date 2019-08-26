@@ -1,0 +1,4 @@
+runs: [
+    run-e78shift-mcal-01c,
+    run-e78shift-mcal-02c,
+]

@@ -1,0 +1,4 @@
+runs: [
+    run-e22se-mcal-t01,
+    run-e22se-mcal-t02,
+]

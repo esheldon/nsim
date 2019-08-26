@@ -660,8 +660,15 @@
       psf is not centered
 
     - sim-e78 no psf shift
+        - unbiased
     - sim-e78shift shift the psf
-        - bias is 3e-3 +/- 2.4e-3 (3 sigma)
+        - run-e78shift-mcal-01b
+            - psf gauss
+            - bias is 3e-3 +/- 2.4e-3 (3 sigma)
+        - running much later psf symmetrization
+        - run-e78shift-mcal-01c,02c
+            m: 1.82581452e-03 +/- 7.28245648e-04
+            consistent actually
 
 - simple neighbor tests using minimof
     - sim-nbr01.  One gaussian (central), one exp

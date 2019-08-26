@@ -1,0 +1,56 @@
+images:
+    offset:
+        type: "uniform"
+        radius: 0.5 # pixels
+
+    coadd:
+        type: "mean"
+        # interp: "lanczos15"
+        flat_wcs: True
+
+    noise: 0.1
+
+    psf:
+        s2n: 10000
+        shift_psf: True
+        # shift_psf: False
+
+    object:
+        nepoch: 1
+
+    wcs:
+        dudx: 0.03
+        dudy: 0.27
+        dvdx: 0.25
+        dvdy: 0.015
+
+    #wcs:
+    #    dudx: 0.00
+    #    dudy: 0.263
+    #    dvdx: 0.263
+    #    dvdy: 0.00
+
+
+psf:
+    model: "moffat"
+
+    beta: 3.5
+
+    fwhm: 0.95
+
+    shape: [0.0, 0.0]
+
+object:
+    model: "exp"
+
+    # g:
+    #     type: "ba"
+    #     sigma: 0.2
+
+    r50: 0.5
+    flux: 14.0
+
+    # r50_flux:
+    #    type: "cosmos"
+
+shear: [0.02, 0.00]

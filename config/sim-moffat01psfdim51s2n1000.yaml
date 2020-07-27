@@ -16,6 +16,7 @@ images:
         stamp_size: [51, 51]
 
     object:
+        stamp_size: [32, 32]
         nepoch: 1
 
     wcs:

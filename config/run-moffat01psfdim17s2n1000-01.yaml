@@ -38,7 +38,7 @@ max_pars:
    cov:
        replace_cov: False
 
-ngal: 400000
+ngal: 800000
 
 # time for the entire MPI job at nersc
 #queue: "regular"

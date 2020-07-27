@@ -1,0 +1,43 @@
+images:
+    offset:
+        type: "uniform"
+        radius: 0.5 # pixels
+
+    # coadd:
+    #     type: "mean"
+    #     # interp: "lanczos15"
+    #     flat_wcs: True
+    #
+    noise: 0.2
+
+    psf:
+        s2n: 10000
+        shift_psf: True
+        stamp_size: [51, 51]
+
+    object:
+        nepoch: 1
+
+    wcs:
+       dudx: 0.00
+       dudy: 0.263
+       dvdx: 0.263
+       dvdy: 0.00
+
+
+psf:
+    model: "moffat"
+
+    beta: 3.1
+
+    fwhm: 0.95
+
+    shape: [0.0, 0.0]
+
+object:
+    model: "exp"
+    r50: 0.0001
+    flux: 1000.0
+
+
+shear: [0.02, 0.00]
